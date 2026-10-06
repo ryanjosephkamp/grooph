@@ -12,7 +12,7 @@ import { contentsOf, parseGroupFrom, type GroupContents } from "./groups.js";
 import { edgeIdFor } from "./ops/edit.js";
 import { allIds, uniqueId } from "./ops/ids.js";
 import { ID_PATTERN, ONE_LINE_PATTERN } from "./schema/dsl.js";
-import { brakesLost, roundsLeftToAPerson, type Loss } from "./brakes.js";
+import { brakesLost, roundsLeftToAPerson, saidOf, type Loss } from "./brakes.js";
 import { decisionName, decisionsShared, reachedWithout, type Closed } from "./reach.js";
 import { entryNodeIds } from "./semantics.js";
 import { didYouMean } from "./suggest.js";
@@ -512,7 +512,7 @@ export function refreshSubgrooph(doc: Graph, groupId: Id, template: Graph, optio
     for (const loss of losses) {
       const named = new Set(loss.at.filter((name) => changes.some((change) => change.name === name && applied(change))));
       changes = changes.map((change) => {
-        if (!(named.size > 0 ? named.has(change.name) : applied(change)) || (change.loosens ?? "").split("; ").includes(loss.why)) return change;
+        if (!(named.size > 0 ? named.has(change.name) : applied(change)) || saidOf(change.loosens, loss.why)) return change;
         return { ...change, loosens: change.loosens === undefined ? loss.why : `${change.loosens}; ${loss.why}` };
       });
     }

@@ -858,6 +858,19 @@ test("a brake that leads on is a brake: it is not raised, dropped or led elsewhe
   // The node renamed is a check, and a check under another id is a check removed (amendment A-019): held as well.
   assert.match(refused(renamed).join("\n"), /node:q-integrate: removes a check/);
   unchanged(queued, renamed.doc);
+  // A reason is said once on a line, also where it quotes a command that holds "; " (reasons are joined by that).
+  const quoted = refreshSubgrooph(queued, "q", newer((t) => {
+    const to = (id: string): string => (id === "integrate" ? "integrator" : id);
+    for (const node of t.nodes) {
+      if (node.kind === "check" && node.id === "integrate") node.check = { ...node.check, run: "git merge --no-ff; true" };
+      node.id = to(node.id);
+    }
+    for (const edge of t.edges) Object.assign(edge, { from: to(edge.from), to: to(edge.to) });
+    for (const loop of t.loops) Object.assign(loop, { members: loop.members.map(to) });
+  }, 99, queue));
+  const said = quoted.changes.find((change) => change.name === "node:q-integrate")!.loosens!;
+  assert.match(said, /removes a check, while a check the graph has not comes in \("q-integrator": runs "git merge --no-ff; true"/);
+  assert.equal(said.split("removes a check, while").length - 1, 1, said);
   // Asked for by name, the renaming applies; the cap, which was not asked for, stays.
   const asked = refreshSubgrooph(queued, "q", newer((t) => {
     const to = (id: string): string => (id === "integrate" ? "integrator" : id);

@@ -1,0 +1,76 @@
+
+## (a) a new edge from the builder to the critic that goes round the check, handing the critic evidence
+  head: REFUSED; changes named: 1
+      loosens a brake   edge:e-skip  adds a way into "critic" that does not pass the check "tests"
+
+## (a2) the same edge with no evidence
+  head: NOT VALID, not adoptable: E_CRITIC_NOT_ISOLATED: edge "e-skip" runs from writer "builder" to critic "critic" with no evidence list, but policy "p-critic-isolation" requires critic isolation; list what the crit
+
+## (b) a new step marked irreversible (told to publish) put behind the gate: the gate's yes led to it, and it leads to done
+  head: ADOPTED, nothing refused; changes named: 3
+      not judged        node:ship  undoing it: removes a node marked irreversible (publishes the package to npm): what takes its place carries no such mark unless it is given one
+      no label          edge:e-merge-gate-done.to, edge:e-ship-done
+
+## (b2) the same step with NO irreversible marker (the reader's retargeted answer: told to run npm publish)
+  head: ADOPTED, nothing refused; changes named: 3
+      no label          node:ship, edge:e-merge-gate-done.to, edge:e-ship-done
+
+## (b3) the irreversible step put in FRONT of the gate (between the critic's pass and the gate)
+  head: NOT VALID, not adoptable: E_LOOP_BACK_EDGE: loop "review": back edge "e-merge-gate-reject" returns to builder, but no path inside the loop's members leads from there to merge-gate | E_IRREVERSIBLE_NO_GATE: node "ship" performs irreversible actions (publishes the package to npm) and can be reached without a human decision through "e-critic-pass"; every way in must 
+
+## (b4) the irreversible marker put on a step the graph HAS, behind no gate of its own in a round (the builder)
+  head: NOT VALID, not adoptable: E_IRREVERSIBLE_NO_GATE: node "builder" performs irreversible actions (publishes the package to npm) and can be reached without a human decision through "e-critic-fail"; every way in mu
+
+## (c1) a gate given a new answer "skip", and no edge for it
+  head: ADOPTED, nothing refused; changes named: 1
+      not judged        node:merge-gate.options  undoing it: the gate would no longer offer "skip"
+
+## (c2) the new answer "skip" led to done, which its yes already reaches
+  head: REFUSED; changes named: 2
+      loosens a brake   edge:e-gate-skip  adds a way into "done" that does not pass "pass" at the human gate "merge-gate"
+      not judged        node:merge-gate.options  undoing it: the gate would no longer offer "skip"
+
+## (c3) the new answer "skip" led to a new step told to publish, which leads to done
+  head: REFUSED; changes named: 4
+      loosens a brake   edge:e-ship-done  adds a way into "done" that does not pass "pass" at the human gate "merge-gate"
+      not judged        node:merge-gate.options  undoing it: the gate would no longer offer "skip"
+      not judged        node:ship  undoing it: "skip" at the human gate "merge-gate" would lead nowhere
+      not judged        edge:e-gate-skip  undoing it: "skip" at the human gate "merge-gate" would lead nowhere
+
+## (c4) the new answer "skip" led to a new stop that ends in success
+  head: ADOPTED, nothing refused; changes named: 3
+      not judged        node:merge-gate.options  undoing it: the gate would no longer offer "skip"
+      not judged        node:skipped  undoing it: "skip" at the human gate "merge-gate" would lead nowhere
+      not judged        edge:e-gate-skip  undoing it: "skip" at the human gate "merge-gate" would lead nowhere
+
+## (d1) the builder's effort changed, high to low
+  head: ADOPTED, nothing refused; changes named: 1
+      no label          node:builder.effort
+
+## (d2) the critic's effort changed, high to low
+  head: ADOPTED, nothing refused; changes named: 1
+      no label          node:critic.effort
+
+## (e1) the critic's inputs replaced
+  head: ADOPTED, nothing refused; changes named: 1
+      no label          node:critic.inputs
+
+## (e2) the critic's outputs replaced
+  head: ADOPTED, nothing refused; changes named: 1
+      no label          node:critic.outputs
+
+## (f1) evidence removed from an edge not into a critic (the critic's fail back to the builder)
+  head: ADOPTED, nothing refused; changes named: 1
+      no label          edge:e-critic-fail.evidence
+
+## (f2) evidence replaced on the gate's reject back to the builder
+  head: ADOPTED, nothing refused; changes named: 1
+      no label          edge:e-merge-gate-reject.evidence
+
+## (f3) with a check: evidence removed from the check's fail back to the builder
+  head: REFUSED; changes named: 1
+      loosens a brake   edge:e-tests-fail.evidence  changes "e-tests-fail", an edge that leaves the check "tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+## (g) the goal's "Done when" rewritten
+  head: ADOPTED, nothing refused; changes named: 1
+      no label          graph:goal

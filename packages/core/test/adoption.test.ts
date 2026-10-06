@@ -587,7 +587,7 @@ test("A-019, the reader's first: a failure led to a second stop that ends in suc
     w.nodes.push(second);
     w.edges.push({ id: "e-tests-failed", from: "tests", to: "done-too", when: "fail", approval: true });
   }, { from: grind });
-  assert.deepEqual(refused(approved), [`edge:e-tests-failed: adds "e-tests-failed", an edge that leaves the check "tests"${EITHER}`]);
+  assert.deepEqual(refused(approved), [`edge:e-tests-failed: adds a way from "tests" to end in success that does not pass "pass" from the check "tests"; adds "e-tests-failed", an edge that leaves the check "tests"${EITHER}`]);
 
   // And from the builder, the check untouched: the third probe with a stop of its own.
   const around = adopt((w) => {
@@ -819,4 +819,363 @@ test("A-019's exception, case by case as the audit lane read it: an approval new
   assert.ok(names(adopt((w) => void (edge(w, "e-tests-judge").evidence = [...handed.slice(0, -1), "a summary"]), { from: rare })).includes("edge:e-tests-judge.evidence"));
   const more = adopt((w) => void edge(w, "e-tests-fail").evidence!.push("the failing test's name"), { from: grind });
   assert.deepEqual(refused(more), [`edge:e-tests-fail.evidence: changes "e-tests-fail", an edge that leaves the check "tests" (evidence)${EITHER}`]);
+});
+
+// ─── how a run ends without a verdict's pass, and a check under another id (the driver's reader of the check kind) ───
+
+/** Tests lead on a pass to the end and on a failure to a stop that halts: the graph the driver's reader broke. */
+const oneShot = (): Graph =>
+  parseGraphText(JSON.stringify({
+    grooph: 0, id: "one-shot", name: "One shot", version: 1, goal: "Make the change and run the tests once.", target: { harness: "claude-code" },
+    nodes: [
+      { id: "builder", kind: "agent", name: "Builder", role: "builder", brief: "Make the change.", outputs: ["the change"], allow: ["read-files", "edit-files"] },
+      { id: "tests", kind: "check", name: "Tests", check: { kind: "tests", run: "npm test", pass: "exit code 0" } },
+      { id: "done", kind: "stop", name: "Done", outcome: "success" },
+      { id: "failed", kind: "stop", name: "Failed", outcome: "halt" },
+    ],
+    edges: [{ id: "e-builder-tests", from: "builder", to: "tests" }, { id: "e-tests-pass", from: "tests", to: "done", when: "pass" }, { id: "e-tests-fail", from: "tests", to: "failed", when: "fail" }],
+    loops: [],
+  })).doc!;
+/** A builder and a critic in a loop, no person: pass leads to the end, "hopeless" to a stop that halts. */
+const critiqued = (): Graph =>
+  parseGraphText(JSON.stringify({
+    grooph: 0, id: "critiqued", name: "Critiqued", version: 1, goal: "Build and have it judged.", target: { harness: "claude-code" },
+    nodes: [
+      { id: "builder", kind: "agent", name: "Builder", role: "builder", brief: "Make the change.", outputs: ["the change"], allow: ["read-files", "edit-files"] },
+      { id: "critic", kind: "agent", name: "Critic", role: "critic", brief: "Judge the change.", outputs: ["REVIEW.md"], allow: ["read-files", "write-outputs"] },
+      { id: "done", kind: "stop", name: "Done", outcome: "success" },
+      { id: "gave-up", kind: "stop", name: "Gave up", outcome: "halt" },
+    ],
+    edges: [
+      { id: "e-builder-critic", from: "builder", to: "critic", evidence: ["the diff"] },
+      { id: "e-critic-pass", from: "critic", to: "done", when: "pass" },
+      { id: "e-critic-fail", from: "critic", to: "builder", when: "fail" },
+      { id: "e-critic-hopeless", from: "critic", to: "gave-up", when: { verdict: "hopeless" } },
+    ],
+    loops: [{ id: "review", name: "Review", members: ["builder", "critic"], back: ["e-critic-fail"], mode: "judgment", bar: { name: "Good", inspects: [{ kind: "file", ref: "REVIEW.md" }], acceptance: "The critic finds nothing wrong." }, stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 3 }] }],
+  })).doc!;
+const SECOND_END = { id: "done-too", kind: "stop", name: "Done too", outcome: "success" } as Node;
+const stopOutcome = (w: Graph, id: string): { outcome?: string } => w.nodes.find((n) => n.id === id) as { outcome?: string };
+
+test("A-019: a run that comes to end in success without a verdict's pass is held: the rule the comparison had, asked of the pass", () => {
+  // How a run comes to end was asked of a whole verdict, with every edge the judge has shut, so a failing verdict
+  // that came to end in success showed nothing. Asked of the pass alone, it shows.
+  // A check's failure led to a stop that halts; the stop given `outcome: "success"`, or its outcome taken away.
+  for (const change of [(w: Graph): void => void (stopOutcome(w, "failed").outcome = "success"), (w: Graph): void => void delete stopOutcome(w, "failed").outcome]) {
+    const ended = adopt(change, { from: oneShot() });
+    assert.deepEqual(names(ended), ["node:failed.outcome"]);
+    assert.match(refused(ended)[0]!, /a run could end in success at "failed", a way that does not pass "pass" from the check "tests"/);
+  }
+  // A step between the failure and the stop that halts, itself made a stop that ends in success.
+  const reported = oneShot();
+  reported.nodes.push(agent("report", "tester"));
+  reported.edges.find((e) => e.id === "e-tests-fail")!.to = "report";
+  reported.edges.push({ id: "e-report-failed", from: "report", to: "failed" });
+  const step = adopt((w) => {
+    w.nodes[w.nodes.findIndex((n) => n.id === "report")] = { id: "report", kind: "stop", name: "Reported" } as Node;
+    w.edges = w.edges.filter((e) => e.id !== "e-report-failed");
+  }, { from: reported });
+  assert.ok(names(step).includes("node:report.kind"), `held are ${names(step).join(", ")}`);
+  assert.match(refused(step).join("\n"), /a run could end in success at "report", a way that does not pass "pass" from the check "tests"/);
+
+  // A critic, with no person in the graph: another verdict led to a stop that ends in success that the run adds,
+  // by an edge added or by one led there while the stop it left keeps another way in.
+  const added = adopt((w) => {
+    w.nodes.push(SECOND_END);
+    w.edges.push({ id: "e-critic-meh", from: "critic", to: "done-too", when: { verdict: "meh" } });
+  }, { from: critiqued() });
+  assert.deepEqual(refused(added), ['edge:e-critic-meh: adds a way from "critic" to end in success that does not pass "pass" from the critic "critic"']);
+  const kept = critiqued();
+  kept.edges.push({ id: "e-critic-stuck", from: "critic", to: "gave-up", when: { verdict: "stuck" } });
+  const led = adopt((w) => {
+    w.nodes.push(SECOND_END);
+    w.edges.find((e) => e.id === "e-critic-hopeless")!.to = "done-too";
+  }, { from: kept });
+  assert.deepEqual(refused(led), ['edge:e-critic-hopeless.to: adds a way from "critic" to end in success that does not pass "pass" from the critic "critic"']);
+  // And led to a stop the graph already had and reached without the critic: nothing was newly reached, and it is held.
+  const triaged = critiqued();
+  triaged.nodes.push(agent("triage", "builder"), { id: "nothing-to-do", kind: "stop", name: "Nothing to do", outcome: "success" } as Node);
+  triaged.edges.push({ id: "e-triage-nothing", from: "triage", to: "nothing-to-do" });
+  const old = adopt((w) => {
+    w.nodes = w.nodes.filter((n) => n.id !== "gave-up");
+    w.edges.find((e) => e.id === "e-critic-hopeless")!.to = "nothing-to-do";
+  }, { from: triaged });
+  assert.ok(names(old).includes("edge:e-critic-hopeless.to"), `held are ${names(old).join(", ")}`);
+
+  // How a run ends is asked of a gate as a whole, not of its answers one by one, which are all the person's: a
+  // "reject" led to a stop that ends in success that the run adds is adopted. A stated limit, pinned here so that a
+  // change to it is seen. (Led to the stop that only "approve" reached, it is held, by what a run reaches.)
+  const gated = parseGraphText(JSON.stringify({
+    grooph: 0, id: "gated", name: "Gated", version: 1, goal: "Build and ask.", target: { harness: "claude-code" },
+    nodes: [
+      { id: "builder", kind: "agent", name: "Builder", role: "builder", brief: "Make the change.", outputs: ["the change"], allow: ["read-files", "edit-files"] },
+      { id: "gate", kind: "human-gate", name: "Gate", prompt: "Ship it?", options: ["approve", "reject"] },
+      { id: "done", kind: "stop", name: "Done", outcome: "success" },
+      { id: "rejected", kind: "stop", name: "Rejected", outcome: "halt" },
+    ],
+    edges: [{ id: "e-builder-gate", from: "builder", to: "gate" }, { id: "e-gate-approve", from: "gate", to: "done", when: { verdict: "approve" } }, { id: "e-gate-reject", from: "gate", to: "rejected", when: { verdict: "reject" } }],
+    loops: [],
+  })).doc!;
+  assert.deepEqual(adopt((w) => {
+    w.nodes = w.nodes.filter((n) => n.id !== "rejected");
+    w.nodes.push({ id: "closed", kind: "stop", name: "Closed" } as Node);
+    w.edges.find((e) => e.id === "e-gate-reject")!.to = "closed";
+  }, { from: gated }).refused, []);
+  const other = adopt((w) => void (w.edges.find((e) => e.id === "e-gate-reject")!.to = "done"), { from: gated });
+  assert.deepEqual(names(other), ["edge:e-gate-reject.to"]);
+  assert.match(refused(other)[0]!, /opens a way into "done" that does not pass "approve" at the human gate "gate"/);
+});
+
+test("A-019, a check under another id: the removal's line shows the check that comes in, and nothing in that copy is called a tightening", () => {
+  const grind = builtIn("grind-loop");
+  const under = (w: Graph, id: string): Extract<Node, { kind: "check" }> => {
+    const check = checkOf(w, "tests");
+    check.id = id;
+    for (const e of w.edges) Object.assign(e, { from: e.from === "tests" ? id : e.from, to: e.to === "tests" ? id : e.to });
+    w.loops[0]!.members = w.loops[0]!.members.map((m) => (m === "tests" ? id : m));
+    return check;
+  };
+  // The check given another id, its command made `true`, and an edge from the builder straight to the end. The one
+  // name held is the removal's: with the check gone from the graph's ids, nothing else about it can be compared.
+  const renamed = adopt((w) => {
+    under(w, "test-suite").check.run = "true";
+    w.edges.push({ id: "e-builder-done", from: "builder", to: "done" });
+  }, { from: grind });
+  assert.deepEqual(refused(renamed), [
+    'node:tests: removes a check, while a check the graph has not comes in ("test-suite": runs "true", passes on "exit code 0 and no test skipped"): if that is this check under another id, allowing this name allows every change made to it and every way round it',
+  ]);
+  // Nothing in that copy is called a tightening, and each such change is still named: a bar and a budget that leads
+  // on, put round the check under its new id, would read as brakes gained.
+  const dressed = adopt((w) => {
+    under(w, "test-suite");
+    w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." } as Loop["bar"];
+    w.loops[0]!.stops.unshift({ kind: "bar-passed" }, { kind: "budget", measure: "dispatches", limit: 1, then: "done" });
+  }, { from: grind });
+  assert.deepEqual(names(dressed), ["node:tests"]);
+  assert.equal(dressed.swapped, true);
+  assert.deepEqual(dressed.changes.filter((change) => change.tightens !== undefined).map((change) => change.name), []);
+  assert.deepEqual(Object.fromEntries(dressed.changes.filter((change) => change.unjudged !== undefined).map((change) => [change.name, change.unjudged])), {
+    "node:test-suite": "removes a check",
+    "loop:grind.stops": "removes the budget (1 dispatches)",
+    "loop:grind.bar": "removes the loop's bar",
+  });
+
+  // What comes in is shown as it is: a check with no command by its kind, and a threshold where it has one. And a
+  // check that comes in under an id another kind of node had is one that comes in.
+  const noted = builtIn("grind-loop");
+  noted.nodes.push(agent("notes", "builder"));
+  noted.edges.push({ id: "e-builder-notes", from: "builder", to: "notes" });
+  const turned = adopt((w) => {
+    w.nodes = w.nodes.filter((n) => n.id !== "tests" && n.id !== "notes");
+    w.nodes.push({ id: "notes", kind: "check", name: "Coverage", check: { kind: "metric", pass: "line coverage at or above the threshold", threshold: 1 } } as Node);
+    for (const e of w.edges) Object.assign(e, { from: e.from === "tests" ? "notes" : e.from, to: e.to === "tests" ? "notes" : e.to });
+    w.edges = w.edges.filter((e) => e.id !== "e-builder-notes");
+    w.loops[0]!.members = w.loops[0]!.members.map((m) => (m === "tests" ? "notes" : m));
+  }, { from: noted });
+  assert.match(refused(turned).join("\n"), /node:tests: removes a check, while a check the graph has not comes in \("notes": of kind "metric", passes on "line coverage at or above the threshold", threshold 1\)/);
+  assert.deepEqual(turned.changes.filter((change) => change.tightens !== undefined).map((change) => change.name), []);
+
+  // A check removed with none coming in is a removal and no more; one added with none removed still tightens.
+  const gone = adopt((w) => {
+    w.nodes = w.nodes.filter((n) => n.id !== "tests");
+    w.edges = w.edges.filter((e) => e.from !== "tests" && e.to !== "tests");
+    w.edges.push({ id: "e-builder-done", from: "builder", to: "done" });
+    w.loops = [];
+  }, { from: grind });
+  assert.ok(refused(gone).includes("node:tests: removes a check"), refused(gone).join("\n"));
+  const lint = adopt((w) => {
+    w.nodes.push({ id: "lint", kind: "check", name: "Lint", check: { kind: "command", run: "pnpm lint", pass: "exit code 0" } } as Node);
+    w.edges.find((e) => e.id === "e-builder-tests")!.to = "lint";
+    w.edges.push({ id: "e-lint-tests", from: "lint", to: "tests", when: "pass" }, { id: "e-lint-fail", from: "lint", to: "builder", when: "fail" });
+    w.loops[0]!.members.push("lint");
+    w.loops[0]!.back.push("e-lint-fail");
+  }, { from: grind });
+  assert.match(lint.changes.find((change) => change.name === "node:lint")!.tightens!, /^removes a check$/);
+  // The reader of this change: the id kept by a step of another kind, while a new check takes its edges with its
+  // command made `true`, and a bar given to the loop. It is the same swap. Before, the two names held said only "a
+  // check becomes another kind of node", and the bar and the arrival were printed as tightenings, the arrival with
+  // the removal's own sentence read backwards.
+  const kept = adopt((w) => {
+    const old = checkOf(w, "tests");
+    const suite = { ...structuredClone(old), id: "test-suite", check: { ...old.check, run: "true" } };
+    Object.assign(old, agent("tests", "builder"));
+    delete (old as { check?: unknown }).check;
+    w.nodes.push(suite as Node);
+    for (const e of w.edges) Object.assign(e, { from: e.from === "tests" ? "test-suite" : e.from, to: e.to === "tests" ? "test-suite" : e.to });
+    w.edges.push({ id: "e-tests-suite", from: "tests", to: "test-suite" } as Edge);
+    w.loops[0]!.members = [...w.loops[0]!.members, "test-suite"];
+    w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." } as Loop["bar"];
+  }, { from: grind });
+  const line = 'a check becomes another kind of node, while a check the graph has not comes in ("test-suite": runs "true", passes on "exit code 0 and no test skipped"): if that is this check under another id, allowing this change allows every change made to it and every way round it';
+  assert.deepEqual(kept.refused.filter((change) => change.name.startsWith("node:tests")).map((change) => [change.name, change.loosens!.split("; ").find((why) => why.startsWith("a check becomes"))]), [["node:tests.kind", line], ["node:tests.check", line]]);
+  assert.equal(kept.swapped, true);
+  assert.deepEqual(kept.changes.filter((change) => change.tightens !== undefined).map((change) => change.name), []);
+  const unjudged = Object.fromEntries(kept.changes.filter((change) => change.unjudged !== undefined && change.loosens === undefined).map((change) => [change.name, change.unjudged]));
+  assert.equal(unjudged["node:test-suite"], "removes a check");
+  assert.equal(unjudged["loop:grind.bar"], "removes the loop's bar");
+});
+
+test("A-019: a way that goes round a check and a critic names both", () => {
+  // The reason for how a run comes to end was said once for a change, under whichever decision was asked first;
+  // since a check is asked too, the critic's was left unsaid where the check came first among the nodes.
+  const sandwich = builtIn("metric-sandwich");
+  const around = adopt((w) => {
+    w.nodes.push(SECOND_END);
+    w.edges.push({ id: "e-builder-done-too", from: "builder", to: "done-too" });
+  }, { from: sandwich });
+  assert.deepEqual(refused(around), [
+    'edge:e-builder-done-too: adds a way from "builder" to end in success that does not pass the check "checks"; adds a way from "builder" to end in success that does not pass the critic "critic"',
+  ]);
+});
+
+// ─── a stop that halts, made to end in success, wherever it stands (the clause the owner is asked about) ──────────
+
+test("A-019, the clause for every stop: a stop that halts, made to end in success, is held wherever it stands", () => {
+  // Where a verdict leads to the stop, the rule above holds it already; this one says so of the stop itself.
+  const ended = adopt((w) => void (stopOutcome(w, "failed").outcome = "success"), { from: oneShot() });
+  assert.deepEqual(refused(ended), [
+    'node:failed.outcome: the stop "failed" would end in success where it halted: what led there to stop the run would now end it well; a run could end in success at "failed", a way that does not pass "pass" from the check "tests"',
+  ]);
+  assert.deepEqual(adopt((w) => void (stopOutcome(w, "failed").outcome = "success"), { from: oneShot(), allow: ["node:failed.outcome"] }).refused, []);
+
+  // And where only this clause holds it: a stop that halts beside a way to the end, after a plain step, in a graph
+  // with no check, no critic and no person. The step could end in success already, so nothing comes to end in
+  // success that could not. Its outcome set so, or taken away.
+  const plain = parseGraphText(JSON.stringify({
+    grooph: 0, id: "plain", name: "Plain", version: 1, goal: "Look, do what is found, and stop the rest.", target: { harness: "claude-code" },
+    nodes: [
+      { id: "scout", kind: "agent", name: "Scout", role: "researcher", brief: "Look for work.", outputs: ["FOUND.md"], allow: ["read-files", "write-outputs"] },
+      { id: "done", kind: "stop", name: "Done", outcome: "success" },
+      { id: "stopped", kind: "stop", name: "Stopped", outcome: "halt" },
+    ],
+    edges: [{ id: "e-scout-done", from: "scout", to: "done" }, { id: "e-scout-stopped", from: "scout", to: "stopped" }],
+    loops: [],
+  })).doc!;
+  for (const change of [(w: Graph): void => void (stopOutcome(w, "stopped").outcome = "success"), (w: Graph): void => void delete stopOutcome(w, "stopped").outcome]) {
+    assert.deepEqual(refused(adopt(change, { from: plain })), ['node:stopped.outcome: the stop "stopped" would end in success where it halted: what led there to stop the run would now end it well']);
+  }
+
+  // The other way is a tightening and is said as one; a stop that halts given another name is nothing.
+  const halted = adopt((w) => void (stopOutcome(w, "done").outcome = "halt"), { from: oneShot() });
+  assert.deepEqual(halted.refused, []);
+  assert.match(halted.changes.find((change) => change.name === "node:done.outcome")!.tightens!, /the stop "done" would end in success where it halted/);
+  assert.deepEqual(adopt((w) => void (w.nodes.find((n) => n.id === "failed")!.name = "Stopped"), { from: oneShot() }).refused, []);
+});
+
+// ─── the reader of this change: a judge whose verdicts are words of its own, and two decisions at once ───────────
+
+test("A-019: a judge with no verdict written pass is asked of each word it has; a failing verdict that a person stood behind is a stated limit", () => {
+  const judged = (good: Edge["when"], bad: Edge["when"], more: { nodes?: unknown[]; edges?: unknown[] } = {}): Graph => parseGraphText(JSON.stringify({
+    grooph: 0, id: "judged", name: "Judged", version: 1, goal: "Build it and have it judged.", target: { harness: "claude-code" },
+    nodes: [
+      { id: "builder", kind: "agent", name: "Builder", role: "builder", brief: "Build it.", outputs: ["CHANGES.md"], allow: ["read-files", "edit-files"] },
+      { id: "critic", kind: "agent", name: "Critic", role: "critic", brief: "Judge it.", outputs: ["REVIEW.md"], allow: ["read-files", "write-outputs"] },
+      { id: "done", kind: "stop", name: "Done", outcome: "success" },
+      ...(more.nodes ?? []),
+    ],
+    edges: [{ id: "e-builder-critic", from: "builder", to: "critic", evidence: ["the diff"] }, { id: "e-critic-good", from: "critic", to: "done", when: good }, ...(more.edges ?? [{ id: "e-critic-bad", from: "critic", to: "builder", when: bad, evidence: ["REVIEW.md"] }])],
+    loops: more.edges ? [] : [{ id: "review", name: "Review", members: ["builder", "critic"], back: ["e-critic-bad"], mode: "judgment", bar: { name: "Bar", inspects: [{ kind: "file", ref: "REVIEW.md" }], acceptance: "Every item holds." }, stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 3 }] }],
+  })).doc!;
+  const fine = (w: Graph, when: Edge["when"]): void => {
+    w.nodes.push({ id: "fine", kind: "stop", name: "Fine", outcome: "success" } as Node);
+    w.edges.push({ id: "e-critic-bad-too", from: "critic", to: "fine", when } as Edge);
+  };
+  // The good verdict is "approved" and the other is "fail": a second edge on "fail", to a new stop that ends in
+  // success, was adopted with nothing said, because the rule looked for the word "pass".
+  assert.deepEqual(refused(adopt((w) => fine(w, "fail"), { from: judged({ verdict: "approved" }, "fail") })), [
+    'edge:e-critic-bad-too: adds a way from "critic" to end in success that does not pass "approved" from the critic "critic"',
+  ]);
+  assert.deepEqual(refused(adopt((w) => fine(w, { verdict: "finding" }), { from: judged({ verdict: "clean" }, { verdict: "finding" }) })), [
+    'edge:e-critic-bad-too: adds a way from "critic" to end in success that does not pass "clean" from the critic "critic"',
+  ]);
+  // A judge that says "pass" is asked of its pass, as it was.
+  assert.deepEqual(refused(adopt((w) => fine(w, "fail"), { from: judged("pass", "fail") })), [
+    'edge:e-critic-bad-too: adds a way from "critic" to end in success that does not pass "pass" from the critic "critic"',
+  ]);
+
+  // NOT HELD, a stated limit (docs/runs.md, "What adoption does not hold"): two decisions at once. The failing
+  // verdict led to a gate, and only the person's yes took it to the end; a second edge on that verdict goes straight
+  // there. Asked of the pass alone, a run on "fail" could already end in success, through the person; asked of the
+  // person alone, a run could already end with nobody asked, on a pass. The two are not asked together. (For a check
+  // any edge added where it leaves is held, so this is a critic's.) Pinned here so that a change to it is seen.
+  const waived = judged("pass", "fail", {
+    nodes: [{ id: "waive", kind: "human-gate", name: "Waive", prompt: "It failed. Ship anyway?", options: ["approve", "reject"] }, { id: "stopped", kind: "stop", name: "Stopped", outcome: "halt" }],
+    edges: [{ id: "e-critic-bad", from: "critic", to: "waive", when: "fail" }, { id: "e-waive-yes", from: "waive", to: "done", when: "pass" }, { id: "e-waive-no", from: "waive", to: "stopped", when: "fail" }],
+  });
+  assert.deepEqual(adopt((w) => void w.edges.push({ id: "e-critic-bad-too", from: "critic", to: "done", when: "fail" } as Edge), { from: waived }).refused, []);
+  // Led there instead of to the gate, it is held, as it was: the gate is left with nothing leading to it.
+  assert.deepEqual(names(adopt((w) => void (edge(w, "e-critic-bad").to = "done"), { from: waived })), ["edge:e-critic-bad.to"]);
+});
+
+// ─── what undoing would take away and is no tightening: an answer a gate did not give, a new irreversible step ──
+//
+// The reader of the export door (#60) saw "tightens a brake" printed for a step told to publish, marked
+// irreversible and put behind the gate's yes, and for a gate given the answer "skip". The label came from asking
+// the comparison the other way round: undoing either would take a mark or an answer away. Neither tightens
+// anything the graph had: the step is a thing a run could not do before, and the answer may be a way on.
+
+test("an answer a gate did not give and a step marked irreversible that the graph did not have are named, and not called tightenings", () => {
+  const gated = builtIn("review-gate");
+  const gate = (w: Graph): Extract<Node, { kind: "human-gate" }> => node(w, "merge-gate") as Extract<Node, { kind: "human-gate" }>;
+  const ship = { ...agent("ship", "builder"), irreversible: ["publishes the package to npm"] } as Node;
+  const behindTheGate = (w: Graph): void => {
+    w.nodes.push(structuredClone(ship));
+    edge(w, "e-merge-gate-done").to = "ship";
+    w.edges.push({ id: "e-ship-done", from: "ship", to: "done" } as Edge);
+  };
+  const said = (check: AdoptionCheck, key: "tightens" | "unjudged"): Record<string, string> =>
+    Object.fromEntries(check.changes.filter((change) => change[key] !== undefined).map((change) => [change.name, change[key]!]));
+
+  // The step behind the gate's yes. Adopted, as it was: the validator saw a person before it. But the person is
+  // asked about the merge, and nothing here holds a gate's prompt or where its yes leads.
+  const shipped = adopt(behindTheGate, { from: gated });
+  assert.deepEqual(shipped.refused, []);
+  assert.equal(shipped.swapped, false);
+  assert.deepEqual(said(shipped, "tightens"), {});
+  assert.deepEqual(said(shipped, "unjudged"), {
+    "node:ship": "removes a node marked irreversible (publishes the package to npm): what takes its place carries no such mark unless it is given one",
+  });
+
+  // A new answer: alone; led to a new stop that ends in success, which is the stated limit and is adopted; and led
+  // to a new stop that halts, which is a way to say no. A program does not tell the last two apart, and says so.
+  const offered = adopt((w) => void gate(w).options!.push("skip"), { from: gated });
+  assert.deepEqual([offered.refused, said(offered, "tightens"), said(offered, "unjudged")], [[], {}, { "node:merge-gate.options": 'the gate would no longer offer "skip"' }]);
+  for (const [answer, outcome] of [["skip", "success"], ["abandon", "halt"]] as const) {
+    const led = adopt((w) => {
+      gate(w).options!.push(answer);
+      w.nodes.push({ id: "other-end", kind: "stop", name: "Other end", outcome } as Node);
+      w.edges.push({ id: "e-gate-other", from: "merge-gate", to: "other-end", when: { verdict: answer } } as Edge);
+    }, { from: gated });
+    assert.deepEqual(led.refused, [], answer);
+    assert.deepEqual(said(led, "tightens"), {}, answer);
+    assert.deepEqual(said(led, "unjudged"), {
+      "node:merge-gate.options": `the gate would no longer offer "${answer}"`,
+      "node:other-end": `"${answer}" at the human gate "merge-gate" would lead nowhere`,
+      "edge:e-gate-other": `"${answer}" at the human gate "merge-gate" would lead nowhere`,
+    }, answer);
+  }
+  // Led to the stop only the gate's yes reached, the new answer is held as it was, and the option beside it is
+  // named without the label. (The edge carries both; the command and the app list it once, as what it loosens.)
+  const round = adopt((w) => {
+    gate(w).options!.push("skip");
+    w.edges.push({ id: "e-gate-skip", from: "merge-gate", to: "done", when: { verdict: "skip" } } as Edge);
+  }, { from: gated });
+  assert.deepEqual(refused(round), ['edge:e-gate-skip: adds a way into "done" that does not pass "pass" at the human gate "merge-gate"']);
+  assert.deepEqual([said(round, "tightens"), said(round, "unjudged")], [{}, {
+    "node:merge-gate.options": 'the gate would no longer offer "skip"',
+    "edge:e-gate-skip": '"skip" at the human gate "merge-gate" would lead nowhere',
+  }]);
+
+  // What is still a tightening, and said as one: a second mark on a step the graph already has, and an approval
+  // newly asked, in the same copy as a new answer.
+  const marked = parseGraphText(JSON.stringify((() => { const w = structuredClone(gated); behindTheGate(w); return w; })())).doc!;
+  const both = adopt((w) => {
+    (node(w, "ship") as { irreversible: string[] }).irreversible.push("also deletes the branch");
+    edge(w, "e-critic-pass").approval = true;
+    gate(w).options!.push("skip");
+  }, { from: marked });
+  assert.deepEqual(both.refused, []);
+  assert.deepEqual(Object.keys(said(both, "tightens")).sort(), ["edge:e-critic-pass.approval", "node:ship.irreversible"]);
+  assert.match(said(both, "tightens")["node:ship.irreversible"]!, /^removes the irreversible marker "also deletes the branch"/);
+  assert.deepEqual(said(both, "unjudged"), { "node:merge-gate.options": 'the gate would no longer offer "skip"' });
 });
