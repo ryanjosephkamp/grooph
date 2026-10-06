@@ -1,6 +1,6 @@
 # Things to keep: the picture, the outline, the offline page
 
-Three projections of a document, for reading and sending rather than editing. Each is made by core from a graph (`.grooph.json`) or an operation map (`.grooph-map.json`), the same way in the CLI and in the app, and none round-trips: edits happen in the document.
+Three projections of a document, for reading and sending rather than editing (and a fourth made of them, [a plan](#a-plan)). Each is made by core from a graph (`.grooph.json`) or an operation map (`.grooph-map.json`), the same way in the CLI and in the app, and none round-trips: edits happen in the document.
 
 | | What it is | From the CLI | In the app |
 |---|---|---|---|
@@ -80,6 +80,28 @@ One file. Its content security policy is `default-src 'none'` with inline style 
 A document with rule errors still makes a page, with the errors listed. One that does not match its schema cannot be drawn, and the command says why. Text from the document is escaped everywhere it is shown, and the embedded JSON cannot close its own script element.
 
 It is a page to read, not the app: nothing in it edits.
+
+## A plan
+
+A graph can be kept as a plan: something for people to read and follow, whether or not a coding harness could run it. A research study one person does most of, a pipeline that is all people, or a graph that is half written are all plans, and none of them needs a harness named in it.
+
+`planBundle(doc)` in core (`packages/core/src/plan.ts`) gives the files of one, for any document that reads as a graph:
+
+| File | What it is |
+|---|---|
+| `PLAN.md` | The plan to read: the picture; who does what, as a table of every step with whose it is (an agent's, a person's, a command's), what it does or asks, and what it leaves behind, and the edges a person approves; **"To fix before a harness can run this"**; and then, under "In full", the goal, the description and every step as the outline has them |
+| `<id>.svg` | The picture, as `grooph image` draws it |
+| `<id>.grooph.json` | The document, in canonical form: the one to edit |
+
+**Nothing is refused.** A document with no target, no goal, a harness name grooph has no profile for, a loop with no stop or an edge that leads nowhere still gets its plan. Each such finding is in `PLAN.md` under "To fix before a harness can run this", with its code, as `grooph validate --for-export` would list it: first what stops a package from being written, then the warnings a package would carry. Where nothing is in error the plan says a harness could run it as it is. Only a document that does not match its schema gets no plan, because nothing can draw it.
+
+**A plan is not a package.** It has no lead's brief, no agent files and no kickoff, and nothing in it can be handed to a harness. A package for a harness is still written by `grooph export`, and only for a document with nothing in error (`graph-ir.md` §3). The plan says which of the two a document is ready for.
+
+`PLAN.md` is Markdown, and a document's own words may be Markdown too. So everything above "In full" is grooph's own account, with the document's words in it only as single lines (a name, a goal, a table cell): a description that holds a heading "To fix before a harness can run this" and the word "Nothing" is printed below the real one, not in its place. Below "In full" the document's words are as written.
+
+The same document gives the same bytes: there is no date in a plan and nothing of the machine that made it.
+
+In core so far. The command that writes the three files and the app's button for it come with the lanes that own those.
 
 ## The app itself, offline
 
