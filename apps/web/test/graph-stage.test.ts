@@ -1143,9 +1143,39 @@ describe("rings", () => {
     const under = drawn.prims.flatMap((p) => (p.t === "dot" && p.r === 4 ? [p.at] : []))[0]!;
     expect(foot.inside).toBe("outer");
     expect(Math.abs(level("ge", under))).toBeGreaterThan(30);
+    // Going round one node can bring an edge to another that was never on the straight line: a loop of six, and
+    // an edge along the ground past it. Bowed, it is looked at again: nowhere within 40 of any station, seen from above.
+    const six = ["n0", "n1", "n2", "n3", "n4", "n5"];
+    const past = { ...base, nodes: ["g", ...six, "end"].map(node), edges: [{ id: "g0", from: "g", to: "n0" }, ...six.slice(1).map((id, k) => ({ id: `e${k}`, from: six[k]!, to: id })), { id: "back", from: "n5", to: "n0", when: "fail" }, { id: "out", from: "n5", to: "end", when: "pass" }, { id: "by", from: "g", to: "end" }], loops: [loopOf("six", six, ["back"])] } as unknown as Graph;
+    for (const narrowly of [false, true]) {
+      const around = rings(modelAt(past, places(past), undefined, narrowly), whole);
+      const by = around.path("by");
+      expect(by).toHaveLength(19);
+      for (const id of six) {
+        const o = around.node(id);
+        const nearest = Math.min(...by.slice(1).map((b, k) => {
+          const [dx, dz, wx, wz] = [b[0] - by[k]![0], b[2] - by[k]![2], o[0] - by[k]![0], o[2] - by[k]![2]];
+          const t = Math.max(0, Math.min(1, (wx * dx + wz * dz) / (dx * dx + dz * dz || 1)));
+          return Math.hypot(wx - dx * t, wz - dz * t);
+        }));
+        // (Before, it ran 2 from the fifth station. Where it is level with a station it is the card's room from
+        // it; a card's corner can still be nearer than that elsewhere along it.)
+        expect(nearest, `${id}, narrow ${narrowly}`).toBeGreaterThan(40);
+      }
+    }
+    // A ring's first station that is a ring of its own has its first card 64 higher, which is drawn over ground
+    // farther back: the node on the ground before it stands clear of that too. The glyph vocabulary's docs and Build.
+    const glyphs = graph("fixtures/valid/glyph-vocabulary.grooph.json");
+    const seen = rings(modelAt(glyphs, places(glyphs)), whole);
+    expect([seen.node("build")[1], seen.node("docs")[1]]).toEqual([64, 0]);
+    expect(seen.node("build")[2] - 55 - seen.node("docs")[2]).toBeGreaterThanOrEqual(100);
+    // An edge from the outermost of three rings to a node of the innermost goes along the outer ring to the place
+    // the middle one stands at: that node's own loop is under the one that is the station.
+    const three = { ...base, nodes: ["a", "b", "c", "d"].map(node), edges: [{ id: "ab", from: "a", to: "b" }, { id: "bc", from: "b", to: "c" }, { id: "cd", from: "c", to: "d" }, { id: "dc", from: "d", to: "c", when: "fail" }, { id: "db", from: "d", to: "b", when: "blocked" }, { id: "da", from: "d", to: "a", when: "invalid-evidence" }, { id: "ac", from: "a", to: "c", when: "pass" }], loops: [loopOf("in", ["c", "d"], ["dc"]), loopOf("mid", ["b", "c", "d"], ["db"]), loopOf("out", ["a", "b", "c", "d"], ["da"])] } as unknown as Graph;
+    expect(rings(modelAt(three, places(three)), whole).path("ac").length).toBeGreaterThan(25);
     // A node's own way back, in a loop of two: a round of 26 beside the node, away from the ring's middle, that
     // starts and ends at the node. Not a stick up and down.
-    const selfish = { ...up, edges: [...up.edges, { id: "aa", from: "a", to: "a", when: "blocked" }], loops: [loopOf("l", ["a", "b"], ["ba", "aa"])] } as unknown as Graph;
+    const selfish = { ...up, edges: [...up.edges, { id: "aa", from: "a", to: "a", when: "blocked" }, { id: "aa2", from: "a", to: "a", when: "invalid-evidence" }], loops: [loopOf("l", ["a", "b"], ["ba", "aa", "aa2"])] } as unknown as Graph;
     const own = rings(modelAt(selfish, places(selfish)), whole);
     const round = own.path("aa");
     const a = own.node("a");
@@ -1153,6 +1183,8 @@ describe("rings", () => {
     expect([round[0], round[24]].map((v) => v!.map((x) => Math.round(x)))).toEqual([a, a].map((v) => v.map((x) => Math.round(x))));
     expect(new Set(round.map((v) => v[1])).size).toBe(1);
     expect(Math.round(Math.max(...round.map((v) => Math.hypot(v[0] - a[0], v[2] - a[2]))))).toBe(52);
+    // A second one is a larger round, 8 out from the first all the way.
+    expect(Math.round(Math.max(...own.path("aa2").map((v) => Math.hypot(v[0] - a[0], v[2] - a[2]))))).toBe(68);
   });
 
   it("held against one-line changes: an edge to the next station is an arc of the smallest ring both ends are on, only that loop's own way back closes it, twins are outside and higher, rings on a ring stand clear, nothing on the ground is in a ring, and a ring's name is outside it at the near left", () => {

@@ -63,8 +63,11 @@ export const rings: View = (m, shown) => {
     else if (item.loop) {
       // Room for the ring and for every ring that stands on it, and for the card of its first station, which
       // stands over where the node before the ring would otherwise be: no node on the ground is inside a ring.
+      // More where its first station is a ring of its own: that ring's first card is drawn 64 higher, which from
+      // where the view starts is over ground 55 farther back.
       const r = reach(item.loop) + 6;
-      z += z ? 56 : 0;
+      const raised = (loop: MLoop): number => ((first) => (first ? 55 + raised(first) : 0))(stations(m, loop)[0]?.loop);
+      z += z ? 56 + raised(item.loop) : 0;
       place(item.loop, [0, 0, z + r]);
       z += 2 * r + 58;
     }
@@ -76,21 +79,31 @@ export const rings: View = (m, shown) => {
   // apart from the first: outside it on the ring, or higher.
   const station = (stops: Stop[], id: Id): number => stops.findIndex((stop) => stop.node === id || (!!stop.loop && (by(m.nodes, id).loop === stop.loop.id || under(m.loops, by(m.nodes, id).loop ?? "", stop.loop.id))));
   const taken = (id: Id): boolean => shown.took.some((x) => x.edge === id && (shown.k === 0 || x.step <= shown.k));
-  // How far aside an edge from p to q goes to be clear of what a straight line would run through, seen from above
-  // (an edge that rises to a ring on a ring runs over what stands under it): each node other than its ends, by the
-  // room its card takes (a card on a ring stands over its node, to both sides; one on the ground is to the right).
-  // The foot of a ring that stands on another is under that ring's first node, so an edge along the ground goes
-  // round it with the node. The bow is widest at its middle, so a thing nearer an end asks for more of it, to be
-  // as clear where it stands.
-  const need = (o: V, p: V, q: V, clear: number): number => {
+  // How far aside an edge from p to q goes to be clear of what a straight line would run through, seen from where
+  // the view starts: each node other than its ends, by the room a card takes there (62 on a ring, where it stands
+  // over its node, to both sides; 34 on the ground, where it is to the right). The foot of a ring that stands on
+  // another is under that ring's first node, so an edge along the ground goes round it with the node. The bow is widest at
+  // its middle, so a thing nearer an end asks for more of it, to be as clear where it stands; and once it is
+  // bowed, the edge is looked at again for what it has been brought to.
+  const need = (n: { id: Id; loop: Id | null }, p: V, q: V, out: number | null): number => {
+    const o = at[n.id]!;
     const [dx, dz, wx, wz] = [q[0] - p[0], q[2] - p[2], o[0] - p[0], o[2] - p[2]];
-    const t = Math.max(0, Math.min(1, (wx * dx + wz * dz) / (dx * dx + dz * dz || 1)));
-    // (By as much more as the thing is off the line: it may be on the side the edge goes to.)
-    const off = Math.hypot(wx - dx * t, wz - dz * t);
-    return off < 24 ? (clear + off) / Math.max(0.36, 4 * t * (1 - t)) : 0;
+    const far = Math.hypot(dx, dz) || 1;
+    const t = Math.max(0, Math.min(1, (wx * dx + wz * dz) / (far * far)));
+    // How far off the line it is, toward the side the edge goes to (the left); and how near the edge is to it.
+    const off = ((wz - dz * t) * dx - (wx - dx * t) * dz) / (dz < 0 ? -far : far);
+    // (A straight line counts a node within 24 of it. A bowed one is held to all but the last of the room: it has
+    // left where it would have run, and what it is near now is a card.)
+    const room = n.loop ? 62 : 34;
+    const near = out === null ? Math.hypot(wx - dx * t, wz - dz * t) + room - 24 : t > 0.06 && t < 0.94 ? Math.abs(off - out * 4 * t * (1 - t)) + 6 : room;
+    return near < room ? (room + (out === null ? Math.abs(off) : off)) / Math.max(0.36, 4 * t * (1 - t)) : 0;
   };
-  const passes = (e: { from: Id; to: Id }, p: V, q: V): number =>
-    m.nodes.reduce((sum, n) => sum + (n.id !== e.from && n.id !== e.to ? need(at[n.id]!, p, q, n.loop && !m.narrow ? 62 : 34) : 0), 0);
+  const passes = (e: { from: Id; to: Id }, p: V, q: V): number => {
+    const others = m.nodes.filter((n) => n.id !== e.from && n.id !== e.to);
+    let out = others.reduce((sum, n) => sum + need(n, p, q, null), 0);
+    for (const n of out ? [...others, ...others, ...others] : []) out = Math.max(out, need(n, p, q, out));
+    return out;
+  };
   m.edges.forEach((e, n) => {
     const [p, q] = [at[e.from]!, at[e.to]!];
     const twin = m.edges.slice(0, n).filter((x) => x.from === e.from && x.to === e.to).length;
