@@ -77,10 +77,11 @@ What went wrong on the way, kept here because it changes how the next slice is d
 
 | Item | Recommended answer |
 |---|---|
-| **The game experiment's Claude Code run**: ready, and yours to start from Terminal | [`experiments/game/RUNBOOK.md`](../experiments/game/RUNBOOK.md): parts 1 to 3 (the last twenty minutes a recorded rehearsal), then send what `record.sh rehearsal` prints. The weekly allowance reset on Monday 2026-10-05 at 11 a.m. Eastern, so the six-hour run can follow when you like |
-| **The agents work (#60) and version 0.4.0** | After the game's first commit is pushed. You publish `grooph` to npm; the driver walks you through it one command at a time |
-| **The Codex target (#70)**: Codex did not push the second fix pass, so it is not merged; a lane is making the three fixes on a branch of its own. Later, yes or no to its one proving run in Codex | Nothing to do unless you would rather Codex made them: then say so |
-| **The FAQ (#54)** | Held until the audit's corrections are merged, then read again against the corrected words |
+| **The game experiment's Claude Code run**: put off on 2026-10-05; yours to start from Terminal if you take it up again (its readiness was last checked on 2026-10-05 and must be checked again first) | [`experiments/game/RUNBOOK.md`](../experiments/game/RUNBOOK.md): parts 1 to 3 (the last twenty minutes a recorded rehearsal), then send what `record.sh rehearsal` prints. The weekly allowance reset on Monday 2026-10-05 at 11 a.m. Eastern, so the six-hour run can follow when you like |
+| **Version 0.4.0**: done. You published `grooph` to npm on 2026-10-06 and #60 was merged and tagged | Nothing |
+| **The cards the audit's second round leaves on the review desk** | They wait for you; nothing reaches a public page before your answer |
+| **The Codex target**: merged on 2026-10-05 as #127, which carried Codex's own commits (#70) and the three fixes, and released in 0.4.0. Still yours: yes or no to its one proving run in Codex | Whenever you like; no run of a Codex package is on record |
+| **The FAQ (#54)** | Round one's corrections are merged; it gets one question on plans and is read against round two's words before it is offered |
 | The blog draft ([`docs/blog/2026-10-loop-graphs.md`](blog/2026-10-loop-graphs.md)) and the technical report ([`docs/report/`](report/grooph-technical-report.md)) are on the site as drafts | The post is yours to rewrite by hand; nobody else edits it |
 | A fresh driver session, as you agreed | Open a new session in the grooph folder and say: "You are the driver. Read handoffs/DRIVER.md." |
 | Read the other project's events branches into a live map here (it needs the repository's address, which the public repo must not name) | Give the address in chat when you want it; it stays out of the repository |

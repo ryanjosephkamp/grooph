@@ -44,7 +44,7 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 
 ## Now: paused at 0.4.0 (written 2026-10-06, 11:39 a.m. Eastern; read this first)
 
-**The work is paused, on the owner's word, at version 0.4.0.** He published `grooph@0.4.0` to npm himself on 2026-10-06 at 11:17 a.m. #60 was merged at 11:24 on his "published, merge it": `main` is at `e8055fa`, the same tree as the head he published (`0458795`), and the tag `v0.4.0` is on that merge. The registry's checksum is the one the driver's own build of that head gave, and `npx -y grooph@0.4.0 --version` answers from the registry. [`docs/releases.md`](../docs/releases.md) says what the version holds. He is walking the site and trying grooph on projects of his own for about a week, and will bring notes.
+**The work is paused, on the owner's word, at version 0.4.0.** He published `grooph@0.4.0` to npm himself on 2026-10-06 at 11:17 a.m. #60 was merged at 11:25 on his "published, merge it": `main` is at `e8055fa`, the same tree as the head he published (`0458795`), and the tag `v0.4.0` is on that merge. The registry's checksum (sha1 `5a28341c11197126a8c43bfbf979b717f4665b36`; the tarball's sha256 is `ae3019f5f9f1dc8dbb01201d8051f16483033b1efb0c29a80a721a0ade0ae7d1`) is the one the driver's own build of that head gave, and `npx -y grooph@0.4.0 --version` answers from the registry. [`docs/releases.md`](../docs/releases.md) says what the version holds. He is walking the site and trying grooph on projects of his own for about a week, and will bring notes.
 
 **When he comes back with notes, they are a review.** `handoffs/reviews/README.md` says how one is saved, and that nothing is changed from it until he has answered. Read the desk's answers first, as at the start of every turn.
 
@@ -96,7 +96,7 @@ Nothing here is started. Each item is his to ask for; the ones marked as questio
 
 - A harness handing a person's step to the person while it runs: both compilers and the run notes, by a later amendment.
 - Turning a plan people follow into one agents run; a routine that drafts graph ideas for him to review; trying the chat kit in other chat products; publishing the chat kit's two files where people can download them (they are built by a check and published nowhere).
-- The app, from the reader of #157: `by === "person"` written out in `Details.tsx`, `Brief.tsx`, `decorate.ts` and `graph-views.tsx` where core's `isPersonStep` and `STEP_BY_LABEL` should be asked; the editor's top bar not asking core's `isPlan`; a step switched to a person and back loses its capabilities and gains `W_OUTPUT_NOT_WRITABLE`; the switch's arrow keys and its hint for a screen reader; the role list still offering "lead" on a person's step; the compare view saying "Ready to export." of a plan.
+- The app, from the driver's reader of #157 (its report is in no file) and that pull request's own "Not done" list: `by === "person"` written out in `Details.tsx`, `Brief.tsx`, `decorate.ts` and `graph-views.tsx` where core's `isPersonStep` and `STEP_BY_LABEL` should be asked; the editor's top bar not asking core's `isPlan`; a step switched to a person and back loses its capabilities and gains `W_OUTPUT_NOT_WRITABLE`; the switch's arrow keys and its hint for a screen reader; the role list still offering "lead" on a person's step; the compare view saying "Ready to export." of a plan.
 
 **Brakes and adoption (questions for him, after the reconciliation):**
 
@@ -106,7 +106,7 @@ Nothing here is started. Each item is his to ask for; the ones marked as questio
 - A guard against a package that mixes two harnesses' files after an export over it.
 - Decision 0030's points 4 and 5 were set by the driver from a reader's findings and merged with the Codex target on his word to merge it; he has not been asked about them one by one.
 
-**Core:** `summarizeRun` counts a person's step as a dispatch, takes a nested loop's round from a member's note, and counts three dispatches for the recorded run of `ownership-not-swarm` where there were two. The app's own reading (`apps/web/src/ui/canvas/stage/model.ts`) is right and is pinned by a test over all 48 recorded runs.
+**Core:** `summarizeRun` counts a person's step as a dispatch, takes a nested loop's round from a member's note, and counts one dispatch too many for the recorded run of `ownership-not-swarm` (8 where the run had 7: two pieces were started at one node before either ended). The app's own reading (`apps/web/src/ui/canvas/stage/model.ts`) is pinned by a test against a table, written by hand, of all 48 recorded runs, with the four where core differs marked (`apps/web/test/graph-stage.test.ts`). Subgroophs have no MCP tool of their own: #60 merged without one.
 
 **Evidence:** study three's three small paid experiments are parked (the paid path is merged and makes no call; he signs in to the comparison profile once; F2 is repaired first). No run with 0.4.0's default models is on record, and no run of a Codex package: the one proving run in Codex is his to start. The game experiment is put off (cards q13 and q14 are open). What replaces decision 0013's fifth point is a card after the reconciliation.
 
