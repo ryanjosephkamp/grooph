@@ -37,7 +37,7 @@ type Shape = { agents: number; checks: number; gates: number; loops: number;
 
 `shape` is structural and honest: counts and brakes, no dollar figures. `estimateShape(graph)` lives in core.
 
-Rules (`validateProposalSet` in core, same issue shape as graphs): ids unique; one to four candidates; every inlined graph has no export errors (`E_CANDIDATE_INVALID`, naming the candidate and the underlying codes); labels distinct; `recommendation.candidate` exists.
+Rules (`validateProposalSet` in core, same issue shape as graphs): ids unique; one to four candidates; every inlined graph has no errors of its own (`E_CANDIDATE_INVALID`, naming the candidate and the underlying codes; what only a package asks for, a harness and a goal, is not asked, so a candidate may be a plan); labels distinct; `recommendation.candidate` exists.
 
 ## 2. Share links
 

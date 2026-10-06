@@ -130,14 +130,14 @@ export function validateProposalSet(set: ProposalSet, options: ValidateProposals
       }
       continue;
     }
-    const errors = validate(c.graph, { forExport: true }).filter((i) => i.severity === "error");
+    const errors = validate(c.graph).filter((i) => i.severity === "error");
     if (errors.length === 0) continue;
     const codes = [...new Set(errors.map((e) => e.code))];
     issues.push(
       issue(
         "E_CANDIDATE_INVALID",
         "error",
-        `candidate "${c.id}" (${c.label}) has errors that block export: ${codes.join(", ")}. First: ${errors[0]!.message}. Fix its graph and run grooph validate --for-export on it`,
+        `candidate "${c.id}" (${c.label}) has errors: ${codes.join(", ")}. First: ${errors[0]!.message}. Fix its graph and run grooph validate on it`,
         [c.id],
       ),
     );
