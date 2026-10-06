@@ -8,6 +8,8 @@
 
 In both comparisons the reviewer held evidence the builder had not seen. So a design ended above the task alone, and nobody can say whether the roles did it or the information did (audit 0001, finding F12). These two arms take the two apart, on the same three tasks and with the same suites as the scorer.
 
+> *Note, 2026-10-06:* "ended above the task alone" means scored higher on the author's held-out suites and reference checks. The two blind judges of the code projects, given only the visible task, ranked the task-alone outputs higher (audit 0001, round two, finding F3). The paragraph above is part of a pre-registration and is left as written.
+
 | Arm | What the session is given | What it takes away |
 |---|---|---|
 | **E, information without roles** | The task alone, as study two's arm D, with the held-out material a reviewer was given named to the one session | the roles: no builder, no reviewer, no loop |

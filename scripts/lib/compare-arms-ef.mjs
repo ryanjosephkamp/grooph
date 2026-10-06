@@ -1,8 +1,8 @@
 /**
  * The two arms of study three's question 5, "roles or information", derived for each of study two's three tasks
  * (handoffs/briefs/study-three-on-paper.md). In both comparisons the reviewer held evidence the builder had not seen,
- * so a design ended above the task alone and nobody can say whether the roles or the information did it (audit 0001,
- * finding F12). These two prompts take the two apart. Nobody writes either by hand.
+ * so a design ended above the task alone on the held-out suites, and nobody can say whether the roles or the
+ * information did it (audit 0001, finding F12). These two prompts take the two apart. Nobody writes either by hand.
  *
  *   arm E, information without roles   arm D's kept prompt, byte for byte, with one section added at its end that
  *                                      names the held-out material a reviewer was given in study two, to the one session
