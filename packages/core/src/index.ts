@@ -20,6 +20,8 @@ export { getProfile } from "./targets/index.js";
 export * from "./subgrooph.js";
 // Adoption held to the graph's brakes: it brings the same comparison, and is not on the web app's way in either.
 export * from "./adoption.js";
+// A plan: the files a person keeps of a document, whether or not a harness could run it. Not on the web app's way in.
+export * from "./plan.js";
 export { mapSequenceWith, mapWideWith, pictureWithUnits, unitsKit, type UnitsOptions };
 export type { UnitsKit } from "./picture/units-kit.js";
 // The one-file offline page's maker: here it is simply there (`base.ts` says why it is not on the web app's way in).

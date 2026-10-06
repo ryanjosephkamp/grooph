@@ -111,7 +111,7 @@ export function buildShareEnvelope(doc: Graph | ProposalSet | RunBundle | Operat
   const graph = doc as Graph;
   const parsed = parseGraph(graph);
   if (!parsed.doc) throw new ShareError(`"${graph.id ?? "?"}" is not a graph document`, parsed.issues);
-  const issues = validate(parsed.doc, { forExport: true });
+  const issues = validate(parsed.doc);
   if (issues.some((i) => i.severity === "error")) {
     throw new ShareError(`graph "${graph.id}" cannot be shared until these are fixed`, issues);
   }
@@ -230,7 +230,7 @@ export function parseShareEnvelope(json: unknown): OpenedShare {
     const parsed = parseGraph(doc);
     if (!parsed.doc) return refuse("The link holds a graph that does not match the graph document schema, so it was not opened.", lines(parsed.issues));
     const graph = withoutNotes(parsed.doc);
-    return { ok: true, envelope: { v: SHARE_VERSION, kind: "graph", doc: graph }, issues: validate(graph, { forExport: true }) };
+    return { ok: true, envelope: { v: SHARE_VERSION, kind: "graph", doc: graph }, issues: validate(graph) };
   }
 
   if (kind === "proposals") {
@@ -254,7 +254,7 @@ export function parseShareEnvelope(json: unknown): OpenedShare {
         ? refuse(`The link holds a run from a newer grooph (run format ${parsed.newer}). Reload the app to update it, then open the link again.`)
         : refuse("The link holds a run record that does not match the run bundle schema, so it was not opened.", parsed.issues);
     }
-    return { ok: true, envelope: { v: SHARE_VERSION, kind: "run", doc: parsed.bundle }, issues: validate(parsed.bundle.working, { forExport: true }) };
+    return { ok: true, envelope: { v: SHARE_VERSION, kind: "run", doc: parsed.bundle }, issues: validate(parsed.bundle.working) };
   }
 
   if (kind === "map") {

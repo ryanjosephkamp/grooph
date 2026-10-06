@@ -70,6 +70,7 @@ export function loosened(source: Graph, proposed: Graph, graph: boolean): ReactN
 export function judge(source: Graph, adopted: Graph, run: string): Judged {
   const check = checkAdoption(source, adopted);
   const tighter = check.changes.filter((change) => change.tightens !== undefined && change.loosens === undefined);
+  const unjudged = check.changes.filter((change) => change.unjudged !== undefined && change.loosens === undefined);
   const command = adoptCommandLine(`.grooph/${source.id}/runs/${run}`, check.refused.map((change) => change.name));
   const more = (
     <>
@@ -85,6 +86,22 @@ export function judge(source: Graph, adopted: Graph, run: string): Judged {
           </ul>
         </>
       ) : null}
+      {unjudged.length > 0 ? (
+        <>
+          <p>
+            {check.swapped
+              ? "With a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:"
+              : "An answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before. It is named here and not called a tightening:"}
+          </p>
+          <ul className="brakes-list" data-brakes="unjudged">
+            {unjudged.map((change) => (
+              <li key={change.name} data-change-name={change.name}>
+                <span className="mono">{change.name}</span> undoing it: {change.unjudged}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
       {check.notices.map((notice) => (
         <p key={notice} data-brakes="note">
           Note: {notice}
@@ -92,7 +109,7 @@ export function judge(source: Graph, adopted: Graph, run: string): Judged {
       ))}
     </>
   );
-  if (check.refused.length === 0) return { ok: true, view: tighter.length + check.notices.length > 0 ? <div className="field-hint" data-brakes="said">{more}</div> : null };
+  if (check.refused.length === 0) return { ok: true, view: tighter.length + unjudged.length + check.notices.length > 0 ? <div className="field-hint" data-brakes="said">{more}</div> : null };
   return {
     ok: false,
     view: (
