@@ -60,7 +60,7 @@ function useFront(): Front | null | undefined {
 }
 
 /** What the README says of the app, as the hero's short list. */
-const PROMISES = ["No account", "Works on a phone", "Opens offline after a first visit", "Graphs stay on your device"];
+const PROMISES = ["No account", "Built for a phone's screen", "Opens offline after a first visit", "Graphs stay on your device"];
 
 /** The poster of all twenty shapes, a file of the site beside the field guide (handoff 0060 copies it there). */
 const POSTER = `${DOCS}field-guide/poster.svg`;

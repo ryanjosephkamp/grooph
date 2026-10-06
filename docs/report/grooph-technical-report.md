@@ -26,7 +26,7 @@ The usual answers are a runtime library the agents are written in, or a hosted c
 
 ## 2. The graph document
 
-One JSON file ([`docs/graph-ir.md`](../graph-ir.md)), small enough for a model to read and rewrite in one pass.
+One JSON file ([`docs/graph-ir.md`](../graph-ir.md)), designed to be small: the validator warns above 24,000 characters in canonical form, not counting layout.
 
 | Part | What it is |
 |---|---|
