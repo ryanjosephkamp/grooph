@@ -16,11 +16,13 @@ import css from "./graph-stage.css?inline";
 import { makeStage, type Look, type Prim, type Stage } from "./stage/draw.js";
 import { columnsAt, modelOf, stepsOf } from "./stage/model.js";
 import { panes } from "./stage/panes.js";
-import { along, type Shown, type View } from "./stage/shapes.js";
+import { along, shownAt, type View } from "./stage/shapes.js";
+import { brakes, spiral, topOf } from "./stage/spiral.js";
 
-/** Each kind: how it places the graph, where it is first seen from, and what it is, in a sentence. */
-const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean }> = {
-  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: true, says: "Every node is where the picture has it, one pane toward you for each loop or subgrooph around it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving a loop or a subgrooph." },
+/** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, whether its frame is made as tall as its cards need to be clear of each other, and whether each loop's brakes are said under it. */
+const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: number; brakes?: boolean }> = {
+  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: 2, says: "Every node is where the picture has it, one pane toward you for each loop or subgrooph around it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving a loop or a subgrooph." },
+  spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: 7, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
 };
 
 let styled = false;
@@ -37,13 +39,15 @@ export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: strin
   }
   const the = KINDS[kind]!;
   // Where the canvas has each node: the document's layout where it has one, and the canvas's own for this screen.
-  const model = useMemo(() => modelOf(doc, resolvePositions(doc, columnsAt(wide), DEFAULT_LAYOUT_BOX).positions, of.notes), [doc, wide, of.notes]);
+  // Whether the frame is a phone's width: the frame's own, since a window with the details beside the view is wide
+  // and its frame is not. Read once it is on the page, before anything is painted, and again when its width
+  // changes (a panel opened beside it).
+  const [slim, setSlim] = useState(wide < 640);
+  const model = useMemo(() => modelOf(doc, resolvePositions(doc, columnsAt(wide), DEFAULT_LAYOUT_BOX).positions, of.notes, slim), [doc, wide, of.notes, slim]);
   // Every loop and box a node is in, the nearest first: what its card is said to be in.
   const within = (id: Id): string =>
     [...model.loops.filter((l) => l.members.includes(id)).sort((a, b) => a.members.length - b.members.length).map((l) => `in the loop ${l.name}`), ...model.groups.filter((g) => g.nodes.includes(id)).sort((a, b) => a.nodes.length - b.nodes.length).map((g) => `in the ${g.from ? "subgrooph" : "group"} ${g.name}`)].join(", ");
   const steps = useMemo(() => stepsOf(model), [model]);
-  // The edges a run took, each with the rounds it was taken between and the step it was taken at.
-  const took = useMemo(() => (model.run ? steps.flatMap((step, n) => (step.edge && !step.about ? [{ edge: step.edge, r0: step.r0 ?? 0 }, ...(step.also ?? [])].map((e) => ({ ...e, r1: step.r1 ?? 0, step: n })) : [])) : []), [model, steps]);
   const [at, setAt] = useState(0);
   const [playing, setPlaying] = useState(false);
   const k = Math.min(at, steps.length - 1);
@@ -57,21 +61,37 @@ export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: strin
   const was = useRef(0);
 
   useLayoutEffect(() => {
+    const see = (): void => setSlim(frame.current!.clientWidth < 640);
+    see();
+    const sized = new ResizeObserver(see);
+    sized.observe(frame.current!);
+    return () => sized.disconnect();
+  }, []);
+  useLayoutEffect(() => {
     const made = (stage.current = makeStage(frame.current!, canvas.current!, cards.current!, the.start, the.apart));
-    return () => (cancelAnimationFrame(glide.current), made.off());
+    // What a view grows (a spiral, its lid) is not there when the view comes: the cards land first, and then it is
+    // grown. For a reader who asked for less motion it is all drawn at once.
+    let frames = 0;
+    let wait: ReturnType<typeof setTimeout> | undefined;
+    if (!still()) {
+      made.grown = 0;
+      wait = setTimeout(() => {
+        const from = performance.now();
+        const grow = (now: number): void => {
+          made.grown = Math.min(1, (now - from) / 700);
+          made.draw();
+          if (made.grown < 1) frames = requestAnimationFrame(grow);
+        };
+        frames = requestAnimationFrame(grow);
+      }, 330);
+    }
+    return () => (clearTimeout(wait), cancelAnimationFrame(frames), cancelAnimationFrame(glide.current), made.off());
   }, [kind]);
   // What the slider is at, drawn. Now, and not at the next frame: when the picture becomes this view the browser is
   // told the page has changed as soon as this is done, and takes the cards from where they are then.
   useLayoutEffect(() => {
     const on = stage.current!;
-    // What the step is about: its nodes, its edge (by its name, and by its name and the round it is taken in, for a
-    // view that draws an edge once a round), its loops. A note about the run as a whole picks nothing out.
-    // A node that fans in is reached by several edges at once: each is lit.
-    const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}`] : []), ...(step.about ? [] : (step.also ?? []).map((e) => `edge:${e.edge}`)), ...(step.loops ?? []).map((id) => `loop:${id}`)];
-    const shown: Shown = { k, took, lit: about.length ? new Set(about) : null };
-    if (step.about && step.edge) shown.about = { edge: step.edge, r0: step.r0 ?? 0 };
-    // A run is drawn as far as the note it is at; step 0 is all of it.
-    if (model.run && k > 0) shown.dispatches = steps.slice(1, k + 1).filter((s) => s.dispatch !== undefined).length;
+    const shown = shownAt(model, steps, k);
     const built = the.view(model, shown);
     on.lit = shown.lit;
     cancelAnimationFrame(glide.current);
@@ -147,6 +167,16 @@ export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: strin
       <output className="s3-says" aria-live="polite">
         {step.says}
       </output>
+      {the.brakes && model.loops.length ? (
+        // Each loop's brakes in words, with what stands for each in the drawing.
+        <ul className="s3-key" aria-label="Each loop's brakes">
+          {model.loops.map((loop, n) => (
+            <li key={loop.id}>
+              <b style={{ color: `var(--loop-${n % 4})` }}>{loop.name}</b> {brakes(loop, topOf(model, loop)).words.join("; ")}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <p className="s3-note">
         {the.says}
         {kind === "panes" && !model.loops.length && !model.groups.some((g) => g.from) ? " This graph has no loop and no subgrooph, so nothing is lifted." : ""}
