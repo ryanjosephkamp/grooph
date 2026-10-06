@@ -274,6 +274,14 @@ test('"bar passed" in a loop no critic judges is a stop that leads on, with a `t
   // In a loop a critic judges it is the critics' verdict, and its place among the stops is not held (a stated limit).
   const limits = [cap(1), H];
   for (const [was, now] of [[[...limits, passed], [passed, ...limits]], [[passed, ...limits], [...limits, passed]], [limits, [passed, ...limits]]]) assert.deepEqual(refused(adopt(judged(was), judged(now))), []);
+  // A second loop on the loop's back edge with such a stop: held where no critic judges, and that critic's verdict
+  // where the loop's own critic is among the new loop's members (the third refresh reader's loop put beside a loop).
+  const again = (doc: Graph): Graph => {
+    doc.loops.push({ ...structuredClone(doc.loops[0]!), id: "again", name: "Again", stops: [passed, cap(100)] });
+    return doc;
+  };
+  assert.deepEqual(refused(adopt(withBar(plain([cap(2)])), again(withBar(plain([cap(2)]))))), [`loop:again: the loop "again" would count rounds that "list" counts, and the stop on "bar passed" among its stops, which follows that loop's pass edges, could fire before the round cap of 2 that halts the run`]);
+  assert.deepEqual(refused(adopt(judged([passed, ...limits]), again(judged([passed, ...limits])))), []);
 });
 
 test('"tightens a brake" is said of no change that brings in a stop that leads on, or puts one ahead; a stop that halts is one', () => {

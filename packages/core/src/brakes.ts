@@ -491,7 +491,9 @@ function loopLosses(before: Graph, after: Graph): { losses: Loss[]; fired: Loss[
         if (other.id === loop.id || !shares(other)) continue;
         const old = loopWas.get(other.id);
         const had = shares(old) ? old!.stops : [];
-        for (const lead of other.stops.filter(leadsOnIn(haltsNow, judged(other, old)))) {
+        // (A loop that is new is judged by a critic where one of this loop's own is among its members: its bar is
+        // then that critic's verdict, as this loop's is.)
+        for (const lead of other.stops.filter(leadsOnIn(haltsNow, judged(other, old ?? loop)))) {
           if (had.some((stop) => same(stop, lead))) continue;
           const leading = `${stopName(lead)} among its stops, which ${lead.then === undefined ? "follows that loop's pass edges" : `leads on to "${lead.then}"`},`;
           fired.push({ why: `the loop "${other.id}" would count rounds that "${loop.id}" counts, and ${leading} could fire before ${halting(halt!)}`, at: old ? [`loop:${other.id}.stops`, `loop:${other.id}.back`] : [`loop:${other.id}`] });
