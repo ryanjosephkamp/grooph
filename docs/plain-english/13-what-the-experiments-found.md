@@ -6,7 +6,7 @@ It is easy to build a tool and say it helps. This chapter is about what grooph h
 
 The findings here are the ones on two of the project's own pages: its [list of claims](../claims.md), and the [decision](../decisions/0029-what-is-shown-as-of-the-first-audit.md) that sums the list up. Figures not on them come from the ledgers and write-ups under `experiments/`, and the last section is the author's summary. The project's agreed summary, word for word, is this:
 
-> Each of the twenty templates has a recorded run: eighteen pass the project's checks and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it.
+> The latest kept run of each of the twenty templates is counted: eighteen pass the project's checks of selected parts and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it.
 
 The rest of the chapter explains each part of it.
 
