@@ -60,7 +60,7 @@ A share link carries the whole document inside the link, so whoever has the link
 
 Here is what is shown and what is not, in the sentences the project uses wherever it speaks of its value ([decision 0029](decisions/0029-what-is-shown-as-of-the-first-audit.md)):
 
-Each of the twenty templates has a recorded run: eighteen pass the project's checks and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it.
+The latest kept run of each of the twenty templates is counted: eighteen pass the project's checks of selected parts and two are published red. Seven earlier runs are kept beside them; six of those fail their check. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it.
 
 That is not a test of equivalence: three of the four test suites were saturated, and replicates were two or three ([claim C4](claims.md)). A second paired comparison ran after 0.3.0 and is in the repository. Its claims have not been through an audit, and no page states them as shown.
 
@@ -70,7 +70,7 @@ That is not a test of equivalence: three of the four test suites were saturated,
 
 Every rule has a stable code and is in the [rule reference](rules.md), with a document that breaks it. Three of them:
 
-- **Every loop names a stop.** A cycle with no stop is an error (`E_CYCLE_NO_STOP`). A loop with no cap and no budget draws a warning and still exports.
+- **Every loop names a stop.** A cycle with no stop is an error (`E_CYCLE_NO_STOP`). A loop with no budget draws a warning when it has no cap, or a cap above five rounds, and still exports.
 - **A critic that shares the builder's context is refused, where the graph asks for isolation.** Under a critic-isolation policy, which the templates with a critic have, a critic that shares the builder's context, or is handed a builder's work with no list of what it may inspect, is an error (`E_CRITIC_NOT_ISOLATED`).
 - **A person decides before a step marked irreversible.** A node its author marked irreversible, reachable without a person's decision, is an error (`E_IRREVERSIBLE_NO_GATE`). The rule reads the mark; it does not watch what a run does.
 
