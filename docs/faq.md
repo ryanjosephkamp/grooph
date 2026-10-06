@@ -16,7 +16,7 @@ One command, `grooph watch`, serves the app and a live view to a browser, on you
 
 No. There is no model call anywhere in grooph, and it needs no API key ([claim C25](claims.md)). The validator and the compiler are ordinary deterministic code: the same graph, exported with the same options, gives the same package, byte for byte.
 
-When an agent builds a graph for you, that agent is your harness's session, using grooph from its command line.
+When an agent builds a graph for you, that agent is your harness's session, using grooph from its command line or through the tools `grooph mcp` gives it.
 
 ## How is it different from an agent framework such as LangGraph?
 
@@ -40,15 +40,15 @@ The **event hook** appends a line when a session, a turn or a subagent starts or
 
 ## Can I use it without Claude Code?
 
-Partly. Everything up to the package needs no harness: drawing a graph in the app, the templates, the validator, the pictures in six themes, the app's view in three dimensions, the outline, share links, and [operation maps](operation-map.md), which are drawn and checked and never compiled.
+Partly. Everything up to the package needs no harness: drawing a graph in the app, the templates, the validator, the pictures in six themes, the app's views in three dimensions, the outline, share links, and [operation maps](operation-map.md), which are drawn and checked and never compiled.
 
 The package itself is written for one harness: Claude Code, or Codex. It is plain text files (Markdown, TOML for Codex's agents, and the graph itself as JSON), so you can read every word of it. No other harness is a target.
 
 ## Can I use grooph for a plan nobody's agents will run?
 
-Yes. A graph is a plan first ([amendment A-020](../spec/AMENDMENTS.md)): it needs no harness, and no goal either until a package is asked for, and a step may be a person's, marked `by: "person"`. Such a graph is drawn and checked like any other. The validator, the picture, the outline, the offline page and share links all read it. Four templates of this kind are in [`plans/`](../plans/README.md): a literature review, a research study, a team's handoffs and a solo project.
+Yes. A graph with a step a person does is a plan ([amendment A-020](../spec/AMENDMENTS.md)), and so is one that names no harness. In the app a step is made a person's with "Done by: a person"; in the document it is `"by": "person"` on the node. grooph draws a plan and checks it like any other graph, and writes it as a page to read (`PLAN.md`), a picture and the file, with `grooph plan <graph>` or the app's Export panel. The page says first whether the plan is whole as a plan, and then what would have to be fixed before a harness could run it.
 
-What you do not get is a package. grooph writes none for a graph that names no harness or has a person's step, and nothing counts a loop's rounds or holds a decision for you: the people following the plan do that. None of the four templates has a recorded run, because there is nothing to run, and nothing is claimed about what following one does for the quality, cost, speed or safety of any work.
+What you do not get is a package. grooph makes none from a graph with a person's step, or from one that names no harness, and nothing counts a loop's rounds or holds a decision for you: the people following the plan do that. Four plan templates come with grooph: a literature review, a research study, a small team's handoffs and a solo project. They are under "Plans" on the app's templates screen and in `grooph template list`, apart from the twenty, and [`plans/`](../plans/README.md) describes them. None has a recorded run, because there is nothing to run.
 
 ## Where do my graphs live?
 
@@ -74,13 +74,13 @@ Every rule has a stable code and is in the [rule reference](rules.md), with a do
 - **A critic that shares the builder's context is refused, where the graph asks for isolation.** Under a critic-isolation policy, which the templates with a critic have, a critic that shares the builder's context, or is handed a builder's work with no list of what it may inspect, is an error (`E_CRITIC_NOT_ISOLATED`).
 - **A person decides before a step marked irreversible.** A node its author marked irreversible, reachable without a person's decision, is an error (`E_IRREVERSIBLE_NO_GATE`). The rule reads the mark; it does not watch what a run does.
 
-An error blocks export. A warning is shown and carried into the lead brief. The audit's reading of these three rules is in [claims C19, C20 and C21](claims.md).
+An error blocks a package. A warning is shown and carried into the lead brief. `grooph plan` still writes the plan of a graph in error, with the error listed in it. The audit's reading of these three rules is in [claims C19, C20 and C21](claims.md).
 
 The validator checks a document. The package instructs a session. It is not shown that grooph enforces anything while a session runs ([decision 0029](decisions/0029-what-is-shown-as-of-the-first-audit.md)).
 
 ## Can an agent build the graph for me?
 
-Yes. With grooph installed, ask Claude Code:
+Yes. With grooph and its skill installed, ask Claude Code:
 
 ```text
 /grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging
@@ -88,7 +88,7 @@ Yes. With grooph installed, ask Claude Code:
 
 The session proposes one to three validated graphs, gives you a link that opens on your phone to compare them, and places the package you pick. The skill tells the session not to start the run until you say so ([claim C29](claims.md)). [The executive path](executive.md) has the details.
 
-Today grooph is installed from a clone of the repository: the [quickstart](quickstart.md) has the commands.
+grooph installs from npm (`npm install --global grooph`, or `npx -y grooph <command>` with nothing installed) or from a clone of the repository. The [quickstart](quickstart.md) has the commands, and how the skill is added. A session with no skill can use grooph's tools instead (`grooph mcp`): [grooph for agents](agents.md) is the page it works from. [From a chat](chat.md) says what there is for a chat app, and what of it was tried.
 
 ## Does it work on a phone, and offline?
 
