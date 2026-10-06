@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { parseGraphText, parseRunNotes, replaySteps, resolvePositions, summarizeRun, type Graph, type RunNote } from "@grooph/core";
+import { isPersonStep, parseGraphText, parseRunNotes, replaySteps, resolvePositions, summarizeRun, type Graph, type RunNote } from "@grooph/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { columnsForViewport } from "../src/doc/layout.js";
@@ -142,6 +142,20 @@ describe("a recorded run", () => {
     }
     // A node in one loop keeps the round its note names.
     expect(where(model)).toEqual(["builder@sandwich:0", "checks@sandwich:0", "critic@sandwich:0", "builder@sandwich:1", "checks@sandwich:1", "critic@sandwich:1"]);
+  });
+
+  it("a person's step is no dispatch: its result is not counted, in a run or in a full round, and the step is still a stop of the slider", () => {
+    const plan = graph("fixtures/valid/a-plan-with-people.grooph.json");
+    const said = (k: number, at: string, outcome: string, round?: number): RunNote => ({ id: `n-${k}`, run: "r", at: `node:${at}`, ended: `2026-10-05T10:0${k}:00Z`, outcome, ...(round === undefined ? {} : { round }) }) as RunNote;
+    // A person drafts, an agent checks the facts, a person edits and sends it back, and round again.
+    const notes = [said(1, "draft", "pass", 0), said(2, "fact-check", "pass", 0), said(3, "review", "fail", 0), said(4, "draft", "pass", 1), said(5, "fact-check", "pass", 1), said(6, "review", "pass", 1), said(7, "publish", "pass")];
+    const m = modelOf(plan, notes);
+    expect(m.run!.dispatches.map((d) => [d.node, d.round])).toEqual([["fact-check", 0], ["fact-check", 1]]);
+    expect(stepsOf(m)[0]!.says).toMatch(/^The whole run: 2 dispatches, in rounds 0 and 1 of /);
+    // Every note is a stop of the slider all the same, a person's among them, with the edge taken to it.
+    expect(stepsOf(m).slice(1).map((s) => [s.to, s.edge !== undefined])).toEqual([["draft", false], ["fact-check", true], ["review", true], ["draft", true], ["fact-check", true], ["review", true], ["publish", true]]);
+    // A full round of the loop is one dispatch, the agent's: a budget in dispatches does not count a person's step.
+    expect(m.loops.map((l) => l.perRound)).toEqual([1]);
   });
 
   it("a dispatch's minutes are by the stamps of the ends: the first from its own start, each after from the end before it", () => {
@@ -298,7 +312,7 @@ describe("every recorded run the repository keeps", () => {
       // and checks is the same number, but for the four runs above.
       expect(run.rounds, dir).toEqual(Object.fromEntries(replaySteps(notes, doc).end.loops.map((l) => [l.loop, l.round ?? -1])));
       const summary = summarizeRun(notes, doc);
-      expect(doc.nodes.reduce((sum, n) => sum + (n.kind === "agent" || n.kind === "check" ? (summary.nodes[n.id]?.runs ?? 0) : 0), 0), dir).toBe(CORE_COUNTS[dir] ?? dispatches);
+      expect(doc.nodes.reduce((sum, n) => sum + ((n.kind === "agent" && !isPersonStep(n)) || n.kind === "check" ? (summary.nodes[n.id]?.runs ?? 0) : 0), 0), dir).toBe(CORE_COUNTS[dir] ?? dispatches);
       // And the latest round core's summary has for each loop is the same, but for the nested run: its last line
       // is the line before the judge's dispatch, which names round 1 of Phases, and a line before a dispatch is no
       // round of the loop's yet.

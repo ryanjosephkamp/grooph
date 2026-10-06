@@ -103,7 +103,7 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       // What the compiler tells a lead a full round costs: each member that is a check, or an agent other than the
       // lead itself, once. A loop inside this one is in that count at one round of its own; every further round of
       // it adds its own on top, and a node dispatched twice in a round (invalid evidence) counts twice.
-      perRound: loop.members.map((id) => doc.nodes.find((n) => n.id === id)).filter((n) => n?.kind === "check" || (n?.kind === "agent" && n.role !== "lead")).length,
+      perRound: loop.members.map((id) => doc.nodes.find((n) => n.id === id)).filter((n) => n?.kind === "check" || (n?.kind === "agent" && n.role !== "lead" && !isPersonStep(n))).length,
     };
   });
   // The nodes that are a loop's own: its members that are in no loop inside it.
@@ -196,7 +196,8 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       // A dispatch is a result at an agent or a check: not the line before it, and not a note that reports nothing
       // (a word, a proposal, an amendment at the node). Its minutes are by the stamps, which
       // a note may leave out (graph-ir section 6: read from the clock or omitted, never estimated): then it has none.
-      if (node && (node.kind === "agent" || node.kind === "check") && note.outcome && note.outcome !== "started") {
+      // Nor is a person's step one (amendment A-020): its result is a person's, and no dispatch was made.
+      if (node && (node.kind === "agent" || node.kind === "check") && !isPersonStep(node) && note.outcome && note.outcome !== "started") {
         out.dispatch = dispatches.push({ node: node.id, loop, round, outcome: note.outcome ?? null, minutes: note.ended ? Math.max(0, minutes(last ?? note.started ?? note.ended, note.ended)) : null }) - 1;
         last = note.ended ?? last;
       }
