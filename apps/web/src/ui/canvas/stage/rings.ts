@@ -13,10 +13,13 @@
  * is at is faint.
  */
 import type { Prim } from "./draw.js";
-import { under, type Id, type MLoop, type V } from "./model.js";
-import { arch, by, card, circle, edgeLine, ground, hue, stations, TAU, type Stop, type View } from "./shapes.js";
+import type { Id, MLoop, V } from "./model.js";
+import type { Stop, View } from "./shapes.js";
 
-export const rings: View = (m, shown) => {
+/** What this view is drawn with, of the stage's own: handed to it, since it is in a piece apart from the stage's. */
+export type Tools = Pick<typeof import("./shapes.js"), "arch" | "by" | "card" | "circle" | "edgeLine" | "ground" | "hue" | "stations" | "TAU"> & Pick<typeof import("./model.js"), "under">;
+
+export const rings = ({ arch, by, card, circle, edgeLine, ground, hue, stations, TAU, under }: Tools): View => (m, shown) => {
   const prims: Prim[] = [];
   const at: Record<Id, V> = {};
   const ring: Record<Id, { c: V; r: number; stops: Stop[] }> = {};
@@ -30,8 +33,11 @@ export const rings: View = (m, shown) => {
   };
   // How far a ring and all that stands on it reach from its middle.
   const reach = (loop: MLoop): number => R(loop) + Math.max(0, ...m.loops.filter((l) => l.inside === loop.id).map(reach));
-  // A station's place on its ring: the first at the far side, and on round to the right.
-  const where = (c: V, r: number, i: number, k: number): V => [c[0] + r * Math.sin((TAU * i) / k), c[1], c[2] - r * Math.cos((TAU * i) / k)];
+  // A station's place on its ring: the first at the far side, and on round to the right. A ring that stands on
+  // another is turned a quarter of a station on from that: it is drawn 64 higher, which from where the view starts
+  // is over ground 55 farther back, so a node at its near side would be drawn over the ring's own foot, and the
+  // outer loop's line through that foot would read as arriving at the node.
+  const where = (c: V, r: number, i: number, k: number): V => ((a: number): V => [c[0] + r * Math.sin(a), c[1], c[2] - r * Math.cos(a)])((TAU * (i + (c[1] ? 0.25 : 0))) / k);
   function place(loop: MLoop, c: V): void {
     const stops = stations(m, loop);
     const r = R(loop);
@@ -63,8 +69,8 @@ export const rings: View = (m, shown) => {
     else if (item.loop) {
       // Room for the ring and for every ring that stands on it, and for the card of its first station, which
       // stands over where the node before the ring would otherwise be: no node on the ground is inside a ring.
-      // More where its first station is a ring of its own: that ring's first card is drawn 64 higher, which from
-      // where the view starts is over ground 55 farther back.
+      // More where its first station is a ring of its own: that ring's cards are drawn 64 higher, which from where
+      // the view starts is over ground 55 farther back, toward the node before the ring.
       const r = reach(item.loop) + 6;
       const raised = (loop: MLoop): number => ((first) => (first ? 55 + raised(first) : 0))(stations(m, loop)[0]?.loop);
       z += z ? 56 + raised(item.loop) : 0;
@@ -79,8 +85,8 @@ export const rings: View = (m, shown) => {
   // apart from the first: outside it on the ring, or higher.
   const station = (stops: Stop[], id: Id): number => stops.findIndex((stop) => stop.node === id || (!!stop.loop && (by(m.nodes, id).loop === stop.loop.id || under(m.loops, by(m.nodes, id).loop ?? "", stop.loop.id))));
   const taken = (id: Id): boolean => shown.took.some((x) => x.edge === id && (shown.k === 0 || x.step <= shown.k));
-  // How far aside an edge from p to q goes to be clear of what a straight line would run through, seen from where
-  // the view starts: each node other than its ends, by the room a card takes there (62 on a ring, where it stands
+  // How far aside an edge from p to q goes to be clear of what a straight line would run through, seen from
+  // above: each node other than its ends, by the room a card takes there (62 on a ring, where it stands
   // over its node, to both sides; 34 on the ground, where it is to the right). The foot of a ring that stands on
   // another is under that ring's first node, so an edge along the ground goes round it with the node. The bow is widest at
   // its middle, so a thing nearer an end asks for more of it, to be as clear where it stands; and once it is
@@ -92,10 +98,10 @@ export const rings: View = (m, shown) => {
     const t = Math.max(0, Math.min(1, (wx * dx + wz * dz) / (far * far)));
     // How far off the line it is, toward the side the edge goes to (the left); and how near the edge is to it.
     const off = ((wz - dz * t) * dx - (wx - dx * t) * dz) / (dz < 0 ? -far : far);
-    // (A straight line counts a node within 24 of it. A bowed one is held to all but the last of the room: it has
-    // left where it would have run, and what it is near now is a card.)
+    // (Near is within all but the last of the room a card takes there: a line that passes 30 from a node on a
+    // ring runs behind its card as surely as one through its foot.)
     const room = n.loop ? 62 : 34;
-    const near = out === null ? Math.hypot(wx - dx * t, wz - dz * t) + room - 24 : t > 0.06 && t < 0.94 ? Math.abs(off - out * 4 * t * (1 - t)) + 6 : room;
+    const near = (out === null ? Math.hypot(wx - dx * t, wz - dz * t) : t > 0.06 && t < 0.94 ? Math.abs(off - out * 4 * t * (1 - t)) : room) + 6;
     return near < room ? (room + (out === null ? Math.abs(off) : off)) / Math.max(0.36, 4 * t * (1 - t)) : 0;
   };
   const passes = (e: { from: Id; to: Id }, p: V, q: V): number => {

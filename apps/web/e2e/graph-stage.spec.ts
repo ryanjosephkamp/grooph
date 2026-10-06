@@ -18,7 +18,7 @@ const kind = (page: Page, name: string) => kinds(page).getByRole("radio", { name
 const cards = (page: Page) => page.locator(".s3-card");
 const says = (page: Page) => page.locator(".s3-says");
 const STAGE = /\/assets\/graph-stage-[^/]*\.js$/;
-const COLUMNS = /\/assets\/graph-columns-[^/]*\.js$/;
+const MORE = /\/assets\/graph-more-[^/]*\.js$/;
 const STAIRS = /\/assets\/space-[^/]*\.js$/;
 /** The built-in templates whose cards still touch in Panes under an open details sheet, at two phones' sizes. */
 const TIGHT_390: string[] = ["debate-then-build", "gauntlet-decomposed", "ownership-not-swarm", "patrol-pulse", "specialist-critic-bank", "tournament-then-judge"];
@@ -383,53 +383,66 @@ test("the kind chosen is the tab's for the visit: 3D opens it again, after a rel
   await expect(page.locator(".space")).toHaveCount(0);
 });
 
-test("columns is a piece of its own: on no first load, not fetched for another kind, fetched once with the stage when Columns is chosen; and when it cannot be fetched the page says so and the view that was up stays", async ({ page }) => {
-  const fetched = { stage: 0, columns: 0 };
+test("the kinds that are not in the stage are a piece of their own: on no first load, not fetched for the stairs, Panes or the spiral, fetched once with the stage when Rings or Columns is chosen; and when it cannot be fetched the page says so and the view that was up stays", async ({ page }) => {
+  const fetched = { stage: 0, more: 0 };
   page.on("request", (request) => {
     const path = new URL(request.url()).pathname;
     if (STAGE.test(path)) fetched.stage += 1;
-    if (COLUMNS.test(path)) fetched.columns += 1;
+    if (MORE.test(path)) fetched.more += 1;
   });
   // No address's first load has it: the front page, a template's page, a run's.
   for (const address of ["./", "./#/templates/built-in/grind-loop", linkFor(runBundle("slice-0007-sandwich"))]) {
     await page.goto("about:blank");
     await page.goto(address);
     await page.waitForLoadState("networkidle");
-    expect(fetched, address).toEqual({ stage: 0, columns: 0 });
+    expect(fetched, address).toEqual({ stage: 0, more: 0 });
   }
   // The page names it, so the worker can hold it: once, in the head's own list of what the app can ask for.
-  expect(await page.evaluate(() => (document.head.querySelector("script:not([src])")?.textContent ?? "").split("/assets/graph-columns-").length - 1)).toBe(1);
-  // A run's page: the stairs ask for neither, Panes for the stage alone, Columns for its own piece beside it.
+  expect(await page.evaluate(() => (document.head.querySelector("script:not([src])")?.textContent ?? "").split("/assets/graph-more-").length - 1)).toBe(1);
+  // A run's page: the stairs ask for neither piece, Panes and the spiral for the stage alone, Rings for the second
+  // piece beside it.
   await canvasIsQuiet(page);
   await view(page, "3D").click();
   await expect(page.locator(".space-scene")).toBeVisible();
   await viewIsStill(page);
-  expect(fetched).toEqual({ stage: 0, columns: 0 });
+  expect(fetched).toEqual({ stage: 0, more: 0 });
   await kind(page, "Panes").click();
   await expect(page.locator('.s3[data-kind="panes"] .s3-frame')).toBeVisible();
   await viewIsStill(page);
-  expect(fetched).toEqual({ stage: 1, columns: 0 });
+  await kind(page, "Spiral").click();
+  await expect(page.locator('.s3[data-kind="spiral"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  expect(fetched).toEqual({ stage: 1, more: 0 });
+  await kind(page, "Rings").click();
+  await expect(page.locator('.s3[data-kind="rings"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  expect(fetched).toEqual({ stage: 1, more: 1 });
+  await expect(page.getByRole("list", { name: "The round the run is in, loop by loop" }).getByRole("listitem")).toHaveCount(1);
+  // Columns is in the same piece: it comes with nothing more fetched, and says its blocks.
   await kind(page, "Columns").click();
   await expect(page.locator('.s3[data-kind="columns"] .s3-frame')).toBeVisible();
   await viewIsStill(page);
-  expect(fetched).toEqual({ stage: 1, columns: 1 });
+  expect(fetched).toEqual({ stage: 1, more: 1 });
   await expect(page.getByRole("list", { name: "Each node's dispatches so far" }).getByRole("listitem")).toHaveCount(3);
+  await kind(page, "Rings").click();
+  await expect(page.locator('.s3[data-kind="rings"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
   // Chosen again, from the picture and from another kind: nothing more is fetched.
   await view(page, "Picture").click();
   await expect(page.locator(".s3")).toHaveCount(0);
   await viewIsStill(page);
   await view(page, "3D").click();
-  await expect(page.locator('.s3[data-kind="columns"] .s3-frame')).toBeVisible();
+  await expect(page.locator('.s3[data-kind="rings"] .s3-frame')).toBeVisible();
   await viewIsStill(page);
   await kind(page, "Panes").click();
   await viewIsStill(page);
-  await kind(page, "Columns").click();
-  await expect(page.locator('.s3[data-kind="columns"] .s3-frame')).toBeVisible();
+  await kind(page, "Rings").click();
+  await expect(page.locator('.s3[data-kind="rings"] .s3-frame')).toBeVisible();
   await viewIsStill(page);
-  expect(fetched).toEqual({ stage: 1, columns: 1 });
+  expect(fetched).toEqual({ stage: 1, more: 1 });
 
-  // A tab where the piece cannot be had: Panes come, Columns does not, and Panes stay with a word of why.
-  await page.route(COLUMNS, (route) => route.abort());
+  // A tab where the piece cannot be had: Panes come, Rings does not, and Panes stay with a word of why.
+  await page.route(MORE, (route) => route.abort());
   await page.evaluate(() => sessionStorage.removeItem("groophSpace"));
   await page.goto("about:blank");
   await page.goto("./#/templates/built-in/grind-loop");
@@ -441,13 +454,16 @@ test("columns is a piece of its own: on no first load, not fetched for another k
   await kind(page, "Panes").click();
   await expect(page.locator('.s3[data-kind="panes"] .s3-frame')).toBeVisible();
   await viewIsStill(page);
-  await kind(page, "Columns").click();
+  await kind(page, "Rings").click();
   await expect(page.locator(".graph-views-note")).toHaveText("That view could not be fetched. This one shows the same graph.");
   await expect(page.locator('.s3[data-kind="panes"] .s3-frame')).toBeVisible();
   await expect(kind(page, "Panes")).toHaveAttribute("aria-checked", "true");
   expect(await page.evaluate(() => sessionStorage.getItem("groophSpace"))).toBe("panes");
-  // And when it can be had again, the next press brings it.
-  await page.unroute(COLUMNS);
+  // Columns, of the same piece, fails the same way; and when the piece can be had again, the next press brings it.
+  await kind(page, "Columns").click();
+  await expect(page.locator(".graph-views-note")).toHaveText("That view could not be fetched. This one shows the same graph.");
+  await expect(kind(page, "Panes")).toHaveAttribute("aria-checked", "true");
+  await page.unroute(MORE);
   await kind(page, "Columns").click();
   await expect(page.locator('.s3[data-kind="columns"] .s3-frame')).toBeVisible();
   await expect(page.locator(".graph-views-note")).toHaveCount(0);
@@ -1357,6 +1373,55 @@ test("a person's step says whose it is in the columns too, on a phone, and is a 
   await expect(person.locator("span")).toHaveText("Person · critic");
   await expect(page.getByRole("button", { name: "Agent Check the facts" }).locator("span")).toBeHidden();
   expect(await overlaps(page)).toEqual([]);
+});
+
+test("the line that says cards touch goes once the reader has moved in, and is back with the starting view; and a pane's name keeps its place while the view is turned", async ({ page }) => {
+  await recordDrawing(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "panes"));
+  // One row of four at a phone's width: the cards touch at rest, and the line says so.
+  await importDocument(page, "review-loop.grooph.json", readFileSync(join(repoRoot, "fixtures/valid/review-loop.grooph.json"), "utf8"));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await viewIsStill(page);
+  const tight = page.locator(".s3-bar .s3-tight");
+  await expect(tight).toBeVisible();
+  await page.getByRole("button", { name: "Move in" }).click();
+  await expect(tight).toBeHidden();
+  await page.getByRole("button", { name: "Starting view" }).click();
+  await expect(tight).toBeVisible();
+
+  // Gauntlet, where there is room: its loops' names, turned a key at a time. A name moves with its pane, a little
+  // at each step; a leap is a step of 90 px or more, to another of the places it may stand at.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("about:blank");
+  await page.goto("./#/templates/built-in/gauntlet-decomposed");
+  await canvasIsQuiet(page);
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await viewIsStill(page);
+  const where = () => page.evaluate(() => Object.fromEntries((window as unknown as { drawn: { said: { text: string; x: number; y: number }[] } }).drawn.said.filter((s) => / · loop$/.test(s.text)).map((s) => [s.text, [s.x, s.y]])));
+  await page.locator(".s3-frame").focus();
+  let last = await where();
+  expect(Object.keys(last).sort()).toEqual(["Pieces · loop", "Polish a piece · loop"]);
+  let [moved, leaps] = [0, 0];
+  for (let k = 0; k < 12; k += 1) {
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(60);
+    const now = await where();
+    for (const name of Object.keys(last)) {
+      const step = Math.hypot(now[name]![0]! - last[name]![0]!, now[name]![1]! - last[name]![1]!);
+      leaps += Number(step >= 90);
+      moved += step;
+    }
+    last = now;
+  }
+  // (It did turn: the names moved. A name leaves its place only when more than a tenth of it is under a card
+  // there: twice in these twenty-four steps of two names, where choosing afresh at every step leapt five times.)
+  expect(moved).toBeGreaterThan(20);
+  expect(leaps).toBeLessThanOrEqual(2);
 });
 
 test("a browser that gives no drawing surface: the switch is still there, the page says why and shows what it showed, and the visit does not remember the kind that never drew", async ({ page }) => {

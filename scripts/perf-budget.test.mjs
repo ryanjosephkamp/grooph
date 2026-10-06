@@ -40,13 +40,13 @@ function scratch(t) {
   put("apps/web/dist/assets/builtins-a.js", randomBytes(350));
   put("apps/web/dist/assets/graph-stage-a.js", randomBytes(260));
   put("apps/web/dist/assets/graph-views-a.js", randomBytes(180));
-  put("apps/web/dist/assets/graph-columns-a.js", randomBytes(140));
+  put("apps/web/dist/assets/graph-more-a.js", randomBytes(140));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-next.v1.woff2", randomBytes(400));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-mono.v1.woff2", randomBytes(300));
   put("apps/web/dist/assets/site-icons.v1.svg", "<svg xmlns='http://www.w3.org/2000/svg'/>");
   put(
     "apps/web/dist/routes.json",
-    JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js", "assets/space-a.js", "assets/front-a.js", "assets/builtins-a.js", "assets/graph-stage-a.js", "assets/graph-views-a.js", "assets/graph-columns-a.js"], space: ["assets/space-a.js"], front: ["assets/front-a.js"], templates: ["assets/builtins-a.js"], stage: ["assets/graph-stage-a.js"], views: ["assets/graph-views-a.js"], columns: ["assets/graph-columns-a.js"] }),
+    JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js", "assets/space-a.js", "assets/front-a.js", "assets/builtins-a.js", "assets/graph-stage-a.js", "assets/graph-views-a.js", "assets/graph-more-a.js"], space: ["assets/space-a.js"], front: ["assets/front-a.js"], templates: ["assets/builtins-a.js"], stage: ["assets/graph-stage-a.js"], views: ["assets/graph-views-a.js"], more: ["assets/graph-more-a.js"] }),
   );
   const gz = (path) => gzipSync(files[`apps/web/dist/${path}`]).length;
   /** What an address that draws on the canvas weighs in this build, in bytes, as the script weighs it. */
@@ -56,7 +56,7 @@ function scratch(t) {
   for (let more = 0; !(((weigh() / 1024) * 10) % 1 > 0.1 && ((weigh() / 1024) * 10) % 1 < 0.4); more += 10) put("apps/web/dist/assets/screens-a.js", randomBytes(5000 + more));
   const canvas = weigh();
   const run = (canvasLimitBytes) => {
-    const roomy = { firstLoadKB: 1000, entryJsKB: 1000, cssKB: 1000, fontsKB: 1000, firstVisitKB: 1000, templateLoadKB: 1000, embedLoadKB: 1000, mapSpaceKB: 1000, graphStageKB: 1000, graphViewsKB: 1000, graphColumnsKB: 1000, cliColdMs: 60000 };
+    const roomy = { firstLoadKB: 1000, entryJsKB: 1000, cssKB: 1000, fontsKB: 1000, firstVisitKB: 1000, templateLoadKB: 1000, embedLoadKB: 1000, mapSpaceKB: 1000, graphStageKB: 1000, graphViewsKB: 1000, graphMoreKB: 1000, cliColdMs: 60000 };
     writeFileSync(join(dir, "scripts", "perf-budget.json"), JSON.stringify({ ...roomy, canvasLoadKB: canvasLimitBytes / 1024 }));
     return spawnSync(process.execPath, ["scripts/perf-budget.mjs", "--check"], { cwd: dir, encoding: "utf8" });
   };
@@ -125,7 +125,7 @@ test("a graph's other kinds of 3D, and the switch every canvas fetches, each hav
   for (const [what, file, key, missing] of [
     ["a graph's other kinds of 3D", "assets/graph-stage-a.js", "graphStageKB", /does not say which files draw a graph's other kinds of view in three dimensions/],
     ["the switch and the graph's reading", "assets/graph-views-a.js", "graphViewsKB", /does not say which files hold the switch between a graph's views/],
-    ["a graph as columns", "assets/graph-columns-a.js", "graphColumnsKB", /does not say which files draw a graph as columns/],
+    ["the kinds not in the stage", "assets/graph-more-a.js", "graphMoreKB", /does not say which files draw a graph's kinds of view that are not in the stage/],
   ]) {
     const line = (out) => out.split("\n").find((l) => l.includes(what));
     // The line is the piece's own weight, and the piece is not listed again among what is loaded later.
@@ -139,7 +139,7 @@ test("a graph's other kinds of 3D, and the switch every canvas fetches, each hav
     assert.match(over.stderr, /1 over budget/);
     withBudget({ [key]: 1000 });
     // A build that lists no such piece, or an empty one, fails with or without --check: nothing weighs nothing.
-    const name = key === "graphStageKB" ? "stage" : key === "graphViewsKB" ? "views" : "columns";
+    const name = key === "graphStageKB" ? "stage" : key === "graphViewsKB" ? "views" : "more";
     for (const none of [undefined, []]) {
       writeFileSync(routesFile, JSON.stringify({ ...routes, [name]: none }));
       const lost = spawnSync(process.execPath, ["scripts/perf-budget.mjs"], { cwd: dir, encoding: "utf8" });

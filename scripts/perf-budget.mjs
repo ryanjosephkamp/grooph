@@ -90,7 +90,7 @@ const space = sum(routes.space);
 for (const [key, what] of [
   ["stage", "draw a graph's other kinds of view in three dimensions (stage)"],
   ["views", "hold the switch between a graph's views (views)"],
-  ["columns", "draw a graph as columns (columns)"],
+  ["more", "draw a graph's kinds of view that are not in the stage (more)"],
 ]) {
   if (!Array.isArray(routes[key]) || routes[key].length === 0) {
     console.error(`perf-budget: apps/web/dist/routes.json does not say which files ${what}. The build should have listed them (apps/web/vite.config.ts).`);
@@ -99,9 +99,9 @@ for (const [key, what] of [
 }
 const stage = sum(routes.stage);
 const views = sum(routes.views);
-// And one of those kinds, columns, is a piece of its own, fetched beside the stage when it is chosen: the four kinds
-// together would pass the stage's line, and a kind only a run's page says much with is the one to stand apart.
-const columns = sum(routes.columns);
+// And the kinds the stage's piece has no room for (Rings, and Columns with it) are a piece of their own, fetched
+// beside the stage when one of them is chosen: all the kinds together would pass the stage's line.
+const more = sum(routes.more);
 // The fonts and the icons are files of public/, under names that carry a version, so they are named here and not found.
 const FIRST_VISIT_FONTS = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2"];
 const ICONS = "assets/site-icons.v1.svg";
@@ -114,7 +114,7 @@ for (const f of [...FIRST_VISIT_FONTS, ICONS]) {
 const sent = (file) => statSync(join(dist, file)).size / 1024;
 const fonts = FIRST_VISIT_FONTS.reduce((n, f) => n + sent(f), 0);
 const firstVisit = js + css + html + fonts + kb(join(dist, ICONS));
-const counted = new Set([...appJs, ...routes.front, ...routes.templates, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css, ...routes.space, ...routes.stage, ...routes.views, ...routes.columns]);
+const counted = new Set([...appJs, ...routes.front, ...routes.templates, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css, ...routes.space, ...routes.stage, ...routes.views, ...routes.more]);
 const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !counted.has(`assets/${f}`));
 
 // The CLI's cold start: the middle of five runs of the quickest command there is.
@@ -138,7 +138,7 @@ const rows = [
   ["an embed's first load, gzip KB", embed, budget.embedLoadKB],
   ["a map in three dimensions: what choosing it fetches, on no address's first load, gzip KB", space, budget.mapSpaceKB],
   ["a graph's other kinds of 3D: what choosing one fetches, on no address's first load, gzip KB", stage, budget.graphStageKB],
-  ["a graph as columns: what choosing it fetches beside the stage, on no address's first load, gzip KB", columns, budget.graphColumnsKB],
+  ["the kinds not in the stage (rings, columns): what choosing one fetches beside it, on no first load, gzip KB", more, budget.graphMoreKB],
   ["the switch and the graph's reading: what every canvas fetches once it is drawn, gzip KB", views, budget.graphViewsKB],
   ["the CLI's cold start, ms (middle of five)", cli, budget.cliColdMs],
 ];

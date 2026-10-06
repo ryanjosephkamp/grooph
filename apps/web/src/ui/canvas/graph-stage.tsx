@@ -14,24 +14,24 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 
 import css from "./graph-stage.css?inline";
 import { makeStage, type Look, type Prim, type Stage } from "./stage/draw.js";
-import { columnsAt, modelOf, stepsOf, type Model } from "./stage/model.js";
+import { columnsAt, modelOf, stepsOf, under, type Model } from "./stage/model.js";
 import { panes } from "./stage/panes.js";
-import { rings } from "./stage/rings.js";
-import { along, card, edgeLine, hue, lerp, shownAt, type Shown, type View } from "./stage/shapes.js";
+import { along, arch, by, card, circle, edgeLine, ground, hue, lerp, shownAt, stations, TAU, type Shown, type View } from "./stage/shapes.js";
 import { brakes, spiral, topOf } from "./stage/spiral.js";
 
 /**
  * A kind: how it places the graph, where it is first seen from, what it is in a sentence, by how many pixels its frame
- * is made tall enough to keep its cards apart, whether each loop's brakes or rounds are said under it, and what
- * else it says under itself. Columns is a kind of its own piece (`graph-columns.tsx`), handed in when it is chosen.
+ * is made tall enough to keep its cards apart, whether each loop's brakes are said under it, and what else it says
+ * under itself. Rings and Columns are kinds of a piece of their own (`graph-more.tsx`), handed in when one is chosen.
  */
-export type Kind = { view: View; start: Look; as: string; says: string; apart?: number; brakes?: boolean; rounds?: boolean; under?: (model: Model, shown: Shown) => ReactNode };
-/** The stage's own shapes, for a kind that is not in this piece to be drawn with (`stage/columns.ts`). */
-export const tools = { card, edgeLine, hue, lerp };
+export type Kind = { view: View; start: Look; as: string; says: string; apart?: number; brakes?: boolean; under?: (model: Model, shown: Shown) => ReactNode };
+/** The stage's own shapes and readings, for a kind that is not in this piece to be drawn with: handed to it, since
+ *  a thing both pieces imported would be a third file for a browser to fetch. */
+export const tools = { arch, by, card, circle, edgeLine, ground, hue, lerp, stations, TAU, under };
+export type Tools = typeof tools;
 const KINDS: Record<string, Kind> = {
   panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: 2, says: "Every node is where the picture has it, one pane toward you for each loop or subgrooph around it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving a loop or a subgrooph." },
   spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: 7, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
-  rings: { view: rings, start: { yaw: -0.5, pitch: 0.86 }, as: "a ring for each loop", apart: 7, rounds: true, says: "Each loop is a ring, with its own nodes around it in the order of a first pass. A loop inside another is a ring standing on the outer one; a node two loops share stands on one of them. A way back from a loop's last node to its first is the rest of the ring." },
 };
 
 let styled = false;
@@ -185,20 +185,6 @@ export function Stage3({ doc, kind, its, wide, of, drawn }: { doc: Graph; kind: 
               <b style={{ color: `var(--loop-${n % 4})` }}>{loop.name}</b> {brakes(loop, topOf(model, loop)).words.join("; ")}
             </li>
           ))}
-        </ul>
-      ) : null}
-      {the.rounds && model.run && model.loops.length ? (
-        // The round the run is in, loop by loop, as far as the slider has come: in the drawing it is beside each
-        // ring, where a card can stand over it.
-        <ul className="s3-key" aria-label="The round the run is in, loop by loop">
-          {model.loops.map((loop, n) => {
-            const now = shownAt(model, steps, k).until?.[loop.id];
-            return (
-              <li key={loop.id}>
-                <b style={{ color: `var(--loop-${n % 4})` }}>{loop.name}</b> {now ? `round ${Math.floor(now.now)}` : "not entered"}
-              </li>
-            );
-          })}
         </ul>
       ) : null}
       {the.under?.(model, shownAt(model, steps, k))}
