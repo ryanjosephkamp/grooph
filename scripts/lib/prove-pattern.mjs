@@ -111,8 +111,7 @@ export function settingsFor(heldOut) {
 }
 
 /**
- * Never Fable, never Astra: not a lead, not a subagent (the owner's rule, 2026-10-04). The Claude Code target gives
- * the `frontier` tier to Fable, and before slice 0019 this runner left the lead to the harness's default model, so
+ * Fable and Astra: not a lead, not a subagent, unless the owner authorizes it (his policy for this project's own runs, 2026-10-04 and 2026-10-05; decision 0031; it is no rule for a user of grooph). Before slice 0019 this runner left the lead to the harness's default model, so
  * since then a run names both: the lead's model on the command line (`--model`, with `--effort`), and what each tier
  * means in the environment (`GROOPH_MODELS`, which `grooph export` reads; slice 0079). A package that would put an
  * agent on such a model is refused before any call, and a run that reports one is kept and flagged.
@@ -131,7 +130,7 @@ export function agentModels(scratch, graphId) {
   return out;
 }
 
-/** Every model a run reported, by the harness's count or by a transcript, that no run uses. Empty is the only good answer. */
+/** Every model a run reported, by the harness's count or by a transcript, that this project's runs do not use without the owner's authorization (decision 0031). Empty is the only good answer. */
 export function neverUsed(models, byAgent = {}) {
   const seen = new Set([...Object.keys(models ?? {}), ...Object.values(byAgent ?? {}).flat()]);
   return [...seen].filter((model) => NEVER.test(model)).sort();
@@ -555,10 +554,10 @@ async function main() {
   assertFreshBundle(args.template);
   if (experiment.fragment) assertFreshBundle(experiment.slots.host.template);
   const lead = { model: args.model ?? null, effort: args.effort ?? null };
-  if (lead.model && NEVER.test(lead.model)) fail(`--model ${lead.model}: no run uses that model`);
+  if (lead.model && NEVER.test(lead.model)) fail(`--model ${lead.model}: this project's runs do not use that model without the owner's authorization (decision 0031)`);
   if (!args.dryRun) {
     if (!lead.model || !lead.effort) fail("name the lead: --model <id> --effort <level> (for instance --model claude-opus-5-5 --effort high). Since slice 0019 no run starts on the harness's default model, which this runner cannot see and the record could not name.");
-    if (!process.env.GROOPH_MODELS) fail("name what each tier means: GROOPH_MODELS=frontier=…,strong=…,fast=… in the environment. The Claude Code target gives the frontier tier to Fable, which no run uses; `grooph export` reads the variable and the record keeps it.");
+    if (!process.env.GROOPH_MODELS) fail("name what each tier means: GROOPH_MODELS=frontier=…,strong=…,fast=… in the environment; `grooph export` reads the variable and the record keeps it.");
     if (existsSync(evidenceDir)) fail(`experiments/patterns/${args.template}/run already holds a run's evidence; it is never overwritten. To re-prove, move it aside first (run/ → run-1/) and pass --retry "<why>"`);
     if (spawnSync("claude", ["--version"], { encoding: "utf8" }).status !== 0) fail("claude is not on PATH; install Claude Code first");
     if (!claudeSignedIn()) fail("the claude CLI is not signed in, so a headless run would fail. Sign in with `claude auth login` and run this again.");
@@ -572,7 +571,7 @@ async function main() {
   const named = agentModels(built.scratch, built.graphId);
   console.log(`lead: ${lead.model ? `${lead.model} at effort ${lead.effort ?? "(the harness's default)"}` : "not named (a dry run may leave it out; a paid run may not)"}\ntier map: ${process.env.GROOPH_MODELS ?? "not named: the target's own"}\nagents: ${Object.entries(named).map(([agent, model]) => `${agent.split("--").pop()} ${model}`).join(", ") || "none"}`);
   const never = Object.entries(named).filter(([, model]) => NEVER.test(model));
-  if (never.length > 0) fail(`this package would run ${never.map(([agent, model]) => `${agent.split("--").pop()} on ${model}`).join(", ")}, a model no run uses. Name the tier in GROOPH_MODELS (grooph help export).`);
+  if (never.length > 0) fail(`this package would run ${never.map(([agent, model]) => `${agent.split("--").pop()} on ${model}`).join(", ")}, a model this project's runs do not use without the owner's authorization (decision 0031). Name the tier in GROOPH_MODELS (grooph help export).`);
 
   // `grooph` on PATH for the run, so the lead can validate an amended working copy. Outside the scratch project.
   const binDir = mkdtempSync(join(tmpdir(), "grooph-prove-bin-"));
@@ -659,7 +658,7 @@ async function main() {
     say(checked.problems.length === 0 ? "PASS" : "FAIL (the evidence is kept either way)");
     console.log(`evidence  experiments/patterns/${args.template}/run/\nscratch   ${built.scratch}\nmodels    ${Object.keys(collected.models).join(", ") || "none reported"}`);
     if (collected.models_never_used.length > 0) {
-      console.error(`\n\x1b[31mNEVER\x1b[0m this run reported ${collected.models_never_used.join(", ")}, a model no run uses. The evidence is kept as it is. Stop here and tell the driver before any other run.`);
+      console.error(`\n\x1b[31mNEVER\x1b[0m this run reported ${collected.models_never_used.join(", ")}, a model this project's runs do not use without the owner's authorization (decision 0031). The evidence is kept as it is. Stop here and tell the driver before any other run.`);
       return 3;
     }
     return checked.problems.length === 0 ? 0 : 1;

@@ -561,7 +561,7 @@ test("one call: its line is on the ledger before it runs and settled after; the 
 
     plan({ model: "claude-fable-5-1" });
     assert.deepEqual((await ask({ label: { project: "x", arm: "a", replicate: 7 } })).models_never_used, ["claude-fable-5-1"]);
-    await assert.rejects(ask({ label: { project: "x", arm: "a", replicate: 8 } }), notStarted(/reported a model no run uses/), "and nothing starts after it until someone answers for it");
+    await assert.rejects(ask({ label: { project: "x", arm: "a", replicate: 8 } }), notStarted(/reported a model this project's runs do not use without the owner's authorization \(decision 0031\)/), "and nothing starts after it until someone answers for it");
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }

@@ -14,8 +14,8 @@
 # Since slice 0019 a paid run names its models: the lead on the command line
 # (--model claude-opus-5-5 --effort high) and what each tier means in the
 # environment (GROOPH_MODELS=frontier=…,strong=…,fast=…, which `grooph export`
-# reads). The Claude Code target gives the frontier tier to Fable, and no run
-# uses Fable: a package that would is refused before any call, and a run that
+# reads). No run of this project uses Fable without the owner's authorization (decision 0031):
+# a package that would is refused before any call, and a run that
 # reports it is kept and flagged. result.json keeps what was asked for (lead,
 # tier_map, agent_models) beside what ran (models, models_by_agent).
 #
