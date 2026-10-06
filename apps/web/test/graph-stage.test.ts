@@ -747,7 +747,7 @@ describe("the spiral and its lid", () => {
     // Stacked, over is along the line, so an edge goes out to the side. Round the top of each spiral it passes, lid
     // and turns: where it is level with that top it is more than the lid's radius (the turn's and 18) from the
     // middle, on every template; and on the side of its own end there, so that it does not cross the turns.
-    let [passed, right] = [0, 0];
+    let [passed, right, exits] = [0, 0, 0];
     for (const path of ALL) {
       const doc = graph(path);
       const g = modelAt(doc, places(doc), undefined, true);
@@ -768,6 +768,45 @@ describe("the spiral and its lid", () => {
       }
     }
     expect([passed > 6, right > 0]).toEqual([true, true]);
+    // An exit taken in a later round comes down outside the turns under it, on its own side: the recorded sandwich
+    // run left its loop from round 1, and where that edge is level with the spiral's foot it is outside the turn,
+    // on the side its critic stands on.
+    for (const [name, edge] of [["slice-0007-sandwich", "e-critic-pass"]] as const) {
+      const [doc, written] = runAt(name);
+      const g = modelAt(doc, places(doc), written, true);
+      const drawn = spiral(g, at(g, 0));
+      const taken = drawn.prims.flatMap((p) => (p.t === "line" && p.key?.startsWith(`edge:${edge}@`) && (p.alpha ?? 1) === 1 ? [p.pts] : []));
+      expect(taken.length, name).toBeGreaterThan(0);
+      const [foot] = feet(drawn.prims).sort((a, b) => a[1] - b[1]);
+      const { r } = feetOf(drawn.prims).sort((a, b) => a.y - b.y)[0]!;
+      for (const pts of taken) {
+        if (pts[0]![1] - foot![1] < 54) continue;
+        const k = pts.findIndex((v, n) => n > 0 && (pts[n - 1]![1] - foot![1]) * (v[1] - foot![1]) <= 0);
+        const x = pts[k - 1]![0] + ((pts[k]![0] - pts[k - 1]![0]) * (foot![1] - pts[k - 1]![1])) / (pts[k]![1] - pts[k - 1]![1] || 1);
+        expect([Math.abs(x) > r + 18, Math.sign(x) === Math.sign(pts[0]![0])], `${name} ${edge}`).toEqual([true, true]);
+        // And all the way down to there: never inside the turns, seen from above.
+        for (const v of pts.slice(0, k)) expect(Math.hypot(v[0] - foot![0], v[2] - foot![2]), `${name} ${edge}`).toBeGreaterThan(r - 1);
+        exits += 1;
+      }
+    }
+    expect(exits).toBeGreaterThan(0);
+    // With a node on the ground between its ends it goes to the left, whatever side its end is on: the cards on the
+    // ground are to the right. Spec, then a loop: an edge from the planner past the gate to the critic, on the right.
+    const spec = graph("patterns/spec-then-loop.grooph.json");
+    const withGate = modelAt(spec, places(spec), undefined, true);
+    const [first, gate] = withGate.rows.flat();
+    const onRight = withGate.nodes.find((n) => n.loop && spiral(withGate, whole).node(n.id)[0] > 0)!;
+    const added: Graph = { ...spec, edges: [...spec.edges, { id: "e-added", from: first!, to: onRight.id }] } as Graph;
+    const bowed = spiral(modelAt(added, places(added), undefined, true), whole);
+    expect(withGate.nodes.find((n) => n.id === gate)!.loop).toBeNull();
+    expect(Math.max(...bowed.path("e-added").slice(0, 10).map((v) => v[0]))).toBeLessThanOrEqual(bowed.node(first!)[0]);
+    // Two edges between the same two nodes are not one line: the second is drawn past the first, stacked and wide.
+    const fresh = graph("patterns/fresh-grind-rare-judge.grooph.json");
+    for (const narrowly of [true, false]) {
+      const twins = spiral(modelAt(fresh, places(fresh), undefined, narrowly), whole);
+      const [one, two] = [twins.path("e-judge-fail", 0, 1), twins.path("e-judge-next-phase", 0, 1)];
+      expect(Math.hypot(one[9]![0] - two[9]![0], one[9]![1] - two[9]![1]), String(narrowly)).toBeGreaterThan(10);
+    }
     // Round the nodes on the ground between its ends, to the left, where no card stands: three candidates each go
     // to the filter, and the first's edge is 30 or more to the left of the second and the third where it passes them.
     const tournament = graph("patterns/tournament-then-judge.grooph.json");
