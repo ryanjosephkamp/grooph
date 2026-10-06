@@ -11,9 +11,9 @@
  */
 
 import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 
-import { canonicalize, isMapLike, parseGraphText, planBundle, validate, type Graph, type Issue } from "@grooph/core";
+import { isMapLike, parseGraphText, planBundle, planSteps, validate, type Graph, type Issue } from "@grooph/core";
 
 import { isKeptGraph, keptGraphRefusal, readText } from "../io.js";
 import { isGroophPicture, putAll, within, type Place } from "../place.js";
@@ -42,10 +42,17 @@ A plan is not a package: it has no lead's brief, no agent files and no kickoff, 
 it is handed to a harness. grooph export writes a package, and only for a graph with no error.
 
   --into <dir>   the folder to write into. Default: <id>-plan in the current folder.
+                 No part of the way to it may begin with a dot: a plan is for people to
+                 read, and those folders (.git, .claude, .codex) are a tool's.
   --force        replace a file already there that is not this plan's: a PLAN.md grooph did not
-                 write for this graph, a picture grooph did not draw, or a copy of the graph
-                 that was changed after its plan was written and is not the file given.
-                 Without it such a file stops the command, and nothing is written.
+                 write for this graph, a picture grooph did not draw, a copy of the graph that
+                 differs from the one given and is not the file given, or a file that cannot
+                 be read. Without it such a file stops the command, and nothing is written.
+
+PLAN.md says the copy of the graph beside it is the one to edit. To bring the plan up to date
+after editing it, make the plan from that copy: grooph plan <dir>/<id>.grooph.json --into <dir>.
+PLAN.md and the picture are drawn again from the graph each time: what a person adds to them is
+not kept, so notes belong in the graph or in a file of their own.
 
 The graph a package keeps (.grooph/<id>/graph.grooph.json) is never written by this command.
 
@@ -81,26 +88,36 @@ export function isPlanOf(text: string, documentFile: string): boolean {
 
 /**
  * The files already in place that are not this plan's to replace, each with why. A file that holds what would be
- * written is no question. Of the rest: `PLAN.md` is the plan's when grooph wrote it for this document; the picture
- * when grooph drew it; and the copy of the graph when it is the file the plan is being made from, or when nobody
- * has changed it since its plan was written (it is canonical, and the PLAN.md beside it is what it gives). A copy
- * someone edited there, with the plan now made from another file, would be lost: that one is asked about.
+ * written is no question. Of the rest: `PLAN.md` is the plan's when its opening is grooph's and names this document;
+ * the picture when it carries grooph's mark; and the copy of the graph only when it is the file the plan is being
+ * made from. `PLAN.md` tells a person that the copy beside it is the one to edit, so a copy that differs from the
+ * graph given is someone's work until they say otherwise. A file that is there and cannot be read is asked about
+ * too: what cannot be read cannot be told from a person's.
+ *
+ * Not kept: what a person adds to a `PLAN.md` or a picture grooph wrote. Both are drawn again from the graph.
  */
 export function notThisPlans(places: readonly PlanPlace[], doc: Graph, source?: string): { path: string; why: string }[] {
   const documentFile = `${doc.id}.grooph.json`;
-  const planThere = fileText(places.find((place) => place.path === "PLAN.md")?.full ?? "");
   return places.flatMap((place) => {
+    if (!existsSync(place.full)) return [];
     const there = fileText(place.full);
-    if (there === undefined || there === place.contents) return [];
+    if (there === undefined) return [{ path: place.path, why: "is there and cannot be read as a file, so it cannot be told from a person's" }];
+    if (there === place.contents) return [];
     if (place.path === "PLAN.md") return isPlanOf(there, documentFile) ? [] : [{ path: place.path, why: "is not a plan grooph wrote for this graph" }];
     if (place.path === documentFile) {
-      if (source !== undefined && sameFile(source, place.full)) return [];
-      const parsed = parseGraphText(there).doc;
-      const untouched = parsed !== undefined && canonicalize(parsed) === there && planThere !== undefined && planBundle(parsed).files["PLAN.md"] === planThere;
-      return untouched ? [] : [{ path: place.path, why: "is a graph that is not as its plan was written from, and not the file given: what was changed in it would be lost" }];
+      return source !== undefined && sameFile(source, place.full) ? [] : [{ path: place.path, why: "is a copy of the graph that differs from the one given: what was changed in it would be lost. To keep it, make the plan from that copy" }];
     }
     return isGroophPicture(place.full) ? [] : [{ path: place.path, why: "is not a picture grooph drew" }];
   });
+}
+
+/**
+ * A plan is for people to read, so it goes in a folder a person sees: no part of the way to it, from the folder it
+ * was asked from, begins with a dot. Those folders are a tool's (`.git`, and the ones a harness reads its rules,
+ * commands and agents from), and a `PLAN.md` there, with a document's words in it, would be read as one of theirs.
+ */
+export function hiddenPart(relativePath: string): string | undefined {
+  return relativePath.split(/[\\/]/).find((part) => part.startsWith(".") && part !== "." && part !== "..");
 }
 
 /**
@@ -127,8 +144,26 @@ export function ownAndPackage(doc: Graph): { own: Issue[]; forPackage: Issue[] }
   return { own, forPackage: validate(doc, { forExport: true }).filter((issue) => !seen.has(key(issue))) };
 }
 
-/** The codes of what only a package asks for and this graph lacks, each once: empty when a package could be written. */
-export const packageNeeds = (forPackage: readonly Issue[]): string[] => [...new Set(forPackage.filter((issue) => issue.severity === "error").map((issue) => issue.code))];
+/** What a plan lacks by being a plan, and nothing else: a harness, and the goal a lead's brief is built from. */
+const A_PLAN_LACKS: readonly string[] = ["E_NO_TARGET", "E_NO_GOAL"];
+
+/**
+ * A graph that names no harness is a plan as it stands. For such a graph, what only a package asks for is sorted:
+ * `needs` are the codes a plan lacks by being one, said once as what a package would need; `rest` is everything
+ * else a package asks (a slot left unfilled, a template block), which is as much a fault of a plan and is said in
+ * full. A graph that names a harness is no plan: `needs` is empty and every finding is in `rest`.
+ */
+export function asAPlan(doc: Graph, forPackage: readonly Issue[]): { needs: string[]; rest: Issue[] } {
+  if (doc.target?.harness !== undefined) return { needs: [], rest: [...forPackage] };
+  const lacks = (issue: Issue): boolean => issue.severity === "error" && A_PLAN_LACKS.includes(issue.code);
+  return { needs: [...new Set(forPackage.filter(lacks).map((issue) => issue.code))], rest: forPackage.filter((issue) => !lacks(issue)) };
+}
+
+/** Whether a plan is whole, in the plan's own words: what core writes in PLAN.md's second paragraph. */
+export function wholeness(doc: Graph, errors: number, own: number): string {
+  if (own === 0) return planSteps(doc).length > 0 ? "As a plan for people to read and follow it is whole." : "It has no steps yet.";
+  return `${own === errors ? (own === 1 ? "It is a rule" : "They are rules") : `${own} of them ${own === 1 ? "is a rule" : "are rules"}`} a graph itself is held to, not only what a package asks for: until ${own === 1 ? "it is" : "they are"} fixed, parts of the plan may be missing or drawn wrong.`;
+}
 
 /** What stands between a plan and a harness, as counts: what stops a package, what it would carry, and what the graph itself breaks. */
 export function planFindings(doc: Graph, toFix: readonly Issue[]): { errors: Issue[]; warnings: Issue[]; own: number } {
@@ -162,6 +197,14 @@ export function planCommand(raw: Output, file: string, flags: PlanFlags): number
   const doc = parsed.doc;
   const bundle = planBundle(doc);
   const into = resolve(flags.into ?? `${doc.id}-plan`);
+  const fromHere = relative(process.cwd(), into);
+  const hidden = fromHere.startsWith("..") || isAbsolute(fromHere) ? undefined : hiddenPart(fromHere);
+  // Under a repository's own folder nothing is written, wherever the command was run from.
+  const inGit = into.split(sep).some((part) => part.toLowerCase() === ".git");
+  if (hidden !== undefined || inGit) {
+    io.err(`grooph: cannot write the plan of ${file} into ${into}: ${inGit ? ".git is a repository's own folder" : `${hidden} is a folder a tool reads, not a person`}, and a plan is for people to read. Give --into a folder with no part that begins with a dot.`);
+    return 1;
+  }
   const place: Place = { project: into };
   let places: PlanPlace[];
   try {
@@ -195,12 +238,6 @@ export function planCommand(raw: Output, file: string, flags: PlanFlags): number
     io.out(`${plural(warnings.length, "warning")} a package would be written with:`);
     for (const issue of warnings) io.out(line(issue));
   }
-  if (errors.length > 0) {
-    io.out(
-      own === 0
-        ? "As a plan for people to read and follow it is whole."
-        : `${own === errors.length ? (own === 1 ? "It is a rule" : "They are rules") : `${own} of them ${own === 1 ? "is a rule" : "are rules"}`} a graph itself is held to, not only what a package asks for: until ${own === 1 ? "it is" : "they are"} fixed, parts of the plan may be missing or drawn wrong.`,
-    );
-  }
+  if (errors.length > 0) io.out(wholeness(doc, errors.length, own));
   return 0;
 }

@@ -5,7 +5,7 @@ import { canonicalize, findCandidates, hasErrors, type Graph } from "@grooph/cor
 
 import { writeText } from "../io.js";
 import { printIssues, type Output } from "../print.js";
-import { ownAndPackage, packageNeeds } from "./plan.js";
+import { asAPlan, ownAndPackage } from "./plan.js";
 import { LoadError, loadProposals, shown } from "../share-io.js";
 
 export type PickFlags = { out: string; force?: boolean };
@@ -15,10 +15,10 @@ export const PICK_HELP = `grooph pick <proposal set> <candidate id | label> --ou
 Write the owner's chosen candidate out as an ordinary graph document. The candidate is
 named by its id or its label, ignoring case; a name that matches one candidate's id and
 another's label is refused as ambiguous. The graph is checked first and nothing is written
-while it breaks a rule of its own. A candidate that lacks only what a package asks for (a
-harness, a goal) is a plan: it is picked like any other, and the command says so and that
-grooph plan exports it. An existing --out is replaced only with --force (or when it already
-holds the same graph).`;
+while it has errors. A candidate that names no harness is a plan: the harness and the goal
+a package would need are no error of it, so it is picked like any other, and the command
+says so and that grooph plan exports it. An existing --out is replaced only with --force
+(or when it already holds the same graph).`;
 
 /** `grooph pick <proposals> <candidate> --out <file>` (docs/executive.md §4). */
 export function pickCommand(io: Output, file: string, query: string, flags: PickFlags): number {
@@ -50,12 +50,12 @@ export function pickCommand(io: Output, file: string, query: string, flags: Pick
 
   const candidate = hits[0]!;
   const graph = candidate.graph as Graph;
-  // A plan is a candidate like any other: only what the graph itself breaks stops a pick. What a package would ask
-  // besides (a harness, a goal) is said after it, as what a package needs.
+  // A candidate that names no harness is a plan, and is picked like any other: the harness and the goal a package
+  // would need are said after it, as what a package needs. Everything else stops a pick as it did.
   const { own, forPackage } = ownAndPackage(graph);
-  const needs = packageNeeds(forPackage);
-  const issues = needs.length > 0 ? own : [...own, ...forPackage];
-  if (hasErrors(own)) {
+  const { needs, rest } = asAPlan(graph, forPackage);
+  const issues = [...own, ...rest];
+  if (hasErrors(issues)) {
     io.err(`grooph: cannot pick "${candidate.label}" (${candidate.id}): its graph has errors; fix them, re-validate, and pick again`);
     printIssues(io, issues, candidate.id);
     return 1;
@@ -72,7 +72,7 @@ export function pickCommand(io: Output, file: string, query: string, flags: Pick
   io.out(`picked "${candidate.label}" (${candidate.id}) from ${set.id} → ${shown(out)}`);
   if (issues.length > 0) printIssues(io, issues, shown(out));
   if (needs.length > 0) {
-    io.out(`"${candidate.label}" is a plan as it stands: a package for a harness would also need ${needs.join(", ")}. As a plan for people to follow it lacks nothing.`);
+    io.out(`"${candidate.label}" is a plan as it stands: it names no harness, so no package is written from it (a package would need ${needs.join(", ")}).`);
     io.out(`next: grooph plan ${shown(out)}`);
     return 0;
   }

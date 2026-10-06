@@ -5,7 +5,7 @@
  */
 
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -121,6 +121,13 @@ test("grooph plan writes the plan's three files for a graph a harness could run,
     assert.ok(own.out.split(LF).some((line) => line.startsWith("  E_DANGLING_REF  ")), own.out);
     assert.match(own.out.split(LF).at(-1)!, /^1 of them is a rule a graph itself is held to, not only what a package asks for: until it is fixed, parts of the plan may be missing or drawn wrong\.$/);
     assert.equal(existsSync(join(dir, "broken-plan", "PLAN.md")), true);
+
+    // A graph with no steps yet is not called whole: the command says what PLAN.md says.
+    assert.equal((await grooph(["new", "--name", "Nothing yet", "--out", join(dir, "empty.grooph.json")])).code, 0);
+    const empty = await grooph(["plan", join(dir, "empty.grooph.json"), "--into", join(dir, "empty-plan")]);
+    assert.equal(empty.code, 0, empty.err);
+    assert.equal(empty.out.split(LF).at(-1), "It has no steps yet.");
+    assert.ok(readFileSync(join(dir, "empty-plan", "PLAN.md"), "utf8").includes("It has no steps yet."));
   });
 });
 
@@ -160,21 +167,21 @@ test("a file in the folder that is not this plan's is left alone until --force: 
     assert.equal(tree(into), before);
     assert.equal((await grooph(["plan", file, "--into", into, "--force"])).code, 0);
 
-    // The plan grooph wrote is replaced without a word when the graph changes: PLAN.md, the picture, and the copy
-    // of the graph while nobody has changed it.
-    const renamed = put(join(dir, "g2.grooph.json"), { ...graph, name: "Review loop, second draft" });
-    const again = await grooph(["plan", renamed, "--into", into]);
-    assert.equal(again.code, 0, again.err);
-    assert.ok(readFileSync(join(into, "PLAN.md"), "utf8").startsWith("# Review loop, second draft\n"));
+    // The same graph again writes the same bytes and asks nothing.
+    assert.equal((await grooph(["plan", file, "--into", into])).code, 0);
 
-    // Someone edits the copy in the plan's folder; a plan made from another file would lose that.
+    // PLAN.md says the copy beside it is the one to edit. So a copy that differs from the graph given is someone's
+    // work, whatever was changed in it: one line of a brief, or only where a card sits, which no PLAN.md shows.
     const copy = join(into, "review-loop.grooph.json");
+    for (const edited of [{ ...graph, name: "Edited here" }, { ...graph, layout: { builder: { x: 40, y: 40 } } }] as Graph[]) {
+      writeFileSync(copy, canonicalize(edited));
+      before = tree(into);
+      const lost = await grooph(["plan", file, "--into", into]);
+      assert.equal(lost.code, 1);
+      assert.match(lost.err, /^ {2}review-loop\.grooph\.json {2}is a copy of the graph that differs from the one given: what was changed in it would be lost\. To keep it, make the plan from that copy$/m);
+      assert.equal(tree(into), before);
+    }
     writeFileSync(copy, canonicalize({ ...graph, name: "Edited here" } as Graph));
-    before = tree(into);
-    const lost = await grooph(["plan", file, "--into", into]);
-    assert.equal(lost.code, 1);
-    assert.match(lost.err, /^ {2}review-loop\.grooph\.json {2}is a graph that is not as its plan was written from, and not the file given: what was changed in it would be lost$/m);
-    assert.equal(tree(into), before);
     // Made from that copy itself, the plan follows it.
     const fromCopy = await grooph(["plan", copy, "--into", into]);
     assert.equal(fromCopy.code, 0, fromCopy.err);
@@ -185,6 +192,21 @@ test("a file in the folder that is not this plan's is left alone until --force: 
     const logo = await grooph(["plan", copy, "--into", into]);
     assert.equal(logo.code, 1);
     assert.match(logo.err, /^ {2}review-loop\.svg {2}is not a picture grooph drew$/m);
+
+    // A file that is there and cannot be read is not taken for nothing.
+    const sealed = join(dir, "sealed");
+    put(join(sealed, "PLAN.md"), "# secret notes\n");
+    chmodSync(join(sealed, "PLAN.md"), 0o000);
+    try {
+      const unread = await grooph(["plan", file, "--into", sealed]);
+      // (A process that may read any file reads this one too, and then it is a person's PLAN.md: refused either way.)
+      assert.equal(unread.code, 1);
+      assert.match(unread.err, /^ {2}PLAN\.md {2}(is there and cannot be read as a file, so it cannot be told from a person's|is not a plan grooph wrote for this graph)$/m);
+      assert.deepEqual(readdirSync(sealed), ["PLAN.md"]);
+    } finally {
+      chmodSync(join(sealed, "PLAN.md"), 0o600);
+    }
+    assert.equal(readFileSync(join(sealed, "PLAN.md"), "utf8"), "# secret notes\n");
 
     // Another graph's plan in the folder is not this graph's.
     const other = put(join(dir, "other.grooph.json"), fixture("fix-until-green"));
@@ -223,6 +245,16 @@ test("grooph plan writes through no link and never the graph a package keeps", a
     }
     assert.equal(readFileSync(outside, "utf8"), "mine\n");
     assert.deepEqual(readdirSync(into), ["PLAN.md"]);
+
+    // A plan is for people to read: it is written into no folder a tool reads, with --force or without.
+    for (const hidden of [".claude/rules", ".codex/prompts", ".git/hooks", "docs/.hidden/plan"]) {
+      const refused = await grooph(["plan", file, "--into", hidden, "--force"], dir);
+      assert.equal(refused.code, 1, hidden);
+      assert.match(refused.err, /a plan is for people to read\. Give --into a folder with no part that begins with a dot\.$/, hidden);
+      assert.equal(existsSync(join(dir, hidden.split("/")[0]!)), false, hidden);
+    }
+    assert.equal((await grooph(["plan", file, "--into", join(dir, "repo", ".git", "plan")])).code, 1);
+    assert.equal(existsSync(join(dir, "repo")), false);
   });
 });
 
@@ -236,6 +268,11 @@ test("an export refused for what the graph lacks, or for a harness grooph has no
     const custom = await grooph(["export", file, "--target", "my-own-harness", "--into", join(dir, "project")]);
     assert.equal(custom.code, 1);
     assert.equal(custom.err.split(LF).at(-1), PLAN_STILL(file));
+    // The plan is named only for a file that reads as a graph: not for one that is not there.
+    const missing = await grooph(["export", join(dir, "not-there.grooph.json"), "--target", "my-own-harness", "--into", join(dir, "project")]);
+    assert.equal(missing.code, 1);
+    assert.ok(!missing.err.includes("grooph plan"), missing.err);
+    assert.ok(PLAN_STILL(file).startsWith("No package was written. A plan can still be: grooph plan "));
     // A graph with nothing in error is exported with no such line.
     const fine = await grooph(["export", put(join(dir, "g.grooph.json"), graph), "--target", "claude-code", "--into", join(dir, "project")]);
     assert.equal(fine.code, 0, fine.err);
@@ -248,9 +285,17 @@ test("a shared plan is not told that it lacks a harness as an error, and a templ
     const shared = await grooph(["share", put(join(dir, "p.grooph.json"), planOnly)]);
     assert.equal(shared.code, 0, shared.err);
     assert.ok(!/^\s*error\b/m.test(shared.out), shared.out);
-    assert.match(shared.out, /^ {2}a plan as it stands: a package for a harness would also need E_NO_TARGET, E_NO_GOAL \(grooph plan exports it as it is\)$/m);
+    assert.match(shared.out, /^ {2}a plan as it stands: it names no harness, and a package would need E_NO_TARGET, E_NO_GOAL \(grooph plan exports it as it is\)$/m);
     const whole = await grooph(["share", put(join(dir, "g.grooph.json"), graph)]);
     assert.ok(!whole.out.includes("a plan as it stands"), whole.out);
+    // A graph that names a harness is no plan: a slot left unfilled in it is printed in full, as it was.
+    const slotted = await grooph(["share", put(join(dir, "s.grooph.json"), { ...graph, goal: "Do {{the-thing}}." })]);
+    assert.match(slotted.out, /^ {2}error {2}E_UNFILLED_SLOT {2}slot \{\{the-thing\}\}/m, slotted.out);
+    assert.ok(!slotted.out.includes("a plan as it stands"), slotted.out);
+    // And in a plan too, since a plan with a blank in it is not finished either.
+    const planSlotted = await grooph(["share", put(join(dir, "ps.grooph.json"), { ...planOnly, goal: "Do {{the-thing}}." })]);
+    assert.match(planSlotted.out, /^ {2}error {2}E_UNFILLED_SLOT /m, planSlotted.out);
+    assert.match(planSlotted.out, /a package would need E_NO_TARGET \(grooph plan exports it as it is\)$/m, planSlotted.out);
 
     // A template with no harness in it makes a plan: the next step is the plan, not the check for a package.
     const templates = join(dir, ".grooph", "templates");
@@ -302,7 +347,7 @@ test("the tool grooph_export_plan returns the plan's files for any graph that re
     // One that breaks a rule of its own still gets its plan; one a harness could run says so.
     const own = await call(ctx, "grooph_export_plan", { graph: broken });
     assert.equal(own.isError, undefined, textOf(own));
-    assert.match(textOf(own), /^to fix: 3 before a coding harness can run this.* 1 of them is a rule a graph itself is held to/m);
+    assert.match(textOf(own), /^to fix: 3 before a coding harness can run this.* 1 of them is a rule a graph itself is held to, not only what a package asks for: until it is fixed, parts of the plan may be missing or drawn wrong\.$/m);
     const ready = await call(ctx, "grooph_export_plan", { graph });
     assert.match(textOf(ready), /^to fix: nothing\. A coding harness could run this as it is; a package would be written with 1 warning\.$/m);
     assert.equal(ready.structuredContent!["runnable"], true);
@@ -319,25 +364,49 @@ test("the tool grooph_export_plan returns the plan's files for any graph that re
     assert.deepEqual(textOf(theirs).split(LF).slice(0, 2), ['refused: Nothing was written in "docs": 1 file there is not this plan\'s to replace.', '  file "PLAN.md": is not a plan grooph wrote for this graph']);
     assert.deepEqual(readdirSync(join(project, "docs")), ["PLAN.md"]);
     assert.equal((await call(ctx, "grooph_export_plan", { graph: planOnly, into: "docs", replace: true })).isError, undefined);
-    // Outside the project, under .git, and the graph a package keeps: none is written.
-    for (const into of ["../elsewhere", ".git/plan"]) assert.equal((await call(ctx, "grooph_export_plan", { graph: planOnly, into })).isError, true, into);
+    // A copy of the graph in the folder that differs from the one given is someone's work until "replace".
+    const differs = await call(ctx, "grooph_export_plan", { graph: { ...planOnly, name: "Another draft" }, into: "plans/review" });
+    assert.equal(differs.isError, true);
+    assert.match(textOf(differs), /^ {2}file "review-loop\.grooph\.json": is a copy of the graph that differs from the one given/m);
+    // Made from the copy itself, by its path, the plan follows it.
+    writeFileSync(join(project, "plans", "review", "review-loop.grooph.json"), canonicalize({ ...planOnly, name: "Edited in place" } as Graph));
+    const followed = await call(ctx, "grooph_export_plan", { path: "plans/review/review-loop.grooph.json", into: "plans/review" });
+    assert.equal(followed.isError, undefined, textOf(followed));
+    assert.ok(readFileSync(join(project, "plans", "review", "PLAN.md"), "utf8").startsWith("# Edited in place\n"));
+    // Outside the project, and the folders a tool reads (a repository's, a harness's): none is written, with "replace" or without.
+    for (const into of ["../elsewhere", ".git/plan", ".claude/rules", ".claude/commands", ".codex/prompts", "docs/.hidden"]) {
+      const was = tree(project);
+      const refused = await call(ctx, "grooph_export_plan", { graph: planOnly, into, replace: true });
+      assert.equal(refused.isError, true, into);
+      assert.equal(tree(project), was, into);
+      assert.equal(existsSync(join(project, "..", "elsewhere")), false);
+    }
+    assert.match(textOf(await call(ctx, "grooph_export_plan", { graph: planOnly, into: ".claude/rules" })), /^refused: "\.claude\/rules" is under "\.claude", a folder a tool reads and not a person\./);
     assert.equal((await call(ctx, "grooph_export", { graph, into: "." })).isError, undefined);
-    const kept = await call(ctx, "grooph_export_plan", { graph: { ...graph, id: "graph" }, into: ".grooph/review-loop", replace: true });
-    assert.equal(kept.isError, true, textOf(kept));
-    assert.match(textOf(kept), /is the graph a package keeps/);
+    // The graph a package keeps: by the folder's own name, and through a link whose name shows no dot.
+    symlinkSync(join(project, ".grooph", "review-loop"), join(project, "looks-plain"));
+    for (const into of [".grooph/review-loop", "looks-plain"]) {
+      const was = tree(project);
+      const kept = await call(ctx, "grooph_export_plan", { graph: { ...graph, id: "graph" }, into, replace: true });
+      assert.equal(kept.isError, true, textOf(kept));
+      assert.match(textOf(kept), into === "looks-plain" ? /is a link to another file, and grooph writes files, not through links/ : /is under "\.grooph", a folder a tool reads and not a person/, textOf(kept));
+      assert.equal(tree(project), was, into);
+    }
 
     // The export tool, refusing a plan, ends by naming this tool; its own words only.
     const refused = await call(ctx, "grooph_export", { graph: planOnly });
     assert.equal(refused.isError, true);
-    assert.match(textOf(refused).split(LF).at(-1)!, /^next: grooph_apply with .*, then grooph_export again\. A plan for people to follow needs none of it: grooph_export_plan writes one from the graph as it is$/);
+    const PLAN_NEXT = "No package was made. A plan for people to follow can still be: grooph_export_plan writes one from the graph as it is, with what is listed here written in it";
+    assert.equal(textOf(refused).split(LF).at(-1), `next: grooph_apply with {"op":"setTarget","harness":"claude-code"}, then grooph_export again. ${PLAN_NEXT}`);
+    assert.equal(textOf(await call(ctx, "grooph_export", { graph: planOnly, target: "my-own-harness" })).split(LF).at(-1), `next: pass target: "claude-code". ${PLAN_NEXT}`);
     const noGoal = await call(ctx, "grooph_export", { graph: { ...planOnly, target: { harness: "claude-code" } } });
     assert.equal(noGoal.isError, true);
-    assert.match(textOf(noGoal).split(LF).at(-1)!, /^next: fix what is listed .*\. A plan for people to follow needs none of it: grooph_export_plan writes one from the graph as it is$/);
+    assert.ok(textOf(noGoal).split(LF).at(-1)!.startsWith("next: fix what is listed ") && textOf(noGoal).endsWith(`. ${PLAN_NEXT}`), textOf(noGoal));
     // A shared plan carries a note, not the package's errors.
     const shared = await call(ctx, "grooph_share", { graph: planOnly });
     assert.equal(shared.isError, undefined, textOf(shared));
     assert.ok(!/^error /m.test(textOf(shared)), textOf(shared));
-    assert.match(textOf(shared), /^note: a plan as it stands: a package for a harness would also need E_NO_TARGET, E_NO_GOAL\. grooph_export_plan writes the plan as it is\.$/m);
+    assert.match(textOf(shared), /^note: a plan as it stands: it names no harness, and a package would need E_NO_TARGET, E_NO_GOAL\. grooph_export_plan writes the plan as it is\.$/m);
   });
   await withProject(
     async (ctx, project) => {

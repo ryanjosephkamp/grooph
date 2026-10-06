@@ -10,7 +10,7 @@ import { homedir } from "node:os";
 import { parse, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { KNOWN_TARGETS, PICTURE_THEMES, TemplateError, readTheme, type CompileTarget } from "@grooph/core";
+import { KNOWN_TARGETS, PICTURE_THEMES, TemplateError, parseGraphText, readTheme, type CompileTarget } from "@grooph/core";
 
 import { oneLine } from "./reply.js";
 import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
@@ -187,7 +187,13 @@ export async function run(
         if (!KNOWN_TARGETS.includes(target)) {
           // A harness grooph has no compiler for: no package, and the document is a plan as it is.
           const code = usageError(io, `unknown target "${target}"; known targets: ${KNOWN_TARGETS.join(", ")}`);
-          io.err(oneLine(PLAN_STILL(file)));
+          let reads = false;
+          try {
+            reads = parseGraphText(readFileSync(file, "utf8")).doc !== undefined;
+          } catch {
+            reads = false;
+          }
+          if (reads) io.err(oneLine(PLAN_STILL(file)));
           return code;
         }
         const into = values["into"];

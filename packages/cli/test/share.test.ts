@@ -253,10 +253,24 @@ test("pick refuses an unknown name, an ambiguous one, a graph with errors, and a
     io = capture();
     assert.equal(await grooph(["pick", join(dir, "set", "csv-export.grooph-proposals.json"), "lean", "--out", out], io), 0, text(io.stderr));
     assert.equal(text(io.stderr), "");
-    assert.match(text(io.stdout), /^"Lean" is a plan as it stands: a package for a harness would also need E_NO_TARGET, E_NO_GOAL\. As a plan for people to follow it lacks nothing\.$/m);
+    assert.match(text(io.stdout), /^"Lean" is a plan as it stands: it names no harness, so no package is written from it \(a package would need E_NO_TARGET, E_NO_GOAL\)\.$/m);
     assert.match(text(io.stdout), /^next: grooph plan .*picked\.grooph\.json$/m);
     assert.doesNotMatch(text(io.stdout), /grooph export/);
     rmSync(out);
+
+    // A candidate that names a harness is no plan: what a package asks of it stops the pick, as it did.
+    writeFileSync(join(dir, "set", "lean.grooph.json"), JSON.stringify({ ...lean, goal: " " }));
+    io = capture();
+    assert.equal(await grooph(["pick", join(dir, "set", "csv-export.grooph-proposals.json"), "lean", "--out", out], io), 1);
+    assert.match(text(io.stderr), /cannot pick "Lean" \(lean\): its graph has errors/);
+    assert.match(text(io.stderr), /E_NO_GOAL/);
+    assert.equal(existsSync(out), false);
+    // Nor is a plan with a slot left unfilled picked: that is a fault of a plan too.
+    writeFileSync(join(dir, "set", "lean.grooph.json"), JSON.stringify({ ...plan, goal: "Do {{the-thing}}." }));
+    io = capture();
+    assert.equal(await grooph(["pick", join(dir, "set", "csv-export.grooph-proposals.json"), "lean", "--out", out], io), 1);
+    assert.match(text(io.stderr), /E_UNFILLED_SLOT/);
+    assert.equal(existsSync(out), false);
 
     // A candidate whose graph breaks a rule of its own (an edge to nowhere) is not written.
     const broken = { ...lean, edges: [...lean.edges, { id: "e-nowhere", from: lean.nodes[0]!.id, to: "nowhere" }] } as Graph;

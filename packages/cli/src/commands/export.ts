@@ -409,7 +409,7 @@ const looksLikeMap = (text: string): boolean => {
  * loosen one is listed and nothing is written, until it is asked for with `--allow <name>`.
  */
 /** The last line of an export refused for what the graph lacks: a package is one thing, and a plan never waits on it. */
-export const PLAN_STILL = (file: string): string => `A plan needs none of this: grooph plan ${file} writes PLAN.md, the picture and the document as they are.`;
+export const PLAN_STILL = (file: string): string => `No package was written. A plan can still be: grooph plan ${file} writes PLAN.md, the picture and the document as they are, with what is listed here written in it.`;
 
 export function exportCommand(raw: Output, file: string, given: ExportFlags): number {
   // Whatever this command says is one line a call, with no control character in it. It echoes a file's name, a

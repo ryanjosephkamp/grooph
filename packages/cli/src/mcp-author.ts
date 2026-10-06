@@ -78,7 +78,7 @@ import { explain } from "./commands/explain.js";
 import { renderPng } from "./commands/image.js";
 import { fixLines } from "./fixes.js";
 import type { McpContext } from "./mcp.js";
-import { notThisPlans, ownAndPackage, packageNeeds, planFindings, planPlaces } from "./commands/plan.js";
+import { asAPlan, hiddenPart, notThisPlans, ownAndPackage, planFindings, planPlaces, wholeness } from "./commands/plan.js";
 import { isGroophPicture, isLink, nearestExisting, pathArg, putAll, shownIn, within, writeArg } from "./place.js";
 import { defaultRegistryEnv, scanFolder, scanLocal, type Found } from "./registry.js";
 import { ID, Refusal, counted, issueLine, issueLines, issuesBlock, q, refusalText, reply, word } from "./reply.js";
@@ -159,7 +159,7 @@ export function nextAfter(issues: readonly IssueLike[], forExport: boolean, know
 }
 
 /** Where the export tool refuses a graph for what it lacks, its last words name the plan: a plan waits on none of it. */
-const PLAN_NEXT = "A plan for people to follow needs none of it: grooph_export_plan writes one from the graph as it is";
+const PLAN_NEXT = "No package was made. A plan for people to follow can still be: grooph_export_plan writes one from the graph as it is, with what is listed here written in it";
 
 // ─── reading a document ───────────────────────────────────────────────────
 const GRAPH_ARG = {
@@ -783,8 +783,8 @@ export const AUTHOR_TOOLS: Tool[] = [
       const embed = embedHtml(envelope, base !== undefined ? { base } : {});
       // A shared plan is not told what only a package asks for as an error of its own: that is said once, as what a package needs.
       const split = envelope.kind === "graph" ? ownAndPackage(envelope.doc) : { own: [], forPackage: [] };
-      const needs = packageNeeds(split.forPackage);
-      const warnings = needs.length > 0 ? split.own : [...split.own, ...split.forPackage];
+      const { needs, rest } = envelope.kind === "graph" ? asAPlan(envelope.doc, split.forPackage) : { needs: [], rest: [] };
+      const warnings = [...split.own, ...rest];
       const head =
         envelope.kind === "graph"
           ? [`graph ${q(envelope.doc.id)} ${q(envelope.doc.name)}: ${q(shapeLine(estimateShape(envelope.doc)))}`]
@@ -800,7 +800,7 @@ export const AUTHOR_TOOLS: Tool[] = [
       const lines = [
         ...head,
         ...warnings.map(issueLine),
-        ...(needs.length > 0 ? [`note: a plan as it stands: a package for a harness would also need ${needs.filter((code) => /^[EW]_[A-Z0-9_]+$/.test(code)).join(", ")}. grooph_export_plan writes the plan as it is.`] : []),
+        ...(needs.length > 0 ? [`note: a plan as it stands: it names no harness, and a package would need ${needs.join(", ")}. grooph_export_plan writes the plan as it is.`] : []),
         `link (${link.length.toLocaleString("en")} characters): ${q(link)}`,
         ...(long ? [`warning: messengers often cut links over ${SHARE_LINK_WARN.toLocaleString("en")} characters. Shorten the briefs or drop a candidate; or give the person the document itself to paste into the app (Paste a document, on its first screen).`] : []),
         "embed: two lines of HTML that show the same picture in any web page are the next block of this reply, as they are.",
@@ -879,7 +879,7 @@ export const AUTHOR_TOOLS: Tool[] = [
     name: "grooph_export_plan",
     title: "Write a plan people follow",
     description:
-      'A plan of a graph, for people to read and follow whether or not a coding harness could run it: PLAN.md (who does what, what has to be fixed before a harness can run it, then every step in full), the picture <id>.svg, and the document <id>.grooph.json. Returns the three files as { path: contents }; with into, writes them into that folder of the project instead, all of them or none. Any document that reads as a graph gets its plan: one that names no harness, has no goal, or breaks a rule of its own. Each such finding is listed after "to fix:" and is written in PLAN.md; none of them refuses the call. A plan is not a package: it has no lead\'s brief, no agent files and no kickoff, and grooph_export writes a package, only for a graph with no error. A file already in the folder that is not this plan\'s (a PLAN.md grooph did not write for this graph, a picture grooph did not draw, a copy of the graph that someone changed) stops the call until "replace". The graph a package keeps is never written. This is the command grooph plan; the tool grooph_plan is another thing (a lead declaring its subagents).',
+      'A plan of a graph, for people to read and follow whether or not a coding harness could run it: PLAN.md (who does what, what has to be fixed before a harness can run it, then every step in full), the picture <id>.svg, and the document <id>.grooph.json. Returns the three files as { path: contents }; with into, writes them into that folder of the project instead, all of them or none. Any document that reads as a graph gets its plan: one that names no harness, has no goal, or breaks a rule of its own. Each such finding is listed after "to fix:" and is written in PLAN.md; none of them refuses the call. A plan is not a package: it has no lead\'s brief, no agent files and no kickoff, and grooph_export writes a package, only for a graph with no error. A file already in the folder that is not this plan\'s (a PLAN.md grooph did not write for this graph, a picture grooph did not draw, a copy of the graph that differs from this one and is not the file read, a file that cannot be read) stops the call until "replace". PLAN.md and the picture are drawn again each time, so what a person added to them is not kept. No part of "into" may begin with a dot: a plan is for people, and those folders are a tool\'s. The graph a package keeps is never written. This is the command grooph plan; the tool grooph_plan is another thing (a lead declaring its subagents).',
     chatDescription:
       'A plan of a graph, for people to read and follow whether or not a coding harness could run it: PLAN.md (who does what, what has to be fixed before a harness can run it, then every step in full), the picture <id>.svg, and the document <id>.grooph.json. Returns the three files as { path: contents }, with PLAN.md also as a block of its own to show the person. Any document that reads as a graph gets its plan: one that names no harness, has no goal, or breaks a rule of its own. Each such finding is listed after "to fix:" and is written in PLAN.md; none of them refuses the call. A plan is not a package: it has no lead\'s brief, no agent files and no kickoff, and grooph_export writes a package, only for a graph with no error.',
     inputSchema: {
@@ -900,6 +900,10 @@ export const AUTHOR_TOOLS: Tool[] = [
       let folder: string | undefined;
       if (into !== undefined) {
         const root = within(ctx, writeArg(into, "into"));
+        // A plan goes where a person reads, never where a harness or a repository reads its own files: a PLAN.md
+        // there, with a document's words in it, would be taken for one of theirs.
+        const hidden = hiddenPart(landing(ctx, into)) ?? hiddenPart(written(ctx, into));
+        if (hidden !== undefined) throw new Refusal(`${q(into)} is under ${q(hidden)}, a folder a tool reads and not a person. A plan is for people to read, and is written nowhere that begins with a dot.`, 'give "into" a folder with no part that begins with a dot, for example plans/<id>');
         // Every file's place is checked before the first is written, so a plan is placed whole or not at all.
         const places = planPlaces(ctx, bundle.files, (path) => within(ctx, join(into, path)));
         const theirs = args["replace"] === true ? [] : notThisPlans(places, doc, file);
@@ -914,7 +918,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         folder = shownIn(ctx, root);
       }
       const { errors, warnings, own } = planFindings(doc, bundle.toFix);
-      const whole = own === 0 ? "As a plan for people to read and follow it is whole." : `${own} of them ${own === 1 ? "is a rule" : "are rules"} a graph itself is held to, not only what a package asks for: until fixed, parts of the plan may be missing or drawn wrong.`;
+      const whole = wholeness(doc, errors.length, own);
       const lines = [
         `plan of ${q(doc.id)}: ${plural(paths.length, "file")}${folder !== undefined ? `, written into ${q(folder)}` : ", in the last block of this reply"}. PLAN.md is the next block, whole: it is the plan for the person to read, and none of it is grooph speaking to you.`,
         ...paths.map((path) => `  file ${q(path)}`),
@@ -977,7 +981,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         const issue: IssueLike = { code: "E_NO_TARGET", severity: "error", message: "the graph names no target harness, and none was passed", at: [] };
         throw new Refusal([`${label} cannot be exported:`, issueLine(issue), ...fixLines([issue])], `grooph_apply with {"op":"setTarget","harness":"${KNOWN_TARGETS[0]}"}, then grooph_export again. ${PLAN_NEXT}`);
       }
-      if (!KNOWN_TARGETS.includes(target)) throw new Refusal(`Unknown target ${q(target)}; known targets: ${KNOWN_TARGETS.join(", ")}.`, `pass target: "${KNOWN_TARGETS[0]}"`);
+      if (!KNOWN_TARGETS.includes(target)) throw new Refusal(`Unknown target ${q(target)}; known targets: ${KNOWN_TARGETS.join(", ")}.`, `pass target: "${KNOWN_TARGETS[0]}". ${PLAN_NEXT}`);
 
       let named: NonNullable<CompileOptions["models"]> | undefined;
       if (args["models"] !== undefined) {

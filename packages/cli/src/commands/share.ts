@@ -30,7 +30,7 @@ import {
 
 import { writeText } from "../io.js";
 import { plural, type Output } from "../print.js";
-import { ownAndPackage, packageNeeds } from "./plan.js";
+import { asAPlan, ownAndPackage } from "./plan.js";
 import { isRunDir, readRun } from "../run-io.js";
 import { LoadError, deflateRaw, loadShareable, shown, type Loaded, type OpenUrl } from "../share-io.js";
 
@@ -182,14 +182,14 @@ function printMap(io: Output, map: OperationMap): void {
 }
 
 /** What a package would ask of a plan, said as that and not as an error of the graph. */
-const planNote = (needs: readonly string[]): string => `a plan as it stands: a package for a harness would also need ${needs.join(", ")}`;
+const planNote = (needs: readonly string[]): string => `a plan as it stands: it names no harness, and a package would need ${needs.join(", ")}`;
 
 function printGraph(io: Output, graph: Graph): void {
   const { own, forPackage } = ownAndPackage(graph);
-  const needs = packageNeeds(forPackage);
+  const { needs, rest } = asAPlan(graph, forPackage);
   io.out(`${graph.id} · ${graph.name}`);
   io.out(`  ${shapeLine(estimateShape(graph))}`);
-  for (const w of needs.length > 0 ? own : [...own, ...forPackage]) io.out(`  ${formatIssue(w)}`);
+  for (const w of [...own, ...rest]) io.out(`  ${formatIssue(w)}`);
   if (needs.length > 0) io.out(`  ${planNote(needs)} (grooph plan exports it as it is)`);
 }
 
@@ -199,8 +199,8 @@ function printSet(io: Output, set: ProposalSet): void {
   const id = Math.max(...set.candidates.map((c) => c.id.length));
   for (const c of set.candidates) {
     const { own, forPackage } = ownAndPackage(c.graph as Graph);
-    const needs = packageNeeds(forPackage);
-    const warnings = needs.length > 0 ? own : [...own, ...forPackage];
+    const { needs, rest } = asAPlan(c.graph as Graph, forPackage);
+    const warnings = [...own, ...rest];
     const notes = [
       set.recommendation?.candidate === c.id ? "recommended" : "",
       needs.length > 0 ? planNote(needs) : "",

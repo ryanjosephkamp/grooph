@@ -183,10 +183,10 @@ grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
 Write the owner's chosen candidate out as an ordinary graph document. The candidate is
 named by its id or its label, ignoring case; a name that matches one candidate's id and
 another's label is refused as ambiguous. The graph is checked first and nothing is written
-while it breaks a rule of its own. A candidate that lacks only what a package asks for (a
-harness, a goal) is a plan: it is picked like any other, and the command says so and that
-grooph plan exports it. An existing --out is replaced only with --force (or when it already
-holds the same graph).
+while it has errors. A candidate that names no harness is a plan: the harness and the goal
+a package would need are no error of it, so it is picked like any other, and the command
+says so and that grooph plan exports it. An existing --out is replaced only with --force
+(or when it already holds the same graph).
 ```
 
 ## `grooph validate`
@@ -392,10 +392,17 @@ A plan is not a package: it has no lead's brief, no agent files and no kickoff, 
 it is handed to a harness. grooph export writes a package, and only for a graph with no error.
 
   --into <dir>   the folder to write into. Default: <id>-plan in the current folder.
+                 No part of the way to it may begin with a dot: a plan is for people to
+                 read, and those folders (.git, .claude, .codex) are a tool's.
   --force        replace a file already there that is not this plan's: a PLAN.md grooph did not
-                 write for this graph, a picture grooph did not draw, or a copy of the graph
-                 that was changed after its plan was written and is not the file given.
-                 Without it such a file stops the command, and nothing is written.
+                 write for this graph, a picture grooph did not draw, a copy of the graph that
+                 differs from the one given and is not the file given, or a file that cannot
+                 be read. Without it such a file stops the command, and nothing is written.
+
+PLAN.md says the copy of the graph beside it is the one to edit. To bring the plan up to date
+after editing it, make the plan from that copy: grooph plan <dir>/<id>.grooph.json --into <dir>.
+PLAN.md and the picture are drawn again from the graph each time: what a person adds to them is
+not kept, so notes belong in the graph or in a file of their own.
 
 The graph a package keeps (.grooph/<id>/graph.grooph.json) is never written by this command.
 
