@@ -39,6 +39,15 @@ tar -tzf "$TARBALL" | grep >/dev/null '\.map$' && fail "the tarball carries sour
 tar -tzf "$TARBALL" | grep -E >/dev/null '^package/(dist/src|dist/test|src|test|node_modules)/' && fail "the tarball carries files that are not the package's"
 tar -tzf "$TARBALL" | grep -E >/dev/null '^package/dist/app/(docs|patterns|community)/' && fail "the tarball carries the site's pages inside the app"
 tar -tzf "$TARBALL" | grep >/dev/null '^package/dist/app/grooph-app.json$' || fail "the packaged app has no mark, so watch would not serve it"
+# The app is a built file with other people's code inside it: their notices travel with the package, one section for
+# each package the app itself depends on at the least, and the fonts' own license texts beside the fonts.
+tar -tzf "$TARBALL" | grep >/dev/null '^package/THIRD-PARTY-NOTICES.md$' || fail "the tarball carries no third-party notices"
+NOTICES="$(tar -xzOf "$TARBALL" package/THIRD-PARTY-NOTICES.md)"
+for name in $(node -p "Object.entries(require('$REPO/apps/web/package.json').dependencies).filter(([, range]) => !range.startsWith('workspace:')).map(([name]) => name).join(' ')"); do
+  grep >/dev/null "^### $name [0-9]" <<< "$NOTICES" || fail "the third-party notices have no section for $name, which the app depends on"
+done
+grep >/dev/null "Permission is hereby granted" <<< "$NOTICES" || fail "the third-party notices carry no license text"
+tar -tzf "$TARBALL" | grep -c '^package/dist/app/assets/fonts/OFL-' | grep >/dev/null '^2$' || fail "the fonts' license texts are not beside the fonts"
 (( SIZE_KB < 1024 )) || fail "the tarball is ${SIZE_KB} KB; it was about 640 KB when this check was written, so something large got in"
 
 # A machine with no clone: a fresh folder, a home of its own, and the tarball.

@@ -142,18 +142,21 @@ Read https://ryanjosephkamp.github.io/grooph/docs/agents/ and follow it. You hav
 
 ## The tarball
 
-`grooph-0.3.0.tgz`: **840,572 bytes packed (820 KB), 2,359,954 unpacked, 81 files.** (It grew by about 41 KB with `main`: subgroophs in core, and a map in three dimensions in the app.) It grew from about 635 KB when `main`'s new look arrived: the app `watch` serves now carries its fonts.
+`grooph-0.4.0.tgz`, built by `scripts/pack-check.sh` from the release head: **932,646 bytes packed (910 KB), 2,666,646 unpacked, 98 files.** (At the slice's first handback it was `grooph-0.3.0.tgz`, 840,572 bytes and 81 files. Since then: the Codex target and plans in the command, the 3D views and the export panel in the app, the four plan templates, and the third-party notices.)
 
 | In it | Files | Size |
 |---|---|---|
-| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 718 KB |
-| `dist/patterns/`, the templates and their index | 21 | 151 KB |
+| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 776 KB |
+| `dist/patterns/`, the twenty templates and their index | 21 | 151 KB |
 | `dist/patterns/glyphs/` | 20 | 38 KB |
-| `dist/app/`, the built app `watch` serves (fonts included), without source maps or the site's pages | 34 | 1,336 KB |
+| `dist/plans/`, the four plan templates | 4 | 32 KB |
+| `dist/app/`, the built app `watch` serves (fonts and their license texts included), without source maps or the site's pages | 46 | 1,527 KB |
 | `hooks/`, the event hook and the push script | 2 | 56 KB |
-| `README.md`, `LICENSE`, `package.json` | 3 | 5 KB |
+| `README.md`, `LICENSE`, `package.json`, `THIRD-PARTY-NOTICES.md` | 4 | 25 KB |
 
 No dependencies, and one optional one: `@resvg/resvg-js`, for PNG, which has no install script (it brings the one prebuilt binary for the platform). Without it the SVG still works and the error says so. rolldown, the bundler, is a development dependency and is not in the tarball.
+
+**`THIRD-PARTY-NOTICES.md`** is written by `packages/cli/scripts/npm-package.mjs` at build, with node alone. The app is a built file with other people's code inside it, and their licenses ask that the notice travel with every copy. Which packages are inside is not taken from a list of dependencies: the app's own source maps name every module of every script, and the bundler hands over the command's module list; a module under `node_modules` belongs to the package whose folder it is in. That gives 18 packages in the app (React and its scheduler, React Flow and the d3 pieces it uses, zustand, fflate, classcat, use-sync-external-store), each with its name, version, license and the text of its own license file, and none in the command, which is grooph's own code. The build stops if a script of the app has no source map, if a package's license file cannot be read, or if a package the app depends on is not in what the maps name. The optional renderer is named as installed beside the package and not in it. The fonts' own license texts were already beside the fonts. `scripts/pack-check.sh` asks the tarball for the file, a section for each package the app depends on, and the two font licenses. The chat skill's zip and the desktop extension carry the command and the templates and no app, so nothing of anyone else's is in them.
 
 ## The three commands that publish
 
@@ -163,7 +166,7 @@ pnpm install --frozen-lockfile && pnpm -r build && scripts/pack-check.sh
 npm publish packages/cli/dist/npm
 ```
 
-The second builds, assembles `packages/cli/dist/npm` and proves the tarball installs and runs; the third publishes that folder as `grooph`. The version is `packages/cli/package.json`'s, 0.3.0 today: if the driver cuts a release for this slice first, publish after the bump. To hold the name with no gap, publish 0.3.0 from this branch now and the release when it is tagged.
+The second builds, assembles `packages/cli/dist/npm` and proves the tarball installs and runs; the third publishes that folder as `grooph`. The version is `packages/cli/package.json`'s, **0.4.0**: this branch is the release, so what is published is 0.4.0, from a fresh clone of the release head. **Publish, then merge, within minutes of each other**: the package's README links to pages (`/docs/agents/`, `/docs/chat/`) that are on the live site only once this pull request is merged, and the pages tell people to run `npx -y grooph`, which must be the owner's package by then.
 
 ## Decisions made
 
@@ -563,6 +566,17 @@ After #146 (core's `planBundle`) reached `main`, `main` at `08b2cdb` was merged 
 **The version is 0.4.0 in all 8 places** (`node scripts/version.mjs 0.4.0`), and `docs/releases.md` has the section "0.4.0 · October 6, 2026" in place of "Not yet released", with the bullet on the default models kept as it was.
 
 **Checks on this head, locally:** clean build of all three packages; core 580, CLI 236, web 204; the browser suite on port 4367, 364 passed (164 skipped: the other browsers, which are CI's); goldens for both targets; every generator's `--check`; site pages; outside addresses; pictures; American English; the brake-values check; the study's unpaid tests; `first-run.sh`; `test-install-local.sh`; `pack-check.sh` (grooph-0.4.0.tgz, 908 KB, 97 files); `kit-check.sh` (grooph-chat.zip 296 KB, grooph.mcpb 290 KB). The budget, locally: first load 160.77 of 164, canvas 258.08 of 262, a template's own address 279.13 of 280, embed 129.79 of 132. **A template's address is the tight line**: `main` reads 279.00 by CI, and this branch has read about 0.4 KB over its local figure there before.
+
+## After the driver's reader read the release head: one more push
+
+The driver's reader found no leak, no install hook and nothing broken at `02d159b5`, and the tarball's hash the same as this lane's. It found things a published tarball could not have changed later, and these are changed:
+
+- **The npm page** (`packages/cli/README.md`, which ships in the tarball) said grooph "checks that every loop can end and every critic can actually inspect something", "starts no agent and spends nothing", and that the hook "changes nothing an agent does". Those are the words the audit of 0.3.0 read as other words (claims rows C19, C20, C25, C31). It now uses the audited ones: every loop names a stop and every bar names what a critic can inspect; it runs no agent, calls no model and needs no hosted service; the hook's script returns no decision to the harness, and an agent can read what it wrote through grooph's own tool. It also says, in a line each, that a package is for Claude Code or for Codex and that `grooph plan` writes a plan for any graph that reads.
+- **The release notes:** the irreversible rule's bullet described the old gap wrongly. Run against core as it was at the `v0.3.0` tag and as it is now: a marked first step that nothing leads to was already reported in 0.3.0; what passed was a marked first step whose only way in was its loop's back edge with a person asked on it, and 0.4.0 reports that one. The bullet says so. Also: "most replies" end with a `next:` line (`grooph_shape`'s has none; `docs/agents.md` says the same now); the chat kit's two files are built by the repository's check and not yet published for download; the comparison is described and a second harness has not read it; and the models bullet points at the right item.
+- **Third-party notices** in the package (above, under "The tarball").
+- **This handback's two sections** on the tarball and the publish, which still spoke of 0.3.0.
+
+Left for after the release, by the driver's word: `docs/chat.md`'s "Until it is published there", the schema's `$id`, and an assertion the kept-ids browser test lacks.
 
 ## For the 0.4.0 notes
 

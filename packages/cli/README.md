@@ -1,6 +1,8 @@
 # grooph
 
-**Loop graphs for coding agents.** You, or an agent working with you, say who builds, who checks, where a person decides and when the work stops, in one small JSON document. grooph checks that every loop can end and every critic can actually inspect something, then compiles the graph into a prompt package for Claude Code. Your harness runs the package. grooph never runs an agent and never calls a model.
+**Loop graphs for coding agents.** You, or an agent working with you, say who builds, who checks, where a person decides and when the work stops, in one small JSON document. grooph checks that every loop names a stop and every bar names what a critic can inspect, then compiles the graph into a prompt package for Claude Code or for Codex. Your harness runs the package. grooph never runs an agent and never calls a model.
+
+A graph can also be a plan for people: `grooph plan` writes a plan people can follow, for any graph that reads.
 
 This package is the command line, the built-in templates, an MCP server and the app `grooph watch` serves. It has no dependencies, and one optional one: `@resvg/resvg-js`, the PNG renderer, which has no install script.
 
@@ -19,7 +21,7 @@ npx grooph image flaky.grooph.json --out flaky.svg
 npx grooph export flaky.grooph.json --target claude-code --into .
 ```
 
-`grooph template list` shows every template with when to use it. `grooph explain flaky.grooph.json` says in plain words what the graph's brakes are. `grooph share flaky.grooph.json` prints a link that opens the graph in the [grooph app](https://ryanjosephkamp.github.io/grooph/) on any device; the graph travels after the `#`, which a browser sends to no server.
+A package is for Claude Code or for Codex: `--target codex` writes one for a graph that names Codex. `grooph template list` shows every template with when to use it. `grooph explain flaky.grooph.json` says in plain words what the graph's brakes are. `grooph share flaky.grooph.json` prints a link that opens the graph in the [grooph app](https://ryanjosephkamp.github.io/grooph/) on any device; the graph travels after the `#`, which a browser sends to no server.
 
 Install it once to drop the `npx`:
 
@@ -56,6 +58,6 @@ The last one is for a chat in Claude's desktop app (`claude_desktop_config.json`
 
 ## What it does not do
 
-It starts no agent and spends nothing, and it uploads nothing unless you ask: `grooph events push`, or the hook installed with `--push`, sends what the hook recorded to a branch of its own on the project's own remote, which is public when the repository is. `grooph export` places files and prints a kickoff prompt; pasting that prompt into your harness is your decision. `grooph hooks install` adds an event hook that records which sessions and subagents ran, for `grooph watch` to show; the hook appends one line per event and changes nothing an agent does.
+It runs no agent, calls no model and needs no hosted service, and it uploads nothing unless you ask: `grooph events push`, or the hook installed with `--push`, sends what the hook recorded to a branch of its own on the project's own remote, which is public when the repository is. `grooph export` places files and prints a kickoff prompt; pasting that prompt into your harness is your decision. `grooph hooks install` adds an event hook that records which sessions and subagents ran, for `grooph watch` to show; the hook appends one line per event, its script returns no decision to the harness, and an agent can read what it wrote through grooph's own tool.
 
-Source, issues and the templates' recorded runs: [github.com/ryanjosephkamp/grooph](https://github.com/ryanjosephkamp/grooph). MIT.
+Source, issues and the templates' recorded runs: [github.com/ryanjosephkamp/grooph](https://github.com/ryanjosephkamp/grooph). MIT. The app this package serves holds other people's code; their names and licenses are in `THIRD-PARTY-NOTICES.md`, beside this file.
