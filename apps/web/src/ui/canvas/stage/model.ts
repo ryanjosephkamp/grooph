@@ -114,7 +114,7 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       // What the compiler tells a lead a full round costs: each member that is a check, or an agent other than the
       // lead itself, once. A loop inside this one is in that count at one round of its own; every further round of
       // it adds its own on top, and a node dispatched twice in a round (invalid evidence) counts twice.
-      perRound: loop.members.map((id) => doc.nodes.find((n) => n.id === id)).filter((n) => n?.kind === "check" || (n?.kind === "agent" && n.role !== "lead")).length,
+      perRound: loop.members.map((id) => doc.nodes.find((n) => n.id === id)).filter((n) => n?.kind === "check" || (n?.kind === "agent" && n.role !== "lead" && !isPersonStep(n))).length,
     };
   });
   // A node's loop: the smallest that has it, and of two as small the first in the document. The nodes that are a
@@ -163,14 +163,30 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     // the first: a lead writes them by hand, and some are later than their `ended`.
     let last: string | undefined;
     const dispatches: Dispatch[] = [];
-    // A note's round is its node's loop's. Where a note names none it is worked out from the edge the run took to
-    // get there (graph-ir, "Rounds" and "Nested loops"): a loop's way back is that loop's next round, wherever in it
-    // the way back lands, and every loop inside it, at any depth, starts afresh at round 0; otherwise a loop is in
-    // the round it was last seen in. Two notes running at one node, the first not yet ended, are one visit: the
-    // second is not a move, though the node may have an edge to itself.
+    // A note's round is its loop's: a loop's own note names that loop's, and a note at a node its innermost loop's.
+    // But a node in a loop inside another is in a round of each, the contract's one number does not say which, and
+    // leads have written the outer loop's there (the recorded Gauntlet and fresh-grind runs) as well as the inner
+    // one's (the nested fixture). The run's own loop notes tell the two apart: a loop's note names the round just
+    // finished, so where an inner loop's note names a round and the note at one of its nodes just before it names
+    // another, the lead wrote some other loop's number at those nodes. In such a run the number at a node of an inner loop is not read, and
+    // each loop's round is worked out from the ways back the run took, as it is wherever a note names none
+    // (graph-ir, "Rounds" and "Nested loops"): a loop's way back is that loop's next round, and every loop inside
+    // it starts afresh at round 0; otherwise a loop is in the round it was last seen in.
+    const inner = (id: Id | null): boolean => !!loops.find((l) => l.id === id)?.inside;
+    const said: Record<Id, number | undefined> = {};
+    let others = false;
+    for (const { focus, note } of replay.steps.slice(1)) {
+      if (!focus || note?.round === undefined) continue;
+      if (focus.kind === "node" && inner(innermost(focus.id))) said[innermost(focus.id)!] = note.round;
+      else if (focus.kind === "loop") others ||= (said[focus.id] ?? note.round) !== note.round, (said[focus.id] = undefined);
+    }
     const seen: Record<Id, number> = {};
     const most: Record<Id, number> = {};
     const ways = walk(model.edges);
+    const inside = (inner: Id, outer: Id): boolean => {
+      for (let up = loops.find((l) => l.id === inner)?.inside; up; up = loops.find((l) => l.id === up)?.inside) if (up === outer) return true;
+      return false;
+    };
     const steps = replay.steps.slice(1).map((step) => {
       const note = step.note!;
       const at = step.focus ?? { kind: "graph" as const };
@@ -180,22 +196,14 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       const own = note.proposal?.summary ?? note.amendment?.summary ?? note.text ?? "";
       const node = focus.kind === "node" ? doc.nodes.find((n) => n.id === focus.id) : undefined;
       const loop = node ? innermost(node.id) : focus.kind === "loop" ? focus.id : null;
-      // The round a note names is its loop's where it can be no other's: a loop's own note, or a note at a node
-      // that is in one loop. A node in a loop inside another is in a round of each, and the contract's one number
-      // does not say which: leads have written the outer loop's there (the recorded Gauntlet and fresh-grind runs)
-      // and the inner one's (the nested fixture). So for such a node each loop's round is worked out, as it is where
-      // a note names none, and the number on the note is not read.
-      const named = node && loops.filter((l) => l.members.includes(node.id)).length > 1 ? undefined : note.round;
-      if (node) {
-        // Each loop one of whose ways back was taken to get here, once.
-        for (const turned of new Set(ways.into(node.id).flatMap((e) => (e.back ? [e.back] : [])))) {
-          if (turned !== loop || named === undefined) seen[turned] = (seen[turned] ?? 0) + 1;
-          for (const inner of loops) if (under(loops, inner.id, turned)) seen[inner.id] = 0;
-        }
+      const named = others && node && inner(loop) ? undefined : note.round;
+      // Each loop one of whose ways back was taken to get here, once.
+      for (const turned of new Set(node ? ways.into(node.id).flatMap((e) => (e.back ? [e.back] : [])) : [])) {
+        if (turned !== loop || named === undefined) seen[turned] = (seen[turned] ?? 0) + 1;
+        for (const inner of loops) if (inside(inner.id, turned)) seen[inner.id] = 0;
       }
       const round = loop ? (seen[loop] = named ?? seen[loop] ?? 0) : null;
       if (node) ways.at(node.id, { round, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: note.outcome === "started" });
-      // A loop's note that names the stop that fired: its ways back were not taken on what had been reported.
       if (focus.kind === "loop" && note.stop !== undefined) ways.stopped(focus.id, note.stop === "human");
       for (const id in seen) most[id] = Math.max(most[id] ?? 0, seen[id]!);
       const out: NonNullable<Model["run"]>["notes"][number] = {
@@ -214,7 +222,8 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       // A dispatch is a result at an agent or a check: not the line before it, and not a note that reports nothing
       // (a word, a proposal, an amendment at the node). Its minutes are by the stamps, which
       // a note may leave out (graph-ir section 6: read from the clock or omitted, never estimated): then it has none.
-      if (node && (node.kind === "agent" || node.kind === "check") && note.outcome && note.outcome !== "started") {
+      // Nor is a person's step one (amendment A-020): its result is a person's, and no dispatch was made.
+      if (node && (node.kind === "agent" || node.kind === "check") && !isPersonStep(node) && note.outcome && note.outcome !== "started") {
         out.dispatch = dispatches.push({ node: node.id, loop, round, outcome: note.outcome ?? null, minutes: note.ended ? Math.max(0, minutes(last ?? note.started ?? note.ended, note.ended)) : null }) - 1;
         last = note.ended ?? last;
       }

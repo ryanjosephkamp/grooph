@@ -1271,6 +1271,55 @@ test("a person's step says whose it is in the rings too, on a phone, where a car
   expect(await overlaps(page)).toEqual([]);
 });
 
+test("the line that says cards touch goes once the reader has moved in, and is back with the starting view; and a pane's name keeps its place while the view is turned", async ({ page }) => {
+  await recordDrawing(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "panes"));
+  // One row of four at a phone's width: the cards touch at rest, and the line says so.
+  await importDocument(page, "review-loop.grooph.json", readFileSync(join(repoRoot, "fixtures/valid/review-loop.grooph.json"), "utf8"));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await viewIsStill(page);
+  const tight = page.locator(".s3-bar .s3-tight");
+  await expect(tight).toBeVisible();
+  await page.getByRole("button", { name: "Move in" }).click();
+  await expect(tight).toBeHidden();
+  await page.getByRole("button", { name: "Starting view" }).click();
+  await expect(tight).toBeVisible();
+
+  // Gauntlet, where there is room: its loops' names, turned a key at a time. A name moves with its pane, a little
+  // at each step; a leap is a step of 90 px or more, to another of the places it may stand at.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("about:blank");
+  await page.goto("./#/templates/built-in/gauntlet-decomposed");
+  await canvasIsQuiet(page);
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await viewIsStill(page);
+  const where = () => page.evaluate(() => Object.fromEntries((window as unknown as { drawn: { said: { text: string; x: number; y: number }[] } }).drawn.said.filter((s) => / · loop$/.test(s.text)).map((s) => [s.text, [s.x, s.y]])));
+  await page.locator(".s3-frame").focus();
+  let last = await where();
+  expect(Object.keys(last).sort()).toEqual(["Pieces · loop", "Polish a piece · loop"]);
+  let [moved, leaps] = [0, 0];
+  for (let k = 0; k < 12; k += 1) {
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(60);
+    const now = await where();
+    for (const name of Object.keys(last)) {
+      const step = Math.hypot(now[name]![0]! - last[name]![0]!, now[name]![1]! - last[name]![1]!);
+      leaps += Number(step >= 90);
+      moved += step;
+    }
+    last = now;
+  }
+  // (It did turn: the names moved. A name leaves its place only when more than a tenth of it is under a card
+  // there: twice in these twenty-four steps of two names, where choosing afresh at every step leapt five times.)
+  expect(moved).toBeGreaterThan(20);
+  expect(leaps).toBeLessThanOrEqual(2);
+});
+
 test("a browser that gives no drawing surface: the switch is still there, the page says why and shows what it showed, and the visit does not remember the kind that never drew", async ({ page }) => {
   await page.addInitScript(() => {
     const real = HTMLCanvasElement.prototype.getContext;

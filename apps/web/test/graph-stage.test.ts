@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { parseGraphText, parseRunNotes, replaySteps, resolvePositions, summarizeRun, type Graph, type RunNote } from "@grooph/core";
+import { isPersonStep, parseGraphText, parseRunNotes, replaySteps, resolvePositions, summarizeRun, type Graph, type RunNote } from "@grooph/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { columnsForViewport } from "../src/doc/layout.js";
@@ -115,6 +115,67 @@ describe("a recorded run", () => {
     const word = (k: number, more: Partial<RunNote> = {}): RunNote => ({ id: `w-${k}`, run: NOTES[0]!.run, at: "node:builder", text: "a word at the builder", ...more }) as RunNote;
     const wordy = [...NOTES.slice(0, 3), word(1), word(2, { ended: "2026-09-19T13:00:00Z" }), ...NOTES.slice(3), word(3, { proposal: { summary: "s", reason: "r" } } as Partial<RunNote>)];
     expect(modelOf(RUN, wordy).run!.dispatches.map((d) => [d.node, d.round, d.outcome])).toEqual(model.run!.dispatches.map((d) => [d.node, d.round, d.outcome]));
+  });
+
+  it("a node in a loop inside another: its note's number is the inner loop's unless the run's own loop notes show the lead wrote another loop's there, and then each loop's round is worked out from the ways back the run took", () => {
+    const where = (m: ReturnType<typeof modelOf>) => m.run!.dispatches.map((d) => `${d.node}@${d.loop}:${d.round}`);
+    // The nested fixture's lead wrote the inner loop's round on the builder's and the tests' notes.
+    const [nested, written] = runAt("run-nested");
+    const inner = ["builder@grind:0", "tests@grind:0", "builder@grind:1", "tests@grind:1", "judge@phases:0", "builder@grind:0", "tests@grind:0"];
+    expect(where(modelOf(nested, written))).toEqual(inner);
+    // The same run with the outer loop's round written there, as the recorded Gauntlet and fresh-grind runs have
+    // it, and with none written at any node: the same rounds.
+    const phase = [0, 0, 0, 0, 0, 1, 1];
+    let k = 0;
+    const outer = written.map((n) => (n.at === "node:builder" || n.at === "node:tests" ? ({ ...n, round: phase[k++] } as RunNote) : n));
+    expect(k).toBe(6);
+    expect(where(modelOf(nested, outer))).toEqual(inner);
+    expect(where(modelOf(nested, written.map(({ round, ...n }) => (n.at.startsWith("node:") ? (n as RunNote) : ({ ...n, round } as RunNote)))))).toEqual(inner);
+    // The four recorded runs with a loop inside a loop: piece 2 of the Gauntlet is round 1 of Pieces and round 0 of
+    // Polish a piece, as its own loop notes say, though the owner's note there carries a 1; and the sentence the
+    // page opens with says so.
+    const recorded = (dir: string) => modelOf(graph(join(dir, "graph.grooph.json")), parseRunNotes(readFileSync(join(root, dir, "notes.jsonl"), "utf8")).notes);
+    for (const dir of ["experiments/patterns/gauntlet-decomposed/run/runs/20261004-224501", "experiments/patterns/gauntlet-decomposed/run-1/runs/20260922-151855"]) {
+      expect(where(recorded(dir)), dir).toEqual(["planner@null:null", "owner@polish:0", "capture-check@polish:0", "critic@polish:0", "next-piece@pieces:0", "owner@polish:0", "capture-check@polish:0", "critic@polish:0", "next-piece@pieces:1"]);
+      expect(stepsOf(recorded(dir))[0]!.says, dir).toMatch(/^The whole run: 9 dispatches, in round 0 of Polish a piece; rounds 0 and 1 of Pieces\./);
+    }
+    for (const dir of ["experiments/patterns/fresh-grind-rare-judge/run/runs/20260921-044114", "experiments/patterns/fresh-grind-rare-judge/run-1/runs/20260920-195457"]) {
+      expect(where(recorded(dir)), dir).toEqual(["builder@grind:0", "tests@grind:0", "judge@phases:0", "builder@grind:0", "tests@grind:0", "judge@phases:1"]);
+      expect(stepsOf(recorded(dir))[0]!.says, dir).toMatch(/^The whole run: 6 dispatches, in round 0 of Grind; rounds 0 and 1 of Phases\./);
+    }
+    // A node in one loop keeps the round its note names.
+    expect(where(model)).toEqual(["builder@sandwich:0", "checks@sandwich:0", "critic@sandwich:0", "builder@sandwich:1", "checks@sandwich:1", "critic@sandwich:1"]);
+    // Though the notes skip the step that sent it round, so that no way back is seen: the number is read, not
+    // worked out. One loop: the critic's fail is not noted, and the builder's second note names round 1.
+    const skip = (list: [string, string, number?, string?][]): RunNote[] => list.map(([at, outcome, round, stop], k) => ({ id: `n-${k + 1}`, run: "r", at: at.includes(":") ? at : `node:${at}`, outcome, ...(round === undefined ? {} : { round }), ...(stop ? { stop } : {}) }) as RunNote);
+    expect(where(modelOf(REVIEW, skip([["builder", "pass", 0], ["builder", "pass", 1], ["critic", "pass", 1]])))).toEqual(["builder@review:0", "builder@review:1", "critic@review:1"]);
+    // A loop inside another, written the inner way, with the tests' failing note skipped: the loop's own note agrees
+    // with its nodes' notes, so their numbers are the inner loop's and are read.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 1], ["judge", "pass", 0]])))).toEqual(["builder@grind:0", "builder@grind:1", "tests@grind:1", "judge@phases:0"]);
+    // And where the judge's way back is not seen (an outcome no edge is for), the second phase's builder, named
+    // round 0, starts Grind afresh as its note says.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 1], ["judge", "revise", 0], ["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0]]))).slice(-2)).toEqual(["builder@grind:0", "tests@grind:0"]);
+    // The same graph written the outer way, with the judge's verdict where its way back wants an outcome, so
+    // the walk sees no way back: the loop's own note says round 0 for a pass its nodes' notes call 1, the numbers
+    // are another loop's, and Grind is worked out (and stays in the round it was last seen in).
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0], ["judge", "pass", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 0]]))).slice(-2)).toEqual(["builder@grind:0", "tests@grind:0"]);
+    // In such a run the outer loop's own node is in one loop, and its number is still read: the judge's second
+    // note names round 1 of Phases, though no way back of Phases was seen.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0], ["judge", "pass", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 0], ["judge", "pass", 1]]))).at(-1)).toBe("judge@phases:1");
+  });
+
+  it("a person's step is no dispatch: its result is not counted, in a run or in a full round, and the step is still a stop of the slider", () => {
+    const plan = graph("fixtures/valid/a-plan-with-people.grooph.json");
+    const said = (k: number, at: string, outcome: string, round?: number): RunNote => ({ id: `n-${k}`, run: "r", at: `node:${at}`, ended: `2026-10-05T10:0${k}:00Z`, outcome, ...(round === undefined ? {} : { round }) }) as RunNote;
+    // A person drafts, an agent checks the facts, a person edits and sends it back, and round again.
+    const notes = [said(1, "draft", "pass", 0), said(2, "fact-check", "pass", 0), said(3, "review", "fail", 0), said(4, "draft", "pass", 1), said(5, "fact-check", "pass", 1), said(6, "review", "pass", 1), said(7, "publish", "pass")];
+    const m = modelOf(plan, notes);
+    expect(m.run!.dispatches.map((d) => [d.node, d.round])).toEqual([["fact-check", 0], ["fact-check", 1]]);
+    expect(stepsOf(m)[0]!.says).toMatch(/^The whole run: 2 dispatches, in rounds 0 and 1 of /);
+    // Every note is a stop of the slider all the same, a person's among them, with the edge taken to it.
+    expect(stepsOf(m).slice(1).map((s) => [s.to, s.edge !== undefined])).toEqual([["draft", false], ["fact-check", true], ["review", true], ["draft", true], ["fact-check", true], ["review", true], ["publish", true]]);
+    // A full round of the loop is one dispatch, the agent's: a budget in dispatches does not count a person's step.
+    expect(m.loops.map((l) => l.perRound)).toEqual([1]);
   });
 
   it("a dispatch's minutes are by the stamps of the ends: the first from its own start, each after from the end before it", () => {
@@ -271,7 +332,7 @@ describe("every recorded run the repository keeps", () => {
       // and checks is the same number, but for the four runs above.
       expect(run.rounds, dir).toEqual(Object.fromEntries(replaySteps(notes, doc).end.loops.map((l) => [l.loop, l.round ?? -1])));
       const summary = summarizeRun(notes, doc);
-      expect(doc.nodes.reduce((sum, n) => sum + (n.kind === "agent" || n.kind === "check" ? (summary.nodes[n.id]?.runs ?? 0) : 0), 0), dir).toBe(CORE_COUNTS[dir] ?? dispatches);
+      expect(doc.nodes.reduce((sum, n) => sum + ((n.kind === "agent" && !isPersonStep(n)) || n.kind === "check" ? (summary.nodes[n.id]?.runs ?? 0) : 0), 0), dir).toBe(CORE_COUNTS[dir] ?? dispatches);
       // And the latest round core's summary has for each loop is the same, but for the nested run: its last line
       // is the line before the judge's dispatch, which names round 1 of Phases, and a line before a dispatch is no
       // round of the loop's yet.
@@ -933,6 +994,15 @@ describe("the spiral and its lid", () => {
     expect(stacked.path("e-candidate-c-filter").every((v) => v[0] === stacked.node("filter")[0])).toBe(true);
     // And a graph with no loop keeps its cards whole there: a column has room for them.
     expect(stacked.prims.some((p) => p.t === "card" && p.small)).toBe(false);
+    // Two takings that leave one round of one place for two rounds of another: on the recorded fresh-grind run the
+    // tests pass to the judge from round 0 of Grind in both phases, into rounds 0 and 1 of Phases. They are apart
+    // for most of their way, not only where the shorter one stops.
+    const dir = "experiments/patterns/fresh-grind-rare-judge/run/runs/20260921-044114";
+    const freshRun = graph(join(dir, "graph.grooph.json"));
+    const fr = modelAt(freshRun, places(freshRun), parseRunNotes(readFileSync(join(root, dir, "notes.jsonl"), "utf8")).notes, true);
+    const both = spiral(fr, at(fr, 0)).prims.flatMap((p) => (p.t === "line" && p.key?.startsWith("edge:e-tests-judge@") ? [[p.key, p.pts] as const] : []));
+    expect(both.map(([key]) => key)).toEqual(["edge:e-tests-judge@0>0", "edge:e-tests-judge@0>1"]);
+    expect(Math.abs(both[0]![1][9]![0] - both[1]![1][9]![0])).toBeGreaterThanOrEqual(10);
     // Two takings of one edge between the two spirals of the nested run, one over the other, are apart.
     const [nestedDoc, nestedNotes] = runAt("run-nested");
     const ran = modelAt(nestedDoc, places(nestedDoc), nestedNotes, true);
@@ -1303,12 +1373,47 @@ describe("rings", () => {
         expect(nearest, `${id}, narrow ${narrowly}`).toBeGreaterThan(40);
       }
     }
+    // A straight edge that passes within a card's room of a node on a ring goes round it too, though the node is
+    // not on its line: the loop of six's way out, from its last node to the node on the ground after it, passes
+    // 28 from the near station, and is 56 or more aside where it is level with that station.
+    const wide = rings(modelAt(past, places(past)), whole);
+    const [out, near] = [wide.path("out"), wide.node("n3")];
+    expect(out).toHaveLength(19);
+    const beside = out.find((v, n) => n > 0 && (out[n - 1]![2] - near[2]) * (v[2] - near[2]) <= 0)!;
+    expect(Math.hypot(beside[0] - near[0], beside[2] - near[2])).toBeGreaterThanOrEqual(50);
+    // No node of a ring that stands on another is drawn over that ring's own foot: such a ring is turned a quarter
+    // of a station, and a node 64 up is seen over ground 55 farther back. On the templates and fixtures that have
+    // one (fresh grind's Tests was 5 from Grind's foot, and the judge's way back read as arriving there).
+    let stood = 0;
+    for (const path of [...ALL, ...readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`)]) {
+      const doc = graph(path);
+      const g = modelAt(doc, places(doc));
+      const drawn = rings(g, whole);
+      const feet = drawn.prims.flatMap((p) => (p.t === "dot" && p.r === 4 ? [p.at] : []));
+      for (const n of g.nodes) {
+        const o = drawn.node(n.id);
+        if (!o[1]) continue;
+        for (const foot of feet) expect(Math.hypot(o[0] - foot[0], o[2] - 0.86 * o[1] - foot[2]), `${path} ${n.id}`).toBeGreaterThanOrEqual(28);
+        stood += 1;
+      }
+    }
+    expect(stood).toBeGreaterThan(6);
     // A ring's first station that is a ring of its own has its first card 64 higher, which is drawn over ground
     // farther back: the node on the ground before it stands clear of that too. The glyph vocabulary's docs and Build.
     const glyphs = graph("fixtures/valid/glyph-vocabulary.grooph.json");
     const seen = rings(modelAt(glyphs, places(glyphs)), whole);
     expect([seen.node("build")[1], seen.node("docs")[1]]).toEqual([64, 0]);
     expect(seen.node("build")[2] - 55 - seen.node("docs")[2]).toBeGreaterThanOrEqual(100);
+    // And Gauntlet, whose first ring's first station is a ring: the gate on the ground before it is 140 or more
+    // short of where the nearest node of that raised ring is seen (64 up is over ground 55 farther back), in a
+    // wide frame and a narrow one. Without the room for it their cards touch on a phone.
+    for (const narrowly of [false, true]) {
+      const g = rings(modelAt(GAUNTLET, places(GAUNTLET), undefined, narrowly), whole);
+      const gate = g.node("decomposition-gate");
+      const nearest = Math.min(...["owner", "capture-check", "critic"].map((id) => g.node(id)[2] - 0.86 * g.node(id)[1] - gate[2]));
+      expect([g.node("owner")[1], gate[1]], String(narrowly)).toEqual([64, 0]);
+      expect(nearest, String(narrowly)).toBeGreaterThanOrEqual(140);
+    }
     // An edge from the outermost of three rings to a node of the innermost goes along the outer ring to the place
     // the middle one stands at: that node's own loop is under the one that is the station.
     const three = { ...base, nodes: ["a", "b", "c", "d"].map(node), edges: [{ id: "ab", from: "a", to: "b" }, { id: "bc", from: "b", to: "c" }, { id: "cd", from: "c", to: "d" }, { id: "dc", from: "d", to: "c", when: "fail" }, { id: "db", from: "d", to: "b", when: "blocked" }, { id: "da", from: "d", to: "a", when: "invalid-evidence" }, { id: "ac", from: "a", to: "c", when: "pass" }], loops: [loopOf("in", ["c", "d"], ["dc"]), loopOf("mid", ["b", "c", "d"], ["db"]), loopOf("out", ["a", "b", "c", "d"], ["da"])] } as unknown as Graph;
