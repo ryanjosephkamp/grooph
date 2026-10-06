@@ -59,7 +59,7 @@ const planSource = fileURLToPath(new URL("../../packages/core/src/plan.ts", impo
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; offline?: string[]; exporting?: string[]; plans?: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[]; offline?: string[]; exporting?: string[]; plans?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -143,7 +143,19 @@ function routes(): Plugin {
         const frontPage = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/landing/front.ts"));
         if (!frontPage) throw new Error("grooph-routes: no chunk of its own for the front page's picture (src/ui/landing/front.ts). The build no longer splits where vite.config.ts expects.");
         found.front = [...closure(frontPage)].filter((f) => !inEntry.has(f) && !inApp.has(f));
-        found.later = [...new Set([...found.later, ...found.templates, ...found.front])];
+        // A graph's other views in three dimensions (slice 0096; src/ui/canvas/graph-stage.tsx): one piece for the
+        // stage and every view on it, fetched when one is chosen, and named in the page so the worker holds it. One
+        // piece and not one a view: a name is on every address's first load. Written apart from the lists above too.
+        const graphStage = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-stage.tsx"));
+        if (!graphStage) throw new Error("grooph-routes: no chunk of its own for a graph's other views in three dimensions (src/ui/canvas/graph-stage.tsx). The build no longer splits where vite.config.ts expects.");
+        // Over what a canvas has by then: the switch's own piece, which asks for this one, is not weighed here again.
+        const stage = [...closure(graphStage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f) && !closure(graphViews).has(f));
+        found.later = [...new Set([...found.later, ...stage, ...found.templates, ...found.front])];
+        // Both are on no address's first load, and each has a line of its own in scripts/perf-budget.json: the
+        // stage, which choosing one of those views fetches, and the switch with the graph's reading, which every
+        // address that draws on the canvas fetches once the canvas is drawn. A piece nothing measures grows.
+        found.stage = stage;
+        found.views = [...closure(graphViews)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f));
         // And the offline page's maker (packages/core/src/offline.ts): fetched when "Offline page" is pressed, held by
         // the worker from its install, so that a copy can be kept with no network. No address loads it first.
         const offlinePage = chunks.find((c) => c.facadeModuleId?.endsWith("/core/src/offline.ts"));

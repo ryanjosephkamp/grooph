@@ -92,7 +92,8 @@ describe("a plan in the app (slice 0100)", () => {
     // A plan in error is still a plan: what stands between it and a harness is written in it.
     const errored = planOf(inError());
     expect(codes(errored.toFix).filter((code) => code.startsWith("E_"))).toEqual(["E_CYCLE_NO_STOP", "E_NO_TARGET", "E_NO_GOAL"]);
-    expect(errored.files["PLAN.md"]).toContain("A coding harness cannot run this as it is.");
+    expect(errored.files["PLAN.md"]).toContain("As a plan this is not whole yet: it breaks a rule a graph itself is held to");
+    expect(errored.files["PLAN.md"]).toContain("**To run it in a coding harness, ");
     expect(errored.files["PLAN.md"]).toContain("`E_CYCLE_NO_STOP`");
     expect(planZipName(inError())).toBe("review-loop-plan.zip");
     expect(Object.keys(planFolder(inError(), errored))).toEqual(["review-loop-plan/PLAN.md", "review-loop-plan/review-loop.svg", "review-loop-plan/review-loop.grooph.json"]);
