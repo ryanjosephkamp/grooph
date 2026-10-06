@@ -5,10 +5,13 @@
 
 import { KNOWN_TARGETS, getProfile } from "@grooph/core";
 
-/** The Claude Code target's own tier map, as its profile has it, for the export's help. */
-const OWN_TIERS = Object.entries(getProfile("claude-code").models)
-  .map(([tier, model]) => `${tier} → ${model}`)
-  .join(", ");
+/** Each target's own tier map, as its profile has it, for the export's help. */
+const ownTiers = (target: string): string =>
+  Object.entries(getProfile(target).models)
+    .map(([tier, model]) => `${tier} → ${model}`)
+    .join(", ");
+const OWN_TIERS = ownTiers("claude-code");
+const OWN_TIERS_CODEX = ownTiers("codex");
 
 export const overview = (version: string): string => `grooph ${version}: author, check and compile multi-agent loop graphs. It never runs them.
 
@@ -126,14 +129,22 @@ export const EXPORT_HELP = `grooph export <file> --target <harness> --into <dir>
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
 Refuses, with the reasons, when the document has errors. Targets: ${KNOWN_TARGETS.join(", ")}.
+A package is one harness's files: --target is the harness the document names (target.harness),
+and a document that names another is refused (E_NO_TARGET) until it names this one:
+  echo '[{"op":"setTarget","harness":"codex"}]' | grooph apply flaky.grooph.json --ops - --write
+  grooph export flaky.grooph.json --target codex --into <a project that does not hold its claude-code package>
+Two packages of one graph in one folder are a mixed package: export does not yet notice the other's files.
 
   --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
                                 A tier not named keeps the target's own; a pin on a node still wins.
                                 GROOPH_MODELS in the environment says the same for every export
-                                on a machine; the flag wins over it. The graph does not change.
+                                for claude-code on a machine, and GROOPH_MODELS_CODEX for every
+                                export for codex: a model's name is one harness's, so neither is
+                                read for the other target. The flag wins. The graph does not change.
 
-The target's own tiers, for claude-code: ${OWN_TIERS}. Two of them are one model, so a critic
-on one over a builder on the other is the same model: the export says so when a graph has agents on both.
+The targets' own tiers, for claude-code: ${OWN_TIERS}; for codex: ${OWN_TIERS_CODEX}.
+In each, two of them are one model, so a critic on one over a builder on the other is the same model:
+the export says so when a graph has agents on both.
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .

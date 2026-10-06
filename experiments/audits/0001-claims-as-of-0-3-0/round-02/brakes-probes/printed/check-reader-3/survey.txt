@@ -1,0 +1,96 @@
+
+== patterns/debate-then-build.grooph.json  adaptation=-
+  nodes: planner-a[agent:planner] planner-b[agent:planner] judge[agent:judge] plan-gate[human-gate] builder[agent:builder] tests[check] done[stop:success]
+  edges: e-planner-a-planner-b(planner-a>planner-b always ev1) e-planner-b-judge(planner-b>judge always ev2) e-judge-rebut(judge>planner-a rebut ev2) e-judge-plan-gate(judge>plan-gate pass) e-plan-gate-builder(plan-gate>builder pass) e-builder-tests(builder>tests always) e-tests-fail(tests>builder fail ev1) e-tests-pass(tests>done pass)
+  loop debate mode=judgment members=[planner-a,planner-b,judge] back=[e-judge-rebut] bar=Y stops=[{"kind":"bar-passed"},{"kind":"max-iterations","n":2,"then":"judge"},{"kind":"budget","measure":"dispatches","limit":8}]
+  loop build mode=grind members=[builder,tests] back=[e-tests-fail] bar=n stops=[{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":30}]
+
+== patterns/fresh-grind-rare-judge.grooph.json  adaptation=-
+  nodes: builder[agent:builder] tests[check] judge[agent:judge] done[stop:success]
+  edges: e-builder-tests(builder>tests always) e-tests-fail(tests>builder fail ev1) e-tests-judge(tests>judge pass ev4) e-judge-fail(judge>builder fail ev1) e-judge-next-phase(judge>builder next-phase ev1) e-judge-pass(judge>done pass)
+  loop grind mode=grind members=[builder,tests] back=[e-tests-fail] bar=n stops=[{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":20}]
+  loop phases mode=judgment members=[builder,tests,judge] back=[e-judge-fail,e-judge-next-phase] bar=Y stops=[{"kind":"bar-passed"},{"kind":"max-iterations","n":5},{"kind":"budget","measure":"dispatches","limit":55}]
+
+== patterns/gauntlet-decomposed.grooph.json  adaptation=-
+  nodes: planner[agent:planner] decomposition-gate[human-gate] owner[agent:builder] capture-check[check] critic[agent:critic] next-piece[check] integrator[agent:builder] final-critic[agent:critic] release-gate[human-gate] done[stop:success]
+  edges: e-planner-gate(planner>decomposition-gate always) e-gate-owner(decomposition-gate>owner pass) e-owner-capture-check(owner>capture-check always) e-capture-check-fail(capture-check>owner fail ev1) e-capture-check-critic(capture-check>critic pass ev3) e-critic-fail(critic>owner fail ev1) e-critic-pass(critic>next-piece pass) e-next-piece-pass(next-piece>owner pass ev1) e-next-piece-fail(next-piece>integrator fail) e-integrator-final-critic(integrator>final-critic always ev2) e-final-critic-release-gate(final-critic>release-gate always ev1) e-release-gate-done(release-gate>done pass)
+  loop polish mode=judgment members=[owner,capture-check,critic] back=[e-capture-check-fail,e-critic-fail] bar=Y stops=[{"kind":"bar-passed"},{"kind":"diminishing-returns","rounds":2,"metric":"major gaps remaining"},{"kind":"max-iterations","n":3},{"kind":"budget","measure":"dispatches","limit":10}]
+  loop pieces mode=judgment members=[owner,capture-check,critic,next-piece] back=[e-next-piece-pass] bar=Y stops=[{"kind":"bar-passed","then":"integrator"},{"kind":"human","every":2},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":42}]
+
+== patterns/grind-loop.grooph.json  adaptation=-
+  nodes: builder[agent:builder] tests[check] done[stop:success]
+  edges: e-builder-tests(builder>tests always) e-tests-fail(tests>builder fail ev1) e-tests-pass(tests>done pass)
+  loop grind mode=grind members=[builder,tests] back=[e-tests-fail] bar=n stops=[{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":30}]
+
+== patterns/merge-queue.grooph.json  adaptation=-
+  nodes: integrate[check] bisect[agent:builder] land-gate[human-gate] land[agent:builder:IRR] done[stop:success]
+  edges: e-integrate-fail(integrate>bisect fail ev2) e-bisect-integrate(bisect>integrate always) e-integrate-land-gate(integrate>land-gate pass) e-land-gate-land(land-gate>land pass) e-land-done(land>done always)
+  loop queue mode=grind members=[integrate,bisect] back=[e-bisect-integrate] bar=n stops=[{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":9}]
+
+== patterns/metric-sandwich.grooph.json  adaptation=-
+  nodes: builder[agent:builder] checks[check] critic[agent:critic] done[stop:success]
+  edges: e-builder-checks(builder>checks always) e-checks-fail(checks>builder fail ev1) e-checks-critic(checks>critic pass ev3) e-critic-fail(critic>builder fail ev1) e-critic-pass(critic>done pass)
+  loop sandwich mode=judgment members=[builder,checks,critic] back=[e-checks-fail,e-critic-fail] bar=Y stops=[{"kind":"bar-passed"},{"kind":"max-iterations","n":5},{"kind":"budget","measure":"dispatches","limit":16}]
+
+== patterns/ownership-not-swarm.grooph.json  adaptation=-
+  nodes: planner[agent:planner] owner-a[agent:builder] owner-b[agent:builder] worker[agent:builder] integrator[agent:synthesizer] tests[check] done[stop:success]
+  edges: e-planner-owner-a(planner>owner-a always ev1) e-owner-a-owner-b(owner-a>owner-b always ev2) e-owner-b-worker(owner-b>worker always ev2) e-worker-integrator(worker>integrator always) e-integrator-tests(integrator>tests always) e-tests-fail(tests>integrator fail ev1) e-tests-pass(tests>done pass)
+  loop integrate mode=grind members=[integrator,tests] back=[e-tests-fail] bar=n stops=[{"kind":"max-iterations","n":3},{"kind":"budget","measure":"minutes","limit":30}]
+
+== patterns/patrol-pulse.grooph.json  adaptation=-
+  nodes: scan[check] investigator[agent:critic] ticket-writer[agent:builder] prioritize[human-gate] clean[stop:success] done[stop:success]
+  edges: e-scan-clean(scan>clean fail) e-scan-investigator(scan>investigator pass ev3) e-investigator-clean(investigator>clean clean) e-investigator-ticket-writer(investigator>ticket-writer finding ev2) e-ticket-writer-prioritize(ticket-writer>prioritize always) e-prioritize-done(prioritize>done always)
+
+== patterns/ralph-loop.grooph.json  adaptation=-
+  nodes: builder[agent:builder] tests[check] plan-check[check] done[stop:success]
+  edges: e-builder-tests(builder>tests always) e-tests-fail(tests>builder fail ev1) e-tests-plan-check(tests>plan-check pass) e-plan-check-fail(plan-check>builder fail ev1) e-plan-check-pass(plan-check>done pass)
+  loop ralph mode=grind members=[builder,tests,plan-check] back=[e-tests-fail,e-plan-check-fail] bar=n stops=[{"kind":"diminishing-returns","rounds":2,"metric":"the same test failure"},{"kind":"max-iterations","n":5},{"kind":"budget","measure":"dispatches","limit":17}]
+
+== patterns/retrospective-rewrite.grooph.json  adaptation=propose
+  nodes: builder[agent:builder] tests[check] retro[agent:researcher] done[stop:success]
+  edges: e-builder-tests(builder>tests always) e-tests-fail(tests>builder fail ev1) e-tests-retro(tests>retro pass ev2) e-retro-done(retro>done always)
+  loop grind mode=grind members=[builder,tests] back=[e-tests-fail] bar=n stops=[{"kind":"max-iterations","n":5,"then":"retro"},{"kind":"budget","measure":"minutes","limit":30,"then":"retro"}]
+
+== patterns/taste-polish.grooph.json  adaptation=-
+  nodes: owner[agent:builder] capture-check[check] critic[agent:critic] done[stop:success]
+  edges: e-owner-capture-check(owner>capture-check always) e-capture-check-fail(capture-check>owner fail ev1) e-capture-check-critic(capture-check>critic pass ev2) e-critic-fail(critic>owner fail ev1) e-critic-pass(critic>done pass)
+  loop polish mode=judgment members=[owner,capture-check,critic] back=[e-capture-check-fail,e-critic-fail] bar=Y stops=[{"kind":"bar-passed"},{"kind":"diminishing-returns","rounds":2,"metric":"major gaps remaining"},{"kind":"human","every":2},{"kind":"max-iterations","n":5},{"kind":"budget","measure":"dispatches","limit":16}]
+
+== patterns/tournament-then-judge.grooph.json  adaptation=-
+  nodes: candidate-a[agent:builder] candidate-b[agent:builder] candidate-c[agent:builder] filter[check] judge[agent:judge] finisher[agent:builder] done[stop:success]
+  edges: e-candidate-a-filter(candidate-a>filter always) e-candidate-b-filter(candidate-b>filter always) e-candidate-c-filter(candidate-c>filter always) e-filter-judge(filter>judge pass ev2) e-judge-finisher(judge>finisher pass ev2) e-finisher-done(finisher>done always)
+
+== fixtures/valid/audit-then-fix.grooph.json  adaptation=-
+  nodes: audit[agent:red-team] fix[agent:builder] tests[check] done[stop:success]
+  edges: e-audit-fix(audit>fix always ev1) e-fix-tests(fix>tests always) e-tests-done(tests>done pass)
+
+== fixtures/valid/fix-until-green.grooph.json  adaptation=fixed
+  nodes: fixer[agent:builder] suite[check] green[stop:success]
+  edges: e-fix-suite(fixer>suite always) e-suite-fail(suite>fixer fail ev1) e-suite-pass(suite>green pass)
+  loop fix-cycle mode=grind members=[fixer,suite] back=[e-suite-fail] bar=n stops=[{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":20}]
+
+== fixtures/valid/glyph-vocabulary.grooph.json  adaptation=-
+  nodes: plan[agent:planner] scout[agent:researcher] build[agent:builder] tests[check] critic[agent:critic] docs[agent:synthesizer] merge[merge] gate[human-gate] ship[agent:builder:IRR] done[stop:success] halt[stop:halt]
+  edges: e-plan-build(plan>build always) e-scout-build(scout>build always) e-build-tests(build>tests always) e-tests-fail(tests>build fail) e-tests-critic(tests>critic pass) e-critic-fail(critic>build fail) e-critic-evidence(critic>build needs-evidence) e-critic-merge(critic>merge pass) e-docs-merge(docs>merge always) e-merge-gate(merge>gate always) e-gate-ship(gate>ship pass APPR) e-gate-halt(gate>halt fail) e-ship-done(ship>done always)
+  loop grind mode=- members=[build,tests] back=[e-tests-fail] bar=n stops=[{"kind":"max-iterations","n":5},{"kind":"budget","measure":"dispatches","limit":10}]
+  loop review mode=- members=[build,tests,critic] back=[e-critic-fail,e-critic-evidence] bar=Y stops=[{"kind":"bar-passed"},{"kind":"max-iterations","n":3},{"kind":"budget","measure":"dispatches","limit":12}]
+
+== fixtures/valid/irreversible-after-a-stop-gated.grooph.json  adaptation=fixed
+  nodes: fixer[agent:builder] suite[check] land-gate[human-gate] land[agent:builder:IRR] landed[stop:success]
+  edges: e-fix-suite(fixer>suite always) e-suite-fail(suite>fixer fail ev1) e-suite-pass(suite>land-gate pass) e-land-gate-land(land-gate>land pass) e-land-landed(land>landed always)
+  loop fix-cycle mode=grind members=[fixer,suite] back=[e-suite-fail] bar=n stops=[{"kind":"max-iterations","n":5,"then":"land-gate"},{"kind":"budget","measure":"minutes","limit":20}]
+
+== fixtures/valid/pinned-and-skilled.grooph.json  adaptation=fixed
+  nodes: fixer[agent:builder] suite[check] green[stop:success]
+  edges: e-fix-suite(fixer>suite always) e-suite-fail(suite>fixer fail ev1) e-suite-pass(suite>green pass)
+  loop fix-cycle mode=grind members=[fixer,suite] back=[e-suite-fail] bar=n stops=[{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":20}]
+
+== fixtures/valid/skilled-fixer.grooph.json  adaptation=fixed
+  nodes: fixer[agent:builder] suite[check] green[stop:success]
+  edges: e-fix-suite(fixer>suite always) e-suite-fail(suite>fixer fail ev1) e-suite-pass(suite>green pass)
+  loop fix-cycle mode=grind members=[fixer,suite] back=[e-suite-fail] bar=n stops=[{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":20}]
+
+== fixtures/valid/wrap-up-after-the-cap.grooph.json  adaptation=fixed
+  nodes: fixer[agent:builder] suite[check] green[stop:success] wrap[agent:builder] handed-over[stop:halt]
+  edges: e-fix-suite(fixer>suite always) e-suite-fail(suite>fixer fail ev1) e-suite-pass(suite>green pass) e-wrap-handed-over(wrap>handed-over always)
+  loop fix-cycle mode=grind members=[fixer,suite] back=[e-suite-fail] bar=n stops=[{"kind":"max-iterations","n":5,"then":"wrap"},{"kind":"budget","measure":"minutes","limit":20}]

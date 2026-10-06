@@ -1,0 +1,42 @@
+before, out of the gate: [
+  'review-e-merge-gate-reject: "fail" -> review-builder',
+  'e-review-merge-gate-release: "pass" -> release'
+]
+
+=== reject leads on to release (then-placement)
+applied: []
+held:    [
+  'edge:e-review-merge-gate-release-2 [adds a way into "release" that does not pass "pass" at the human gate "review-merge-gate"]',
+  'edge:review-e-merge-gate-reject (waits edge:e-review-merge-gate-release-2)',
+  'loop:review-review.back (waits edge:e-review-merge-gate-release-2)'
+]
+schema: ok | errors before: [] after: []
+after, out of the gate: [
+  'review-e-merge-gate-reject: "fail" -> review-builder',
+  'e-review-merge-gate-release: "pass" -> release'
+]
+
+=== an extra edge out of the gate on fail
+applied: []
+held:    [
+  'edge:e-review-merge-gate-release-2 [adds a way into "release" that does not pass "pass" at the human gate "review-merge-gate"]'
+]
+schema: ok | errors before: [] after: []
+after, out of the gate: [
+  'review-e-merge-gate-reject: "fail" -> review-builder',
+  'e-review-merge-gate-release: "pass" -> release'
+]
+
+=== own stop kept: gate's edges replaced by one 'always' edge to done under another id
+applied: []
+held:    [
+  'edge:e-review-merge-gate-review-done ["pass" at the human gate "review-merge-gate" would lead nowhere]',
+  'edge:review-e-merge-gate-reject ["fail" at the human gate "review-merge-gate" would lead nowhere]',
+  'edge:review-x1 [adds a way into "review-done" that does not pass "pass" at the human gate "review-merge-gate"]',
+  'loop:review-review.back (waits edge:e-review-merge-gate-review-done)'
+]
+schema: ok | errors before: [] after: []
+after, out of the gate: [
+  'e-review-merge-gate-review-done: "pass" -> review-done',
+  'review-e-merge-gate-reject: "fail" -> review-builder'
+]

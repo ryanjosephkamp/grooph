@@ -13,6 +13,7 @@ fixtures/
   proposals/invalid/<CODE>/<name>.grooph-proposals.json   proposal sets that report exactly that code
   golden/<harness>/<graph>/           expected compiler output, byte-for-byte
   pictures/<graph-id>.<theme>.svg     three graphs as their pictures (docs/exports.md), light and dark, byte-for-byte; the one with a subgrooph also open (`.open.`)
+  pages/<id>.html                     the offline page (docs/exports.md) of one graph and one map, whole, byte-for-byte
   composed/<id>.grooph.json           the proof that composing works: a built-in template cut into two templates, and the two placed as subgroophs
   events/<name>.jsonl                 session events as the hook writes them (docs/subagents.md); two are real recordings, see events/README.md
   maps/valid/<name>.grooph-map.json            operation maps (docs/operation-map.md) that validate clean

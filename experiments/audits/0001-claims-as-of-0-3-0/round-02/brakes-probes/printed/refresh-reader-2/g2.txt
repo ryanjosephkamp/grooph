@@ -1,0 +1,28 @@
+v1: behind a person: [ 'release', 'done', 'review-tag' ]
+
+=== v2: the tag step is dropped
+applied: [
+  'node:review-tag',
+  'edge:review-e-merge-gate-done',
+  'edge:e-review-tag-release',
+  'edge:e-review-merge-gate-release'
+]
+held:    []
+schema: ok | errors before: [] after: []
+  behind a person: [ 'release', 'done' ]
+
+=== v3: the tag step is back, same id, reached from the critic
+applied: [ 'node:review-tag', 'edge:e-review-critic-review-tag' ]
+held:    []
+schema: ok | errors before: [] after: []
+  behind a person: [ 'release', 'done' ] | into review-tag: [ 'review-critic' ] | issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== control: v1 -> v3 in one step
+applied: []
+held:    [
+  'edge:e-review-critic-review-tag [adds a way into "review-tag" that does not pass a person]',
+  'edge:review-e-merge-gate-done (waits edge:e-review-critic-review-tag)',
+  'edge:e-review-tag-release (waits edge:e-review-critic-review-tag)',
+  'edge:e-review-merge-gate-release (waits edge:e-review-critic-review-tag)'
+]
+schema: ok | errors before: [] after: []

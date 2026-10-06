@@ -121,7 +121,14 @@ test("E_CANDIDATE_INVALID names the candidate and the underlying codes; a { file
   const broken = invalidSets.find((f) => f.code === "E_CANDIDATE_INVALID")!;
   const [only] = validateProposalSet(load(broken.path));
   assert.deepEqual(only!.at, ["lean"]);
-  assert.match(only!.message, /candidate "lean" \(Lean\) has errors that block export: E_NO_GOAL/);
+  assert.match(only!.message, /candidate "lean" \(Lean\) has errors: E_DANGLING_REF\. First: .*Fix its graph and run grooph validate on it$/);
+  // What only a package asks for is not asked of a candidate: one with no goal and no harness is a plan, and a set may hold it.
+  const plans = load(broken.path);
+  const plan = plans.candidates[0]!.graph as Graph;
+  plan.edges.find((edge) => edge.id === "e-tests-pass")!.to = "done";
+  delete plan.goal;
+  delete plan.target;
+  assert.deepEqual(validateProposalSet(plans), []);
 
   const withFiles = load(validSets.find((p) => p.includes("csv-export"))!);
   const required = validateProposalSet(withFiles, { requireInline: true });

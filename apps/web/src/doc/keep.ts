@@ -2,8 +2,13 @@
  * Things to keep: the picture of a graph or an operation map as SVG or PNG,
  * and the offline page that holds the whole document and a viewer. Core draws
  * all three; this file only turns an SVG into pixels and names the files.
+ *
+ * The offline page's maker is a piece of the app fetched when a page is asked for (decision 0021): every address
+ * carried it, and only this one button uses it.
  */
-import { isMapLike, mapPicture, offlinePage, picture, type Graph, type OperationMap } from "@grooph/core";
+import { isMapLike, mapPicture, offlineKit, picture, type Graph, type OperationMap } from "@grooph/core";
+
+import { piece } from "../piece.js";
 
 export type KeepTheme = "light" | "dark";
 
@@ -18,7 +23,13 @@ export const pictureSvg = (doc: Graph | OperationMap, theme: KeepTheme | "auto")
 /** `look` is the theme's name when the picture is not in Paper: `review-loop.chalk-dark.svg`. */
 export const pictureName = (doc: Graph | OperationMap, theme: KeepTheme, ext: "svg" | "png", look = ""): string => `${doc.id || "graph"}.${look && `${look}-`}${theme}.${ext}`;
 
-export const pageHtml = (doc: Graph | OperationMap): string => offlinePage(doc, { version: APP_VERSION });
+/**
+ * What makes the offline page of a document, once it has come. A fetch that fails is tried again there and then
+ * (`piece.ts`); when it still cannot be had this rejects, and the one asking says so where the person is looking.
+ * Making the page is the caller's, outside that: a page that could not be made is not a piece that could not be fetched.
+ */
+export const pageMaker = (): Promise<(doc: Graph | OperationMap) => string> =>
+  piece("offline", () => import("@grooph/core/offline")).then(({ offlinePageWith }) => (doc) => offlinePageWith(offlineKit, doc, { version: APP_VERSION }));
 
 export const pageName = (doc: Graph | OperationMap): string => `${doc.id || "graph"}.html`;
 

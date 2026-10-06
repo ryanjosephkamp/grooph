@@ -1,0 +1,63 @@
+--- C1 --allow of an unknown name, --write
+exit 1
+review  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow loop:review-review.stops
+    loop:review-review.stops   raises the round cap from 4 to 8
+  the rest:
+    node:review-builder.brief  node "review-builder": brief changes from …wn work beyond that. to …wn work beyond that. X.
+[stderr] grooph: no change named "loop:review-review.stop" in "review"; the names are listed above
+file changed: false
+--- C2 update leaves E_IRREVERSIBLE_NO_GATE, --write
+exit 0
+review  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow node:review-deploy
+    node:review-deploy                   adds an irreversible step that a run reaches without a person
+  waiting for node:review-deploy: the shape of a subgrooph moves as a whole
+    edge:e-review-builder-review-deploy  adds edge "e-review-builder-review-deploy"
+warning  W_HOMOGENEOUS_CRITICS  critic "review-critic" judges "review-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: review-builder, review-critic]
+<tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json: 0 errors, 1 warning
+wrote <tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json
+file changed: true
+--- C3 update fails the schema (no stops), --write
+exit 0
+review  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow loop:review-review.stops
+    loop:review-review.stops  removes the round cap (4); removes the budget (10 dispatches)
+warning  W_HOMOGENEOUS_CRITICS  critic "review-critic" judges "review-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: review-builder, review-critic]
+<tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json: 0 errors, 1 warning
+wrote <tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json
+file changed: true
+policies: [ 'review-two-p-critic-isolation', 'review-two-p-no-self-grading' ]
+--- C4a two subgroophs 'review' and 'review-two', SAME template version, dry run
+exit 0
+review-two  review-gate@1 → review-gate@1 (built-in): nothing to change
+<tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json is up to date
+--- C4b v2 drops both policies, dry run
+exit 0
+review-two  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow policy:review-two-p-critic-isolation
+    policy:review-two-p-critic-isolation  removes critic isolation
+    policy:review-two-p-no-self-grading   lets a node grade its own work
+warning  W_HOMOGENEOUS_CRITICS  critic "review-two-critic" judges "review-two-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: review-two-builder, review-two-critic]
+<tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json: 0 errors, 1 warning
+<tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json not written (dry run — pass --write to save)
+--- C4c update ONLY 'review', allowing review-two's policy by name, --write
+exit 1
+
+[stderr] grooph: <tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json has no group "review"; its groups are review-two
+policies after: [ 'review-two-p-critic-isolation', 'review-two-p-no-self-grading' ] | groups: [ 'review-two:review-gate@1' ]
+--- C5 only a held change, --write
+exit 0
+review  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow loop:review-review.stops
+    loop:review-review.stops  raises the round cap from 4 to 8
+warning  W_HOMOGENEOUS_CRITICS  critic "review-critic" judges "review-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: review-builder, review-critic]
+<tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json: 0 errors, 1 warning
+wrote <tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json
+from: review-gate@2
+--- C5 again
+exit 0
+review  review-gate@2 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow loop:review-review.stops
+    loop:review-review.stops  raises the round cap from 4 to 8
+<tmp>/grooph-brakes-probes-box-XXXXXX/work/plan.grooph.json is unchanged: every difference is held back

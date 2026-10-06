@@ -1,0 +1,159 @@
+
+=== 4a bar.inspects replaced by a file the builder writes, name changed, acceptance same
+changes: [ 'loop:review-review.bar' ]
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  bar: {"name":"Looks fine","inspects":[{"kind":"artifact","ref":"CHANGES.md: the builder's own summary"}],"acceptance":"Every checklist item is cited as satisfied with a file and line, and `pnpm test` exits 0."}
+
+=== 4b bar.answerKeyFrom -> builder (the builder writes the answer key)
+changes: [ 'loop:review-review.bar' ]
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  bar: {"name":"Review checklist","inspects":[{"kind":"answer-key","ref":"CHANGES.md"}],"acceptance":"Every checklist item is cited as satisfied with a file and line, and `pnpm test` exits 0.","answerKeyFrom":"review-builder"}
+
+=== 4c mode judgment->grind
+changes: [ 'loop:review-review.mode' ]
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 4d mode grind + bar removed (one step)
+changes: [
+  "loop:review-review.bar [LOOSENS: removes the loop's bar]",
+  'loop:review-review.mode',
+  'loop:review-review.stops'
+]
+held: [ 'loop:review-review.bar' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 4e acceptance: slot renamed so text now unfilled
+changes: [ "loop:review-review.bar [LOOSENS: changes the bar's acceptance]" ]
+held: [ 'loop:review-review.bar' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 4f loop renamed with looser stops
+changes: [
+  'loop:review-review [LOOSENS: removes a loop with its stops and its bar; the rounds that "review-e-critic-fail" starts would be counted by "review-review2", not against the stops of "review-review"; the rounds that "review-e-merge-gate-reject" starts would be counted by "review-review2", not against the stops of "review-review"]',
+  'loop:review-review2 [LOOSENS: the rounds that "review-e-critic-fail" starts would be counted by "review-review2", not against the stops of "review-review"; the rounds that "review-e-merge-gate-reject" starts would be counted by "review-review2", not against the stops of "review-review"; a round between "review-critic" and "review-builder", which the loop "review-review" bounds, would be counted by "review-review2" and not against its stops; a round between "review-merge-gate" and "review-builder", which the loop "review-review" bounds, would be counted by "review-review2" and not against its stops]'
+]
+held: [ 'loop:review-review', 'loop:review-review2' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  loops: [
+  'review-review:[{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]'
+]
+
+=== 5a critic.role -> {custom: reviewer}
+changes: [ 'node:review-critic.role [LOOSENS: a critic is given another role]' ]
+held: [ 'node:review-critic.role' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 5a2 then v3: builder->critic shared, evidence gone (critic now custom role)
+changes: [
+  'node:review-critic.role [LOOSENS: a critic is given another role]',
+  'edge:e-review-builder-review-critic.evidence [LOOSENS: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]',
+  "edge:e-review-builder-review-critic.isolation [LOOSENS: the critic would share its builder's context]"
+]
+held: [
+  'node:review-critic.role',
+  'edge:e-review-builder-review-critic.evidence',
+  'edge:e-review-builder-review-critic.isolation'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  edge: {"id":"e-review-builder-review-critic","from":"review-builder","to":"review-critic","evidence":["diff of the change","the repository as the change leaves it, read-only","output of pnpm test","docs/checklist.md"]}
+
+=== 5a3 one step: role custom + shared + no evidence
+changes: [
+  'node:review-critic.role [LOOSENS: a critic is given another role]',
+  'edge:e-review-builder-review-critic.evidence [LOOSENS: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]',
+  "edge:e-review-builder-review-critic.isolation [LOOSENS: the critic would share its builder's context]"
+]
+held: [
+  'node:review-critic.role',
+  'edge:e-review-builder-review-critic.evidence',
+  'edge:e-review-builder-review-critic.isolation'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 5b evidence reduced to the builder's summary
+changes: [
+  'edge:e-review-builder-review-critic.evidence [LOOSENS: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]'
+]
+held: [ 'edge:e-review-builder-review-critic.evidence' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  edge: {"id":"e-review-builder-review-critic","from":"review-builder","to":"review-critic","evidence":["diff of the change","the repository as the change leaves it, read-only","output of pnpm test","docs/checklist.md"]}
+
+=== 5c edge into critic replaced under a new id, shared, no evidence
+changes: [
+  'edge:e-review-builder-review-critic [LOOSENS: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]',
+  "edge:review-to-critic [LOOSENS: the critic would share its builder's context]"
+]
+held: [ 'edge:e-review-builder-review-critic', 'edge:review-to-critic' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  edges into critic: [{"id":"e-review-builder-review-critic","from":"review-builder","to":"review-critic","evidence":["diff of the change","the repository as the change leaves it, read-only","output of pnpm test","docs/checklist.md"]}]
+
+=== 5c2 critic replaced by a new node 'checker' (custom role), shared edge
+changes: [
+  'node:review-critic [LOOSENS: removes a critic]',
+  'node:review-checker',
+  'edge:e-review-builder-review-critic',
+  'edge:review-e-critic-fail.from',
+  'edge:review-e-critic-pass.from',
+  'edge:e-review-builder-review-checker',
+  'loop:review-review.members'
+]
+held: [
+  'node:review-critic',
+  'node:review-checker (waits node:review-critic)',
+  'edge:e-review-builder-review-critic (waits node:review-critic)',
+  'edge:review-e-critic-fail.from (waits node:review-critic)',
+  'edge:review-e-critic-pass.from (waits node:review-critic)',
+  'edge:e-review-builder-review-checker (waits node:review-critic)',
+  'loop:review-review.members (waits node:review-critic)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  edges into checker: []
+
+=== 5d critic-isolation scope graph -> node:builder
+changes: [
+  'policy:review-p-critic-isolation.scope [LOOSENS: removes critic isolation]'
+]
+held: [ 'policy:review-p-critic-isolation.scope' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 5e critic-isolation gets params
+changes: [
+  'policy:review-p-critic-isolation.params [LOOSENS: removes critic isolation]'
+]
+held: [ 'policy:review-p-critic-isolation.params' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 5f no-self-grading removed
+changes: [
+  'policy:review-p-no-self-grading [LOOSENS: lets a node grade its own work]'
+]
+held: [ 'policy:review-p-no-self-grading' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  policies: [ 'review-p-critic-isolation', 'review-p-no-self-grading' ]
+
+=== 5g critic-isolation policy id renamed (remove+add)
+changes: [
+  'policy:review-p-critic-isolation [LOOSENS: removes critic isolation]',
+  'policy:review-p-iso'
+]
+held: [ 'policy:review-p-critic-isolation' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  policies: [{"id":"review-p-critic-isolation","kind":"critic-isolation","scope":"graph"},{"id":"review-p-no-self-grading","kind":"no-self-grading","scope":"graph"},{"id":"review-p-iso","kind":"critic-isolation","scope":"node:review-merge-gate"}]
+
+=== 5h critic allow edit-files, deny dropped, inputs add builder's notes
+changes: [
+  'node:review-critic.model',
+  'node:review-critic.inputs',
+  'node:review-critic.allow',
+  'node:review-critic.deny'
+]
+held: []
+schema ok: true | validate: clean
+
+=== 5i isolation shared on critic->builder
+changes: [ 'edge:review-e-critic-fail.isolation' ]
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS

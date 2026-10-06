@@ -55,7 +55,7 @@ const mapIssues = (rel) => {
 const kinds = [
   {
     title: "Graph documents",
-    intro: "Checked by `grooph validate <file>`; `--for-export` adds `E_NO_TARGET` and `E_NO_GOAL`. The rules are defined in [graph-ir.md](graph-ir.md) §3.",
+    intro: "Checked by `grooph validate <file>`; `--for-export` adds the four rules that only an export asks: `E_NO_TARGET`, `E_NO_GOAL`, `E_IS_TEMPLATE` and `E_UNFILLED_SLOT`. The rules are defined in [graph-ir.md](graph-ir.md) §3.",
     doc: "docs/graph-ir.md",
     invalid: "fixtures/invalid",
     passing: "fixtures/valid/fix-until-green.grooph.json",

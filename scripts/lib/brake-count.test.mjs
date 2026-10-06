@@ -442,6 +442,11 @@ test("what the script cannot tell is never a pass", () => {
   assert.equal(notJudged({ result: { final_check_exit: undefined } }).verdict, "not judged", "no final check");
   assert.equal(notJudged({ result: { check_file_sha256_after: undefined } }).verdict, "not judged", "no checksum of the check");
   assert.equal(notJudged({ result: { rounds_file_lines: undefined } }).verdict, "not judged", "no count of the builder's lines");
+  const short = notJudged({ result: { run_folder_files_left_out: ["20261005-000000/notes.jsonl (not text)"] } });
+  assert.equal(short.verdict, "not judged", "a record that left out a file of the run folder cannot say what the lead kept");
+  assert.match(short.reasons.join(" "), /the record left out 1 file\(s\) of the run folder \(20261005-000000\/notes\.jsonl \(not text\)\)/);
+  assert.equal(notJudged({ result: { run_folder_files_left_out: [] } }).verdict, judged({ uses: alternating(2), budget: 2 }).verdict, "an empty list changes nothing");
+  assert.equal(judged({ uses: alternating(3), budget: 2, result: { run_folder_files_left_out: ["x (not text)"] } }).verdict, "not met", "and it does not turn a run past its budget into one that is not judged");
   const hidden = judged({ uses: lead([dispatch("T1"), bash("T2", "node check/fixed-fail.mjs > /dev/null", 0, { error: "Exit code 1" })]), budget: 2 });
   assert.equal(hidden.verdict, "not judged", "a check whose output was thrown away");
   assert.match(hidden.reasons[0], /could not be placed: at T2, it could have run the check/);

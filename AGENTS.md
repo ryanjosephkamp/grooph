@@ -24,7 +24,7 @@ grooph is an authoring and compilation surface for multi-agent loop graphs. Huma
 - **Lane** (an Opus 5.5 session the owner starts in the app, or Sonnet 5.5 for a checklist; in Codex, GPT-6.1 Sol with GPT-6 Luna as its workers): works one slice from `handoffs/NNNN-<slug>/HANDOFF.md` in its own worktree and ends with `HANDBACK.md` and a pull request.
 - **Auditor** (Codex, GPT-6.1 Sol): reads a claim and its evidence and writes a handback. It changes nothing (`handoffs/README.md`, "The audit loop with Codex").
 
-Never Fable. Never Astra. Local sessions, not cloud.
+Models for this project's own work: Opus 5.5, Sonnet 5.5 for a checklist; in Codex, GPT-6.1 Sol and GPT-6 Luna. Fable and Astra are not used for this project's own lanes, experiments, studies, audits or reconciliation unless the owner authorizes them for that use (decision 0031): the owner finds them expensive and not token efficient for this work. That is his policy about his own usage and **not a rule for anyone else**: grooph keeps no list of models, and a person using it may name any model, those two included, for any step of any graph, map or plan, and a model helping them design one may suggest any model. Local sessions, not cloud.
 
 If your prompt names a slice folder, you are a lane: read that `HANDOFF.md` before anything else, stay inside its allowed changes, and finish with the `grooph-handback` skill. In Codex there is no such skill: write `HANDBACK.md` from `handoffs/TEMPLATE-HANDBACK.md`, commit, and push your branch (`handoffs/README.md`, "Codex as an implementer"). If you are the driver, `handoffs/README.md` holds the protocol.
 
@@ -37,7 +37,7 @@ If your prompt names a slice folder, you are a lane: read that `HANDOFF.md` befo
 - **Observation never steers.** The event hook appends one line and exits 0: no output, no content, nothing a harness reads back. Anything that would change what an agent does is a change to a package, and goes through the lead's brief and a proving run.
 - **No LLM calls inside grooph.** The executive is the harness session, reaching grooph through the skill and the CLI (an MCP wrapper comes later).
 - **Agents author, humans review.** Most graphs are built by an agent from a template or from scratch; the web app is for review, editing and reuse (decision 0007).
-- **Human is the brake.** Spend, merge and publish are gated, and loops never default to "until perfect". Graphs are adaptive by default, but a run amends only its own working copy, visibly, and can tighten brakes, never loosen them (decision 0008).
+- **Human is the brake.** Spend, merge and publish are gated, and loops never default to "until perfect". Graphs are adaptive by default, but a run amends only its own working copy, visibly, and may tighten brakes, never loosen them (decision 0008). That rule is given to the lead in its brief; it is not a lock. What `grooph adopt` and the app's Adopt button refuse is described in `docs/runs.md` and is claimed nowhere as shown (decision 0029).
 - **Latitude over procedure.** Briefs state purpose, limits and outputs. The smallest graph that works beats a thorough one.
 - **Branch per slice:** `slice/NNNN-<slug>`. The driver merges. Commit messages: `<area>: <what changed>` (`core: add cycle detection`, `docs: reconcile handback 0001`).
 - **State lives in `docs/PROGRESS.md`, what was done in `docs/HISTORY.md`, reasons in `docs/decisions/`.** README stays a product description.
@@ -56,6 +56,7 @@ spec/        capability spec (frozen) + amendments
 docs/        PLAN, PROGRESS, HISTORY, ARCHITECTURE, GLOSSARY, graph-ir, targets/, decisions/
 handoffs/    protocol, templates, one folder per slice (HANDOFF, HANDBACK, REVIEW)
 handoffs/briefs/  sources of the gate briefs published as Artifacts, with their URLs
+handoffs/reviews/ the owner's own reviews of the site and of grooph, and how one is handed in
 packages/    core (schema, validate, compile, pictures, events) · cli (commands, the event hook, the MCP server)
 apps/web     installable local-first web app                     — created in slice 0002
 patterns/    built-in pattern library, one graph document each

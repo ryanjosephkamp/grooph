@@ -59,7 +59,10 @@ export type PackageContext = {
 
 export function buildContext(doc: Graph, options: { models?: Partial<Record<Tier, string>> } = {}): PackageContext {
   const index = indexGraph(doc);
-  const stock = getProfile(doc.target?.harness ?? "claude-code");
+  // This target's own profile, whatever harness the document names: another harness's profile here would write its
+  // model names into these agent files, and no `tools` lines, which in Claude Code means every tool. `compile()`
+  // refuses a document that names another harness before it comes here (`E_NO_TARGET`); this holds without it.
+  const stock = getProfile("claude-code");
   // The one exporting may say which model a tier means (CompileOptions). The rest of the profile is the target's.
   const named = Object.entries(options.models ?? {}).filter(([, model]) => typeof model === "string" && model !== "") as [Tier, string][];
   const profile = named.length > 0 ? { ...stock, models: { ...stock.models, ...Object.fromEntries(named) } } : stock;
