@@ -10,23 +10,28 @@
  * loop; on a run's page it walks the run's own notes, as the stairs' does.
  */
 import { DEFAULT_LAYOUT_BOX, resolvePositions, type Graph, type Id, type RunNote } from "@grooph/core";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import css from "./graph-stage.css?inline";
-import { blocks, columns } from "./stage/columns.js";
 import { makeStage, type Look, type Prim, type Stage } from "./stage/draw.js";
-import { columnsAt, modelOf, stepsOf } from "./stage/model.js";
+import { columnsAt, modelOf, stepsOf, type Model } from "./stage/model.js";
 import { panes } from "./stage/panes.js";
 import { rings } from "./stage/rings.js";
-import { along, shownAt, type View } from "./stage/shapes.js";
+import { along, card, edgeLine, hue, lerp, shownAt, type Shown, type View } from "./stage/shapes.js";
 import { brakes, spiral, topOf } from "./stage/spiral.js";
 
-/** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, whether its frame is made as tall as its cards need to be clear of each other, and whether each loop's brakes are said under it. */
-const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: number; brakes?: boolean; rounds?: boolean; blocks?: boolean }> = {
+/**
+ * A kind: how it places the graph, where it is first seen from, what it is in a sentence, by how many pixels its frame
+ * is made tall enough to keep its cards apart, whether each loop's brakes or rounds are said under it, and what
+ * else it says under itself. Columns is a kind of its own piece (`graph-columns.tsx`), handed in when it is chosen.
+ */
+export type Kind = { view: View; start: Look; as: string; says: string; apart?: number; brakes?: boolean; rounds?: boolean; under?: (model: Model, shown: Shown) => ReactNode };
+/** The stage's own shapes, for a kind that is not in this piece to be drawn with (`stage/columns.ts`). */
+export const tools = { card, edgeLine, hue, lerp };
+const KINDS: Record<string, Kind> = {
   panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: 2, says: "Every node is where the picture has it, one pane toward you for each loop or subgrooph around it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving a loop or a subgrooph." },
   spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: 7, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
   rings: { view: rings, start: { yaw: -0.5, pitch: 0.86 }, as: "a ring for each loop", apart: 7, rounds: true, says: "Each loop is a ring, with its own nodes around it in the order of a first pass. A loop inside another is a ring standing on the outer one; a node two loops share stands on one of them. A way back from a loop's last node to its first is the rest of the ring." },
-  columns: { view: columns, start: { yaw: -0.18, pitch: 0.44 }, as: "columns", apart: 7, blocks: true, says: "Every node stands where the picture has it. On a template an agent's column is taller for a higher tier, frontier over strong over fast: the order the document asks for, not a price and not a model (a profile or a pin can give two tiers one model). A check, a gate or a stop is a slab. On a run a column is a block for each dispatch, as tall as the minutes between its own start and end stamps, and a faint line where they do not say." },
 };
 
 let styled = false;
@@ -34,14 +39,15 @@ const still = (): boolean => matchMedia("(prefers-reduced-motion: reduce)").matc
 
 /** `wide` is how wide the window was when the canvas under this was drawn: its rows wrap as the canvas's do. */
 /** `drawn` is told once the view has been drawn for the first time: a browser that cannot draw it throws before. */
-export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: string; wide: number; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] }; drawn?: () => void }) {
+/** `its` is the kind itself, for one that is not in this piece. */
+export function Stage3({ doc, kind, its, wide, of, drawn }: { doc: Graph; kind: string; its?: Kind; wide: number; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] }; drawn?: () => void }) {
   if (!styled) {
     const sheet = document.createElement("style");
     sheet.textContent = css;
     document.head.append(sheet);
     styled = true;
   }
-  const the = KINDS[kind]!;
+  const the = its ?? KINDS[kind]!;
   // Where the canvas has each node: the document's layout where it has one, and the canvas's own for this screen.
   // Whether the frame is a phone's width: the frame's own, since a window with the details beside the view is wide
   // and its frame is not. Read once it is on the page, before anything is painted, and again when its width
@@ -195,16 +201,7 @@ export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: strin
           })}
         </ul>
       ) : null}
-      {the.blocks && model.run ? (
-        // Each column's blocks in words, from the ground up, as far as the slider has come.
-        <ul className="s3-key" aria-label="Each node's dispatches so far">
-          {blocks(model, shownAt(model, steps, k)).map((x) => (
-            <li key={x.id}>
-              <b>{x.name}</b> {x.words.join("; ")}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {the.under?.(model, shownAt(model, steps, k))}
       <p className="s3-note">
         {the.says}
         {kind === "panes" && !model.loops.length && !model.groups.some((g) => g.from) ? " This graph has no loop and no subgrooph, so nothing is lifted." : ""}

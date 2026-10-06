@@ -39,8 +39,10 @@ import css from "./graph-views.css?inline";
 type Space = typeof import("../map/space.js");
 type Scene = Parameters<Space["scene"]>[1];
 type Stage3 = typeof import("./graph-stage.js");
+type Columns = typeof import("./graph-columns.js");
 let space: Space | undefined;
 let stage3: Stage3 | undefined;
+let columns3: Columns | undefined;
 let styled = false;
 
 /** The kinds of view in three dimensions, in the order the row has them: each with its name and what it is. */
@@ -54,8 +56,11 @@ const KINDS = [
 type Kind = (typeof KINDS)[number][0];
 /** What is drawn over the canvas: nothing, which is the picture, or a kind of view in three dimensions. */
 type On = "picture" | Kind;
-/** The piece a kind is in: the map's scene for the stairs, the stage for the rest. */
-const pieceOf = (kind: Kind): "space" | "stage" => (kind === "stairs" ? "space" : "stage");
+/** The piece a kind is in: the map's scene for the stairs, the stage for the rest; and Columns wants a piece of its
+ *  own beside the stage. */
+const pieceOf = (kind: Kind): "space" | "stage" | "columns" => (kind === "stairs" ? "space" : kind === "columns" ? "columns" : "stage");
+/** Whether what a kind is drawn with has been fetched. */
+const here = (kind: Kind): boolean => !!(kind === "stairs" ? space : stage3 && (kind !== "columns" || columns3));
 
 // The kind last drawn, for the visit: the tab's own storage, and memory where a browser refuses that.
 let last: Kind | undefined;
@@ -211,9 +216,10 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   // The two pieces, `undefined` until each has come.
   const [three, setThree] = useState<Space | undefined>(space);
   const [more, setMore] = useState<Stage3 | undefined>(stage3);
+  const [cols, setCols] = useState<Columns | undefined>(columns3);
   // What is said when a piece could not be fetched, until the next press; and which piece was last asked for in vain.
   const [note, setNote] = useState<string>();
-  const failed = useRef<{ space?: boolean; stage?: boolean }>({});
+  const failed = useRef<{ space?: boolean; stage?: boolean; columns?: boolean }>({});
   const [per, setPer] = useState(3);
   // How wide the window was when the canvas under this last laid the document out, which it does when it is handed
   // one (`Canvas.tsx`, `ViewCanvas.tsx`): a view that keeps the picture's places wraps its rows where the canvas
@@ -247,7 +253,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   // What was last asked for, which the page may not have yet; what it has; and which pieces are on their way.
   const asked = useRef<On>("picture");
   const shown = useRef<On>(on);
-  const fetching = useRef<{ space?: boolean; stage?: boolean }>({});
+  const fetching = useRef<{ space?: boolean; stage?: boolean; columns?: boolean }>({});
   // What to call once the page has a change that was asked for. Each change is numbered and made with `again` set to
   // its number, so that a commit follows it even when it changes nothing, and the layout effect below, which runs
   // after the scene's own, calls those the commit has reached: the browser holds the page still until it is told, for
@@ -256,7 +262,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   // The last of the picture and the stairs to be up: where a view that cannot be drawn falls back to.
   const safe = useRef<On>("picture");
   // The sheet is down to its head while one of the stage's kinds is what is asked for or up, and for no other.
-  const fold = (kind?: On): void => void host.current?.closest(".editor")?.toggleAttribute("data-space-folds", !!kind && kind !== "picture" && pieceOf(kind) === "stage");
+  const fold = (kind?: On): void => void host.current?.closest(".editor")?.toggleAttribute("data-space-folds", !!kind && kind !== "picture" && pieceOf(kind) !== "space");
   const count = useRef(0);
   const [reached, again] = useState(0);
   // `idle` is asked when the browser comes for the change, a frame after it was told of it: whether another press
@@ -280,7 +286,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     if (now === "picture") setOn(now);
     // What the visit remembers is the kind last drawn: not one that was asked for and has not come, and not one
     // that came and could not be drawn (the stage says when it has drawn, below).
-    else if (pieceOf(now) === "space" ? space : stage3) (setOn(now), pieceOf(now) === "space" ? keep(now) : undefined);
+    else if (here(now)) (setOn(now), pieceOf(now) === "space" ? keep(now) : undefined);
     setView(now === "picture" ? "picture" : "space");
     if (now !== "picture") setKind(now);
   };
@@ -294,7 +300,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     if (next === asked.current) return;
     asked.current = next;
     const slot = next === "picture" ? undefined : pieceOf(next);
-    if (slot && !(slot === "space" ? three : more)) {
+    if (slot && !(slot === "space" ? three : slot === "columns" ? more && cols : more)) {
       // The first press of a kind fetches its piece, once, and nothing moves until it has come; nor then, if
       // something else was asked for meanwhile. The switch and the row follow the press at once.
       setView("space");
@@ -302,7 +308,14 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       if (fetching.current[slot]) return;
       fetching.current[slot] = true;
       const mine = (): boolean => asked.current !== "picture" && pieceOf(asked.current) === slot;
-      (slot === "space" ? piece("space", () => import("../map/space.js")).then((m) => () => setThree((space = m))) : piece("graph-stage", () => import("./graph-stage.js")).then((m) => () => setMore((stage3 = m)))).then(
+      // (Columns is a piece of its own, drawn on the stage: both are asked for, and it comes when both have.)
+      const stage = (): Promise<Stage3> => piece("graph-stage", () => import("./graph-stage.js"));
+      (slot === "space"
+        ? piece("space", () => import("../map/space.js")).then((m) => () => setThree((space = m)))
+        : slot === "stage"
+          ? stage().then((m) => () => setMore((stage3 = m)))
+          : Promise.all([stage(), piece("graph-columns", () => import("./graph-columns.js"))]).then(([m, c]) => () => (setMore((stage3 = m)), setCols((columns3 = c))))
+      ).then(
         (come) => {
           failed.current[slot] = false;
           const arrive = (): void => (come(), mine() ? show() : undefined);
@@ -319,7 +332,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
             // From the picture, the kind that could not be had is not the one 3D opens next on this page: a kind of
             // the other piece is, whether the reader waited for this one or had gone back to the picture.
             setKind(slot === "space" ? "panes" : "stairs");
-            setNote(slot === "stage" && !failed.current.space ? "That view in three dimensions could not be fetched. The picture shows the same graph, and so do the stairs." : "The view in three dimensions could not be fetched. The picture shows the same graph.");
+            setNote(slot !== "space" && !failed.current.space ? "That view in three dimensions could not be fetched. The picture shows the same graph, and so do the stairs." : "The view in three dimensions could not be fetched. The picture shows the same graph.");
           } else setNote("That view could not be fetched. This one shows the same graph.");
           if (waited) show();
         },
@@ -331,7 +344,9 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   };
   const made = useMemo(() => (on === "stairs" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD, of.notes)) : undefined), [doc, on, three, per, of.notes]);
   // One of the other kinds, drawn by the stage.
-  const staged = on !== "picture" && on !== "stairs" && more ? on : undefined;
+  const staged = on !== "picture" && on !== "stairs" && more && (on !== "columns" || cols) ? on : undefined;
+  // Columns, made once with the stage's shapes: the same kind at every drawing.
+  const columnsKind = useMemo(() => (more && cols ? cols.COLUMNS(more.tools) : undefined), [more, cols]);
   // The scene is markup; once it is on the page it is given its styles, its starting view, its behavior, and its
   // cards and arcs their names. Before the browser paints, as a map's is: the first press of a visit is drawn by a
   // fetch that has arrived and not by the press, and React then gives the browser its chance to paint before it
@@ -443,7 +458,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       ) : staged && more ? (
         <div className="graph-space">
           <Guard key={staged} lost={lost}>
-            <more.Stage3 doc={doc} kind={staged} wide={wide.current.at} of={{ ...of, onNodeTap: open }} drawn={() => keep(staged)} />
+            <more.Stage3 doc={doc} kind={staged} {...(staged === "columns" ? { its: columnsKind } : {})} wide={wide.current.at} of={{ ...of, onNodeTap: open }} drawn={() => keep(staged)} />
           </Guard>
         </div>
       ) : null}

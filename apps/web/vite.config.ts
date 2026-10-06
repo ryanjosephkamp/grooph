@@ -49,7 +49,7 @@ const adoptionSource = fileURLToPath(new URL("../../packages/core/src/adoption.t
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[]; columns?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -140,7 +140,13 @@ function routes(): Plugin {
         if (!graphStage) throw new Error("grooph-routes: no chunk of its own for a graph's other views in three dimensions (src/ui/canvas/graph-stage.tsx). The build no longer splits where vite.config.ts expects.");
         // Over what a canvas has by then: the switch's own piece, which asks for this one, is not weighed here again.
         const stage = [...closure(graphStage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f) && !closure(graphViews).has(f));
-        found.later = [...new Set([...found.later, ...stage, ...found.templates, ...found.front])];
+        // Columns, the one kind that is a piece of its own (src/ui/canvas/graph-columns.tsx): fetched beside the stage
+        // when it is chosen, named in the page with the rest, and weighed apart from the stage, over what the
+        // stage has brought by then.
+        const graphColumns = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-columns.tsx"));
+        if (!graphColumns) throw new Error("grooph-routes: no chunk of its own for a graph's columns (src/ui/canvas/graph-columns.tsx). The build no longer splits where vite.config.ts expects.");
+        found.columns = [...closure(graphColumns)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f) && !closure(graphViews).has(f) && !stage.includes(f));
+        found.later = [...new Set([...found.later, ...stage, ...found.columns, ...found.templates, ...found.front])];
         // Both are on no address's first load, and each has a line of its own in scripts/perf-budget.json: the
         // stage, which choosing one of those views fetches, and the switch with the graph's reading, which every
         // address that draws on the canvas fetches once the canvas is drawn. A piece nothing measures grows.

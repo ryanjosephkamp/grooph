@@ -18,6 +18,7 @@ const kind = (page: Page, name: string) => kinds(page).getByRole("radio", { name
 const cards = (page: Page) => page.locator(".s3-card");
 const says = (page: Page) => page.locator(".s3-says");
 const STAGE = /\/assets\/graph-stage-[^/]*\.js$/;
+const COLUMNS = /\/assets\/graph-columns-[^/]*\.js$/;
 const STAIRS = /\/assets\/space-[^/]*\.js$/;
 /** The built-in templates whose cards still touch in Panes under an open details sheet, at two phones' sizes. */
 const TIGHT_390: string[] = ["debate-then-build", "gauntlet-decomposed", "ownership-not-swarm", "patrol-pulse", "specialist-critic-bank", "tournament-then-judge"];
@@ -380,6 +381,76 @@ test("the kind chosen is the tab's for the visit: 3D opens it again, after a rel
   await expect(page.locator(".s3-frame")).toBeVisible();
   await expect(kind(page, "Panes")).toHaveAttribute("aria-checked", "true");
   await expect(page.locator(".space")).toHaveCount(0);
+});
+
+test("columns is a piece of its own: on no first load, not fetched for another kind, fetched once with the stage when Columns is chosen; and when it cannot be fetched the page says so and the view that was up stays", async ({ page }) => {
+  const fetched = { stage: 0, columns: 0 };
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (STAGE.test(path)) fetched.stage += 1;
+    if (COLUMNS.test(path)) fetched.columns += 1;
+  });
+  // No address's first load has it: the front page, a template's page, a run's.
+  for (const address of ["./", "./#/templates/built-in/grind-loop", linkFor(runBundle("slice-0007-sandwich"))]) {
+    await page.goto("about:blank");
+    await page.goto(address);
+    await page.waitForLoadState("networkidle");
+    expect(fetched, address).toEqual({ stage: 0, columns: 0 });
+  }
+  // The page names it, so the worker can hold it: once, in the head's own list of what the app can ask for.
+  expect(await page.evaluate(() => (document.head.querySelector("script:not([src])")?.textContent ?? "").split("/assets/graph-columns-").length - 1)).toBe(1);
+  // A run's page: the stairs ask for neither, Panes for the stage alone, Columns for its own piece beside it.
+  await canvasIsQuiet(page);
+  await view(page, "3D").click();
+  await expect(page.locator(".space-scene")).toBeVisible();
+  await viewIsStill(page);
+  expect(fetched).toEqual({ stage: 0, columns: 0 });
+  await kind(page, "Panes").click();
+  await expect(page.locator('.s3[data-kind="panes"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  expect(fetched).toEqual({ stage: 1, columns: 0 });
+  await kind(page, "Columns").click();
+  await expect(page.locator('.s3[data-kind="columns"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  expect(fetched).toEqual({ stage: 1, columns: 1 });
+  await expect(page.getByRole("list", { name: "Each node's dispatches so far" }).getByRole("listitem")).toHaveCount(3);
+  // Chosen again, from the picture and from another kind: nothing more is fetched.
+  await view(page, "Picture").click();
+  await expect(page.locator(".s3")).toHaveCount(0);
+  await viewIsStill(page);
+  await view(page, "3D").click();
+  await expect(page.locator('.s3[data-kind="columns"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  await kind(page, "Panes").click();
+  await viewIsStill(page);
+  await kind(page, "Columns").click();
+  await expect(page.locator('.s3[data-kind="columns"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  expect(fetched).toEqual({ stage: 1, columns: 1 });
+
+  // A tab where the piece cannot be had: Panes come, Columns does not, and Panes stay with a word of why.
+  await page.route(COLUMNS, (route) => route.abort());
+  await page.evaluate(() => sessionStorage.removeItem("groophSpace"));
+  await page.goto("about:blank");
+  await page.goto("./#/templates/built-in/grind-loop");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await view(page, "3D").click();
+  await expect(page.locator(".space-scene")).toBeVisible();
+  await viewIsStill(page);
+  await kind(page, "Panes").click();
+  await expect(page.locator('.s3[data-kind="panes"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  await kind(page, "Columns").click();
+  await expect(page.locator(".graph-views-note")).toHaveText("That view could not be fetched. This one shows the same graph.");
+  await expect(page.locator('.s3[data-kind="panes"] .s3-frame')).toBeVisible();
+  await expect(kind(page, "Panes")).toHaveAttribute("aria-checked", "true");
+  expect(await page.evaluate(() => sessionStorage.getItem("groophSpace"))).toBe("panes");
+  // And when it can be had again, the next press brings it.
+  await page.unroute(COLUMNS);
+  await kind(page, "Columns").click();
+  await expect(page.locator('.s3[data-kind="columns"] .s3-frame')).toBeVisible();
+  await expect(page.locator(".graph-views-note")).toHaveCount(0);
 });
 
 test("when the stage cannot be fetched the row says so, and the stairs stay", async ({ page }) => {

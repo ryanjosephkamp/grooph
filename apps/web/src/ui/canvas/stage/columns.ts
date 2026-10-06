@@ -17,7 +17,11 @@
  */
 import type { Prim } from "./draw.js";
 import type { Id, Model, V } from "./model.js";
-import { card, edgeLine, hue, lerp, type Shown, type View } from "./shapes.js";
+import type { Shown, View } from "./shapes.js";
+
+/** What this view is drawn with, of the stage's own: handed to it, since it is a piece apart from the stage's and a
+ *  thing both imported would be a third file for a browser to fetch. */
+export type Tools = Pick<typeof import("./shapes.js"), "card" | "edgeLine" | "hue" | "lerp">;
 
 /** How tall an agent's column is on a template, by its tier; one with none is not said to be any of them. */
 export const TIER: Record<string, number> = { frontier: 104, strong: 68, fast: 34, unset: 16 };
@@ -50,7 +54,7 @@ export function blocks(m: Model, shown: Shown): { id: Id; name: string; words: s
   return out;
 }
 
-export const columns: View = (m, shown) => {
+export const columns = ({ card, edgeLine, hue, lerp }: Tools): View => (m, shown) => {
   const prims: Prim[] = [];
   const foot: Record<Id, V> = {};
   const box = (c: V, wide: number, deep: number, y0: number, y1: number, fill: string, more: { key?: string; alpha?: number } = {}): void => {

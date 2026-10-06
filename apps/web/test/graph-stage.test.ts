@@ -8,10 +8,10 @@ import { columnsForViewport } from "../src/doc/layout.js";
 
 import { firstPass } from "../src/ui/canvas/graph-views.js";
 import { columnsAt, modelOf as modelAt, stepsOf } from "../src/ui/canvas/stage/model.js";
-import { blocks, columns, MINUTE, TIER } from "../src/ui/canvas/stage/columns.js";
+import { blocks, columns as columnsWith, MINUTE, TIER } from "../src/ui/canvas/stage/columns.js";
 import { boxesOf, panes } from "../src/ui/canvas/stage/panes.js";
 import { rings } from "../src/ui/canvas/stage/rings.js";
-import { shownAt, type Shown } from "../src/ui/canvas/stage/shapes.js";
+import { card, edgeLine, hue, lerp, shownAt, type Shown } from "../src/ui/canvas/stage/shapes.js";
 import { brakes, reach, spiral, topOf } from "../src/ui/canvas/stage/spiral.js";
 
 /**
@@ -1335,6 +1335,9 @@ describe("rings", () => {
     expect(new Set(inner.map((v) => v[1]))).toEqual(new Set([64]));
   });
 });
+
+/** Columns, drawn with the stage's own shapes, as the app hands them to it. */
+const columns = columnsWith({ card, edgeLine, hue, lerp });
 
 describe("columns", () => {
   const whole: Shown = { k: 0, lit: null, took: [] };
