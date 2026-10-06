@@ -232,7 +232,7 @@ export const spiral: View = (m, shown) => {
     const side = !over && (end ? (end.own.includes(e.from) ? p : q)[0] > 0 : p[0] > 0 && q[0] > 0) ? 1 : -1;
     let out = e.back ? 40 : over * 1.3;
     for (const { loop, u } of past) out = Math.max(out, (tower[loop.id]!.r + 30 - side * (p[0] + (q[0] - p[0]) * u)) / Math.max(0.36, 4 * u * (1 - u)));
-    out += 14 * twin + 12 * r0 + 10 * r1;
+    out += 26 * twin + 12 * r0 + 10 * r1;
     return arch(p, q, 0, 18).map((v, n): V => [v[0] + side * out * 4 * (n / 18) * (1 - n / 18), v[1], v[2]]);
   };
   // The edges. A template's are drawn as they are in round 0. A run's are drawn where the run took them, between

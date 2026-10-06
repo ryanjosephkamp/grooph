@@ -166,27 +166,40 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     // A note's round is its loop's: a loop's own note names that loop's, and a note at a node its innermost loop's.
     // But a node in a loop inside another is in a round of each, the contract's one number does not say which, and
     // leads have written the outer loop's there (the recorded Gauntlet and fresh-grind runs) as well as the inner
-    // one's (the nested fixture). The run's own loop notes tell the two apart: a loop's note names the round just
-    // finished, so where an inner loop's note names a round and the note at one of its nodes just before it names
-    // another, the lead wrote some other loop's number at those nodes. In such a run the number at a node of an inner loop is not read, and
-    // each loop's round is worked out from the ways back the run took, as it is wherever a note names none
-    // (graph-ir, "Rounds" and "Nested loops"): a loop's way back is that loop's next round, and every loop inside
-    // it starts afresh at round 0; otherwise a loop is in the round it was last seen in.
+    // one's (the nested fixture). Two signs in the run's own notes tell the two apart, each as early as it can
+    // matter. An inner loop starts afresh when the loop it is inside comes round, so a note at one of its nodes
+    // right after that outer way back that names a round other than 0 is not naming the inner loop's. And a loop's
+    // own note names the round just finished, so one that names a higher round than its node's note just before it
+    // shows the node's number was not this loop's (a lower one shows nothing: the loop's note may have been written
+    // late). In a run with either sign the number at a node of an inner loop is not read, and each loop's round is
+    // worked out from the ways back the run took, as it is wherever a note names none (graph-ir, "Rounds" and
+    // "Nested loops"): a loop's way back is that loop's next round, and every loop inside it starts afresh at
+    // round 0; otherwise a loop is in the round it was last seen in.
     const inner = (id: Id | null): boolean => !!loops.find((l) => l.id === id)?.inside;
-    const said: Record<Id, number | undefined> = {};
-    let others = false;
-    for (const { focus, note } of replay.steps.slice(1)) {
-      if (!focus || note?.round === undefined) continue;
-      if (focus.kind === "node" && inner(innermost(focus.id))) said[innermost(focus.id)!] = note.round;
-      else if (focus.kind === "loop") others ||= (said[focus.id] ?? note.round) !== note.round, (said[focus.id] = undefined);
-    }
-    const seen: Record<Id, number> = {};
-    const most: Record<Id, number> = {};
-    const ways = walk(model.edges);
     const inside = (inner: Id, outer: Id): boolean => {
       for (let up = loops.find((l) => l.id === inner)?.inside; up; up = loops.find((l) => l.id === up)?.inside) if (up === outer) return true;
       return false;
     };
+    const said: Record<Id, number | undefined> = {};
+    const first = walk(model.edges);
+    let others = false;
+    for (const { focus, note } of replay.steps.slice(1)) {
+      if (!focus || !note) continue;
+      if (focus.kind === "node" && is(focus.id)) {
+        const own = innermost(focus.id);
+        if (own && inner(own) && note.round !== undefined) {
+          others ||= note.round !== 0 && first.into(focus.id).some((e) => e.back && inside(own, e.back));
+          said[own] = note.round;
+        }
+        first.at(focus.id, { round: null, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: note.outcome === "started" });
+      } else if (focus.kind === "loop") {
+        if (note.round !== undefined) others ||= note.round > (said[focus.id] ?? note.round), (said[focus.id] = undefined);
+        if (note.stop !== undefined) first.stopped(focus.id, note.stop === "human");
+      }
+    }
+    const seen: Record<Id, number> = {};
+    const most: Record<Id, number> = {};
+    const ways = walk(model.edges);
     const steps = replay.steps.slice(1).map((step) => {
       const note = step.note!;
       const at = step.focus ?? { kind: "graph" as const };
