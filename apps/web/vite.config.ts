@@ -26,6 +26,9 @@ const adoptionSource = fileURLToPath(new URL("../../packages/core/src/adoption.t
 // And the one-file offline page (slice 0093's second part): made when a person presses "Offline page" under Keep a
 // copy, and by nothing an address shows. src/doc/keep.ts fetches it then, and it is named in the page too.
 const offlineSource = fileURLToPath(new URL("../../packages/core/src/offline.ts", import.meta.url));
+// And a plan's files (slice 0100): PLAN.md, the picture and the document, for any graph that reads. Their maker is
+// part of the Export panel's piece (src/ui/ExportDoor.tsx), which is fetched when Export is pressed and named in the page.
+const planSource = fileURLToPath(new URL("../../packages/core/src/plan.ts", import.meta.url));
 
 /**
  * What each address loads, and the app's share of it fetched at once.
@@ -60,7 +63,7 @@ const offlineSource = fileURLToPath(new URL("../../packages/core/src/offline.ts"
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; offline?: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[]; more?: string[]; offline?: string[]; exporting?: string[]; plans?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -145,7 +148,25 @@ function routes(): Plugin {
         const frontPage = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/landing/front.ts"));
         if (!frontPage) throw new Error("grooph-routes: no chunk of its own for the front page's picture (src/ui/landing/front.ts). The build no longer splits where vite.config.ts expects.");
         found.front = [...closure(frontPage)].filter((f) => !inEntry.has(f) && !inApp.has(f));
-        found.later = [...new Set([...found.later, ...found.templates, ...found.front])];
+        // A graph's other views in three dimensions (slice 0096; src/ui/canvas/graph-stage.tsx): one piece for the
+        // stage and every view on it, fetched when one is chosen, and named in the page so the worker holds it. One
+        // piece and not one a view: a name is on every address's first load. Written apart from the lists above too.
+        const graphStage = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-stage.tsx"));
+        if (!graphStage) throw new Error("grooph-routes: no chunk of its own for a graph's other views in three dimensions (src/ui/canvas/graph-stage.tsx). The build no longer splits where vite.config.ts expects.");
+        // Over what a canvas has by then: the switch's own piece, which asks for this one, is not weighed here again.
+        const stage = [...closure(graphStage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f) && !closure(graphViews).has(f));
+        // The kinds that are not in the stage's piece (src/ui/canvas/graph-more.tsx: Rings, and Columns with it): one
+        // piece, fetched beside the stage when either is chosen, named in the page with the rest, and weighed apart
+        // from the stage, over what the stage has brought by then.
+        const graphMore = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-more.tsx"));
+        if (!graphMore) throw new Error("grooph-routes: no chunk of its own for a graph's kinds of view that are not in the stage (src/ui/canvas/graph-more.tsx). The build no longer splits where vite.config.ts expects.");
+        found.more = [...closure(graphMore)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f) && !closure(graphViews).has(f) && !stage.includes(f));
+        found.later = [...new Set([...found.later, ...stage, ...found.more, ...found.templates, ...found.front])];
+        // Both are on no address's first load, and each has a line of its own in scripts/perf-budget.json: the
+        // stage, which choosing one of those views fetches, and the switch with the graph's reading, which every
+        // address that draws on the canvas fetches once the canvas is drawn. A piece nothing measures grows.
+        found.stage = stage;
+        found.views = [...closure(graphViews)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f));
         // And the offline page's maker (packages/core/src/offline.ts): fetched when "Offline page" is pressed, held by
         // the worker from its install, so that a copy can be kept with no network. No address loads it first.
         const offlinePage = chunks.find((c) => c.facadeModuleId?.endsWith("/core/src/offline.ts"));
@@ -157,6 +178,18 @@ function routes(): Plugin {
         const inCanvas = closure(screens);
         found.offline = [...closure(offlinePage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
         found.later = [...new Set([...found.later, ...found.offline])];
+        // And the Export panel (src/ui/ExportPanel.tsx, slice 0100) with the plan's maker in it: fetched when Export is
+        // pressed, and soon after an editor opens. No address loads it first, and the worker holds it from its install.
+        const exportPanel = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/ExportPanel.tsx"));
+        if (!exportPanel) throw new Error("grooph-routes: no chunk of its own for the Export panel (src/ui/ExportPanel.tsx). Something imports it outright, and every canvas carries it again.");
+        found.exporting = [...closure(exportPanel)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
+        found.later = [...new Set([...found.later, ...found.exporting])];
+        // And the plan templates (src/doc/plan-templates.ts, slice 0100): the four documents of `plans/`, fetched when a
+        // person asks to see the plans or opens one. No address loads them first; the worker holds them from its install.
+        const planTemplates = chunks.find((c) => c.facadeModuleId?.endsWith("/src/doc/plan-templates.ts"));
+        if (!planTemplates) throw new Error("grooph-routes: no chunk of its own for the plan templates (src/doc/plan-templates.ts). Something imports them outright, and an address carries them.");
+        found.plans = [...closure(planTemplates)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
+        found.later = [...new Set([...found.later, ...found.plans])];
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them
@@ -189,6 +222,7 @@ export default defineConfig({
       { find: "@grooph/core/themes", replacement: themesSource },
       { find: "@grooph/core/adoption", replacement: adoptionSource },
       { find: "@grooph/core/offline", replacement: offlineSource },
+      { find: "@grooph/core/plan", replacement: planSource },
       { find: "@grooph/core", replacement: coreSource },
     ],
   },

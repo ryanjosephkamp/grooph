@@ -2,9 +2,12 @@
  * The closed vocabularies of graph-ir §1, as runtime lists for pickers. The
  * `satisfies` checks fail the build if these drift from the core types.
  */
-import type { BudgetMeasure, Capability, CheckNode, Edge, Effort, Evidence, NodeKind, Role, StopKind, Tier } from "@grooph/core";
+import { KIND_LABEL, STEP_BY_LABEL, isPersonStep, type BudgetMeasure, type Capability, type CheckNode, type Edge, type Effort, type Evidence, type Node, type NodeKind, type Role, type StopKind, type Tier } from "@grooph/core";
 
 export { KIND_LABEL, type NodeKind } from "@grooph/core";
+
+/** What a node is called where one is named: its kind, and "Person" for a step a person does (amendment A-020). */
+export const kindLabel = (node: Node): string => (isPersonStep(node) ? STEP_BY_LABEL.person : KIND_LABEL[node.kind]);
 
 type Exhaustive<T extends string, L extends readonly T[]> = [T] extends [L[number]] ? L : never;
 

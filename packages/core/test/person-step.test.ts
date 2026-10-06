@@ -14,7 +14,7 @@ import { parseGraphText } from "../src/parse.js";
 import { picture } from "../src/index.js";
 import { mermaid } from "../src/mermaid.js";
 import { outline } from "../src/outline.js";
-import { planBundle } from "../src/plan.js";
+import { planBundle } from "../src/index.js";
 import { estimateShape, shapeLine } from "../src/proposals.js";
 import { STEP_BY_LABEL, isPersonStep, isPlan, stepBy, stopAction } from "../src/semantics.js";
 import type { AgentNode, Edge, Graph, Node } from "../src/types.js";

@@ -280,3 +280,44 @@ test("export --models names the model of a tier for one export; GROOPH_MODELS sa
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("explain says of a plan what a plan means: a stop that would halt a run is where the people following it stop and decide", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "grooph-explain-plan-"));
+  try {
+    const file = join(dir, "r.grooph.json");
+    let io = capture();
+    assert.equal(await run(["template", "use", "review-gate", "--name", "Ship it", "--set", "task=fix the login bug", "--out", file], io), 0);
+    const graph = readFileSync(file, "utf8");
+    const said = async (text: string): Promise<string> => {
+      writeFileSync(file, text);
+      io = capture();
+      assert.equal(await run(["explain", file], io), 0);
+      return io.stdout.join("\n");
+    };
+    // A graph for a harness: as it has always read.
+    const forHarness = await said(graph);
+    assert.match(forHarness, /stops after 4 rounds, the run halts and reports to a person/);
+    assert.doesNotMatch(forHarness, /stop here and decide/);
+    // The same graph with no harness is a plan (amendment A-020): there is no run to halt.
+    const doc = JSON.parse(graph) as { target?: unknown; nodes: { id: string; kind: string; by?: string; allow?: unknown; model?: unknown; effort?: unknown }[] };
+    const { target: _target, ...noHarness } = doc;
+    const plan = await said(JSON.stringify(noHarness));
+    assert.match(plan, /stops after 4 rounds, stop here and decide/);
+    assert.match(plan, /stops at 10 dispatches, stop here and decide/);
+    assert.match(plan, /stops when the acceptance bar is met, the loop is left by its pass edges/);
+    assert.doesNotMatch(plan, /halts and reports/);
+    // So is one with a step a person does, whatever harness it names.
+    const builder = doc.nodes.find((node) => node.kind === "agent")!;
+    const withPerson = { ...doc, nodes: doc.nodes.map((node) => (node === builder ? { id: node.id, kind: node.kind, ...Object.fromEntries(Object.entries(node).filter(([key]) => !["allow", "deny", "model", "effort", "skills"].includes(key))), by: "person" } : node)) };
+    const people = await said(JSON.stringify(withPerson));
+    assert.match(people, /stops after 4 rounds, stop here and decide/);
+    assert.doesNotMatch(people, /halts and reports/);
+    // And as data, the same words.
+    io = capture();
+    assert.equal(await run(["explain", file, "--json"], io), 0);
+    const data = JSON.parse(io.stdout.join("\n")) as { loops: { stops: { kind: string; says: string }[] }[] };
+    assert.equal(data.loops[0]!.stops.find((stop) => stop.kind === "max-iterations")!.says, "after 4 rounds, stop here and decide");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -38,12 +38,15 @@ function scratch(t) {
   put("apps/web/dist/assets/space-a.js", randomBytes(200));
   put("apps/web/dist/assets/front-a.js", randomBytes(250));
   put("apps/web/dist/assets/builtins-a.js", randomBytes(350));
+  put("apps/web/dist/assets/graph-stage-a.js", randomBytes(260));
+  put("apps/web/dist/assets/graph-views-a.js", randomBytes(180));
+  put("apps/web/dist/assets/graph-more-a.js", randomBytes(140));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-next.v1.woff2", randomBytes(400));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-mono.v1.woff2", randomBytes(300));
   put("apps/web/dist/assets/site-icons.v1.svg", "<svg xmlns='http://www.w3.org/2000/svg'/>");
   put(
     "apps/web/dist/routes.json",
-    JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js", "assets/space-a.js", "assets/front-a.js", "assets/builtins-a.js"], space: ["assets/space-a.js"], front: ["assets/front-a.js"], templates: ["assets/builtins-a.js"] }),
+    JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js", "assets/space-a.js", "assets/front-a.js", "assets/builtins-a.js", "assets/graph-stage-a.js", "assets/graph-views-a.js", "assets/graph-more-a.js"], space: ["assets/space-a.js"], front: ["assets/front-a.js"], templates: ["assets/builtins-a.js"], stage: ["assets/graph-stage-a.js"], views: ["assets/graph-views-a.js"], more: ["assets/graph-more-a.js"] }),
   );
   const gz = (path) => gzipSync(files[`apps/web/dist/${path}`]).length;
   /** What an address that draws on the canvas weighs in this build, in bytes, as the script weighs it. */
@@ -53,7 +56,7 @@ function scratch(t) {
   for (let more = 0; !(((weigh() / 1024) * 10) % 1 > 0.1 && ((weigh() / 1024) * 10) % 1 < 0.4); more += 10) put("apps/web/dist/assets/screens-a.js", randomBytes(5000 + more));
   const canvas = weigh();
   const run = (canvasLimitBytes) => {
-    const roomy = { firstLoadKB: 1000, entryJsKB: 1000, cssKB: 1000, fontsKB: 1000, firstVisitKB: 1000, templateLoadKB: 1000, embedLoadKB: 1000, mapSpaceKB: 1000, cliColdMs: 60000 };
+    const roomy = { firstLoadKB: 1000, entryJsKB: 1000, cssKB: 1000, fontsKB: 1000, firstVisitKB: 1000, templateLoadKB: 1000, embedLoadKB: 1000, mapSpaceKB: 1000, graphStageKB: 1000, graphViewsKB: 1000, graphMoreKB: 1000, cliColdMs: 60000 };
     writeFileSync(join(dir, "scripts", "perf-budget.json"), JSON.stringify({ ...roomy, canvasLoadKB: canvasLimitBytes / 1024 }));
     return spawnSync(process.execPath, ["scripts/perf-budget.mjs", "--check"], { cwd: dir, encoding: "utf8" });
   };
@@ -104,6 +107,46 @@ test("the piece that draws a map in three dimensions has a line of its own, and 
     const missing = spawnSync(process.execPath, ["scripts/perf-budget.mjs"], { cwd: dir, encoding: "utf8" });
     assert.equal(missing.status, 1, missing.stdout);
     assert.match(missing.stderr, /does not say which files draw a map in three dimensions/);
+  }
+});
+
+test("a graph's other kinds of 3D, and the switch every canvas fetches, each have a line of their own; a build that does not name them is not weighed", (t) => {
+  const { canvas, run, dir } = scratch(t);
+  const routesFile = join(dir, "apps/web/dist/routes.json");
+  const routes = JSON.parse(readFileSync(routesFile, "utf8"));
+  const gz = (path) => gzipSync(readFileSync(join(dir, "apps/web/dist", path))).length;
+  const withBudget = (limits) => {
+    const json = join(dir, "scripts", "perf-budget.json");
+    writeFileSync(json, JSON.stringify({ ...JSON.parse(readFileSync(json, "utf8")), ...limits }));
+    return spawnSync(process.execPath, ["scripts/perf-budget.mjs", "--check"], { cwd: dir, encoding: "utf8" });
+  };
+  const done = run(canvas);
+  assert.equal(done.status, 0, done.stdout + done.stderr);
+  for (const [what, file, key, missing] of [
+    ["a graph's other kinds of 3D", "assets/graph-stage-a.js", "graphStageKB", /does not say which files draw a graph's other kinds of view in three dimensions/],
+    ["the switch and the graph's reading", "assets/graph-views-a.js", "graphViewsKB", /does not say which files hold the switch between a graph's views/],
+    ["the kinds not in the stage", "assets/graph-more-a.js", "graphMoreKB", /does not say which files draw a graph's kinds of view that are not in the stage/],
+  ]) {
+    const line = (out) => out.split("\n").find((l) => l.includes(what));
+    // The line is the piece's own weight, and the piece is not listed again among what is loaded later.
+    assert.equal(/^\S+\s+(\d+\.\d\d) of/.exec(line(done.stdout))[1], (gz(file) / 1024).toFixed(2));
+    assert.doesNotMatch(done.stdout, new RegExp(`loaded later: ${file.slice("assets/".length).replace(".", "\\.")}`));
+    // A few bytes under its limit passes, a few over fails, and only that line.
+    assert.match(line(withBudget({ [key]: (gz(file) + 3) / 1024 }).stdout), /^ok /);
+    const over = withBudget({ [key]: (gz(file) - 3) / 1024 });
+    assert.equal(over.status, 1);
+    assert.match(line(over.stdout), /^OVER /);
+    assert.match(over.stderr, /1 over budget/);
+    withBudget({ [key]: 1000 });
+    // A build that lists no such piece, or an empty one, fails with or without --check: nothing weighs nothing.
+    const name = key === "graphStageKB" ? "stage" : key === "graphViewsKB" ? "views" : "more";
+    for (const none of [undefined, []]) {
+      writeFileSync(routesFile, JSON.stringify({ ...routes, [name]: none }));
+      const lost = spawnSync(process.execPath, ["scripts/perf-budget.mjs"], { cwd: dir, encoding: "utf8" });
+      assert.equal(lost.status, 1, lost.stdout);
+      assert.match(lost.stderr, missing);
+    }
+    writeFileSync(routesFile, JSON.stringify(routes));
   }
 });
 

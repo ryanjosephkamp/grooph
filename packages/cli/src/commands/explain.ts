@@ -1,4 +1,4 @@
-import { estimateShape, formatIssue, parseGraphText, type Graph, type Stop } from "@grooph/core";
+import { estimateShape, formatIssue, isPlan, parseGraphText, type Graph, type Stop } from "@grooph/core";
 
 import { readText } from "../io.js";
 import { plural, printNext, type Output } from "../print.js";
@@ -27,8 +27,17 @@ export function explain(doc: Graph): Explained {
   // What a stop does when it fires, as graph-ir section 1 defines it (core's `stopAction` says the same in the
   // package): with `then`, the run goes on at that node; a passed bar leaves the loop by its pass edges; every
   // other stop halts the run and reports to a person. None of them "ends the run" in silence.
+  // A plan has no run to halt (amendment A-020; core's `isPlan`): there such a stop is where the people following
+  // it stop and decide, in the words the picture and the outline use (`stopAction(stop, true)`).
+  const plan = isPlan(doc);
   const after = (stop: Stop): string =>
-    stop.then !== undefined ? `the run goes on at ${names.get(stop.then) ?? stop.then}` : stop.kind === "bar-passed" ? "the loop is left by its pass edges" : "the run halts and reports to a person";
+    stop.then !== undefined
+      ? `the run goes on at ${names.get(stop.then) ?? stop.then}`
+      : stop.kind === "bar-passed"
+        ? "the loop is left by its pass edges"
+        : plan
+          ? "stop here and decide"
+          : "the run halts and reports to a person";
 
   const says = (stop: Stop): string => {
     const then = after(stop);

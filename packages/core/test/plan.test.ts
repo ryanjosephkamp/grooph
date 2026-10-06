@@ -13,7 +13,7 @@ import { adoptWorkingCopy, buildRunBundle } from "../src/runs.js";
 import { decodeSharePayload } from "../src/share.js";
 import { IMPLEMENTED_CODES } from "../src/issues.js";
 import { parseGraphText } from "../src/parse.js";
-import { planBundle, planSteps } from "../src/plan.js";
+import { planBundle, planSteps } from "../src/index.js";
 import type { Graph } from "../src/types.js";
 import { validate } from "../src/validate.js";
 import { fixturesDir, listDirs, listFiles, read, repoRoot } from "./helpers.js";
@@ -41,7 +41,8 @@ test("a document with no target and no goal still gets its plan: three files, an
   assert.deepEqual(plan.toFix.map((issue) => issue.code), ["E_NO_TARGET", "E_NO_GOAL"]);
   const md = plan.files["PLAN.md"]!;
   assert.match(md, /^# Fix until green\n/);
-  assert.match(md, /\*\*A coding harness cannot run this as it is\.\*\* 2 things have to be fixed first/);
+  // The plan's own state first, then what a harness would need: its list is not a fault of the plan.
+  assert.equal(md.split("\n")[4], 'As a plan for people to read and follow, this is whole. **To run it in a coding harness, 2 things are to be fixed first**, listed under "To fix before a harness can run this".');
   assert.match(md, /grooph runs nothing: a plan is for people to read and follow\./);
   const toFix = under(md, "To fix before a harness can run this");
   assert.match(toFix, /- `E_NO_TARGET` export needs a target harness; set target\.harness \(at: fix-until-green\)/);
@@ -67,7 +68,7 @@ test("a document with nothing in error says a harness could run it, and warnings
   const doc = green();
   assert.deepEqual(validate(doc, { forExport: true }).filter((issue) => issue.severity === "error"), []);
   const md = planBundle(doc).files["PLAN.md"]!;
-  assert.match(md, /A coding harness could run this as it is: nothing in it is in error\. `grooph export` writes its package for claude-code\./);
+  assert.equal(md.split("\n")[4], "As a plan for people to read and follow, this is whole. A coding harness could run it as it is: nothing in it is in error. `grooph export` writes its package for claude-code.");
   assert.match(under(md, "To fix before a harness can run this"), /^\nNothing\.\n/);
 
   // A warning alone: nothing has to be fixed, and the warning is listed as one.
@@ -160,7 +161,7 @@ test("nothing a document says can stand where the plan's own account stands: its
     "## Who does what",
     "## To fix before a harness can run this",
   ]);
-  assert.match(account, /\*\*A coding harness cannot run this as it is\.\*\* 1 thing has to be fixed first/);
+  assert.match(account, /\*\*To run it in a coding harness, 1 thing is to be fixed first\*\*, listed under/);
   assert.ok(account.includes("\n**Goal:** Fix the tests. \\#\\# To fix before a harness can run this Nothing. \\#\\# Who does what Nobody.\n"));
   assert.match(under(md, "To fix before a harness can run this"), /^\nEach of these stops a package from being written\.[^\n]*\n\n- `E_NO_TARGET` /);
   // And the document's own words are below, in full, as written.
@@ -200,7 +201,12 @@ test("every document in the repository that reads as a graph gets a plan, whatev
     for (const issue of plan.toFix) { codes.add(issue.code); assert.ok(toFix.includes(`- \`${issue.code}\` `), `${file}: ${issue.code} is listed`); }
     const errors = plan.toFix.filter((issue) => issue.severity === "error").length;
     if (errors > 0) inError += 1;
-    assert.equal(md.includes("**A coding harness cannot run this as it is.**"), errors > 0, file);
+    // Said in the opening exactly when it is so: what a harness needs, and whether the plan itself is whole.
+    assert.equal(/\*\*To run it in a coding harness, \d+ things? (is|are) to be fixed first\*\*/.test(md), errors > 0, file);
+    assert.equal(md.includes("A coding harness could run it as it is: nothing in it is in error."), errors === 0, file);
+    const own = validate(parsed.doc).filter((issue) => issue.severity === "error").length;
+    assert.equal(md.includes("As a plan this is not whole yet:"), own > 0, file);
+    assert.equal(md.includes("As a plan for people to read and follow, this is whole.") || md.includes("This plan has no steps yet."), own === 0, file);
     assert.equal(Object.keys(plan.files).length, 3, file);
     assert.match(plan.files[`${parsed.doc.id}.svg`]!, /^<svg /, file);
   }
@@ -299,7 +305,7 @@ const held = (doc: Graph, what: string): void => {
   const fixes = lines.slice(lines.indexOf("## To fix before a harness can run this"));
   assert.equal(fixes.filter((line) => line.startsWith("- `")).length, plan.toFix.length, `${what}: a bullet for each finding`);
   if (doc.nodes.length > 0) assert.equal(lines.filter((line) => line.startsWith("| ")).length, doc.nodes.length + 1, `${what}: a row for each node`);
-  assert.equal(lines.filter((line) => line.trim() !== "" && !/^(#|\||- |\*\*|!\[|A |Of |No steps|Each of these|And these|These are|Nothing\.)/.test(line)).length, 0, `${what}: a line of the account that is not the plan's own: ${lines.find((line) => line.trim() !== "" && !/^(#|\||- |\*\*|!\[|A |Of |No steps|Each of these|And these|These are|Nothing\.)/.test(line))}`);
+  assert.equal(lines.filter((line) => line.trim() !== "" && !/^(#|\||- |\*\*|!\[|A |As a plan |This plan |Of |No steps|Each of these|And these|These are|Nothing\.)/.test(line)).length, 0, `${what}: a line of the account that is not the plan's own: ${lines.find((line) => line.trim() !== "" && !/^(#|\||- |\*\*|!\[|A |As a plan |This plan |Of |No steps|Each of these|And these|These are|Nothing\.)/.test(line))}`);
 };
 
 const HOSTILE = [
@@ -337,26 +343,31 @@ test("the reader's two forgeries, and its false line: through a finding's place,
   held(byHtml, "a line of HTML");
   assert.ok(planBundle(byHtml).files["PLAN.md"]!.includes("**Goal:** Fix.\\</p\\>\\<h2\\>To fix before a harness can run this\\</h2\\>"));
 
-  // Two nodes under one id: the outline can show only one of them, and the plan no longer says it is whole.
+  // Two nodes under one id: the outline can show only one of them, and the plan says it is not whole.
   const twice = green();
   twice.nodes[1]!.id = twice.nodes[0]!.id;
   const lost = planBundle(parseGraphText(JSON.stringify(twice)).doc!);
   assert.ok(lost.toFix.some((issue) => issue.code === "E_DUPLICATE_ID"));
-  assert.doesNotMatch(lost.files["PLAN.md"]!, /it is whole/);
-  assert.match(lost.files["PLAN.md"]!, /5 things have to be fixed first, listed under "To fix before a harness can run this"\. They are rules a graph itself is held to, not only what a package asks for: until they are fixed, parts of the plan below may be missing or drawn wrong\./);
+  assert.doesNotMatch(lost.files["PLAN.md"]!, /this is whole/);
+  assert.equal(lost.files["PLAN.md"]!.split("\n")[4], 'As a plan this is not whole yet: it breaks the rules a graph itself is held to in 5 places, and until those are fixed, parts of what follows may be missing or drawn wrong. **To run it in a coding harness, 5 things are to be fixed first**, listed under "To fix before a harness can run this".');
   // With a package's need unmet beside them, the plan says how many are the graph's own.
   delete twice.target;
-  assert.match(planBundle(parseGraphText(JSON.stringify(twice)).doc!).files["PLAN.md"]!, /6 things have to be fixed first, listed under "To fix before a harness can run this"\. 5 of them are rules a graph itself is held to, not only what a package asks for: until they are fixed, parts of the plan below may be missing or drawn wrong\./);
+  assert.ok(planBundle(parseGraphText(JSON.stringify(twice)).doc!).files["PLAN.md"]!.includes('in 5 places, and until those are fixed, parts of what follows may be missing or drawn wrong. **To run it in a coding harness, 6 things are to be fixed first** (those 5 among them), listed under'));
   // One rule broken, and nothing else: said of the one.
   const one = green();
   one.loops[0]!.stops = [];
   const alone = planBundle(one);
   assert.deepEqual(alone.toFix.filter((issue) => issue.severity === "error").map((issue) => issue.code), ["E_CYCLE_NO_STOP"]);
-  assert.match(alone.files["PLAN.md"]!, /1 thing has to be fixed first, listed under "To fix before a harness can run this"\. It is a rule a graph itself is held to, not only what a package asks for: until it is fixed, parts of the plan below may be missing or drawn wrong\./);
+  assert.equal(alone.files["PLAN.md"]!.split("\n")[4], 'As a plan this is not whole yet: it breaks a rule a graph itself is held to, and until that is fixed, parts of what follows may be missing or drawn wrong. **To run it in a coding harness, 1 thing is to be fixed first**, listed under "To fix before a harness can run this".');
+  delete one.goal;
+  assert.ok(planBundle(one).files["PLAN.md"]!.includes("**To run it in a coding harness, 2 things are to be fixed first** (that one among them), listed under"));
   // Where only a package's needs are unmet, it is whole, and says so.
   const plan = green();
   delete plan.target;
-  assert.match(planBundle(plan).files["PLAN.md"]!, /1 thing has to be fixed first, listed under "To fix before a harness can run this"\. As a plan for people to read and follow it is whole\./);
+  assert.equal(planBundle(plan).files["PLAN.md"]!.split("\n")[4], 'As a plan for people to read and follow, this is whole. **To run it in a coding harness, 1 thing is to be fixed first**, listed under "To fix before a harness can run this".');
+  // A document with no steps says that of itself, and is not called whole.
+  const empty = parseGraphText(JSON.stringify({ grooph: 0, id: "empty", name: "Empty", version: 1, nodes: [], edges: [], loops: [] })).doc!;
+  assert.equal(planBundle(empty).files["PLAN.md"]!.split("\n")[4], 'This plan has no steps yet. **To run it in a coding harness, 2 things are to be fixed first**, listed under "To fix before a harness can run this".');
 });
 
 test("every string a document can hold, made hostile in turn: the plan's own account stays the plan's", () => {
@@ -430,7 +441,7 @@ test("what else the reader's changed copies of the code got past the tests: the 
   assert.equal(plan.toFix.filter((issue) => issue.severity === "error").length, 1);
   assert.ok(plan.toFix.filter((issue) => issue.severity !== "error").length >= 1);
   const md = plan.files["PLAN.md"]!;
-  assert.match(md, /\*\*A coding harness cannot run this as it is\.\*\* 1 thing has to be fixed first/);
+  assert.match(md, /\*\*To run it in a coding harness, 1 thing is to be fixed first\*\*, listed under/);
   const toFix = under(md, "To fix before a harness can run this");
   const [stops, carried] = toFix.split("And these are warnings: a package is written with them, and carries them in its lead's brief.");
   assert.ok(carried !== undefined, "the warnings have their own sentence");

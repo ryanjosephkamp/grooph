@@ -125,7 +125,7 @@ Everything that counts, lists, bundles or tests the built-in templates reads `pa
 
 - the twenty built-in templates stay twenty, in every count and on every generated page;
 - the field guide's "Of the twenty recorded runs eighteen passed their check and two did not" still counts what it counted, the runs of the twenty built-in templates;
-- `grooph template list` shows these under a heading of their own, **Plans**, apart from the twenty and outside their count, and with no cost, speed or rigor beside them; the app does not show them and loads none of them;
+- `grooph template list` shows these under a heading of their own, **Plans**, apart from the twenty and outside their count, and with no cost, speed or rigor beside them. The app lists them apart from the twenty too, under their own heading "Plans" on its templates screen. No address's first load carries them: the button there, or a plan's own address, fetches them, and the app's worker holds them from its install, as it holds the app's other later pieces;
 - no generated file changes. The one check that had to learn of the folder is the spelling check, which now reads it.
 
-A person who installs grooph has these four by name: the package carries the folder beside the built-in templates, in a folder of its own. Their ids and names will stay as they are, so that what lists them can rely on them.
+A person who installs grooph's command line has these four by name: the package carries the folder beside the built-in templates, in a folder of its own. The app shows them, and a plan can be started from one there. Their ids and names will stay as they are, so that what lists them can rely on them.

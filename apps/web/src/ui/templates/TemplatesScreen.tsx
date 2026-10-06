@@ -1,8 +1,8 @@
 import type { Graph, Profile, TemplateKind } from "@grooph/core";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { EMPTY_BROWSE, SORT_LABEL, activeFilters, allTags, browse, isDefault, loadBrowse, saveBrowse, toggled, type Browse, type SortKey } from "../../doc/browse.js";
-import { PROFILE_LEVEL, PROFILE_OPTIONS, PROFILE_TEXT, builtIns, loadBuiltIns, type TemplateSource } from "../../doc/templates.js";
+import { PLAN_NOTE, PROFILE_LEVEL, PROFILE_OPTIONS, PROFILE_TEXT, builtIns, loadBuiltIns, loadPlanTemplates, planTemplates, type TemplateSource } from "../../doc/templates.js";
 import { listUserTemplates } from "../../store/templates.js";
 import { Glyph, hasLongGlyph } from "../Glyph.js";
 
@@ -63,6 +63,17 @@ export function TemplatesScreen() {
   const shownYours = useMemo(() => browse(yours ?? [], state), [yours, state]);
   const shownBuiltIn = useMemo(() => browse(builtIn, state), [builtIn, state]);
   const shown = shownYours.length + shownBuiltIn.length;
+  // The plans (slice 0100) are a piece of their own, fetched when a person asks to see them and not before: here at
+  // once if this visit has fetched them already, and otherwise behind the button. `null` when they could not be had.
+  const [plans, setPlans] = useState<readonly Graph[] | null | undefined | "asking">(planTemplates);
+  // The button goes when the plans come, so what says they came is given the focus the button had.
+  const said = useRef<HTMLParagraphElement>(null);
+  const showPlans = (): void => {
+    setPlans("asking");
+    loadPlanTemplates()
+      .then(setPlans, () => setPlans(null))
+      .then(() => setTimeout(() => said.current?.focus()));
+  };
   const total = all.length;
   const filters = activeFilters(state);
 
@@ -191,6 +202,28 @@ export function TemplatesScreen() {
         </p>
       ) : null}
 
+      {/* The plans are listed whole, apart: the search, the filters and the count above are the templates' own. A
+          plan's cost, speed and rigor were not measured (plans/README.md), so nothing sorts or filters by them. */}
+      <section aria-labelledby="plans-title">
+        <h2 className="list-title" id="plans-title">
+          Plans
+        </h2>
+        <p className="muted templates-hint">{PLAN_NOTE}</p>
+        <p className="muted templates-hint" role="status" tabIndex={-1} ref={said}>
+          {plans && plans !== "asking" ? (
+            `${plans.length} plans, listed whole: the search and filters above are for the templates.`
+          ) : (
+            <>
+              {plans === null ? "The plans could not be fetched. They need a connection the first time. " : null}
+              <button type="button" className="btn" disabled={plans === "asking"} onClick={showPlans}>
+                {plans === null ? "Try again" : plans === "asking" ? "Fetching the plans…" : "Show the plans"}
+              </button>
+            </>
+          )}
+        </p>
+        {plans && plans !== "asking" ? <TemplateList source="plan" docs={plans} /> : null}
+      </section>
+
       {yours && yours.length === 0 ? (
         <p className="muted templates-hint">
           <strong>Yours</strong> is empty. Save a graph, or some of its nodes, as a template from the Graph panel of the editor, or import a template file from
@@ -256,7 +289,7 @@ function Chips<T extends string>({
 
 function TemplateList({ source, docs }: { source: TemplateSource; docs: readonly Graph[] }) {
   return (
-    <ul className="template-list" aria-label={source === "yours" ? "Your templates" : "Built-in templates"}>
+    <ul className="template-list" aria-label={source === "yours" ? "Your templates" : source === "plan" ? "Plan templates" : "Built-in templates"}>
       {docs.map((doc) => {
         const t = doc.template!;
         return (
@@ -267,11 +300,13 @@ function TemplateList({ source, docs }: { source: TemplateSource; docs: readonly
                 <span className="template-title">
                   {t.title}
                   {t.kind === "fragment" ? <span className="badge badge-quiet">fragment</span> : null}
+                  {source === "plan" ? <span className="badge badge-quiet">plan</span> : null}
                 </span>
                 <span className="template-when">
                   <span className="template-label">Use when</span> {t.whenToUse}
                 </span>
-                <ProfileMeters profile={t.profile} />
+                {/* A plan's profile is a field the format requires; nothing was measured (plans/README.md), so it is not shown. */}
+                {source === "plan" ? null : <ProfileMeters profile={t.profile} />}
               </span>
             </a>
           </li>
