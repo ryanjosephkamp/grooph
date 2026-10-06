@@ -39,11 +39,11 @@ Each time you say something and the agent answers is a **turn**. Text is measure
 
 ## A subagent
 
-A session can start a helper. The helper is another session, begun for one job, with its own empty context. It does the job, reports back, and ends. That helper is a **subagent**, and starting one is a **dispatch**.
+A session can start a helper. The helper is another session, begun for one job, with a context of its own: it does not get the first session's conversation, but it has its own standing instructions and can read the files it is allowed to. It does the job, reports back, and ends. That helper is a **subagent**, and starting one is a **dispatch**.
 
 Two things make subagents useful:
 
-- **A fresh pair of eyes.** A subagent knows only what it was handed. A reviewer who has not watched the work being done reads the result as a stranger would.
+- **A fresh pair of eyes.** A fresh subagent starts without the conversation that came before it. A reviewer who has not watched the work being done reads the result as a stranger would.
 - **A smaller job.** Each subagent has one task and room in its context for it.
 
 The session that starts the subagents and decides what happens next is the **lead**. Think of the lead as a project manager and the subagents as people it hands tasks to.
@@ -129,7 +129,7 @@ This is the most important table in the guide. Keep it in mind whenever a later 
 |---|---|---|---|
 | **Before a run** | The validator's errors ([chapter 3](03-the-validator.md)) | grooph | Real. grooph will not write instructions for a plan that has an error |
 | **During a run** | Which tools each subagent has ([chapter 5](05-the-package.md)) | The harness | Real, with a gap. A subagent is not given tools left off its list. But the tool that runs commands can also change files |
-| **During a run** | A subagent starting with an empty context | The harness | Real. What it is then handed is up to the lead |
+| **During a run** | A fresh subagent starting without the lead's conversation | The harness | Real for a fresh worker in Claude Code. It still has its own instructions and can read what it is allowed to; what it is handed is up to the lead |
 | **During a run** | **Everything else**: counting trips, stopping at a cap or a budget, stopping to ask a person, what a reviewer may read, never loosening a brake | The lead agent, reading its instructions | **An instruction.** Nothing in grooph watches a running session or can stop one |
 | **During a run** | A spending limit, if you set one | The harness, not grooph | Real. It cuts the session off. It is not part of a graph ([chapter 13](13-what-the-experiments-found.md)) |
 | **After a run** | The check when a run's changed plan is taken up ([chapter 7](07-adopting-a-run.md)) | grooph | Real but narrow, new, and easy to get past on purpose |
