@@ -191,6 +191,11 @@ describe("a recorded run", () => {
     // And a note right after the outer loop's way back is held to the first sign alone, though the inner loop's
     // last way back was never taken (its cap fired, and no note says so): round 0 there is the inner loop's own.
     expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 1], ["tests", "fail", 1], ["judge", "fail", 0], ["builder", "pass", 0], ["tests", "pass", 0]]))).slice(-2)).toEqual(["builder@grind:0", "tests@grind:0"]);
+    // Nor where the outer loop's way back lands on a node before the inner loop, outside it, and the inner loop's
+    // last way back was never taken (its cap fired, and no note says so): the inner loop has started afresh, and
+    // round 0 at its first node is not held against the 1 it was in before.
+    const lead = { ...nested, nodes: [{ ...nested.nodes.find((n) => n.id === "builder")!, id: "lead" }, ...nested.nodes], edges: [{ id: "e-lead", from: "lead", to: "builder" }, ...nested.edges.map((e) => (e.from === "judge" && e.to === "builder" ? { ...e, to: "lead" } : e))], loops: nested.loops.map((l) => (l.id === "phases" ? { ...l, members: ["lead", ...l.members] } : l)) } as Graph;
+    expect(where(modelOf(lead, skip([["lead", "pass", 0], ["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 1], ["tests", "fail", 1], ["judge", "fail", 0], ["lead", "pass", 1], ["builder", "pass", 0], ["tests", "pass", 0]]))).slice(-3)).toEqual(["lead@phases:1", "builder@grind:0", "tests@grind:0"]);
     // With no sign the number is read as the inner loop's, as the contract's nearest reading has it: a run
     // written the outer way whose outer way back the notes do not show (the judge's verdict where the edge wants
     // an outcome) is drawn as its numbers say.
@@ -1288,7 +1293,8 @@ describe("rings", () => {
     const m = modelOf(GAUNTLET);
     const built = rings(m, whole);
     const [inner, outer] = [ringOf(built.prims, "polish"), ringOf(built.prims, "pieces")];
-    expect([outer.c[1], inner.c[1]]).toEqual([0, 64]);
+    // (64 up, and for a ring of three stations 1.16 of half its radius more: its near nodes are seen 42 over its foot.)
+    expect([outer.c[1], Math.round(inner.c[1]), inner.r]).toEqual([0, 116, 90]);
     expect(outer.r).toBeGreaterThanOrEqual(inner.r + 30);
     // Where the inner ring stands is a place on the outer ring.
     expect(far(outer.c, inner.c)).toBe(Math.round(outer.r));
@@ -1440,13 +1446,14 @@ describe("rings", () => {
     expect(out).toHaveLength(19);
     const beside = out.find((v, n) => n > 0 && (out[n - 1]![2] - near[2]) * (v[2] - near[2]) <= 0)!;
     expect(Math.hypot(beside[0] - near[0], beside[2] - near[2])).toBeGreaterThanOrEqual(50);
-    // No card of a ring that stands on another is drawn over that ring's own foot, as it is seen from where the view
-    // starts (turned half a radian, tipped 0.86): each of its nodes is seen above the foot, or 70 or more to its side
-    // (a card stands over its node, 75 to each side at most). And the turn is the one that does it best: the two
-    // of its nodes nearest the reader are seen as far to one side of the foot as to the other, at one height. On
-    // the templates and fixtures that have one (fresh grind's Tests was 5 from Grind's foot, and Gauntlet's Capture
-    // check right over Polish a piece's, with the outer loop's lines through the foot reading as arriving there),
-    // and on rings of one to six made up.
+    // No card of a ring that stands on another is drawn over that ring's own foot, and the outer loop's lines
+    // through the foot do not read as arriving at one of its nodes, as it is seen from where the view starts
+    // (turned half a radian, tipped 0.86). The turn: the two of its nodes nearest the reader are seen as far to
+    // one side of the foot as to the other, at one height. The height: those two are seen 42 above the foot
+    // whatever the ring's size, as a ring of two's are, and every other node higher. On the templates and
+    // fixtures that have one (fresh grind's Tests was 5 from Grind's foot; Gauntlet's Capture check stood right
+    // over Polish a piece's; and then Pieces' way back ran through the point Piece critic stood on), and on
+    // rings of one to six made up.
     const [cy, sy, cp, sp] = [Math.cos(-0.5), Math.sin(-0.5), Math.cos(0.86), Math.sin(0.86)];
     const seenAt = (p: readonly number[]): [number, number] => [p[0]! * cy + p[2]! * sy, (-p[0]! * sy + p[2]! * cy) * sp - p[1]! * cp];
     const made = [1, 2, 3, 4, 5, 6].map((k) => {
@@ -1461,10 +1468,14 @@ describe("rings", () => {
         const drawn = rings(g, whole);
         for (const loop of g.loops.filter((l) => l.inside)) {
           const { c } = ringOf(drawn.prims, loop.id);
-          const foot = seenAt([c[0], c[1] - 64, c[2]]);
+          const under = drawn.prims.flatMap((p) => (p.t === "dot" && p.r === 4 && far(c, p.at) === 0 ? [p.at] : []));
+          expect(under, `${doc.id} ${loop.id}`).toHaveLength(1);
+          const foot = seenAt(under[0]!);
           const from = loop.own.map((id) => seenAt(drawn.node(id))).map(([x, y]) => [x - foot[0], y - foot[1]] as const).sort((p, q) => q[1] - p[1]);
-          for (const [aside, below] of from) expect(below < 0 || Math.abs(aside) >= 70, `${doc.id} ${loop.id}: ${Math.round(aside)} aside, ${Math.round(below)} below`).toBe(true);
-          if (from.length > 1 && loop.own.length === loop.members.length) expect(Math.abs(from[0]![0] + from[1]![0]) + Math.abs(from[0]![1] - from[1]![1]), `${doc.id} ${loop.id}`).toBeLessThan(0.5);
+          if (from.length > 1 && loop.own.length === loop.members.length) {
+            expect(Math.abs(from[0]![0] + from[1]![0]) + Math.abs(from[0]![1] - from[1]![1]), `${doc.id} ${loop.id}`).toBeLessThan(0.5);
+            expect([Math.round(from[0]![1]), Math.abs(from[0]![0]) > 59.9, from[2] === undefined || from[2][1] < -60], `${doc.id} ${loop.id}`).toEqual([-42, true, true]);
+          }
           // (A ring of one has its node at the far side as seen, straight over the foot and well above it.)
           else if (from.length === 1) expect([Math.round(from[0]![0]), from[0]![1] < -60], `${doc.id} ${loop.id}`).toEqual([0, true]);
           stood += from.length;
@@ -1496,7 +1507,7 @@ describe("rings", () => {
       const g = rings(modelAt(GAUNTLET, places(GAUNTLET), undefined, narrowly), whole);
       const gate = g.node("decomposition-gate");
       const nearest = Math.min(...["owner", "capture-check", "critic"].map((id) => g.node(id)[2] - 0.86 * g.node(id)[1] - gate[2]));
-      expect([g.node("owner")[1], gate[1]], String(narrowly)).toEqual([64, 0]);
+      expect([Math.round(g.node("owner")[1]), gate[1]], String(narrowly)).toEqual([116, 0]);
       expect(nearest, String(narrowly)).toBeGreaterThanOrEqual(140);
     }
     // An edge from the outermost of three rings to a node of the innermost goes along the outer ring to the place

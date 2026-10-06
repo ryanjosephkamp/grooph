@@ -190,10 +190,12 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       if (!focus || !note) continue;
       if (focus.kind === "node" && is(focus.id)) {
         const own = innermost(focus.id);
+        // (A loop that comes round, at whichever of its nodes, starts each loop inside it afresh: what was named
+        // there before is no longer what the next number is held against.)
+        const back = first.into(focus.id).flatMap((e) => (e.back ? [e.back] : []));
+        for (const l of loops) if (back.some((id) => inside(l.id, id))) delete before[l.id];
         if (own && inner(own) && note.round !== undefined) {
-          const back = first.into(focus.id).flatMap((e) => (e.back ? [e.back] : []));
-          const outer = back.some((id) => inside(own, id));
-          others ||= outer ? note.round !== 0 : back.includes(own) && note.round <= (before[own] ?? -1);
+          others ||= back.some((id) => inside(own, id)) ? note.round !== 0 : back.includes(own) && note.round <= (before[own] ?? -1);
           said[own] = before[own] = note.round;
         }
         first.at(focus.id, { round: null, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: note.outcome === "started" });

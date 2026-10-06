@@ -33,8 +33,13 @@ export const rings = ({ arch, by, card, circle, edgeLine, ground, hue, stations,
   };
   // How far a ring and all that stands on it reach from its middle.
   const reach = (loop: MLoop): number => R(loop) + Math.max(0, ...m.loops.filter((l) => l.inside === loop.id).map(reach));
+  // How high a ring stands on another: 64, and more for one of three stations or more, so that its two nodes
+  // nearest the reader are seen as far above its foot as a ring of two's are (42), and the outer loop's lines
+  // through that foot pass well under them. (From where the view starts a height is seen as 0.65 of itself up the
+  // frame, and a node at the near side of a ring as 0.76 of the ring's radius down it.)
+  const high = (loop: MLoop): number => 64 + Math.max(0, 1.16 * R(loop) * Math.cos(Math.PI / stations(m, loop).length));
   // A station's place on its ring: the first at the far side, and on round to the right. A ring that stands on
-  // another is turned from that, by less than half a station either way: it is drawn 64 higher, so from where the
+  // another is turned from that, by less than half a station either way: it is drawn higher, so from where the
   // view starts (turned half a radian) the card of a node at the side of it nearest the reader is drawn over the
   // ring's own foot, and the outer loop's lines through that foot read as arriving at the node. It is turned so
   // that the nearest side is midway between two of its stations.
@@ -56,7 +61,7 @@ export const rings = ({ arch, by, card, circle, edgeLine, ground, hue, stations,
       if (stop.node) ((at[stop.node] = p), prims.push(card(by(m.nodes, stop.node), p, { stand: true, small: m.narrow })));
       else if (stop.loop) {
         // A loop inside this one: a ring of its own, standing on this ring where its nodes would be.
-        const up: V = [p[0], p[1] + 64, p[2]];
+        const up: V = [p[0], p[1] + high(stop.loop), p[2]];
         prims.push({ t: "line", pts: [p, up], stroke: hue(m, stop.loop.id), w: 1.2, dash: [2, 3] }, { t: "dot", at: p, r: 4, fill: hue(m, stop.loop.id), lift: -3990 });
         place(stop.loop, up);
       }
@@ -75,10 +80,10 @@ export const rings = ({ arch, by, card, circle, edgeLine, ground, hue, stations,
     else if (item.loop) {
       // Room for the ring and for every ring that stands on it, and for the card of its first station, which
       // stands over where the node before the ring would otherwise be: no node on the ground is inside a ring.
-      // More where its first station is a ring of its own: that ring's cards are drawn 64 higher, which from where
-      // the view starts is over ground 55 farther back, toward the node before the ring.
+      // More where its first station is a ring of its own: that ring's cards are drawn higher, which from where
+      // the view starts is over ground 0.86 of that farther back, toward the node before the ring.
       const r = reach(item.loop) + 6;
-      const raised = (loop: MLoop): number => ((first) => (first ? 55 + raised(first) : 0))(stations(m, loop)[0]?.loop);
+      const raised = (loop: MLoop): number => ((first) => (first ? 0.86 * high(first) + raised(first) : 0))(stations(m, loop)[0]?.loop);
       z += z ? 56 + raised(item.loop) : 0;
       place(item.loop, [(z + r) * lean, 0, z + r]);
       z += 2 * r + 58;
