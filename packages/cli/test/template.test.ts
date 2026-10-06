@@ -127,7 +127,7 @@ test("list shows the built-in library without touching the network", async () =>
     assert.equal(await grooph(box, ["template", "list"], io), 0);
     assert.match(text(io.stdout), /^built-in \(/);
     assert.match(text(io.stdout), / {2}review-gate {2,}graph {5}medium · medium · standard\n {6}Work, then a separate reviewer/);
-    assert.match(text(io.stdout), /20 templates\./);
+    assert.match(text(io.stdout), /^20 templates, and 4 plans apart from them\. /m);
     assert.deepEqual(requests, [], "no remote unless asked");
 
     const json = capture();
@@ -403,7 +403,7 @@ test("--registry names the remote to use, as an index URL or its folder", async 
     const list = capture();
     assert.equal(await grooph(box, ["template", "list", "--registry", `${base}/lib/index.json`], list), 0);
     assert.match(text(list.stdout), new RegExp(`remote \\(${base}/lib/index\\.json\\)\\n {2}review-gate .*\\(shadowed by the built-in one\\)`));
-    assert.match(text(list.stdout), /21 templates\./);
+    assert.match(text(list.stdout), /^21 templates, and 4 plans apart from them\. /m);
     // A remote row's glyph is the URL beside its registry (the published library keeps glyphs/ there).
     const json = capture();
     assert.equal(await grooph(box, ["template", "list", "--registry", `${base}/lib/index.json`, "--json"], json), 0);
@@ -428,7 +428,7 @@ test("offline, a local name still resolves and a remote one fails with a clear m
 
     const list = capture();
     assert.equal(await grooph(box, ["template", "list", "--registry", `http://127.0.0.1:${closedPort}/`], list), 1);
-    assert.match(text(list.stdout), /20 templates\./, "the local list still prints");
+    assert.match(text(list.stdout), /^20 templates, and 4 plans apart from them\. /m, "the local list still prints");
     assert.match(text(list.stderr), /cannot reach .* \(ECONNREFUSED\); if you are offline/);
   } finally {
     box.cleanup();

@@ -6,7 +6,7 @@
 
 import { edgeWhen, loopsOfNode } from "../../semantics.js";
 import type { Edge } from "../../types.js";
-import { bullet, code, doc, fence, firstSentence, lines, quoteYaml } from "../markdown.js";
+import { HEADER_FOLD, bullet, code, doc, fence, firstSentence, lines, quoteYaml } from "../markdown.js";
 import type { PackageContext, ResolvedAgent } from "./context.js";
 
 export function agentFile(ctx: PackageContext, agent: ResolvedAgent): string {
@@ -25,7 +25,7 @@ const TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
  */
 export function names(values: readonly string[]): string {
   if (values.every((value) => TOKEN.test(value))) return values.join(", ");
-  return JSON.stringify(values.map((value) => value.replace(/[\s\u0000-\u001f\u007f\u0085\u2028\u2029]+/g, " ").trim()).join(", "));
+  return JSON.stringify(values.map((value) => value.replace(HEADER_FOLD, " ").trim()).join(", "));
 }
 
 function frontmatter(ctx: PackageContext, agent: ResolvedAgent): string {

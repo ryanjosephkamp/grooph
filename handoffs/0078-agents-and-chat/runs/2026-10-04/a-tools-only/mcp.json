@@ -1,0 +1,1 @@
+{ "mcpServers": { "grooph": { "command": "node", "args": ["<scratch>/ext/server/grooph.mjs", "mcp", "--chat"] } } }

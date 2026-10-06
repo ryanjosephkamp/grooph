@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 import { adoptCommandLine, adoptWorkingCopy, canonicalize, canonicalizeWithoutLayout, checkAdoption, formatIssue, parseGraphText, type Graph } from "@grooph/core";
 
@@ -22,9 +22,11 @@ write. Nothing is written without --write; the source the package placed is neve
   --write               write it
 
 A run may tighten a brake and never loosen one: a human gate, an approval, an irreversible
-marker, a round cap, a budget, the stop where a person is asked, a bar's acceptance, critic
-isolation, a check (what it runs, what counts as a pass, where its verdicts lead), the
-adaptation level. The working copy is compared with the source on the whole
+marker, a loop's round cap and budget, the stop where a person is asked, a bar's acceptance,
+critic isolation, a check (what it runs, what counts as a pass, where its verdicts lead), the
+adaptation level. The comparison does not see the graph's own constraints (its budget line among
+them) or an edge's retry and concurrency; what else it does not hold is in docs/runs.md, "What
+adoption does not hold". The working copy is compared with the source on the whole
 graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
 with its reasons, and --write is refused until each is asked for with --allow; one that
 tightens is adopted with the rest, and said. A way round a loop that a person newly opens
@@ -34,7 +36,9 @@ person's decisions. What is compared and what is not: docs/templates.md, "Refres
 
 Refused when the working copy has errors that block export, and --write is refused when the
 source moved on after the run started, or the target already holds another version: adopting
-then would undo someone's change. Re-export the new version to place it for the next run.`;
+then would undo someone's change. Re-export the new version to place it for the next run: the
+export holds it to the package's brakes again (grooph export --help), so the line adopt prints
+carries the same --allow names.`;
 
 /** The version the run came from, without the parts adoption never compares. */
 const sameVersion = (a: Graph, b: Graph): boolean => {
@@ -52,6 +56,16 @@ const sameFile = (a: string, b: string): boolean => {
     return false;
   }
 };
+
+/**
+ * What is said above the changes core names and does not call a tightening (`unjudged`), by why: a check that goes
+ * while another comes in (`swapped`), or an answer or an irreversible step that is new. One place, so that `adopt`,
+ * the export command and the MCP tool's export say it in the same words.
+ */
+export const NOT_JUDGED = {
+  swapped: "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:",
+  new: "not judged: an answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before. It is named here and not called a tightening:",
+} as const;
 
 /** `grooph adopt <run dir> [--into <graph file>] [--allow <change> ...] [--write]` (docs/runs.md §3). */
 export function adoptCommand(io: Output, dir: string, flags: { into?: string; allow?: string[]; write: boolean }): number {
@@ -118,9 +132,7 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
   if (unjudged.length > 0) {
     io.out("");
     io.out(
-      check.swapped
-        ? "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:"
-        : "not judged: an answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before. It is named here and not called a tightening:",
+      NOT_JUDGED[check.swapped ? "swapped" : "new"],
     );
     for (const change of unjudged) io.out(`  ${change.name.padEnd(width)}undoing it: ${change.unjudged}`);
   }
@@ -156,6 +168,18 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
   }
   writeText(target, canonicalize(adopted.doc));
   io.out(`wrote ${shown(target)} (version ${adopted.doc.version}); the source ${shown(join(run.graphDir, "graph.grooph.json"))} is unchanged`);
-  io.out(`place it for the next run with: grooph export ${shown(target)} --target ${adopted.doc.target?.harness ?? "<harness>"} --into <project>`);
+  // The export holds the package's kept graph to the same brakes, so what was adopted on purpose is named there again;
+  // and the project is the one this run's package is in, so the line is one to run as it stands.
+  // A word of the line as a shell takes it: quoted where it needs to be, and never read as an option.
+  const word = (text: string): string => {
+    const plain = text.startsWith("-") ? `./${text}` : text;
+    return /^[A-Za-z0-9_.:/@=+-]+$/.test(plain) ? plain : `'${plain.replace(/'/g, "'\\''")}'`;
+  };
+  // The project is known only when the run is where a package keeps its runs, under <project>/.grooph/<id>/runs/.
+  // A run read from anywhere else (a copy, a fixture) names no project, and the line says so with a blank to fill,
+  // in quotes: bare, a shell would read it as "take input from the file project".
+  const inPackage = basename(dirname(run.graphDir)) === ".grooph";
+  const exportLine = ["grooph", "export", word(shown(target)), "--target", adopted.doc.target?.harness ?? "<harness>", "--into", inPackage ? word(shown(dirname(dirname(run.graphDir)))) : "'<project>'", ...meant.flatMap((change) => ["--allow", word(change.name)])].join(" ");
+  io.out(`place it for the next run with: ${exportLine}`);
   return 0;
 }

@@ -1,0 +1,72 @@
+{
+  "grooph": 0,
+  "id": "fix-flaky-checkout-test",
+  "name": "Fix flaky checkout test",
+  "version": 1,
+  "goal": "Make `pnpm test checkout` pass by fixing the code, without skipping, weakening or deleting any test.",
+  "target": { "harness": "claude-code" },
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": { "tier": "strong" },
+      "brief": "Find the cause of the flaky checkout test and fix it in the application code. Do not edit test files, and do not skip, delete, retry, loosen an assertion in, or lengthen a timeout of any test. If you believe the test itself is wrong, say so in CHANGES.md instead of changing it. Say what you changed and why.",
+      "inputs": ["the task", "the failing test output or the review, from round 1 on"],
+      "outputs": ["the change", "CHANGES.md"],
+      "allow": ["read-files", "edit-files", "run-tests"]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": { "kind": "tests", "run": "pnpm test checkout", "pass": "exit code 0" }
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Test integrity critic",
+      "role": "critic",
+      "model": { "tier": "frontier" },
+      "brief": "Compare the working tree with the commit the run started from. Fail the change if any test file was edited, or if any test was skipped, deleted, retried, given a longer timeout or a looser assertion, or if the fix only hides the flakiness instead of removing its cause. Read the diff and the repository; trust no claim in CHANGES.md that you cannot check. Pass or fail, with findings.",
+      "outputs": ["REVIEW.md"],
+      "allow": ["read-files", "write-outputs"],
+      "deny": ["edit-files"]
+    },
+    { "id": "done", "kind": "stop", "name": "Done", "outcome": "success" }
+  ],
+  "edges": [
+    { "id": "e-builder-tests", "from": "builder", "to": "tests" },
+    { "id": "e-tests-fail", "from": "tests", "to": "builder", "when": "fail", "evidence": ["the failing test output"] },
+    {
+      "id": "e-tests-critic",
+      "from": "tests",
+      "to": "critic",
+      "when": "pass",
+      "isolation": "fresh",
+      "evidence": ["the diff against the starting commit", "CHANGES.md", "the repository at the head commit, read-only"]
+    },
+    { "id": "e-critic-fail", "from": "critic", "to": "builder", "when": "fail", "evidence": ["REVIEW.md"] },
+    { "id": "e-critic-pass", "from": "critic", "to": "done", "when": "pass" }
+  ],
+  "loops": [
+    {
+      "id": "fix",
+      "name": "Fix",
+      "mode": "judgment",
+      "members": ["builder", "tests", "critic"],
+      "back": ["e-tests-fail", "e-critic-fail"],
+      "bar": {
+        "name": "Test integrity",
+        "inspects": [{ "kind": "file", "ref": "REVIEW.md" }],
+        "acceptance": "No test file is changed, no test is skipped, deleted, retried, given a longer timeout or a looser assertion, and the checkout tests pass."
+      },
+      "stops": [
+        { "kind": "bar-passed" },
+        { "kind": "max-iterations", "n": 5 },
+        { "kind": "budget", "measure": "minutes", "limit": 30 }
+      ]
+    }
+  ]
+}

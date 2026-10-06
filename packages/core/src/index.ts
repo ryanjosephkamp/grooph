@@ -17,7 +17,7 @@ import { planBundleWith, type PlanBundle } from "./plan.js";
 import { validate } from "./validate.js";
 
 export * from "./base.js";
-export { compile, tryCompile, CompileError } from "./compile/index.js";
+export { compile, tryCompile, CompileError, keptFolder } from "./compile/index.js";
 // A target's whole profile: the compilers' and the CLI's, not on the web app's way in (`targets/names.ts`).
 export { getProfile } from "./targets/index.js";
 // Placing and refreshing a subgrooph, and what a group holds: not on the web app's way in (`groups.ts` says why).

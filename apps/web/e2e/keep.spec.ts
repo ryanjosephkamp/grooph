@@ -11,7 +11,7 @@ import { downloadBytes, downloadText, fixturePath, importDocument, linkFor, node
 /** The offline page as core makes it: the maker, handed core's parts, as the app calls it (it is a piece fetched on demand). */
 const offlinePage = (doc: Graph, options: { version: string }): string => offlinePageWith(offlineKit, doc, options);
 /** The review loop's page at the app's version: said once, where scripts/version.mjs reads it. */
-const madeByCore = (): string => offlinePage(reviewLoop(), { version: "0.3.0" });
+const madeByCore = (): string => offlinePage(reviewLoop(), { version: "0.4.0" });
 
 /**
  * Slice 0025: things to keep, and the outline. The picture as SVG and PNG in

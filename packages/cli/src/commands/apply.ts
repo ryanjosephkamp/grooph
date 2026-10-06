@@ -1,6 +1,6 @@
 import { applyOps, canonicalize, formatOpError, hasErrors, parseGraph, parseGraphText, validate } from "@grooph/core";
 
-import { readText, writeText } from "../io.js";
+import { isKeptGraph, keptGraphRefusal, readText, writeText } from "../io.js";
 import { plural, printIssues, printNext, type Output } from "../print.js";
 
 export type ApplyFlags = { ops: string; write?: boolean; forExport?: boolean; json?: boolean };
@@ -68,6 +68,13 @@ export function applyCommand(io: Output, file: string, flags: ApplyFlags, readSt
 
   const issues = validate(schema.doc, { forExport: flags.forExport === true });
   const written = flags.write === true;
+  // The graph a package keeps is what an export compares the next graph with. Changed here it would move that
+  // comparison with no word said, so it is not written here: only `grooph export` writes it (../io.ts).
+  if (written && isKeptGraph(file)) {
+    if (flags.json === true) report({ ok: false, written: false, ids: result.ids, issues, error: { message: keptGraphRefusal(file) } });
+    else io.err(`grooph: ${keptGraphRefusal(file)}`);
+    return 1;
+  }
   if (written) writeText(file, canonicalize(schema.doc));
 
   if (flags.json === true) {

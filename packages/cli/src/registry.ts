@@ -14,7 +14,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   canonicalize,
@@ -28,6 +27,7 @@ import {
 } from "@grooph/core";
 
 import { writeText } from "./io.js";
+import { patternsDir, plansDir } from "./paths.js";
 
 /** The published pattern library (docs/templates.md §3). */
 export const PUBLISHED_REGISTRY = "https://ryanjosephkamp.github.io/grooph/patterns/index.json";
@@ -42,6 +42,8 @@ export type RegistryEnv = {
   userDir: string;
   /** the built-in library bundled at build time */
   builtinDir: string;
+  /** the plan templates bundled beside it; none are read when this is left out */
+  plansDir?: string;
   /** the remote index consulted when no --registry is given */
   defaultRegistry: string;
   fetch: typeof fetch;
@@ -51,7 +53,8 @@ export function defaultRegistryEnv(): RegistryEnv {
   return {
     cwd: process.cwd(),
     userDir: join(process.env["GROOPH_HOME"] ?? join(homedir(), ".grooph"), "templates"),
-    builtinDir: fileURLToPath(new URL("../patterns/", import.meta.url)),
+    builtinDir: patternsDir(),
+    plansDir: plansDir(),
     defaultRegistry: process.env["GROOPH_REGISTRY"] ?? PUBLISHED_REGISTRY,
     fetch: globalThis.fetch,
   };
@@ -73,11 +76,13 @@ export type Found = {
   location: string;
   doc: Graph;
   entry: TemplateIndexEntry;
+  /** one of the plan templates: a graph a person follows, listed apart from the built-in library and not counted with it */
+  plan?: true;
 };
 
 export type Skipped = { location: string; reason: string };
 
-export type LocalRegistry = { source: Exclude<Source, "remote">; dir: string };
+export type LocalRegistry = { source: Exclude<Source, "remote">; dir: string; plans?: true };
 
 /** The root of the working tree: the nearest folder holding `.git`, else `cwd`. */
 export function workingTreeRoot(cwd: string): string {
@@ -94,6 +99,8 @@ export const localRegistries = (env: RegistryEnv): LocalRegistry[] => [
   { source: "project", dir: projectDir(env) },
   { source: "user", dir: env.userDir },
   { source: "built-in", dir: env.builtinDir },
+  // The plan templates come last: a template of the same id anywhere before them is the one a name finds.
+  ...(env.plansDir !== undefined ? [{ source: "built-in" as const, dir: env.plansDir, plans: true as const }] : []),
 ];
 
 /** Read a template document, or say why it is not one. */
@@ -113,7 +120,7 @@ export function scanFolder(registry: LocalRegistry): { found: Found[]; skipped: 
     const location = join(registry.dir, file);
     const read = readTemplate(readFileSync(location, "utf8"));
     if ("reason" in read) skipped.push({ location, reason: read.reason });
-    else found.push({ source: registry.source, location, doc: read.doc, entry: templateIndexEntry(read.doc, file) });
+    else found.push({ source: registry.source, location, doc: read.doc, entry: templateIndexEntry(read.doc, file), ...(registry.plans === true ? { plan: true as const } : {}) });
   }
   return { found, skipped };
 }

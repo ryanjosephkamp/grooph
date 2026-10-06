@@ -20,19 +20,23 @@ export const TEMPLATE_USAGE = `Usage
 
 A name is a template id. It resolves, first hit wins, in .grooph/templates/ at the root of
 the working tree, then ~/.grooph/templates/ ($GROOPH_HOME/templates), then the built-in
-pattern library, and only then remotely: each --registry <url> (an index.json, or the folder
+pattern library, then the plan templates beside it, and only then remotely: each --registry <url> (an index.json, or the folder
 holding one), or else the published library (${"$"}GROOPH_REGISTRY overrides it).
 
   list     Every local template with its kind, profile and when-to-use line; --registry adds a
            remote registry's. A local template shadows a later one with the same id. --json
            adds each row's index entry, source and location, and \`glyph\`: the path or URL of
            its pre-drawn glyph where the registry keeps one (grooph glyph draws any other).
+           The plan templates (graphs a person follows) are listed last under a heading of their
+           own, Plans, with no profile, since nothing was measured of one; they are not counted
+           with the templates, and --json gives them in a list of their own, \`plans\`.
   show     One template: summary, when to use and not, profile, slots with their questions,
            nodes, edges and loops.
   use      A new graph from a whole-graph template: slots filled from --set, a new id and name
            (--name, else the template's title), version 1, lineage naming the template. At a
            terminal it writes <id>.grooph.json here; piped, it prints the document. --out writes
            that file (never over a file without --force). Questions for unfilled slots go to stderr.
+           For a graph that is a plan, the last line names grooph plan.
   insert   Add a template's nodes, edges, loops and policies to a graph, renaming ids that
            collide (or prefixing them all with --prefix) and printing where each id landed.
            Nothing is connected to the graph's nodes. Dry run unless --write.

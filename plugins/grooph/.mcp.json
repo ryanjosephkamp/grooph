@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "grooph": {
+      "command": "grooph",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}

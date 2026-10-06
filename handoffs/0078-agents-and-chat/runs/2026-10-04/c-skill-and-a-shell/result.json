@@ -1,0 +1,106 @@
+{
+  "duration_api_ms": 42929,
+  "stop_reason": "end_turn",
+  "session_id": "e88e041c-2046-48db-bafa-19d64020757d",
+  "total_cost_usd": 0.12117240000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 16928,
+    "cache_read_input_tokens": 95792,
+    "output_tokens": 3427,
+    "output_tokens_details": {
+      "thinking_tokens": 151
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 16928,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1860,
+        "cache_read_input_tokens": 16693,
+        "cache_creation_input_tokens": 3721,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3721
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 3427,
+      "cacheReadInputTokens": 95792,
+      "cacheCreationInputTokens": 16928,
+      "webSearchRequests": 0,
+      "costUSD": 0.12117240000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 151,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01HAfVbQdzwKN5Ko5wA2Rq2L",
+      "tool_input": {
+        "command": "W=<scratch>/chat-c\nnode scripts/grooph.mjs template use grind-loop --name \"Fix flaky checkout test\" --set task=\"Fix the production code so the flaky checkout test passes reliably. Find the root cause (race, shared state, timing, ordering) in the source. Never edit, skip, retry-wrap, loosen or delete the checkout tests or their fixtures; change only non-test code.\" --set test-command=\"pnpm test checkout\" --out $W/checkout-fix.grooph.json\ncd $W && S=.claude/skills/grooph-chat/scripts/grooph.mjs\nnode $S validate --for-export checkout-fix.grooph.json; node $S explain checkout-fix.grooph.json; grep -n -i \"protect\\|forbid\\|readonly\\|guard\" .claude/skills/grooph-chat/reference/agents.md | head -20"
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I made the graph and checked it: `validate --for-export` found no issues. Nothing has been run or exported.\n\n**Picture:** `Builder → Tests (pnpm test checkout)`. If the tests fail, it goes back to the Builder. If they pass, it goes to Done.\n\n**Link, to open on your phone:**\n\nhttps://ryanjosephkamp.github.io/grooph/#/open?d=bVVNj9s2EP0rA54SQDJ2UfTiXLppmvTSFGhzCwyEFkcWYYkUSGq9xsL_vW9IfXjRwBeT88E3896MXtWz2j9W6mydUXt1CnrsVKWMb9T-FUfvcd4_VMqKubUvddvr87VuOm7Ofkp14pgQ4PTAcPhsXyg70OJAs8Mzh2i9y4-dvO5n59QxjcGbqUmwUuMNU_T5-id5aNQxcqTAvdXH_rqjz8CdvYE0UaOnyPQu6IYrip0ObCgmnXBKdrDuVJEPhgP-vSfrcmD0U2h4R18ZEImNTQg927HCKylc6wtaUlHvfWSHaDLcc-Ic-gZbFCNubSC0KU2B4wd4aHdi8q6_kvMudysXuaNP3jFdOiT9MbpxKPUtGX_Mle7QuaTDiZPQgYIcx4jWNb2eDNeSSd0q1VvH-sTiM-qUOLjMJXpTA_iIJG3ww5u73x4l0HBsgh1TZkY90XGyPfoz446lSuFEo826wKMwuWLJZe_oiVptexRMJ4-Yo4ZPKhwu-S42dWsIocBxSh-QUKokdqbkQ-IdfVsaS7bcHnWoZk3gCVw6TwCdbFOcpRqw7MdIOpEFEcFPgNvoUSiRC5AvWAz6SLbdsJPLpAsK6bRDpeju99ei9hm8WqcDLXZ3Yv-42oPv-U3AgEy90JEszhgcjSFAv7ltfQCXaoDQpgGex2C5xcVf-lxElXRE-8IEwNfCA9S6ElGRNiZfZPyX3BMYrwSx02BjhFHEhS6lWccXRu577epCAziShhQWdvS3w98ewxJKAysZnZBIpFMGEizL04U-uvopPwqIhs2O_uERtQGSLraiIZOlc-ls0y0995e149Yhk7RcLaWLVud37rRC7zKKQuwj5um9OlSq2Nbw8iAS_P7n09cvf_y7G8y-wFmgpM4u6iiorpJG972_SJLA2tSt7SECUIVNsB6gzDy7UR1u1SyPcl7FkTW7iePbbC3XUMLstkQhI07_n3yYpDmw8Ystu4IeMlrIPnsKqSMbdVuRGKySDYiMwobjU7Ehc-PzRZyaRpbI7SA1nu4Fz_Ws4HpBOa-NTdjJrzWsz3Nxr4W3LWZJkSO2BLLx8kBkX362hl3DmcKN7rsuL8lzU36efC5_zpwdpTjZC3fF5dW39eXLfBx4OOLTJADuqixUYzq1kPf9bYmHMt93OfP2yU_NHAz6pbaYJC2bVYAC2a9S02wvuyg_ryM2p4RYN6Usth6fKuyIXx5uB_xu_wE\n\nThe link is 1,268 characters. If a messenger cuts it off, use **Import** in the app with the `.grooph.json` file, or **Paste a document** with its text.\n\n**What stops it**\n- **Rounds:** at most 5 build-and-test rounds.\n- **Time:** 30 minutes. If either limit is hit, the run halts and reports to you.\n- **Human gates:** none. The graph never merges or publishes anything.\n\n**How it avoids weakening the test**\n- The Builder's brief tells it to find the root cause in the source. It says never to edit, skip, retry-wrap, loosen or delete the checkout tests or their fixtures.\n- The pass condition is the real command, `pnpm test checkout`, which the Builder doesn't control.\n- That rule is in the brief only. grooph has no mechanism that blocks edits to test files. Before you merge, check `git diff` for changes under the test paths. If you want it enforced, run it in a harness with those paths read-only.\n\n**A limit with flaky tests:** a single green run can be luck. A pass here means the command passed once. If you want more confidence, I can change the check to run the suite several times, for example `pnpm test checkout` three times in a row. Tell me the command you want and I'll regenerate the graph.\n\n**Files** in `<scratch>/chat-c/`:\n- `checkout-fix.grooph.json`\n- `checkout-fix.svg`\n\nI didn't use a critic. Passing tests is the definition of done for this task, so a critic would only add cost.",
+  "ttft_ms": 1326,
+  "type": "result",
+  "duration_ms": 46376,
+  "uuid": "b1aa32bf-123a-4195-aec0-94fe4e588933",
+  "ttft_stream_ms": 1178,
+  "time_to_request_ms": 32,
+  "first_content_frame_ms": 1178,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

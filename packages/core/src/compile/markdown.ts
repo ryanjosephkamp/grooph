@@ -31,7 +31,15 @@ export function firstSentence(text: string): string {
   return sentence;
 }
 
+/**
+ * What a header's line cannot hold, or a YAML reader will not take: whitespace of every kind, the control
+ * characters (U+0000 to U+001F, and U+007F to U+009F, which has U+0085, a line break to YAML), the line and
+ * paragraph separators, a surrogate with no pair, and U+FFFE and U+FFFF. `\s` alone leaves most of these.
+ */
+export const HEADER_FOLD = /[\s\p{Cc}\p{Cs}\u2028\u2029\ufffe\uffff]+/gu;
+
+/** A header value of free text (a description), on one line: every run of what `HEADER_FOLD` names becomes one space. */
 export const quoteYaml = (text: string): string => {
-  const single = text.replace(/\s+/g, " ").trim();
+  const single = text.replace(HEADER_FOLD, " ").trim();
   return /^[A-Za-z0-9][A-Za-z0-9 ,.'·/()-]*$/.test(single) ? single : JSON.stringify(single);
 };

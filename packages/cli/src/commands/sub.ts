@@ -49,8 +49,8 @@ nodes of the one document. Nothing is fetched or inlined when a package is compi
            nodes it holds, and the edges that lead in and out. --json prints the same as data.
   update   What a newer version of its template would change in each subgrooph (or in the ones
            named), then the graph with those changes. A change that removes or loosens a brake
-           (a human gate, an approval, an irreversible marker, a budget or a round cap, a bar's
-           acceptance, critic isolation, a check) is listed first and NOT applied unless you ask
+           (a human gate, an approval, an irreversible marker, a loop's round cap and budget, a
+           bar's acceptance, critic isolation, a check) is listed first and NOT applied unless you ask
            for it by its name with --allow. The brakes are compared on the whole graph as it would
            be written, so one cannot be shed under a new id or in two changes: what a run could
            reach only by a gate, an approval, a critic's verdict or a check's, it may not reach

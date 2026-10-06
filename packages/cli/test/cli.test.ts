@@ -262,11 +262,15 @@ test("a machine's tier map is one harness's: GROOPH_MODELS is never read for Cod
     const codexUnderClaudeMap = await exported("codex", { GROOPH_MODELS: claudeMap });
     assert.equal(codexUnderClaudeMap.model, "gpt-6-luna");
     assert.doesNotMatch(codexUnderClaudeMap.all, /claude-map-strong|opus|haiku/);
-    assert.doesNotMatch(codexUnderClaudeMap.out, /Named by|tiers in this package/);
+    // (The tier line is printed every time since slice 0078, on the driver's decision: what is asserted is that it
+    // names no map, and names this target's own variable as the way to give one.)
+    assert.doesNotMatch(codexUnderClaudeMap.out, /Named by|claude-map-strong|GROOPH_MODELS\b(?!_CODEX)/);
+    assert.match(codexUnderClaudeMap.out, /^tiers in this package: .*No tier map was given \(--models, or GROOPH_MODELS_CODEX\)\./m);
     const claudeUnderCodexMap = await exported("claude-code", { GROOPH_MODELS_CODEX: codexMap });
     assert.equal(claudeUnderCodexMap.model, "sonnet");
     assert.doesNotMatch(claudeUnderCodexMap.all, /codex-map-strong|gpt-/);
-    assert.doesNotMatch(claudeUnderCodexMap.out, /Named by|tiers in this package/);
+    assert.doesNotMatch(claudeUnderCodexMap.out, /Named by|codex-map-strong|GROOPH_MODELS_CODEX/);
+    assert.match(claudeUnderCodexMap.out, /^tiers in this package: .*No tier map was given \(--models, or GROOPH_MODELS\)\./m);
     // Each read for its own target, and said by its own name.
     const codexOwn = await exported("codex", { GROOPH_MODELS: claudeMap, GROOPH_MODELS_CODEX: codexMap });
     assert.equal(codexOwn.model, "codex-map-strong");

@@ -48,6 +48,30 @@ export class CompileError extends Error {
   }
 }
 
+/**
+ * The folders under `.grooph/` that grooph keeps for something else. A package lives in `.grooph/<graph id>/`, so a
+ * graph with one of these ids would be placed among the saved graphs, the proposal sets, the templates, the events
+ * or the hooks; and the graph a package keeps would sit where a saved graph may be written by anyone.
+ */
+const KEPT_FOLDERS: Record<string, string> = {
+  graphs: "saved graphs",
+  proposals: "proposal sets",
+  templates: "the project's templates",
+  events: "what the event hook records",
+  hooks: "the event hook",
+};
+
+/**
+ * Why a graph with this id is not exported, as one sentence, or undefined when it is. Not a rule of the document
+ * (it has no code, and `validate` does not know it): a fact about where a package is placed. It is here so the
+ * command line, the MCP tool and the app refuse in the same words.
+ */
+export function keptFolder(id: string): string | undefined {
+  return Object.hasOwn(KEPT_FOLDERS, id)
+    ? `A graph with the id "${id}" is not exported: its package would be placed in .grooph/${id}/, the folder grooph keeps ${KEPT_FOLDERS[id]} in.`
+    : undefined;
+}
+
 export function compile(doc: Graph, target: CompileTarget, options: CompileOptions = {}): CompileResult {
   const parsed = parseGraph(doc);
   if (!parsed.doc) throw new CompileError(parsed.issues);

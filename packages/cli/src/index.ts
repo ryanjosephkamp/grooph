@@ -5,15 +5,18 @@
  * Exit codes: 0 fine · 1 the document is wrong, or the invocation is · 2 a crash.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { homedir } from "node:os";
+import { parse, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { KNOWN_TARGETS, PICTURE_THEMES, TemplateError, readTheme, type CompileTarget } from "@grooph/core";
+import { KNOWN_TARGETS, PICTURE_THEMES, TemplateError, parseGraphText, readTheme, type CompileTarget } from "@grooph/core";
 
+import { oneLine } from "./reply.js";
 import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
-import { MODELS_ENV, exportCommand, parseModels } from "./commands/export.js";
+import { MODELS_ENV, PLAN_STILL, exportCommand, parseModels } from "./commands/export.js";
 import { explainCommand } from "./commands/explain.js";
 import { APPLY_HELP, CANONICALIZE_HELP, EXPLAIN_HELP, EXPORT_HELP, NEW_HELP, VALIDATE_HELP, nearestCommand, overview } from "./commands/help.js";
 import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
@@ -21,6 +24,7 @@ import { eventsCommand, hooksCommand, sessionsCommand, EVENTS_HELP, HOOKS_HELP, 
 import { imageCommand, outlineCommand, pageCommand, IMAGE_HELP, OUTLINE_HELP, PAGE_HELP } from "./commands/image.js";
 import { newCommand } from "./commands/new.js";
 import { pickCommand, PICK_HELP } from "./commands/pick.js";
+import { planCommand, PLAN_HELP } from "./commands/plan.js";
 import { runsBundleCommand, runsListCommand, runsShowCommand, RUNS_HELP } from "./commands/runs.js";
 import { shapeCommand, SHAPE_HELP } from "./commands/shape.js";
 import { embedCommand, EMBED_HELP } from "./commands/embed.js";
@@ -41,7 +45,7 @@ import { LoadError, openUrl, type OpenUrl } from "./share-io.js";
  */
 export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv; /** where the command is run from, when not the process's own folder */ cwd?: string };
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.4.0";
 
 export async function run(
   argv: string[],
@@ -75,7 +79,8 @@ export async function run(
 
   /** A wrong invocation: the message, the command's usage line, and where the full page is. */
   const usageError = (out: Output, message: string): number => {
-    out.err(`grooph: ${message}`);
+    // The message echoes what was typed (an option, a target, a tier): one line, whatever it holds.
+    out.err(oneLine(`grooph: ${message}`));
     const first = (COMMAND_HELP[command] ?? "").split("\n")[0];
     out.err(first ? `Usage: ${first}` : `Usage: grooph <command> (grooph --help lists them)`);
     if (COMMAND_HELP[command] !== undefined) out.err(`More: grooph help ${command}`);
@@ -161,7 +166,7 @@ export async function run(
         const { positionals, values } = parseArgs({
           args: rest,
           allowPositionals: true,
-          options: { target: { type: "string" }, into: { type: "string" }, models: { type: "string" } },
+          options: { target: { type: "string" }, into: { type: "string" }, models: { type: "string" }, "change-models": { type: "boolean" }, allow: { type: "string", multiple: true }, uncompared: { type: "boolean" } },
         });
         const file = positionals[0];
         if (file === undefined) {
@@ -180,11 +185,20 @@ export async function run(
         if (tierMap && "error" in tierMap) return usageError(io, `${modelsFrom}: ${tierMap.error}`);
         if (target === undefined) return usageError(io, `export needs --target (${KNOWN_TARGETS.join(", ")})`);
         if (!KNOWN_TARGETS.includes(target)) {
-          return usageError(io, `unknown target "${target}"; known targets: ${KNOWN_TARGETS.join(", ")}`);
+          // A harness grooph has no compiler for: no package, and the document is a plan as it is.
+          const code = usageError(io, `unknown target "${target}"; known targets: ${KNOWN_TARGETS.join(", ")}`);
+          let reads = false;
+          try {
+            reads = parseGraphText(readFileSync(file, "utf8")).doc !== undefined;
+          } catch {
+            reads = false;
+          }
+          if (reads) io.err(oneLine(PLAN_STILL(file)));
+          return code;
         }
         const into = values["into"];
-        if (into === undefined) return usageError(io, "export needs --into <dir>, the project to write the package into");
-        return exportCommand(io, file, { target: target as CompileTarget, into, ...(tierMap ? { models: tierMap.models, modelsFrom } : {}) });
+        if (into === undefined || into === "") return usageError(io, "export needs --into <dir>, the project to write the package into");
+        return exportCommand(io, file, { target: target as CompileTarget, into, ...(tierMap ? { models: tierMap.models, modelsFrom } : {}), changeModels: values["change-models"] === true, allow: values["allow"] ?? [], uncompared: values["uncompared"] === true });
       }
 
       case "shape": {
@@ -312,6 +326,14 @@ export async function run(
         return pickCommand(io, file, name.join(" "), { out, force: values["force"] === true });
       }
 
+      case "plan": {
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { into: { type: "string" }, force: { type: "boolean" } } });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "plan needs a file: grooph plan <graph> [--into <dir>]");
+        if (values["into"] === "") return usageError(io, "--into needs a folder to write the plan into");
+        return planCommand(io, file, { ...(values["into"] !== undefined ? { into: values["into"] } : {}), force: values["force"] === true });
+      }
+
       case "runs": {
         const [sub, ...args] = rest;
         const { positionals, values } = parseArgs({
@@ -393,13 +415,31 @@ export async function run(
       }
 
       case "mcp": {
-        const { values } = parseArgs({ args: rest, allowPositionals: false, options: { dir: { type: "string" }, harness: { type: "string" } } });
+        const { values } = parseArgs({ args: rest, allowPositionals: false, options: { dir: { type: "string" }, harness: { type: "string" }, chat: { type: "boolean" } } });
+        const chat = values["chat"] === true;
+        if (chat && values["dir"] !== undefined) return usageError(io, "--chat reads and writes no file, so it takes no --dir; leave one of them out");
         const e = env.env ?? process.env;
-        const project = values["dir"] ?? e["CLAUDE_PROJECT_DIR"] ?? process.cwd();
+        // An empty --dir or an empty CLAUDE_PROJECT_DIR names no folder, and counts as none.
+        const given = (dir: string | undefined): string | undefined => (dir !== undefined && dir.trim() !== "" ? dir : undefined);
+        const flag = given(values["dir"]);
+        const project = resolve(flag ?? given(e["CLAUDE_PROJECT_DIR"]) ?? process.cwd());
+        // A chat app starts a server wherever it likes, often in the file system's root or the home folder. A folder
+        // nobody chose is not a project: there the tools still return every document, and write no file. Only --dir
+        // can choose the root or home; a harness's variable pointing there is where it happened to start, not a choice.
+        // Folders are compared by real location, so a home reached through a link is still home.
+        const real = (dir: string): string => {
+          try {
+            return realpathSync.native(dir);
+          } catch {
+            return resolve(dir);
+          }
+        };
+        const nowhere = real(project) === parse(real(project)).root || real(project) === real(homedir());
+        const writes = !chat && (flag !== undefined || !nowhere);
         // The harness does not always tell an MCP server which session it serves; then the id is this server's own.
         const session = e["CLAUDE_CODE_SESSION_ID"] ?? e["CODEX_SESSION_ID"] ?? `mcp-${Date.now().toString(36)}-${process.pid}`;
         const harness = values["harness"] ?? (e["CLAUDECODE"] ? "claude-code" : e["CODEX_HOME"] || e["CODEX_SESSION_ID"] ? "codex" : "unknown");
-        await serveMcp({ project, version: VERSION, harness, session, now: () => new Date() });
+        await serveMcp({ project, writes, env: e, ...(chat ? { chat } : {}), version: VERSION, harness: chat && values["harness"] === undefined ? "chat" : harness, session, now: () => new Date() });
         return 0;
       }
 
@@ -438,31 +478,64 @@ export async function run(
       return 1;
     }
     const error = err as NodeJS.ErrnoException;
+    // A file's name is echoed as it was typed: one line, whatever it holds.
     if (error.code === "ENOENT") {
-      io.err(`grooph: no such file: ${error.path ?? "(unknown)"}`);
+      io.err(oneLine(`grooph: no such file: ${error.path ?? "(unknown)"}`));
+      return 1;
+    }
+    if (error.code === "KEPT_GRAPH") {
+      io.err(oneLine(`grooph: ${error.message}`));
       return 1;
     }
     if (error.name === "TypeError" && /Unknown option|Option/.test(error.message)) {
       return usageError(io, error.message);
     }
-    io.err(`grooph: ${error.message}`);
+    io.err(oneLine(`grooph: ${error.message}`));
     return 2;
   }
 }
 
-const MCP_HELP = `grooph mcp [--dir <project>] [--harness <name>]
+const MCP_HELP = `grooph mcp [--dir <project>] [--harness <name>] [--chat]
 
-Run grooph's MCP server on standard input and output, for a coding session to call. Four
-tools, all of which record or report and none of which starts or changes anything:
+Run grooph's MCP server on standard input and output, for an agent to call: in a coding
+session, or in a chat app that runs local servers. No model is called and nothing leaves
+the machine.
+
+To author a graph with tool calls alone (docs/agents.md). A document goes in and comes
+back as JSON, so no file has to exist; path reads a file and out writes one:
+
+  grooph_templates      the library with when to use each; one template in full by id
+  grooph_use_template   a graph from a template: id, name, slot values
+  grooph_new            an empty graph
+  grooph_apply          a graph and typed operations: the graph, or the failing one by index
+  grooph_validate       the issues by code, with what to do about each
+  grooph_explain        its brakes: rounds, budgets, who must say go, the worst case
+  grooph_shape          counts and brakes on one line
+  grooph_share          a link the app opens on any device, and the embed line
+  grooph_picture        the picture as SVG text, and a PNG when asked
+  grooph_export_plan    a plan for people to follow: PLAN.md, the picture, the document
+  grooph_export         the prompt package's files, returned or written into the project
+
+For a session's lead, beside what the event hook sees (docs/subagents.md §7):
 
   grooph_plan      declare the subagents the session is about to start
   grooph_note      leave a short note for whoever is watching
   grooph_running   what the event hook has seen: sessions, subagents, what is running,
                    and each declared plan with how much of it has started
-  grooph_validate  check a graph or an operation map file
 
-A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl, beside the
-hook's files, and shown with the session in grooph watch --sessions and grooph sessions.
+A tool writes a file only when it is given a name for one, only inside the project folder,
+never under .git and never through a link. A graph is saved as <name>.grooph.json. A file
+already there is replaced only when it is the graph the call read, a picture grooph drew,
+or a package's files as grooph last wrote them; anything else needs "replace": true.
+A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl.
+The graph a package keeps (.grooph/<id>/graph.grooph.json) is written only by grooph_export.
+grooph_export reads the target's own tier variable from the server's environment (GROOPH_MODELS
+for claude-code, GROOPH_MODELS_CODEX for codex; neither for the other), lays the call's own "models"
+over it, says what every tier means, and asks before it changes the model of an agent file
+already in place. Over a package in place for the same graph id, while the graph that
+package keeps reads, it also lists each change that may remove or loosen a brake of that graph,
+and places it only when that change is named in "allow"; the reply's "brakes:" line says whether
+a comparison was made.
 
 Add it to a harness:
   Claude Code   claude mcp add grooph -- grooph mcp
@@ -470,11 +543,16 @@ Add it to a harness:
   Codex         in ~/.codex/config.toml:  [mcp_servers.grooph]
                                           command = "grooph"
                                           args = ["mcp", "--harness", "codex"]
+  Claude's desktop app, in a chat (docs/chat.md), in claude_desktop_config.json:
+                { "mcpServers": { "grooph": { "command": "npx", "args": ["-y", "grooph", "mcp", "--chat"] } } }
 
-  --dir <project>   the project (default: CLAUDE_PROJECT_DIR, else the folder it starts in)
+  --dir <project>   the project (default: CLAUDE_PROJECT_DIR, else the folder it starts in).
+                    When that is the file system's root or a home folder and no --dir said
+                    so, the tools return every document and write no file.
   --harness <name>  claude-code or codex, when it cannot be told from the environment
-
-No model is called and nothing leaves the machine. docs/subagents.md §7.`;
+  --chat            for a chat app: only the authoring tools, and no file of yours is read
+                    or written; a document goes in as an argument, and every document,
+                    picture and package comes back in the reply`;
 
 /** `grooph <command> --help`: the command's own page where it has one, else the overview. */
 const COMMAND_HELP: Record<string, string> = {
@@ -492,6 +570,7 @@ const COMMAND_HELP: Record<string, string> = {
   adopt: ADOPT_HELP,
   watch: WATCH_HELP,
   pick: PICK_HELP,
+  plan: PLAN_HELP,
   shape: SHAPE_HELP,
   glyph: GLYPH_HELP,
   mermaid: MERMAID_HELP,

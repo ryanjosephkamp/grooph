@@ -18,7 +18,7 @@ Start
 
 Check
   validate     check a graph or an operation map; say what to fix
-  explain      what bounds a graph: rounds, budgets, gates, worst case
+  explain      what a graph's brakes are: rounds, budgets, gates, worst case
   shape        counts and brakes at a glance
   canonicalize print or rewrite a document in canonical form
 
@@ -27,6 +27,7 @@ Compile
   adopt        take a run's working copy as the graph's next version
 
 See
+  plan         a plan for people to follow: PLAN.md, the picture and the document
   image        a picture of a graph or map, SVG or PNG
   outline      the whole document as Markdown to read
   page         one offline HTML file with a viewer
@@ -45,7 +46,7 @@ Share
   share        a link that opens a graph, set, run or map in the app
   embed        one line of HTML that shows a graph on any page
 
-First time? docs/quickstart.md.   grooph --version prints the version.
+First time? https://ryanjosephkamp.github.io/grooph/docs/quickstart/   grooph --version prints the version.
 ```
 
 ## `grooph new`
@@ -79,19 +80,23 @@ Usage
 
 A name is a template id. It resolves, first hit wins, in .grooph/templates/ at the root of
 the working tree, then ~/.grooph/templates/ ($GROOPH_HOME/templates), then the built-in
-pattern library, and only then remotely: each --registry <url> (an index.json, or the folder
+pattern library, then the plan templates beside it, and only then remotely: each --registry <url> (an index.json, or the folder
 holding one), or else the published library ($GROOPH_REGISTRY overrides it).
 
   list     Every local template with its kind, profile and when-to-use line; --registry adds a
            remote registry's. A local template shadows a later one with the same id. --json
            adds each row's index entry, source and location, and `glyph`: the path or URL of
            its pre-drawn glyph where the registry keeps one (grooph glyph draws any other).
+           The plan templates (graphs a person follows) are listed last under a heading of their
+           own, Plans, with no profile, since nothing was measured of one; they are not counted
+           with the templates, and --json gives them in a list of their own, `plans`.
   show     One template: summary, when to use and not, profile, slots with their questions,
            nodes, edges and loops.
   use      A new graph from a whole-graph template: slots filled from --set, a new id and name
            (--name, else the template's title), version 1, lineage naming the template. At a
            terminal it writes <id>.grooph.json here; piped, it prints the document. --out writes
            that file (never over a file without --force). Questions for unfilled slots go to stderr.
+           For a graph that is a plan, the last line names grooph plan.
   insert   Add a template's nodes, edges, loops and policies to a graph, renaming ids that
            collide (or prefixing them all with --prefix) and printing where each id landed.
            Nothing is connected to the graph's nodes. Dry run unless --write.
@@ -131,8 +136,8 @@ nodes of the one document. Nothing is fetched or inlined when a package is compi
            nodes it holds, and the edges that lead in and out. --json prints the same as data.
   update   What a newer version of its template would change in each subgrooph (or in the ones
            named), then the graph with those changes. A change that removes or loosens a brake
-           (a human gate, an approval, an irreversible marker, a budget or a round cap, a bar's
-           acceptance, critic isolation, a check) is listed first and NOT applied unless you ask
+           (a human gate, an approval, an irreversible marker, a loop's round cap and budget, a
+           bar's acceptance, critic isolation, a check) is listed first and NOT applied unless you ask
            for it by its name with --allow. The brakes are compared on the whole graph as it would
            be written, so one cannot be shed under a new id or in two changes: what a run could
            reach only by a gate, an approval, a critic's verdict or a check's, it may not reach
@@ -164,6 +169,10 @@ packages/core/README.md), read from a file or from stdin with --ops -. All or no
 that cannot apply is named and nothing is written. Prints the resulting issues; --write saves
 the result in canonical form (never one that fails the schema). Exits 1 while errors remain.
 
+The graph a package keeps (.grooph/<id>/graph.grooph.json) is not written by apply, or by any
+command but export: an export compares the next graph with it (grooph export --help). Work on a
+copy of your own, .grooph/graphs/<id>.grooph.json by habit, and export that.
+
 Example
   echo '[{"op":"addNode","kind":"agent","name":"Builder"}]' | grooph apply g.grooph.json --ops - --write
 ```
@@ -175,11 +184,13 @@ Write one candidate of a proposal set out as a graph.
 ```text
 grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
 
-Write the owner's chosen candidate out as an ordinary graph document, ready for
-grooph export. The candidate is named by its id or its label, ignoring case; a name that
-matches one candidate's id and another's label is refused as ambiguous. The graph is
-validated for export first and nothing is written while it has errors. An existing --out
-is replaced only with --force (or when it already holds the same graph).
+Write the owner's chosen candidate out as an ordinary graph document. The candidate is
+named by its id or its label, ignoring case; a name that matches one candidate's id and
+another's label is refused as ambiguous. The graph is checked first and nothing is written
+while it has errors. A candidate with a step that is a person's, or one that names no
+harness, is a plan: what only a package would ask of it is no error of it, so it is picked
+like any other, and the command says so and that grooph plan exports it. An existing --out is replaced only with --force
+(or when it already holds the same graph).
 ```
 
 ## `grooph validate`
@@ -201,12 +212,12 @@ Example
 
 ## `grooph explain`
 
-What bounds a graph: rounds, budgets, gates, worst case.
+What a graph's brakes are: rounds, budgets, gates, worst case.
 
 ```text
 grooph explain <file> [--json]
 
-Say in plain words what bounds a graph: for each loop, how many rounds at most, its budget and
+Say in plain words what a graph's brakes are: for each loop, how many rounds at most, its budget and
 what happens at each stop; every human gate and what it guards; and the worst case in one line.
 It adds no rule: it reads what the validator reads. --json gives the same as data.
 
@@ -248,15 +259,18 @@ Example
 Write the prompt package for a harness (claude-code, codex)
 
 ```text
-grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...]
+grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...] [--change-models] [--allow <change>]... [--uncompared]
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
 Refuses, with the reasons, when the document has errors. Targets: claude-code, codex.
+It says what each tier means in the package every time, and names each pin.
 A package is one harness's files: --target is the harness the document names (target.harness),
 and a document that names another is refused (E_NO_TARGET) until it names this one:
   echo '[{"op":"setTarget","harness":"codex"}]' | grooph apply flaky.grooph.json --ops - --write
   grooph export flaky.grooph.json --target codex --into <a project that does not hold its claude-code package>
 Two packages of one graph in one folder are a mixed package: export does not yet notice the other's files.
+It does read the graph the package there keeps: where that names the other harness, it says so, writes
+nothing, and waits for --uncompared.
 
   --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
                                 A tier not named keeps the target's own; a pin on a node still wins.
@@ -264,6 +278,54 @@ Two packages of one graph in one folder are a mixed package: export does not yet
                                 for claude-code on a machine, and GROOPH_MODELS_CODEX for every
                                 export for codex: a model's name is one harness's, so neither is
                                 read for the other target. The flag wins. The graph does not change.
+  --change-models               go ahead when the export would change the model of an agent file
+                                already in <dir>, or cannot read one for its model (a header not in
+                                the plain form grooph writes). Without it such an export stops, lists
+                                each file with its model before and after, and writes nothing.
+  --allow <change>              place a change that may remove or loosen a brake of the graph the
+                                package in <dir> keeps, by the name a refused export lists it under
+                                (loop:review.stops); repeatable
+  --uncompared                  place the graph where a package is in <dir> and nothing can be
+                                compared (see below)
+
+The brakes. A package keeps the graph it was written from (.grooph/<id>/graph.grooph.json). Over a
+package already in <dir> for the same graph id, the graph coming in is held to that graph's brakes,
+by the comparison grooph adopt makes (grooph adopt --help): a loop's round cap or budget raised, a
+gate or an approval gone, a bar's acceptance changed, a critic's isolation dropped, a check changed
+or removed. Each such change
+is listed with its reason, nothing is written, and the exit code is 1, until each is asked for with
+--allow. The comparison cannot tell a stricter wording or a renamed part from a looser one, so it
+lists those too. A brake is removed or loosened only on a person's word: an agent that meets the
+refusal puts each listed change to the person, and adds --allow only for the ones they said yes to.
+
+The kept graph is a baseline only while it can be read as a graph, is this package's own, and the
+lead's brief and the mapping notes in the package are what it compiles to. Where it is gone, cannot
+be read as this package's graph, or does not match those two files (it was changed by hand, one of
+them was, or another version of grooph wrote the package), nothing is called compared: the export
+writes nothing and says why, and --uncompared places the graph on a person's word. What still reads
+as loosened against a changed kept graph is held by name as well. A first export, and a graph under
+a new id (a second package beside the first), compare nothing and need no flag. No command of
+grooph's but export writes a kept graph: apply and the others refuse it.
+
+The last line of the output opens "brakes:" and says which of these happened. The kickoff is the
+graph's own words and may hold any line: it runs from the line after "Kickoff" to the line before
+that last line, which is always grooph's own.
+
+What the comparison holds and what it does not is in docs/runs.md, "What adoption does not hold";
+it does not see the graph's own constraints (its budget line among them) or an edge's retry and
+concurrency. "None of the brakes it compares" is all the last line says after a comparison. And the
+baseline is not a seal: a hand that rewrites
+the kept graph together with the brief and the mapping notes is not seen, nor is one that takes an
+irreversible marker off the kept graph, which neither file shows.
+
+An agent's file is named <graph id>--<node id>. Where this graph would write one that another
+package in <dir> has as its own, nothing is written.
+
+Every file is written inside <dir> by where it really is, never through a link at the file's own
+place, and the package is placed whole or not at all.
+
+A graph whose id is graphs, proposals, templates, events or hooks is not exported: a package lives in
+.grooph/<id>/, and grooph keeps those folders for something else.
 
 The targets' own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet; for codex: frontier → gpt-6.1-sol, strong → gpt-6-luna, fast → gpt-6-luna.
 In each, two of them are one model, so a critic on one over a builder on the other is the same model:
@@ -292,9 +354,11 @@ write. Nothing is written without --write; the source the package placed is neve
   --write               write it
 
 A run may tighten a brake and never loosen one: a human gate, an approval, an irreversible
-marker, a round cap, a budget, the stop where a person is asked, a bar's acceptance, critic
-isolation, a check (what it runs, what counts as a pass, where its verdicts lead), the
-adaptation level. The working copy is compared with the source on the whole
+marker, a loop's round cap and budget, the stop where a person is asked, a bar's acceptance,
+critic isolation, a check (what it runs, what counts as a pass, where its verdicts lead), the
+adaptation level. The comparison does not see the graph's own constraints (its budget line among
+them) or an edge's retry and concurrency; what else it does not hold is in docs/runs.md, "What
+adoption does not hold". The working copy is compared with the source on the whole
 graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
 with its reasons, and --write is refused until each is asked for with --allow; one that
 tightens is adopted with the rest, and said. A way round a loop that a person newly opens
@@ -304,7 +368,51 @@ person's decisions. What is compared and what is not: docs/templates.md, "Refres
 
 Refused when the working copy has errors that block export, and --write is refused when the
 source moved on after the run started, or the target already holds another version: adopting
-then would undo someone's change. Re-export the new version to place it for the next run.
+then would undo someone's change. Re-export the new version to place it for the next run: the
+export holds it to the package's brakes again (grooph export --help), so the line adopt prints
+carries the same --allow names.
+```
+
+## `grooph plan`
+
+A plan for people to follow: PLAN.md, the picture and the document.
+
+```text
+grooph plan <graph> [--into <dir>] [--force]
+
+Write a plan of a graph: something for people to read and follow, whether or not a coding
+harness could run it. Three files:
+  PLAN.md             who does what, what has to be fixed before a harness can run it, then
+                      every step in full
+  <id>.svg            the picture, as grooph image draws it
+  <id>.grooph.json    the document in canonical form: the one to edit
+
+Any document that reads as a graph gets its plan: one with no harness named, no goal, or an
+error of its own. Each such finding is printed, and written into PLAN.md under "To fix before a
+harness can run this". The exit code is 0 when the files were written. Only a document that does
+not match the schema gets none, since nothing can draw it.
+
+A plan is not a package: it has no lead's brief, no agent files and no kickoff, and nothing in
+it is handed to a harness. grooph export writes a package, and only for a graph with no error.
+
+  --into <dir>   the folder to write into. Default: <id>-plan in the current folder.
+                 No part of the way to it may begin with a dot: a plan is for people to
+                 read, and those folders (.git, .claude, .codex) are a tool's.
+  --force        replace a file already there that is not this plan's: a PLAN.md grooph did not
+                 write for this graph, a picture grooph did not draw, a copy of the graph that
+                 differs from the one given and is not the file given, or a file that cannot
+                 be read. Without it such a file stops the command, and nothing is written.
+
+PLAN.md says the copy of the graph beside it is the one to edit. To bring the plan up to date
+after editing it, make the plan from that copy: grooph plan <dir>/<id>.grooph.json --into <dir>.
+PLAN.md and the picture are drawn again from the graph each time: what a person adds to them is
+not kept, so notes belong in the graph or in a file of their own.
+
+The graph a package keeps (.grooph/<id>/graph.grooph.json) is never written by this command.
+
+Examples
+  grooph plan study.grooph.json
+  grooph plan study.grooph.json --into docs/study-plan
 ```
 
 ## `grooph image`
@@ -620,19 +728,47 @@ Read them elsewhere, after a fetch:
 An MCP server for a session to call.
 
 ```text
-grooph mcp [--dir <project>] [--harness <name>]
+grooph mcp [--dir <project>] [--harness <name>] [--chat]
 
-Run grooph's MCP server on standard input and output, for a coding session to call. Four
-tools, all of which record or report and none of which starts or changes anything:
+Run grooph's MCP server on standard input and output, for an agent to call: in a coding
+session, or in a chat app that runs local servers. No model is called and nothing leaves
+the machine.
+
+To author a graph with tool calls alone (docs/agents.md). A document goes in and comes
+back as JSON, so no file has to exist; path reads a file and out writes one:
+
+  grooph_templates      the library with when to use each; one template in full by id
+  grooph_use_template   a graph from a template: id, name, slot values
+  grooph_new            an empty graph
+  grooph_apply          a graph and typed operations: the graph, or the failing one by index
+  grooph_validate       the issues by code, with what to do about each
+  grooph_explain        its brakes: rounds, budgets, who must say go, the worst case
+  grooph_shape          counts and brakes on one line
+  grooph_share          a link the app opens on any device, and the embed line
+  grooph_picture        the picture as SVG text, and a PNG when asked
+  grooph_export_plan    a plan for people to follow: PLAN.md, the picture, the document
+  grooph_export         the prompt package's files, returned or written into the project
+
+For a session's lead, beside what the event hook sees (docs/subagents.md §7):
 
   grooph_plan      declare the subagents the session is about to start
   grooph_note      leave a short note for whoever is watching
   grooph_running   what the event hook has seen: sessions, subagents, what is running,
                    and each declared plan with how much of it has started
-  grooph_validate  check a graph or an operation map file
 
-A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl, beside the
-hook's files, and shown with the session in grooph watch --sessions and grooph sessions.
+A tool writes a file only when it is given a name for one, only inside the project folder,
+never under .git and never through a link. A graph is saved as <name>.grooph.json. A file
+already there is replaced only when it is the graph the call read, a picture grooph drew,
+or a package's files as grooph last wrote them; anything else needs "replace": true.
+A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl.
+The graph a package keeps (.grooph/<id>/graph.grooph.json) is written only by grooph_export.
+grooph_export reads the target's own tier variable from the server's environment (GROOPH_MODELS
+for claude-code, GROOPH_MODELS_CODEX for codex; neither for the other), lays the call's own "models"
+over it, says what every tier means, and asks before it changes the model of an agent file
+already in place. Over a package in place for the same graph id, while the graph that
+package keeps reads, it also lists each change that may remove or loosen a brake of that graph,
+and places it only when that change is named in "allow"; the reply's "brakes:" line says whether
+a comparison was made.
 
 Add it to a harness:
   Claude Code   claude mcp add grooph -- grooph mcp
@@ -640,11 +776,16 @@ Add it to a harness:
   Codex         in ~/.codex/config.toml:  [mcp_servers.grooph]
                                           command = "grooph"
                                           args = ["mcp", "--harness", "codex"]
+  Claude's desktop app, in a chat (docs/chat.md), in claude_desktop_config.json:
+                { "mcpServers": { "grooph": { "command": "npx", "args": ["-y", "grooph", "mcp", "--chat"] } } }
 
-  --dir <project>   the project (default: CLAUDE_PROJECT_DIR, else the folder it starts in)
+  --dir <project>   the project (default: CLAUDE_PROJECT_DIR, else the folder it starts in).
+                    When that is the file system's root or a home folder and no --dir said
+                    so, the tools return every document and write no file.
   --harness <name>  claude-code or codex, when it cannot be told from the environment
-
-No model is called and nothing leaves the machine. docs/subagents.md §7.
+  --chat            for a chat app: only the authoring tools, and no file of yours is read
+                    or written; a document goes in as an argument, and every document,
+                    picture and package comes back in the reply
 ```
 
 ## `grooph share`

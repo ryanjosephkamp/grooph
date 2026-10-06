@@ -1,6 +1,6 @@
 {
   "name": "@grooph/cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "grooph command line: create, edit (apply ops), validate, canonicalize and export graph documents.",
@@ -18,13 +18,16 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/bundle-patterns.mjs",
-    "test": "node --test 'dist/test/*.test.js'"
+    "test": "node --test 'dist/test/*.test.js'",
+    "package": "node scripts/npm-package.mjs",
+    "kit": "node scripts/chat-kit.mjs"
   },
   "dependencies": {
     "@grooph/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "rolldown": "^1.2.9",
     "typescript": "^5.7.2"
   },
   "optionalDependencies": {

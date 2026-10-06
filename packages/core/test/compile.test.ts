@@ -673,3 +673,41 @@ test("names the rule lets through are written as given: a pin with brackets, ski
   assert.match(fixer, /Capabilities with no tool in this harness[^\n]*allow deploy to staging/);
   assert.doesNotMatch(fixer.slice(0, fixer.indexOf("\n---", 4)), /deploy to staging/);
 });
+
+test("free text in a header stays on its line, and is text a YAML reader takes: every control character, a lone surrogate, U+FFFE and U+FFFF become a space", () => {
+  // `\s` alone leaves U+0085 (a line break to a YAML reader) and the rest of U+007F to U+009F raw inside the quotes;
+  // PyYAML and libyaml refuse a header with one of those in it. The same class is folded for names().
+  const C = (code: number): string => String.fromCharCode(code);
+  const hidden = [0x00, 0x07, 0x1b, 0x7f, 0x80, 0x84, 0x85, 0x86, 0x9b, 0x9f, 0x2028, 0x2029, 0xd800, 0xdfff, 0xfffe, 0xffff];
+  const doc = load("fix-until-green");
+  for (const code of hidden) {
+    const at = `U+${code.toString(16).padStart(4, "0")}`;
+    const unread = {
+      ...doc,
+      name: `Fix${C(code)}until green`,
+      nodes: doc.nodes.map((node) => (node.kind === "agent" ? { ...node, role: { custom: `fix${C(code)}er` }, brief: `Make the "tests"${C(code)}pass again. And the rest.` } : node)),
+    } as Graph;
+    const files = compile(unread, "claude-code").files;
+    const withHeader = Object.entries(files).filter(([, text]) => text.startsWith("---\n"));
+    assert.ok(withHeader.length >= 2, at);
+    for (const [path, text] of withHeader) {
+      const header = text.slice(0, text.indexOf("\n---", 4));
+      for (const ch of header) {
+        const point = ch.codePointAt(0)!;
+        // What YAML calls printable, less the tab and the line breaks other than the header's own.
+        const fine = point === 0x0a || (point >= 0x20 && point <= 0x7e) || (point >= 0xa0 && point <= 0xd7ff) || (point >= 0xe000 && point <= 0xfffd) || point >= 0x10000;
+        assert.ok(fine, `${at}: ${path} holds U+${point.toString(16)} in its header`);
+      }
+      assert.doesNotMatch(header, /\\u[0-9a-f]{4}/i, `${at}: ${path} holds an escape where the character was`);
+    }
+    const agent = withHeader.find(([path]) => path.includes("/agents/"))![1];
+    assert.match(agent, /\ndescription: ".* for graph fix-until-green\. Make the \\"tests\\" pass again\."\n/, at);
+    // (A skill's name is no longer free text: since the check kind the schema holds it to a name's form, so one with
+    // such a character in it is refused before anything is written; the writer's own guard is the test above.)
+    const skill = withHeader.find(([path]) => path.endsWith("/SKILL.md"))![1];
+    assert.match(skill, /\ndescription: [^\n]*Fix until green/, at);
+  }
+  // A pair of surrogates is a character, and is kept.
+  const paired = { ...doc, nodes: doc.nodes.map((node) => (node.kind === "agent" ? { ...node, brief: `Make it pass ${String.fromCodePoint(0x1f600)} today. Rest.` } : node)) } as Graph;
+  assert.ok(Object.values(compile(paired, "claude-code").files).some((text) => text.includes(String.fromCodePoint(0x1f600))));
+});

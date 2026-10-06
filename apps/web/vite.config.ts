@@ -44,6 +44,10 @@ const planSource = fileURLToPath(new URL("../../packages/core/src/plan.ts", impo
  * one of those screens, so such an address loads what it did before, at once. Every stylesheet of the app is
  * still asked for at every app address: they are small, and their order is then the same on every screen.
  *
+ * Since slice 0078 what opens a document a person hands over, from a file or from a paste, is fetched when they
+ * pick the file or open the paste box (src/ui/Import.tsx), and is named in the same list as the compiler, for the
+ * same reason.
+ *
  * Since slice 0070 the compiler is fetched when a person first exports. No address is told to fetch it, but the
  * page names it, in a list the browser does nothing with: the service worker reads a page for the files it names
  * and keeps them, so an export still works with no network.
@@ -95,12 +99,13 @@ function routes(): Plugin {
         const mapViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/views.tsx"));
         const mapSpace = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/space.ts"));
         const units = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/units.tsx"));
+        const importer = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/Import.tsx"));
         const graphViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-views.tsx"));
         const themes = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/theme/themes.ts"));
         const brakes = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/run/brakes.tsx"));
         // A page without these lists would still work, and load in more rounds than anyone measured. Say so instead.
-        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !mapSpace || !units || !graphViews || !themes || !brakes) {
-          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, mapSpace, units, graphViews, themes, brakes }).filter(([, c]) => !c).map(([name]) => name);
+        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !mapSpace || !units || !importer || !graphViews || !themes || !brakes) {
+          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, mapSpace, units, importer, graphViews, themes, brakes }).filter(([, c]) => !c).map(([name]) => name);
           throw new Error(`grooph-routes: no chunk of its own for ${missing.join(", ")}. The build no longer splits where vite.config.ts expects.`);
         }
         const inEntry = closure(entry);
@@ -120,10 +125,10 @@ function routes(): Plugin {
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
           // What no address loads first and the page still names, so that the worker fetches it as it installs: the
-          // compiler, the map's views, a map in three dimensions, a subgrooph's box, the pictures' themes, and the
-          // embed's own script and styles. The front page plays its recorded run in a frame at `#/embed`, and a visit
-          // that never watched it should still have it with no network (handoff 0083).
-          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(mapSpace), ...closure(units), ...closure(graphViews), ...closure(themes), ...closure(brakes), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          // compiler, the map's views, a map in three dimensions, a subgrooph's box, what opens a handed-over document,
+          // the pictures' themes, and the embed's own script and styles. The front page plays its recorded run in a
+          // frame at `#/embed`, and a visit that never watched it should still have it with no network (handoff 0083).
+          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(mapSpace), ...closure(units), ...closure(importer), ...closure(graphViews), ...closure(themes), ...closure(brakes), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
           // What choosing a map's view in three dimensions fetches, over what the map screen has already (handoff 0087).
           space: [...closure(mapSpace)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(mapViews).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },

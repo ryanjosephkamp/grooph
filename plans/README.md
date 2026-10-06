@@ -36,11 +36,7 @@ How to read one:
 
 ## Using one
 
-A template under `.grooph/templates/` in your project is found by name. So copy the four there, then start a plan from one. These commands were run in an empty folder on October 5, 2026, with the project's copy of grooph from that evening, and the output is what was printed. `<grooph>` stands for the folder this repository is in.
-
-```bash
-mkdir -p .grooph/templates && cp <grooph>/plans/*.grooph.json .grooph/templates/
-```
+The package carries these four beside the built-in templates, so a name finds one: `grooph template list` shows them under a heading of their own, **Plans**, apart from the twenty and outside their count. These commands were run in an empty folder late on October 5, 2026, with the project's copy of grooph from that night, and the output is what was printed.
 
 ```bash
 grooph template use team-handoffs --name "Spring newsletter" --set work="The spring newsletter, written, laid out and ready to send." --set requester=Priya --set author=Sam --set reviewer=Noor --set approver=Priya --out newsletter.grooph.json
@@ -48,8 +44,8 @@ grooph template use team-handoffs --name "Spring newsletter" --set work="The spr
 
 ```text
 newsletter.grooph.json: no issues
-wrote newsletter.grooph.json (graph "spring-newsletter" from team-handoffs@1, project)
-next: grooph validate --for-export newsletter.grooph.json
+wrote newsletter.grooph.json (graph "spring-newsletter" from team-handoffs@1, built-in)
+next: grooph plan newsletter.grooph.json
 ```
 
 The plain check is the one for a plan:
@@ -62,7 +58,7 @@ grooph validate newsletter.grooph.json
 newsletter.grooph.json: no issues
 ```
 
-The `next:` line above suggests a different check, `--for-export`, which asks whether a package can be made for a harness to run. For a plan the answer is no, twice over, and that is as it should be:
+`--for-export` asks a different question: whether a package can be made for a harness to run. For a plan the answer is no, twice over, and that is as it should be:
 
 ```bash
 grooph validate --for-export newsletter.grooph.json
@@ -74,7 +70,22 @@ error  E_PERSON_STEP_NOT_COMPILED  "request", "do", "review" are people's steps,
 newsletter.grooph.json: 2 errors, 0 warnings
 ```
 
-Then draw it:
+Then write the plan out, as the `next:` line said:
+
+```bash
+grooph plan newsletter.grooph.json
+```
+
+```text
+wrote 3 files into <your folder>/spring-newsletter-plan
+  PLAN.md
+  spring-newsletter.svg
+  spring-newsletter.grooph.json
+```
+
+`PLAN.md` says who does what and then every step in full, the picture is beside it, and the third file is the plan's own document: the one to edit from then on. The command then says "As a plan for people to read and follow, this is whole.", and after that what a coding harness would need: the same two lines as above.
+
+Or draw only the picture:
 
 ```bash
 grooph image newsletter.grooph.json --out newsletter.svg
@@ -88,7 +99,7 @@ Three more ways to keep or send a plan, each run the same evening on the same fi
 
 - `grooph outline newsletter.grooph.json` prints the plan as text: every step with whose it is, its brief, what it expects, what it leaves behind and where it leads.
 - `grooph page newsletter.grooph.json --out newsletter.html` writes one file holding the picture, the outline and the plan, which opens with no network.
-- `grooph share newsletter.grooph.json` prints a link that carries the whole plan inside it and opens it in grooph's web app. It also prints the two lines above about a harness. They do not stop the link.
+- `grooph share newsletter.grooph.json` prints a link that carries the whole plan inside it and opens it in grooph's web app. It says in one line that this is a plan as it stands and what is in the way of a package for a harness. That does not stop the link.
 
 `grooph template show team-handoffs` prints a template's slots with the question each one asks.
 
@@ -106,7 +117,7 @@ grooph was built first for graphs that agents run, and a few of its words still 
 
 Nothing runs a plan and nothing enforces it. grooph checks the document's shape, by a list of rules ([`docs/rules.md`](../docs/rules.md)): among them, that a loop has a standard and a stop, and that a step marked as one that cannot be taken back has a human decision in front of it. It does not check that a plan has a gate, that a step is marked as it should be, or that the steps are the right ones. Whether the steps are followed is up to the people following them.
 
-None of these four has been tried in a recorded run, because there is nothing to run. Nothing is claimed here about what following one does for the quality, cost, speed or safety of any work. The `profile` in each file (cost, speed, rigor) is a field the template format requires. Nothing was measured, so all four carry the middle value of each scale, and `grooph template list` prints it as "medium · medium · standard". It says nothing about them.
+None of these four has been tried in a recorded run, because there is nothing to run. Nothing is claimed here about what following one does for the quality, cost, speed or safety of any work. The `profile` in each file (cost, speed, rigor) is a field the template format requires. Nothing was measured, so all four carry the middle value of each scale, which says nothing about them, and `grooph template list` leaves it out for a plan.
 
 ## Why a folder of their own
 
@@ -114,7 +125,7 @@ Everything that counts, lists, bundles or tests the built-in templates reads `pa
 
 - the twenty built-in templates stay twenty, in every count and on every generated page;
 - the field guide's "Of the twenty recorded runs eighteen passed their check and two did not" still counts what it counted, the runs of the twenty built-in templates;
-- `grooph template list` does not show these until someone copies them in. The app lists them apart from the twenty, under their own heading "Plans" on its templates screen. No address's first load carries them: the button there, or a plan's own address, fetches them, and the app's worker holds them from its install, as it holds the app's other later pieces;
+- `grooph template list` shows these under a heading of their own, **Plans**, apart from the twenty and outside their count, and with no cost, speed or rigor beside them. The app lists them apart from the twenty too, under their own heading "Plans" on its templates screen. No address's first load carries them: the button there, or a plan's own address, fetches them, and the app's worker holds them from its install, as it holds the app's other later pieces;
 - no generated file changes. The one check that had to learn of the folder is the spelling check, which now reads it.
 
-A person who installs grooph's command line does not get these four yet: nothing in the package carries the folder. The app shows them, and a plan can be started from one there. Until the command line lists plan templates itself, copy them in as above. Their ids and names will stay as they are, so that what lists them later can rely on them.
+A person who installs grooph's command line has these four by name: the package carries the folder beside the built-in templates, in a folder of its own. The app shows them, and a plan can be started from one there. Their ids and names will stay as they are, so that what lists them can rely on them.
