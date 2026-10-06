@@ -46,7 +46,8 @@ What other lanes do next is listed under "What each lane needs from core".
 - Core 573, CLI 142, web 111 tests pass; the eight generators' `--check`; 81 of the app's browser tests across open, keep, runs, offline, adoption, validation, embed, library, roundtrip, templates and authoring (port 4366).
 - No golden package and no golden picture moved: the golden tests pass unchanged, and `experiments/game/setup/make-repo.sh` prints tree `3238a9052ce7765c79990029bbff6bccd88628bf`.
 - Part one was read twice by a fresh reader with a fuzzer of its own (26,272 and 18,371 changed documents): nothing thrown or refused; two forgeries of `PLAN.md`'s own sections found and closed; twelve deliberate breakages of `plan.ts` each caught by the tests.
-- **CI's own budget lines** are in a comment on each pull request. On this Mac, a template's own address: main with part one 279.13; with part two **279.79** of 280. CI has read about 0.4 KB above this Mac on that line (main, before part one: 279.80 by CI against 279.38 here), so part two would read about 280.4 against today's main.
+- **CI's own budget lines** are in a comment on each pull request. Part two at `754acb5`, on main at `08b2cdb`, before #143: 161.43 of 164 (first load), 259.18 of 262 (canvas), **280.19 of 280, over, on a template's own address**, 128.65 of 132 (embed). The small fix #151 on the same main reads 279.59 on that line with a helper of 0.06 KB, so part two adds about 0.66 KB. After #143 the lines are read again and are in the pull request's last comment. (Two clean builds of the same code on this Mac have differed by about 0.25 KB; CI's lines are the ones to trust.)
+- Part two was read by a Sonnet reader on a built copy: no document with a person's step compiles in about 320 attempts; no rule is quieted by marking another node a person's; 1,416 comparisons of the old build and the new are identical for documents without one, but for the words of a stop in four templates with no harness, which decision 7 put back.
 
 ## Decisions made
 
@@ -56,6 +57,12 @@ What other lanes do next is listed under "What each lane needs from core".
 4. **A document's words are escaped in `PLAN.md`'s own account**, not only kept to one line, after the reader forged its sections through a finding's place and through one line of HTML.
 5. **`people` is optional in `Shape`**, because a shape is stored in proposal sets and links: every existing one stays valid and unchanged.
 6. **A person's card takes the gate's color.** It is the color a person's decision already has in the picture.
+7. **A view takes a document for a plan** (`isPlan`) where it has a person's step, or names no harness grooph has a compiler for. A template with no harness is not one by that alone: its harness is chosen when it is filled in, and a fragment has its host's. The confirming reader found the first cut rewording the stops of the built-in merge-queue, which names none.
+
+**Two things that are meant, so that a later session does not "fix" them** (the driver's word):
+
+- `PLAN.md` counts a human gate and a person's step together as "a person". Both are a person's; the table's third column says which it is.
+- Where a person and an agent both write for an agent critic, `W_HOMOGENEOUS_CRITICS` compares the critic with the agent alone. So it can fire where it did not while the person's step was an agent with no model named: the critic and the one agent it judges are on one model, and that is what the rule is for.
 
 ## Deviations
 
