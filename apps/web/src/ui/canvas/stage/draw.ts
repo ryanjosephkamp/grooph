@@ -74,6 +74,9 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
   // nothing is asked of it, where the cards are), a working out put off to the next frame, and whether this is
   // the observer's own call: a size changed there is reported as a loop.
   let tallFor = "";
+  // Whether cards touch from where the view starts, and where each word that has other places was last put.
+  let tight = false;
+  const put = new Map<string, number>();
   let later = 0;
   let observing = false;
   // What travels between cards is seen over them: an element, as they are, where the canvas is under them all.
@@ -203,6 +206,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
         // The words that say so can make the bar over the frame taller, and a frame that is not held is then
         // shorter: the canvas is the frame's height as it is with them.
         if ("tight" in host.dataset) measure();
+        tight = "tight" in host.dataset;
         scroller.scrollTop = scrolled;
         tallFor = what();
       }
@@ -249,6 +253,8 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
   };
 
   function draw(): void {
+    // The line that says cards touch is about the view as it starts: moved in, the reader has done what it asks.
+    frame.parentElement?.toggleAttribute("data-tight", tight && view.zoom <= 1);
     cancelAnimationFrame(asked);
     asked = 0;
     if (!w || !h) return;
@@ -362,8 +368,11 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
           const at: [number, number, number, number] = [x, o.at[1]! - (p.up ? tall - (size + 3) / 2 : tall / 2), widest, tall];
           return { ...o, box: at, under: [...boxes.values(), ...said].reduce((sum, b) => sum + over(at, b), 0) };
         });
-        const here = p.or ? (places.find((o) => o.under === 0) ?? [...places].sort((a, b) => a.under - b.under)[0]!) : places[0]!;
-        if (p.or) said.push(here.box);
+        // It stays where it was last put while no more than a tenth of it is under a card there: a name that moved
+        // at every turn of the view could not be read.
+        const last = places[put.get(p.text) ?? -1];
+        const here = p.or ? (last && last.under <= 0.1 * last.box[2] * last.box[3] ? last : (places.find((o) => o.under === 0) ?? [...places].sort((a, b) => a.under - b.under)[0]!)) : places[0]!;
+        if (p.or) (said.push(here.box), put.set(p.text, places.indexOf(here)));
         lines.forEach(({ text, head }, k) => {
           const wide = g.measureText(text).width;
           const left = clamp(here.at[0]! - (here.align === "center" ? wide / 2 : here.align === "right" ? wide : 0), 4, Math.max(4, w - 4 - wide));

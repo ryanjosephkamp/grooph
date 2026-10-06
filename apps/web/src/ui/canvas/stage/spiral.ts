@@ -216,8 +216,9 @@ export const spiral: View = (m, shown) => {
     if (!m.narrow) return arch(p, q, (e.back ? 40 : over) + 14 * twin, 18);
     // Where the spirals stand one under the other, over is along the line: the edge goes out to the side instead.
     // Round the nodes on the ground between; round the top of any spiral it comes down past or goes up past, lid
-    // and turns, so that it does not come through the lid. (Two takings of one edge, between different rounds, pass
-    // those tops at different places along their way and so are apart.)
+    // and turns, so that it does not come through the lid. And each taking of an edge a little farther out for the
+    // rounds it is between: two takings that leave one round of one place for two rounds of another would else be
+    // one line for most of their way.
     // What it goes round, each by how far along the edge it is: the top of a spiral it passes, and the foot of the
     // spiral its own end is on, a turn or more up (an exit taken in a later round comes down outside the turns
     // under it). The side: that of its own end on such a spiral, so that it leaves or reaches its place from
@@ -231,7 +232,7 @@ export const spiral: View = (m, shown) => {
     const side = !over && (end ? (end.own.includes(e.from) ? p : q)[0] > 0 : p[0] > 0 && q[0] > 0) ? 1 : -1;
     let out = e.back ? 40 : over * 1.3;
     for (const { loop, u } of past) out = Math.max(out, (tower[loop.id]!.r + 30 - side * (p[0] + (q[0] - p[0]) * u)) / Math.max(0.36, 4 * u * (1 - u)));
-    out += 14 * twin;
+    out += 14 * twin + 12 * r0 + 10 * r1;
     return arch(p, q, 0, 18).map((v, n): V => [v[0] + side * out * 4 * (n / 18) * (1 - n / 18), v[1], v[2]]);
   };
   // The edges. A template's are drawn as they are in round 0. A run's are drawn where the run took them, between
