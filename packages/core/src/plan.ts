@@ -126,15 +126,19 @@ function planMarkdown(doc: Graph, toFix: readonly Issue[], pictureFile: string, 
     "",
     `A plan, kept by grooph: the picture, who does what, and every step in full. grooph runs nothing: a plan is for people to read and follow. The document it is drawn from is \`${documentFile}\`, and that is the one to edit.${notes > 0 ? ` It carries ${count(notes, "note", "notes")} from runs, which ${notes === 1 ? "is" : "are"} in that file and not shown here.` : ""}`,
     "",
-    errors.length === 0
-      ? `A coding harness could run this as it is: nothing in it is in error.${doc.target?.harness ? ` \`grooph export\` writes its package for ${plain(doc.target.harness)}.` : ""}`
-      : `**A coding harness cannot run this as it is.** ${count(errors.length, "thing has", "things have")} to be fixed first, listed under "To fix before a harness can run this". ${
-          own === 0
-            ? steps.length > 0
-              ? "As a plan for people to read and follow it is whole."
-              : "It has no steps yet."
-            : `${own === errors.length ? (own === 1 ? "It is a rule" : "They are rules") : `${own} of them ${own === 1 ? "is a rule" : "are rules"}`} a graph itself is held to, not only what a package asks for: until ${own === 1 ? "it is" : "they are"} fixed, parts of the plan below may be missing or drawn wrong.`
-        }`,
+    // The plan's own state first, then what a harness would need: someone who wants only the plan should not read
+    // a harness's list as a fault of the plan. Nothing is left out: every finding is under its own heading below.
+    `${
+      own > 0
+        ? `As a plan this is not whole yet: it breaks ${own === 1 ? "a rule a graph itself is held to" : `the rules a graph itself is held to in ${own} places`}, and until ${own === 1 ? "that is" : "those are"} fixed, parts of what follows may be missing or drawn wrong.`
+        : steps.length === 0
+          ? "This plan has no steps yet."
+          : "As a plan for people to read and follow, this is whole."
+    } ${
+      errors.length === 0
+        ? `A coding harness could run it as it is: nothing in it is in error.${doc.target?.harness ? ` \`grooph export\` writes its package for ${plain(doc.target.harness)}.` : ""}`
+        : `**To run it in a coding harness, ${count(errors.length, "thing is", "things are")} to be fixed first**${own > 0 && own < errors.length ? ` (${own === 1 ? "that one" : `those ${own}`} among them)` : ""}, listed under "To fix before a harness can run this".`
+    }`,
     "",
     ...(oneLine(doc.goal ?? "") ? [`**Goal:** ${plain(doc.goal!)}`, ""] : []),
     `![${name}](${pictureFile})`,
