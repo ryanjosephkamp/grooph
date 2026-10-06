@@ -98,7 +98,7 @@ One call, `claude-opus-5-5`, no tools, eight candidates under random letters, ea
 
 **The design, in all three of its forms, ended above no design: 24 of 24 against 15 of 24 in both replicates**, a range wholly above the other, for two to four times D's cost in B and C ($0.88 to $0.96 against $0.25 and $0.42) and three and a half to six times in A. The nine cases are the reference's own choices, which only a session shown the reference, or told its gaps by one that was, can make.
 
-> *Note, 2026-10-06:* "ended above no design" means scored higher on the author's held-out suite or reference checks. The blind judges of the two code projects, given only the visible task, ranked the task-alone outputs higher, and the comparison did not separate the effect of the structure from the extra evidence a reviewer held (audit 0001, round two, finding F3; the owner's answer on the review desk, q60). The write-up above is left as written.
+> *Note, 2026-10-06:* "ended above no design" means scored higher on the author's held-out suite or reference checks. In this project the blind judge, given only what the builder saw, gave a ranking that interleaves the arms (in the two code projects the judges ranked the task-alone outputs higher), and the comparison did not separate the effect of the structure from the extra evidence a reviewer held (audit 0001, round two, finding F3; the owner's answer on the review desk, q60). The write-up above is left as written.
 
 ## What this comparison cannot show
 
