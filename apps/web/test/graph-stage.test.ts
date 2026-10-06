@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { parseGraphText, parseRunNotes, resolvePositions, type Graph, type RunNote } from "@grooph/core";
+import { parseGraphText, parseRunNotes, replaySteps, resolvePositions, summarizeRun, type Graph, type RunNote } from "@grooph/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { columnsForViewport } from "../src/doc/layout.js";
@@ -165,6 +165,104 @@ describe("a recorded run", () => {
 });
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("every recorded run the repository keeps", () => {
+  /** Every folder with a run's notes under the fixtures and the experiments (but for the game's acceptance runs, which are another lane's). */
+  const recorded = (dir: string): string[] =>
+    readdirSync(join(root, dir), { withFileTypes: true }).flatMap((d) => (!d.isDirectory() || join(dir, d.name) === "experiments/game/acceptance" ? [] : readdirSync(join(root, dir, d.name)).includes("notes.jsonl") ? [join(dir, d.name)] : recorded(join(dir, d.name))));
+  /**
+   * Each run, with how many dispatches it had and the round each loop it entered was in at the end, as literal
+   * numbers. They are what `main` showed for these runs on 2026-10-05, by core, which this change does not touch:
+   * the rounds are core's own (`replaySteps`), and the dispatches are core's count but for the four runs named
+   * under the table. A change to how a run is read (`stage/model.ts`) that moves any of them fails here by name.
+   * A run added to the repository needs a row: its dispatches are its notes at an agent or a check with an outcome
+   * that is not "started", and its rounds are in the sentence its page opens with.
+   */
+  const RUNS: [string, number, Record<string, number>][] = [
+    ["experiments/comparisons/grind-loop/A-1/runs/20260921-213906", 2, { "grind": 0 }],
+    ["experiments/comparisons/grind-loop/A-2/runs/20260921-214249", 2, { "grind": 0 }],
+    ["experiments/comparisons/heterogeneous-critic/A-1/runs/20261004-214144", 4, { "review": 1 }],
+    ["experiments/comparisons/heterogeneous-critic/A-2/runs/20261004-215612", 4, { "review": 1 }],
+    ["experiments/comparisons/red-team-loop/A-1/runs/20260921-220554", 2, { "attack": 0 }],
+    ["experiments/comparisons/red-team-loop/A-2/runs/20260921-224918", 2, { "attack": 0 }],
+    ["experiments/comparisons/review-gate-2/A-1/runs/20261004-211444", 4, { "review": 1 }],
+    ["experiments/comparisons/review-gate-2/A-2/runs/20261004-212722", 4, { "review": 1 }],
+    ["experiments/comparisons/review-gate/A-1/runs/20260921-214803", 2, { "review": 0 }],
+    ["experiments/comparisons/review-gate/A-2/runs/20260921-215704", 2, { "review": 0 }],
+    ["experiments/comparisons/spec-then-loop/A-1/runs/20260921-232556", 3, { "build": 0 }],
+    ["experiments/comparisons/spec-then-loop/A-2/runs/20260921-233822", 3, { "build": 0 }],
+    ["experiments/comparisons/spec-then-loop/A-3/runs/20260921-235057", 3, { "build": 0 }],
+    ["experiments/comparisons/taste-polish/A-1/runs/20261004-221102", 6, { "polish": 1 }],
+    ["experiments/comparisons/taste-polish/A-2/runs/20261004-222738", 6, { "polish": 1 }],
+    ["experiments/patterns/contradiction-seeker/run/runs/20260919-1233-k7qm", 2, { "hunt": 0 }],
+    ["experiments/patterns/debate-then-build/run/runs/20260920-185756", 3, { "debate": 0 }],
+    ["experiments/patterns/dual-bar/run/runs/20260920-191110", 2, { "review": 0 }],
+    ["experiments/patterns/fresh-grind-rare-judge/run-1/runs/20260920-195457", 6, { "grind": 0, "phases": 1 }],
+    ["experiments/patterns/fresh-grind-rare-judge/run/runs/20260921-044114", 6, { "grind": 0, "phases": 1 }],
+    ["experiments/patterns/gauntlet-decomposed/run-1/runs/20260922-151855", 9, { "polish": 0, "pieces": 1 }],
+    ["experiments/patterns/gauntlet-decomposed/run/runs/20261004-224501", 9, { "polish": 0, "pieces": 1 }],
+    ["experiments/patterns/grind-loop/run/runs/20260919-1230-k7qm", 2, { "grind": 0 }],
+    ["experiments/patterns/heterogeneous-critic/run/runs/20260920-192538", 4, { "review": 1 }],
+    ["experiments/patterns/human-gated-irreversible/run/runs/20260920-184824", 2, { "grind": 0 }],
+    ["experiments/patterns/merge-queue/run/runs/20260922-051355", 5, { "grind": 0, "queue": 1 }],
+    ["experiments/patterns/metric-sandwich/run/runs/20260919-1241-k7qm", 3, { "sandwich": 0 }],
+    ["experiments/patterns/ownership-not-swarm/run/runs/20260920-193520", 7, { "integrate": 0 }],
+    ["experiments/patterns/patrol-pulse/run-1/runs/20260922-050527", 3, {}],
+    ["experiments/patterns/patrol-pulse/run-2/runs/20261004-225445", 2, {}],
+    ["experiments/patterns/patrol-pulse/run/runs/20261005-042756", 3, {}],
+    ["experiments/patterns/ralph-loop/run/runs/20260922-052016", 14, { "ralph": 4 }],
+    ["experiments/patterns/red-team-loop/run/runs/20260920-191614", 2, { "attack": 0 }],
+    ["experiments/patterns/retrospective-rewrite/run/runs/20260920-185135", 3, { "grind": 0 }],
+    ["experiments/patterns/review-gate/run-1/runs/20260919-1236-k7q2", 2, { "review": 0 }],
+    ["experiments/patterns/review-gate/run/runs/20260920-172408", 2, { "review": 0 }],
+    ["experiments/patterns/spec-then-loop/run-1/runs/20260919-1245-k7qz", 4, { "build": 0 }],
+    ["experiments/patterns/spec-then-loop/run/runs/20260920-172850", 3, { "build": 0 }],
+    ["experiments/patterns/specialist-critic-bank/run-1/runs/20260920-200356", 12, { "review": 1 }],
+    ["experiments/patterns/specialist-critic-bank/run/runs/20260921-032821", 6, { "review": 0 }],
+    ["experiments/patterns/taste-polish/run/runs/20260920-194427", 6, { "polish": 1 }],
+    ["experiments/patterns/tournament-then-judge/run/runs/20260920-190434", 6, {}],
+    ["fixtures/runs/run-broken/runs/20260919-1400-oops", 0, { "review-cycle": 0 }],
+    ["fixtures/runs/run-gate/runs/20260919-1200-gate", 2, { "review-cycle": 0 }],
+    ["fixtures/runs/run-live/runs/20260919-1100-live", 1, { "review-cycle": 0 }],
+    ["fixtures/runs/run-malformed/runs/20260919-1000-bad1", 1, { "review-cycle": 0 }],
+    ["fixtures/runs/run-nested/runs/20260919-1300-nest", 7, { "grind": 0, "phases": 0 }],
+    ["fixtures/runs/slice-0007-sandwich/runs/20260919-0057-66c8", 6, { "sandwich": 1 }],
+  ];
+  /**
+   * Where core's count of dispatches (`summarizeRun`: a line before a dispatch, or a result with none before it) is
+   * not the number of results, and why. The first three have a dispatch that was started and had not ended when the
+   * run was recorded: core counts it and this model, which counts results, does not. In the fourth two pieces were
+   * started at one node before either ended (started, started, pass, pass): the second pass has no line before it
+   * that is not already answered, so core counts a third dispatch where there were two.
+   */
+  const CORE_COUNTS: Record<string, number> = {
+    "fixtures/runs/run-broken/runs/20260919-1400-oops": 1,
+    "fixtures/runs/run-live/runs/20260919-1100-live": 2,
+    "fixtures/runs/run-nested/runs/20260919-1300-nest": 8,
+    "experiments/patterns/ownership-not-swarm/run/runs/20260920-193520": 8,
+  };
+
+  it("has a row here, and its dispatches and each loop's round are what the row says", () => {
+    const found = [...recorded("fixtures/runs"), ...recorded("experiments")].sort();
+    expect(found).toEqual(RUNS.map(([dir]) => dir).sort());
+    for (const [dir, dispatches, rounds] of RUNS) {
+      const doc = graph(join(dir, readdirSync(join(root, dir)).find((f) => f.endsWith(".grooph.json"))!));
+      const notes = parseRunNotes(readFileSync(join(root, dir, "notes.jsonl"), "utf8")).notes;
+      const run = modelOf(doc, notes).run!;
+      expect([run.dispatches.length, run.rounds], dir).toEqual([dispatches, rounds]);
+      // Against core, read here and not copied: the rounds are its replay's, and its count of dispatches at agents
+      // and checks is the same number, but for the four runs above.
+      expect(run.rounds, dir).toEqual(Object.fromEntries(replaySteps(notes, doc).end.loops.map((l) => [l.loop, l.round ?? -1])));
+      const summary = summarizeRun(notes, doc);
+      expect(doc.nodes.reduce((sum, n) => sum + (n.kind === "agent" || n.kind === "check" ? (summary.nodes[n.id]?.runs ?? 0) : 0), 0), dir).toBe(CORE_COUNTS[dir] ?? dispatches);
+      // And the latest round core's summary has for each loop is the same, but for the nested run: its last line
+      // is the line before the judge's dispatch, which names round 1 of Phases, and a line before a dispatch is no
+      // round of the loop's yet.
+      for (const loop of doc.loops) expect(summary.loops[loop.id]?.round ?? -1, `${dir} ${loop.id}`).toBe(dir.includes("run-nested") && loop.id === "phases" ? 1 : (rounds[loop.id] ?? -1));
+    }
+    expect(RUNS).toHaveLength(48);
+  });
+});
 
 describe("which edges a run took", () => {
   /** Notes written for a graph: `[node or loop:id, outcome, round or none, verdict or stop]`, with stamps a minute apart unless `bare`. */
