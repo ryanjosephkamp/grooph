@@ -3,7 +3,6 @@ import {
   formatIssue,
   shapeLine,
   tierLine,
-  validate,
   type Candidate,
   type Graph,
   type Issue,
@@ -14,7 +13,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 
 import { BUILT_IN_CREDITS } from "../../doc/credits.generated.js";
 import { copyText } from "../../doc/exportPackage.js";
-import { countBySeverity } from "../../doc/issues.js";
+import { computeIssues, countBySeverity } from "../../doc/issues.js";
 import { Glyph } from "../Glyph.js";
 import { Credits } from "../templates/Credits.js";
 import { ProfileChips } from "../templates/ProfileChips.js";
@@ -37,7 +36,7 @@ export function Compare({ set, setIssues, payload }: { set: ProposalSet; setIssu
       set.candidates.map((c) => {
         const graph = c.graph as Graph;
         const recommended = set.recommendation?.candidate === c.id;
-        return { c, graph, issues: validate(graph, { forExport: true }), recommended, ...(recommended ? { why: set.recommendation!.why } : {}) };
+        return { c, graph, issues: computeIssues(graph), recommended, ...(recommended ? { why: set.recommendation!.why } : {}) };
       }),
     [set],
   );
