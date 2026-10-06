@@ -5,18 +5,23 @@ The first audit under decision 0024. Its subject is everything grooph says about
 - **Commit under audit:** `dbc7a281f977dddf7acc7948a0221e2aba93c5e4` (`main` on 2026-10-04). It is eleven commits after the tag `v0.3.0`; those commits changed spelling in the audited files and no claim. It was chosen over the tag because it is what the site serves, and corrections are made against it.
 - **Snapshot:** `/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0/`, a detached worktree at that commit, installed and built.
 - **Audit lane:** a Claude Code session on Opus 5.5 (slice 0075). **Auditor:** Codex with GPT-6.1 Sol, opened by the owner on `/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/`.
-- **State:** round 1 is reconciled (2026-10-05): 21 findings, none disputed. The owner accepted all seven of its decisions that day, and its corrections are on `main`. **Round 2 was sent on 2026-10-05** ([`round-02/HANDOFF.md`](round-02/HANDOFF.md)): the corrected words, comparison study two, decision 0029, the brake experiment as built, the comparison of brakes that adoption and refresh are held to, and the plain-English guide. Its snapshot is `main` at `ed0f95b` with the audit's record on top. Awaiting Codex's handback, which may come during a pause in the project: it lands in the exchange folder, changes no page by itself, and the next step is to hand it to the audit lane to reconcile. Not ended.
+- **State:** round 1 is reconciled (2026-10-05): 21 findings, none disputed. The owner accepted all seven of its decisions that day, and its corrections are on `main`. **Round 2 was sent on 2026-10-05** ([`round-02/HANDOFF.md`](round-02/HANDOFF.md)): the corrected words, comparison study two, decision 0029, the brake experiment as built, the comparison of brakes that adoption and refresh are held to, and the plain-English guide. Its snapshot is `main` at `ed0f95b` with the audit's record on top. Awaiting Codex's handback, which may come during a pause in the project: it lands in the exchange folder, changes no page by itself, and the next step is to hand it to the audit lane to reconcile. **Round 2 is reconciled (2026-10-06):** 16 findings, none disputed, two of them faults that reproduce (one in the product, still in 0.4.0; one in the parked experiment's counter). Its corrections are proposed and wait for the owner ([`round-02/RECONCILE.md`](round-02/RECONCILE.md)). Not ended.
 
 ## What is here
 
 | File | What it is |
 |---|---|
 | [`inventory.md`](inventory.md) | Every claim, with an id, its exact words, where it stands, its evidence, and the lane's own reading before Codex saw anything |
-| [`tools/`](tools/) | Sixteen small scripts written for this audit. `run-all-probes.sh` runs the nine probes of round two and writes what each prints to `round-02/lane-notes/at-the-snapshot/`. They read the records and call no model. Each says at its top how to run it. Three read the studies' transcripts, which are kept only on the Mac that ran them (`prompt-arm-context.mjs`, `cost-by-file-second-route.py`, `study-two-context.mjs`) |
+| [`tools/`](tools/) | Twenty small scripts written for this audit (four of them for round two's reconciliation: `stop-order-probe.mjs`, `stop-added-ahead-probe.mjs`, `counter-replay-probe.mjs`, `capless-loop-probe.mjs`). `run-all-probes.sh` runs the nine probes of round two and writes what each prints to `round-02/lane-notes/at-the-snapshot/`. They read the records and call no model. Each says at its top how to run it. Three read the studies' transcripts, which are kept only on the Mac that ran them (`prompt-arm-context.mjs`, `cost-by-file-second-route.py`, `study-two-context.mjs`) |
 | [`round-01/HANDOFF.md`](round-01/HANDOFF.md) | What the lane asked Codex to read and attack |
 | [`round-01/HANDBACK.md`](round-01/HANDBACK.md) | What Codex found: 21 findings, what it checked and found sound, what it could not check, and a design for the one experiment it says is needed. Its main receipts are in `round-01/notes/`; the rest of its working notes stay in the exchange folder |
 | [`round-01/RECONCILE.md`](round-01/RECONCILE.md) | The lane's answer to each finding, one reading for each of the 52 claims, and 26 numbered corrections for the owner to accept or decline |
 | [`round-02/lane-notes/`](round-02/lane-notes/) | What the lane ran itself for round two. So far: the adoption probe again, after pull request #114, a probe of what the comparison of brakes does with a check that judges a loop, a scan of study two's transcripts, and a probe of the irreversible rule at the start of a run. The house lane's own probes of the comparison are beside them in [`round-02/brakes-probes/`](round-02/brakes-probes/) |
+| [`round-02/HANDOFF.md`](round-02/HANDOFF.md) | What the lane asked Codex to read and attack in round two, as it was sent |
+| [`round-02/HANDBACK.md`](round-02/HANDBACK.md) | What Codex found: 16 findings, what it checked and found sound, what it could not check. Copied from the exchange folder as written |
+| [`round-02/notes/`](round-02/notes/) | Codex's working notes and the small receipts its findings cite: its two probes with what they printed, among others. Its scratch folders, its 110 outputs of the eight readers' scripts and its file-hash lists (about 10 MB) are left in the exchange folder |
+| [`round-02/RECONCILE.md`](round-02/RECONCILE.md) | The lane's answer to each finding, what it ran again at the snapshot and at 0.4.0, fifteen numbered corrections word for word, and six decisions for the owner |
+| [`round-02/lane-notes/reconcile/`](round-02/lane-notes/reconcile/) | What the lane's four probes of the reconciliation printed, each at the snapshot and at main, and the registry's entry for the published 0.4.0 |
 | [`designs/a-brake-that-binds.md`](designs/a-brake-that-binds.md) | The experiment both sides say is needed before "bound" can be claimed: designed, not run, passed to the driver |
 
 The public register of claims is [`docs/claims.md`](../../../docs/claims.md).
@@ -56,6 +61,17 @@ The lane added one observation to a point Codex could only reason about: `grooph
 *Note, 2026-10-05, after the round:* pull request #114 answered that observation in code. The same probe at the merged code is refused, and the copy is written only when the change is asked for by name ([`round-02/lane-notes/adopt-probe-after-114.txt`](round-02/lane-notes/adopt-probe-after-114.txt)). The round's reading of 0.3.0 stands as it was agreed. The refusal is a new claim, read inside Claude Code only, and is part E of round two's draft. Four sentences that said "nothing refuses" were changed so as not to be untrue on `main`: the graph document page's (in the merge), the claims page's row for C45, the report's row for adaptation, and the proposed decision 0029.
 
 After the round: 12 claims carried, 33 carried with other words, 7 not carried as worded. The owner did not carry Codex's prompt back; the lane found the handback on disk on 2026-10-05. One carry out, none back.
+
+## Round 2, as it came out
+
+Codex returned 16 findings on 2026-10-06, and the owner carried its prompt back the same morning. The lane agrees with 14 and partly with 2, and disputes none.
+
+- **A fault in the product, still in 0.4.0** (F1): swapping two stops a loop already has, one that halts and one that leads on, turns a prescribed halt into a prescribed success, and neither `grooph adopt` nor `grooph export` refuses it. The lane found its edges: a new leading-on stop is refused, so the source must already hold both, and none of the twenty built-in templates is exposed. It is listed as a limit in `docs/runs.md`; the repair is proposed for after the pause.
+- **A fault in the parked budget experiment's counter** (F2): a printed line counts as a run of the check. It can make a run that stopped short read as at its budget, and cannot hide one that went past. Nothing has been run with it.
+- **Study two's sentence must name its measure** (F3): the designs scored above the task alone on the author's held-out suites; the blind judges of the code projects preferred the task-alone outputs.
+- **The rest is wording**, a good part of it the lane's own: "no brake fired" where four human gates did, "empty context", "nothing in grooph watches", Gauntlet's lawful halt told as a failure to follow, a warning described without its second condition.
+
+Nothing is corrected on the lane's or the auditor's word but one limit added to `docs/runs.md` at the driver's request. A short third round is proposed for after the pause: the two repairs, and the nine guide chapters Codex did not read.
 
 ## How it ended
 

@@ -1,0 +1,29 @@
+grooph 0.3.0 at faba78aeff36
+
+== small graph, a leading-on budget of the same size added ahead
+  source : budget 2
+  working: budget 2 then done | budget 2
+  working copy validates for export: yes
+  checkAdoption: refused ["loop:work.stops: "]
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+
+== small graph, a leading-on budget of the same size added behind
+  source : budget 2
+  working: budget 2 | budget 2 then done
+  working copy validates for export: yes
+  checkAdoption: refused ["loop:work.stops: "]
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+
+== small graph, a leading-on cap of one round added ahead
+  source : budget 2
+  working: max-iterations 1 then done | budget 2
+  working copy validates for export: yes
+  checkAdoption: refused ["loop:work.stops: "]
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+
+== grind-loop, a leading-on copy of its first halting limit added just ahead of it
+  source : max-iterations 5 | budget 30
+  working: max-iterations 5 then done | max-iterations 5 | budget 30
+  working copy validates for export: yes
+  checkAdoption: refused ["loop:grind.stops: "]
+  grooph adopt --write, no --allow: exit 1; wrote nothing

@@ -1,0 +1,14 @@
+{
+  "before_files": 3960,
+  "after_files": 3960,
+  "changed": [],
+  "missing": [],
+  "added": [],
+  "head": "faba78aeff36e9aca5c02c8e726086cbe10191f5",
+  "git_status": "?? experiments/comparisons/derived/\n?? scripts/lib/compare-lead.mjs\n?? scripts/lib/compare-lead.test.mjs\n",
+  "excluded": [
+    ".git",
+    "node_modules"
+  ],
+  "scope": "Source, documentation, evidence, built files and the four-file overlay; no dependency or Git metadata byte claim."
+}

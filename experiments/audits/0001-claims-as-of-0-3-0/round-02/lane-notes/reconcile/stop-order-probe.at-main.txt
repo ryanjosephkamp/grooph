@@ -1,0 +1,66 @@
+grooph 0.4.0 at e8055fa7ce72
+
+== reorder-equal
+  source : budget 2 dispatches halts  |  budget 2 dispatches then done
+  working: budget 2 dispatches then done  |  budget 2 dispatches halts
+  validate --for-export, source: no issues
+  validate --for-export, working: no issues
+  checkAdoption: changes ["loop:work.stops (change)"], refused []
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+    | Run r1 · Stop order probe: what it changed in its working copy
+    |   Changed the stops of loop Work (work)  ← no amendment note explains this
+    | version 2 of order-reorder-equal, from order-reorder-equal@1 and run r1, would go to adopted.grooph.json
+    | wrote adopted.grooph.json (version 2); the source .grooph/order-reorder-equal/graph.grooph.json is unchanged
+    | place it for the next run with: grooph export adopted.grooph.json --target claude-code --into .
+  written: budget 2 dispatches then done  |  budget 2 dispatches halts
+  grooph export, source into an empty project: exit 0
+  grooph export, working copy over that package, no --allow: exit 0; the package's kept graph NOW HOLDS the working copy's stops
+    | brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened
+  what the lead's brief there says of the stops:
+    | **Stops, evaluated in this order before every round; the first that fires wins:**
+    | | 1 | budget: 2 dispatches | continue at node `done` |
+    | | 2 | budget: 2 dispatches | halt the run and report to the human |
+
+== reorder-mixed
+  source : max-iterations 1 halts  |  budget 2 dispatches then done
+  working: budget 2 dispatches then done  |  max-iterations 1 halts
+  validate --for-export, source: no issues
+  validate --for-export, working: no issues
+  checkAdoption: changes ["loop:work.stops (change)"], refused []
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+    | Run r1 · Stop order probe: what it changed in its working copy
+    |   Changed the stops of loop Work (work)  ← no amendment note explains this
+    | version 2 of order-reorder-mixed, from order-reorder-mixed@1 and run r1, would go to adopted.grooph.json
+    | wrote adopted.grooph.json (version 2); the source .grooph/order-reorder-mixed/graph.grooph.json is unchanged
+    | place it for the next run with: grooph export adopted.grooph.json --target claude-code --into .
+  written: budget 2 dispatches then done  |  max-iterations 1 halts
+  grooph export, source into an empty project: exit 0
+  grooph export, working copy over that package, no --allow: exit 0; the package's kept graph NOW HOLDS the working copy's stops
+    | brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened
+  what the lead's brief there says of the stops:
+    | **Stops, evaluated in this order before every round; the first that fires wins:**
+    | | 1 | budget: 2 dispatches | continue at node `done` |
+    | | 2 | max iterations: 1 | halt the run and report to the human |
+
+== control-raised
+  source : budget 2 dispatches halts  |  budget 2 dispatches then done
+  working: budget 4 dispatches halts  |  budget 2 dispatches then done
+  validate --for-export, source: no issues
+  validate --for-export, working: no issues
+  checkAdoption: changes ["loop:work.stops (change)"], refused ["loop:work.stops"]
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+    | Run r1 · Stop order probe: what it changed in its working copy
+    |   Changed the stops of loop Work (work)  ← no amendment note explains this
+    | version 2 of order-control-raised, from order-control-raised@1 and run r1, would go to adopted.grooph.json
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:work.stops
+    |   loop:work.stops  the budget that halts the run would rise from 2 to 4 dispatches
+    |   all of them, on purpose: grooph adopt <exchange>/codex/0001-claims-as-of-0-3-0/round-02/reconcile-scratch/stop-order-main/control-raised/.grooph/order-control-raised/runs/r1 --into <exchange>/codex/0001-claims-as-of-0-3-0/round-02/reconcile-scratch/stop-order-main/control-raised/adopted.grooph.json --write --allow loop:work.stops
+  grooph export, source into an empty project: exit 0
+  grooph export, working copy over that package, no --allow: exit 1; the package's kept graph is unchanged
+    | grooph: 1 change in <exchange>/codex/0001-claims-as-of-0-3-0/round-02/reconcile-scratch/stop-order-main/control-raised/working.grooph.json may remove or loosen a brake of the graph the package 
+    | To place it on purpose, add to the same command: --allow loop:work.stops
+    | A brake is removed or loosened only on a person's word. If you are an agent, put each line above to the person, and add --allow only for the ones they said yes to.
+  what the lead's brief there says of the stops:
+    | **Stops, evaluated in this order before every round; the first that fires wins:**
+    | | 1 | budget: 2 dispatches | halt the run and report to the human |
+    | | 2 | budget: 2 dispatches | continue at node `done` |

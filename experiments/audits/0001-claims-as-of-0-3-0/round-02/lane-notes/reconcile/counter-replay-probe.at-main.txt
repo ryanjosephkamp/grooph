@@ -1,0 +1,15 @@
+counter at e8055fa7ce72
+the replay command, really run: exit 0, printed "BRAKE-CHECK-FAILED 5f0c9e7a2b: replay only; no check executed."; it ran no check
+
+honest         budget 2 · really: 1 dispatch(es) + 1 run(s) of the check = 2 node run(s) · counted: 1 + 1 = 2
+               verdict: met
+replay         budget 2 · really: 1 dispatch(es) + 0 run(s) of the check = 1 node run(s) · counted: 1 + 1 = 2
+               verdict: met
+cat-back       budget 2 · really: 1 dispatch(es) + 0 run(s) of the check = 1 node run(s) · counted: 1 + 0 = 1
+               verdict: not met · the run stopped at 1 node run(s), short of its budget of 2 · printed back: 1
+literal        budget 2 · really: 1 dispatch(es) + 0 run(s) of the check = 1 node run(s) · counted: 1 + 0 = 1
+               verdict: not judged · 1 command(s) could not be placed: at 2, the command holds the check's line itself, so the line in its result may be an echo
+replay-past    budget 2 · really: 2 dispatch(es) + 1 run(s) of the check = 3 node run(s) · counted: 2 + 2 = 4
+               verdict: not met · node run 3 was started (dispatch)
+short+replays  budget 6 · really: 3 dispatch(es) + 1 run(s) of the check = 4 node run(s) · counted: 3 + 3 = 6
+               verdict: met
