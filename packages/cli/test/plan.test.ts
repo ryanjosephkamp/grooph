@@ -162,7 +162,7 @@ test("a file in the folder that is not this plan's is left alone until --force: 
     let before = tree(into);
     const theirs = await grooph(["plan", file, "--into", into]);
     assert.equal(theirs.code, 1);
-    assert.deepEqual(theirs.err.split(LF), [`grooph: 1 file in ${into} is not this plan's to replace, so nothing was written:`, "  PLAN.md  is not a plan grooph wrote for this graph", "Give another folder with --into, or run the same command with --force to replace what is there."]);
+    assert.deepEqual(theirs.err.split(LF), [`grooph: 1 file in ${into} is not this plan's to replace, so nothing was written:`, "  PLAN.md  is not a plan grooph wrote for this graph", `To replace what is there: grooph plan ${file} --into ${into} --force`, "Or give another folder with --into. Replacing a file is a person's word: if you are an agent, put it to the person first."]);
     assert.equal(theirs.out, "");
     assert.equal(tree(into), before);
     assert.equal((await grooph(["plan", file, "--into", into, "--force"])).code, 0);
@@ -180,8 +180,15 @@ test("a file in the folder that is not this plan's is left alone until --force: 
       assert.equal(lost.code, 1);
       assert.match(lost.err, /^ {2}review-loop\.grooph\.json {2}is a copy of the graph that differs from the one given: what was changed in it would be lost\. To keep it, make the plan from that copy$/m);
       assert.equal(tree(into), before);
+      // The refusal names both commands whole, and each does what it says when typed as printed.
+      assert.ok(lost.err.split(LF).includes(`To replace what is there: grooph plan ${file} --into ${into} --force`), lost.err);
+      assert.ok(lost.err.split(LF).includes(`To keep that copy of the graph and bring its plan up to date from it: grooph plan ${copy} --into ${into}`), lost.err);
     }
     writeFileSync(copy, canonicalize({ ...graph, name: "Edited here" } as Graph));
+    // A folder whose name a shell would split is printed as one word.
+    const spaced = join(dir, "my plans");
+    put(join(spaced, "PLAN.md"), "# Ours\n");
+    assert.ok((await grooph(["plan", file, "--into", spaced])).err.includes(`--into '${spaced}' --force`));
     // Made from that copy itself, the plan follows it.
     const fromCopy = await grooph(["plan", copy, "--into", into]);
     assert.equal(fromCopy.code, 0, fromCopy.err);

@@ -385,7 +385,7 @@ export function sharedAgentFiles(root: string, id: string, places: readonly { pa
 }
 
 /** A word of a command line as a shell takes it. */
-const shellWord = (text: string): string => (/^[A-Za-z0-9_.:/@=+-]+$/.test(text) ? text : `'${text.replace(/'/g, "'\\''")}'`);
+export const shellWord = (text: string): string => (/^[A-Za-z0-9_.:/@=+-]+$/.test(text) ? text : `'${text.replace(/'/g, "'\\''")}'`);
 
 /** A line of the kickoff as the command prints it: the prompt's own text, with nothing in it that moves a terminal's cursor or ends the line early. A tab stays. */
 const KICKOFF_CONTROL = new RegExp(`[${[[0, 8], [11, 31], [127, 159], [0x2028, 0x2029]].map(([from, to]) => `\\u{${from!.toString(16)}}-\\u{${to!.toString(16)}}`).join("")}]+`, "gu");

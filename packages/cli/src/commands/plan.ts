@@ -16,6 +16,7 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { isMapLike, parseGraphText, planBundle, planSteps, validate, type Graph, type Issue } from "@grooph/core";
 
 import { isKeptGraph, keptGraphRefusal, readText } from "../io.js";
+import { shellWord } from "./export.js";
 import { isGroophPicture, putAll, within, type Place } from "../place.js";
 import { plural, type Output } from "../print.js";
 import { Refusal, oneLine } from "../reply.js";
@@ -214,7 +215,11 @@ export function planCommand(raw: Output, file: string, flags: PlanFlags): number
     if (theirs.length > 0) {
       io.err(`grooph: ${plural(theirs.length, "file")} in ${into} ${theirs.length === 1 ? "is" : "are"} not this plan's to replace, so nothing was written:`);
       for (const one of theirs) io.err(`  ${one.path}  ${one.why}`);
-      io.err("Give another folder with --into, or run the same command with --force to replace what is there.");
+      // The exact commands, each word as a shell takes it: a person at a terminal, or an agent for them, types one.
+      io.err(`To replace what is there: grooph plan ${shellWord(file)} --into ${shellWord(into)} --force`);
+      const copy = places.find((one) => one.path === `${doc.id}.grooph.json` && theirs.some((their) => their.path === one.path));
+      if (copy !== undefined) io.err(`To keep that copy of the graph and bring its plan up to date from it: grooph plan ${shellWord(copy.full)} --into ${shellWord(into)}`);
+      io.err("Or give another folder with --into. Replacing a file is a person's word: if you are an agent, put it to the person first.");
       return 1;
     }
     putAll(place, places);
