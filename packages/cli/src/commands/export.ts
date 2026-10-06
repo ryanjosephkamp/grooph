@@ -6,6 +6,7 @@ import { CompileError, canonicalize, checkAdoption, formatIssue, getProfile, isM
 import { readText } from "../io.js";
 import { isLink, putAll, within, type Place } from "../place.js";
 import { printIssues, printNext, plural, type Output } from "../print.js";
+import { NOT_JUDGED } from "./adopt.js";
 import { ID, Refusal, oneLine } from "../reply.js";
 
 export type ExportFlags = { target: CompileTarget; into: string; models?: CompileOptions["models"]; modelsFrom?: string; changeModels?: boolean; allow?: string[]; uncompared?: boolean };
@@ -13,6 +14,13 @@ export type ExportFlags = { target: CompileTarget; into: string; models?: Compil
 export const TIERS = ["frontier", "strong", "fast"] as const;
 /** What a model's name is made of. It goes into a file's frontmatter as written, so nothing else is let through; the MCP server holds a name to the same. */
 export const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
+
+/**
+ * The variable a machine names its tiers in, for each target. One for each harness, because a model's name is one
+ * harness's: a map of Claude Code's models would otherwise be written into a Codex package, and the reverse
+ * (decision 0030). `GROOPH_MODELS` is Claude Code's, as it was before there was a second target.
+ */
+export const MODELS_ENV: Record<CompileTarget, string> = { "claude-code": "GROOPH_MODELS", codex: "GROOPH_MODELS_CODEX" };
 
 /**
  * What the tiers mean in this package, all three, said every time: which the one exporting named, or that they
@@ -30,7 +38,7 @@ export function tiersSaid(
   target: CompileTarget,
   models: CompileOptions["models"],
   from: string,
-  ways = "--models, or GROOPH_MODELS",
+  ways = `--models, or ${MODELS_ENV[target]}`,
   show: (text: string) => string = (text) => text,
 ): string[] {
   const stock = getProfile(target).models;
@@ -173,10 +181,11 @@ export function parseModels(text: string): { models: NonNullable<CompileOptions[
  *                 (a graph given a new id is a second package beside the first)
  * - `no-kept`     files of this graph's name are there, and no kept graph
  * - `unreadable`  the kept graph is there and cannot be read as a graph
+ * - `other-harness`  the package there is this graph's for another harness (a mixed package would be made)
  * - `stale`       the kept graph reads, and the lead's brief or the mapping notes in place are not what it compiles to. What reads as
  *                 loosened against it is still held by name; "none loosened" is not said
  */
-export type BaselineState = "compared" | "nothing" | "no-kept" | "unreadable" | "stale";
+export type BaselineState = "compared" | "nothing" | "no-kept" | "unreadable" | "other-harness" | "stale";
 export type BrakesAtExport = {
   state: BaselineState;
   /** compared, and the graph coming in is the graph the package keeps */
@@ -188,11 +197,10 @@ export type BrakesAtExport = {
   meant: AdoptionChange[];
   /** the changes that tighten a brake and loosen none: placed with the rest, and said, as `grooph adopt` says them */
   tighter: AdoptionChange[];
-  /**
-   * The changes core does not judge: with a check removed in this copy and another coming in, no change is called a
-   * tightening (the field arrives with the follow-up to the check kind; until then this list is empty).
-   */
+  /** the changes core names and does not call a tightening (`unjudged`); one with a second reason is in `tighter` too, as `grooph adopt` lists it */
   unjudged: AdoptionChange[];
+  /** why they are not judged: a check goes while another comes in (core's `swapped`), or an answer or an irreversible step is new */
+  swapped: boolean;
   /** names asked for that are no change here; all of them when nothing was compared */
   unknown: string[];
   /** what is not held and is still to be said (a loop whose cap would count the rounds between a person's decisions) */
@@ -203,9 +211,10 @@ export type BrakesAtExport = {
 export const NOT_COMPARED: Record<Exclude<BaselineState, "compared" | "nothing">, string> = {
   "no-kept": "Files of this graph's name were there, and no graph kept with them.",
   unreadable: "The graph this package kept cannot be read as this package's graph.",
+  "other-harness": "The package there is this graph's for another harness, and its files would be left beside this one's: a mixed package.",
   stale: "The lead's brief or the mapping notes in the package there are not what the graph it keeps compiles to: that graph was changed after they were written, one of them was changed by hand, or another version of grooph wrote them.",
 };
-export const waitsForAWord = (state: BaselineState): state is Exclude<BaselineState, "compared" | "nothing"> => state === "no-kept" || state === "unreadable" || state === "stale";
+export const waitsForAWord = (state: BaselineState): state is Exclude<BaselineState, "compared" | "nothing"> => state !== "compared" && state !== "nothing";
 
 export function brakesAtExport(
   root: string,
@@ -215,7 +224,7 @@ export function brakesAtExport(
   target: CompileTarget,
   models?: CompileOptions["models"],
 ): BrakesAtExport {
-  const none = (state: BaselineState, beside?: string[]): BrakesAtExport => ({ state, same: false, ...(beside ? { beside } : {}), held: [], meant: [], tighter: [], unjudged: [], unknown: [...allow], notices: [] });
+  const none = (state: BaselineState, beside?: string[]): BrakesAtExport => ({ state, same: false, ...(beside ? { beside } : {}), held: [], meant: [], tighter: [], unjudged: [], swapped: false, unknown: [...allow], notices: [] });
   const there = (full: string): boolean => {
     try {
       statSync(full);
@@ -236,6 +245,8 @@ export function brakesAtExport(
   if (before === undefined) return none("unreadable");
   // A graph of another id in this package's folder is another package's kept graph, moved here: no baseline.
   if (before.id !== doc.id) return none("unreadable");
+  // The package there was written for another harness: its brief is that harness's, and nothing here vouches for it.
+  if (before.target?.harness !== undefined && before.target.harness !== target) return none("other-harness");
   // A kept graph that is not what the brief was written from is no baseline for "nothing was loosened". What does read
   // as loosened against it is still held: the comparison is made, and its answer is trusted only one way.
   const stale = !writtenFrom(root, before, target, models);
@@ -247,8 +258,9 @@ export function brakesAtExport(
     same: !stale && canonicalize(before) === canonicalize(doc),
     held: once(check.refused),
     meant: once(check.changes.filter((change) => change.loosens !== undefined && !check.refused.includes(change))),
-    tighter: check.changes.filter((change) => change.tightens !== undefined && change.loosens === undefined && !isUnjudged(change)),
-    unjudged: check.changes.filter(isUnjudged),
+    tighter: check.changes.filter((change) => change.tightens !== undefined && change.loosens === undefined),
+    unjudged: check.changes.filter((change) => change.unjudged !== undefined && change.loosens === undefined),
+    swapped: check.swapped,
     unknown: check.unknown,
     notices: check.notices,
   };
@@ -300,14 +312,7 @@ function writtenFrom(root: string, kept: Graph, target: CompileTarget, models: C
 /** A text as a file holds it once written as UTF-8 and read back. */
 export const asWritten = (text: string): string => Buffer.from(text, "utf8").toString("utf8");
 
-/** A change core marks as not judged (`unjudged`, beside `tightens`), whatever the mark holds; a core without the field marks none. */
-const isUnjudged = (change: AdoptionChange): boolean => {
-  const mark = (change as AdoptionChange & { unjudged?: unknown }).unjudged;
-  return mark !== undefined && mark !== false && mark !== null;
-};
-
-/** What `grooph adopt` says above the changes core does not judge; the three doors say it in the same words. */
-export const NOT_JUDGED = "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:";
+export { NOT_JUDGED };
 
 /**
  * The ids of the packages in `root` other than `id`'s: each folder under `.grooph` that is named as a graph's id is,
@@ -329,7 +334,7 @@ export const NAMED_AT_MOST = 20;
 
 /**
  * The agent files this export would place that another package in the folder has as its own. An agent's file is
- * `<graph id>--<node id>.md`, and both ids may hold `--`: the graph `my` with a node `graph--builder` and the graph
+ * named `<graph id>--<node id>` in either harness's folder, and both ids may hold `--`: the graph `my` with a node `graph--builder` and the graph
  * `my--graph` with a node `builder` name one file. Neither door writes over the other package's.
  */
 export function sharedAgentFiles(root: string, id: string, places: readonly { path: string }[]): { path: string; other: string }[] {
@@ -342,8 +347,12 @@ export function sharedAgentFiles(root: string, id: string, places: readonly { pa
     } catch {
       continue;
     }
-    const theirs = new Set(nodes.map((node) => `.claude/agents/${other}--${node}.md`));
-    for (const place of places) if (theirs.has(place.path)) shared.push({ path: place.path, other });
+    // Either harness: `.claude/agents/<name>.md`, `.codex/agents/<name>.toml`. The name is what two graphs can share.
+    const theirs = new Set(nodes.map((node) => `${other}--${node}`));
+    for (const place of places) {
+      const agent = /(?:^|\/)agents\/([^/]+)\.[a-z]+$/.exec(place.path)?.[1];
+      if (agent !== undefined && theirs.has(agent)) shared.push({ path: place.path, other });
+    }
   }
   return shared;
 }
@@ -363,7 +372,7 @@ const looksLikeMap = (text: string): boolean => {
 };
 
 /**
- * `grooph export <file> --target claude-code --into <dir>`
+ * `grooph export <file> --target <harness> --into <dir>`
  *
  * Refuses with the error list when the document does not validate for export
  * (spec §9), writes the package files, then prints the kickoff prompt.
@@ -457,10 +466,10 @@ export function exportCommand(raw: Output, file: string, given: ExportFlags): nu
   const brakes = brakesAtExport(flags.into, places, parsed.doc, allow, flags.target, flags.models);
   const width = Math.max(0, ...[...brakes.held, ...brakes.meant].map((change) => change.name.length)) + 2;
   const changeLine = (change: AdoptionChange): string => `  ${change.name.padEnd(width)}${change.loosens ?? ""}`;
-  const tighterWidth = Math.max(0, ...brakes.tighter.map((change) => change.name.length)) + 2;
+  const tighterWidth = Math.max(0, ...[...brakes.tighter, ...brakes.unjudged].map((change) => change.name.length)) + 2;
   const tighterLines = (): string[] => [
     ...(brakes.tighter.length > 0 ? [brakes.held.length > 0 ? "tightens a brake:" : "tightens a brake, and is placed with the rest:", ...brakes.tighter.map((change) => `  ${change.name.padEnd(tighterWidth)}undoing it: ${change.tightens ?? ""}`)] : []),
-    ...(brakes.unjudged.length > 0 ? [NOT_JUDGED, ...brakes.unjudged.map((change) => `  ${change.name}`)] : []),
+    ...(brakes.unjudged.length > 0 ? [NOT_JUDGED[brakes.swapped ? "swapped" : "new"], ...brakes.unjudged.map((change) => `  ${change.name.padEnd(tighterWidth)}undoing it: ${change.unjudged ?? ""}`)] : []),
   ];
   const quoted = (names: readonly string[]): string => names.map((name) => JSON.stringify(name)).join(", ");
 
@@ -480,7 +489,7 @@ export function exportCommand(raw: Output, file: string, given: ExportFlags): nu
     io.err(`The graph a package keeps is what an export compares with, and here it cannot stand for what the package in ${flags.into} runs on: a looser graph would pass as no change.`);
     io.err("Look at what is there. To place this graph with nothing compared, export again with --uncompared. That is a person's word: if you are an agent, put it to the person first.");
   }
-  const nothingToName = brakes.state === "no-kept" || brakes.state === "unreadable";
+  const nothingToName = brakes.state === "no-kept" || brakes.state === "unreadable" || brakes.state === "other-harness";
   if (brakes.unknown.length > 0 && !(nothingToName && flags.uncompared === true)) {
     stopped = true;
     io.err(
@@ -506,7 +515,7 @@ export function exportCommand(raw: Output, file: string, given: ExportFlags): nu
     io.err(`grooph: this export would change the model of ${plural(moved.length, "agent file")} already in ${flags.into}, so nothing was written:`);
     for (const line of movedLines) io.err(line);
     for (const line of tiers) io.err(line);
-    io.err("If the models are meant to change, export again with --change-models. If not, name the tiers the package was placed with: --models, or GROOPH_MODELS.");
+    io.err(`If the models are meant to change, export again with --change-models. If not, name the tiers the package was placed with: --models, or ${MODELS_ENV[flags.target]}.`);
   }
   if (stopped) return 1;
   try {
@@ -542,7 +551,7 @@ export function exportCommand(raw: Output, file: string, given: ExportFlags): nu
   // last line of this output is always this command's own, the one that says what was compared.
   io.out("");
   printNext(io, `open a ${flags.target} session in ${flags.into} and paste the kickoff below`);
-  io.out(`Kickoff — paste this into a Claude Code session opened in ${flags.into}. It runs from the next line to the line before the last line of this output, which is grooph's own:`);
+  io.out(`Kickoff — paste this into a ${getProfile(flags.target).title} session opened in ${flags.into}. It runs from the next line to the line before the last line of this output, which is grooph's own:`);
   io.out("");
   for (const line of compiled.kickoff.trimEnd().split("\n")) raw.out(line.replace(KICKOFF_CONTROL, " "));
   io.out("");

@@ -22,8 +22,11 @@ write. Nothing is written without --write; the source the package placed is neve
   --write               write it
 
 A run may tighten a brake and never loosen one: a human gate, an approval, an irreversible
-marker, a round cap, a budget, the stop where a person is asked, a bar's acceptance, critic
-isolation, the adaptation level. The working copy is compared with the source on the whole
+marker, a loop's round cap and budget, the stop where a person is asked, a bar's acceptance,
+critic isolation, a check (what it runs, what counts as a pass, where its verdicts lead), the
+adaptation level. The comparison does not see the graph's own constraints (its budget line among
+them) or an edge's retry and concurrency; what else it does not hold is in docs/runs.md, "What
+adoption does not hold". The working copy is compared with the source on the whole
 graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
 with its reasons, and --write is refused until each is asked for with --allow; one that
 tightens is adopted with the rest, and said. A way round a loop that a person newly opens
@@ -53,6 +56,16 @@ const sameFile = (a: string, b: string): boolean => {
     return false;
   }
 };
+
+/**
+ * What is said above the changes core names and does not call a tightening (`unjudged`), by why: a check that goes
+ * while another comes in (`swapped`), or an answer or an irreversible step that is new. One place, so that `adopt`,
+ * the export command and the MCP tool's export say it in the same words.
+ */
+export const NOT_JUDGED = {
+  swapped: "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:",
+  new: "not judged: an answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before. It is named here and not called a tightening:",
+} as const;
 
 /** `grooph adopt <run dir> [--into <graph file>] [--allow <change> ...] [--write]` (docs/runs.md §3). */
 export function adoptCommand(io: Output, dir: string, flags: { into?: string; allow?: string[]; write: boolean }): number {
@@ -113,6 +126,15 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
     io.out("");
     io.out(check.refused.length > 0 ? "tightens a brake:" : "tightens a brake, and is adopted with the rest:");
     for (const change of tighter) io.out(`  ${change.name.padEnd(width)}undoing it: ${change.tightens}`);
+  }
+  // Changed where undoing it would lose a brake, and still not called a tightening: a check is removed in this copy.
+  const unjudged = check.changes.filter((change) => change.unjudged !== undefined && change.loosens === undefined);
+  if (unjudged.length > 0) {
+    io.out("");
+    io.out(
+      NOT_JUDGED[check.swapped ? "swapped" : "new"],
+    );
+    for (const change of unjudged) io.out(`  ${change.name.padEnd(width)}undoing it: ${change.unjudged}`);
   }
   for (const notice of check.notices) {
     io.out("");

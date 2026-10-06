@@ -354,6 +354,9 @@ class Args {
   obj(key: string): Record<string, unknown> {
     const value = this.op[key];
     if (!isObject(value)) fail(`"${key}" must be an object, got ${describe(value)}`);
+    // A key that names a part of every object is no field of a graph. Merged in by assignment (`patch`), "__proto__"
+    // would set what the object inherits from: a field the document then seems to have and a saved copy has not.
+    for (const name of ["__proto__", "constructor", "prototype"]) if (Object.hasOwn(value as object, name)) fail(`"${key}" cannot hold the key "${name}"`);
     return value as Record<string, unknown>;
   }
 

@@ -43,6 +43,13 @@ describe("export", () => {
     expect(keptFolder("constructor")).toBeUndefined();
   });
 
+  it("compiles a graph for its Codex harness", () => {
+    const doc = { ...reviewLoop(), target: { harness: "codex" } };
+    const attempt = attemptExport(doc);
+    expect(attempt?.ok).toBe(true);
+    if (attempt?.ok) expect(attempt.target).toBe("codex");
+  });
+
   it("downloads the graph in canonical form", () => {
     expect(graphFileText(reviewLoop())).toBe(readTree(goldenDir)[".grooph/review-loop/graph.grooph.json"]);
   });

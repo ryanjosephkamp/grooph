@@ -49,11 +49,13 @@ nodes of the one document. Nothing is fetched or inlined when a package is compi
            nodes it holds, and the edges that lead in and out. --json prints the same as data.
   update   What a newer version of its template would change in each subgrooph (or in the ones
            named), then the graph with those changes. A change that removes or loosens a brake
-           (a human gate, an approval, an irreversible marker, a budget or a round cap, a bar's
-           acceptance, critic isolation) is listed first and NOT applied unless you ask for it by
-           its name with --allow. The brakes are compared on the whole graph as it would be
-           written, so one cannot be shed under a new id or in two changes: what a run could reach
-           only by a gate, an approval or a critic's verdict, it may not reach without it afterwards.
+           (a human gate, an approval, an irreversible marker, a loop's round cap and budget, a
+           bar's acceptance, critic isolation, a check) is listed first and NOT applied unless you ask
+           for it by its name with --allow. The brakes are compared on the whole graph as it would
+           be written, so one cannot be shed under a new id or in two changes: what a run could
+           reach only by a gate, an approval, a critic's verdict or a check's, it may not reach
+           without it afterwards. Any change to what a check runs or what counts as its pass is
+           held: a program cannot tell a stricter command from a looser one.
            A change says every reason it is held for. Tightening applies with the rest. The shape moves as a whole: while a change to the
            nodes, edges or loop members is held back, the others wait for it. A node you added
            inside the box under another id is yours, and stays. Dry run unless --write.

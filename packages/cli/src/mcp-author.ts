@@ -72,7 +72,7 @@ import {
 } from "@grooph/core";
 
 import { embedHtml } from "./commands/embed.js";
-import { MODEL_NAME, NAMED_AT_MOST, NOT_COMPARED, NOT_JUDGED, TIERS, asWritten, brakesAtExport, modelChanges, modelsSaid, parseModels, sharedAgentFiles, tiersSaid, waitsForAWord } from "./commands/export.js";
+import { MODELS_ENV, MODEL_NAME, NAMED_AT_MOST, NOT_COMPARED, NOT_JUDGED, TIERS, asWritten, brakesAtExport, modelChanges, modelsSaid, parseModels, sharedAgentFiles, tiersSaid, waitsForAWord } from "./commands/export.js";
 import { explain } from "./commands/explain.js";
 import { renderPng } from "./commands/image.js";
 import { fixLines } from "./fixes.js";
@@ -895,7 +895,7 @@ export const AUTHOR_TOOLS: Tool[] = [
     name: "grooph_export",
     title: "Compile a graph into a prompt package",
     description:
-      `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }; with into, writes them into that folder of the project instead (the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in), all of them or none. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over GROOPH_MODELS in the server's environment; a tier neither names is the target's own, and the reply says what all three mean. An export over a package already in place stops, and asks for "replace", on two things, listed together: a file that is not as grooph last wrote it, and an agent file whose model would change. It also stops, and "replace" does not answer, when this graph may have removed or loosened a brake of the graph that package keeps: each such change is listed after "loosens", and is placed only when its name is passed in "allow". That comparison is made only over a package in place for the same graph id, while the graph that package keeps reads: a graph under a new id is a second package and is compared with nothing, where the kept graph is gone, cannot be read as a graph, or is not what the package's files were written from, nothing is compared, the export waits for "replace", and the reply then says "brakes: not compared", and it does not see a check's command, a brief, a node's tools, the graph's own constraints (its budget line among them) or an edge's retry and concurrency. Every reply that placed files says on a "brakes:" line which of these happened. A graph whose id is a folder grooph keeps under .grooph (graphs, proposals, templates, events, hooks) is not exported. It places files and starts nothing: starting the run spends the person's money and waits for their word.`,
+      `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }; with into, writes them into that folder of the project instead (the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in), all of them or none. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over the target's own variable in the server's environment (GROOPH_MODELS for claude-code, GROOPH_MODELS_CODEX for codex; neither is read for the other); a tier neither names is the target's own, and the reply says what all three mean. An export over a package already in place stops, and asks for "replace", on two things, listed together: a file that is not as grooph last wrote it, and an agent file whose model would change. It also stops, and "replace" does not answer, when this graph may have removed or loosened a brake of the graph that package keeps: each such change is listed after "loosens", and is placed only when its name is passed in "allow". That comparison is made only over a package in place for the same graph id, while the graph that package keeps reads: a graph under a new id is a second package and is compared with nothing, where the kept graph is gone, cannot be read as a graph, or is not what the package's files were written from, nothing is compared, the export waits for "replace", and the reply then says "brakes: not compared", and what the comparison holds and does not is in docs/runs.md, "What adoption does not hold" (it does not see the graph's own constraints, its budget line among them, or an edge's retry and concurrency). Every reply that placed files says on a "brakes:" line which of these happened. A graph whose id is a folder grooph keeps under .grooph (graphs, proposals, templates, events, hooks) is not exported. It places files and starts nothing: starting the run spends the person's money and waits for their word.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -918,7 +918,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         },
       },
     },
-    chatDescription: `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }, for the person to save into the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in; nothing is written here. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over GROOPH_MODELS in the server's environment; a tier neither names is the target's own, and the reply says what all three mean. Nothing is started: starting the run spends the person's money and waits for their word.`,
+    chatDescription: `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }, for the person to save into the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in; nothing is written here. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over the target's own variable in the server's environment (GROOPH_MODELS for claude-code, GROOPH_MODELS_CODEX for codex; neither is read for the other); a tier neither names is the target's own, and the reply says what all three mean. Nothing is started: starting the run spends the person's money and waits for their word.`,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     run: refusing((args, ctx) => {
       const { doc, label, note } = readGraph(args, ctx, "grooph_export");
@@ -950,21 +950,24 @@ export const AUTHOR_TOOLS: Tool[] = [
         }
         if (Object.keys(named).length === 0) named = undefined;
       }
-      // GROOPH_MODELS says which model a tier means for every export on the machine. The call's own map is laid over
-      // it, tier by tier: naming one tier in a call does not send the others back to the target's own.
+      // The machine's tier map says which model a tier means for every export for one harness on the machine: the
+      // variable is the target's own (MODELS_ENV, decision 0030), since a model's name is one harness's, and the other
+      // target's variable is never read. The call's own map is laid over it, tier by tier: naming one tier in a call
+      // does not send the others back to the target's own.
+      const variable = MODELS_ENV[target as CompileTarget];
       let machine: NonNullable<CompileOptions["models"]> | undefined;
-      const fromEnv = (ctx.env ?? process.env)["GROOPH_MODELS"];
+      const fromEnv = (ctx.env ?? process.env)[variable];
       if (fromEnv !== undefined && fromEnv.trim() !== "") {
         const parsed = parseModels(fromEnv);
-        if ("error" in parsed) throw new Refusal(`GROOPH_MODELS, in the environment this server started in, does not read: ${q(parsed.error)}`, "correct GROOPH_MODELS there; the call's own map is laid over it, so it has to read");
+        if ("error" in parsed) throw new Refusal(`${variable}, in the environment this server started in, does not read: ${q(parsed.error)}`, `correct ${variable} there; the call's own map is laid over it, so it has to read`);
         machine = parsed.models;
       }
       const models = named || machine ? { ...(machine ?? {}), ...(named ?? {}) } : undefined;
-      const modelsFrom = named && machine ? '"models", over GROOPH_MODELS' : named ? '"models"' : machine ? "GROOPH_MODELS" : undefined;
+      const modelsFrom = named && machine ? `"models", over ${variable}` : named ? '"models"' : machine ? variable : undefined;
       // What every tier means in this package is said every time, map or no map, and each pin by its node: the
       // target's own model for a tier, and a model a pin names, are facts about the package a person may not expect.
       // A model's name is someone's text (an argument, the environment, a pin), so it is said as a JSON string.
-      const ways = '"models", or GROOPH_MODELS where the server starts';
+      const ways = `"models", or ${variable} where the server starts`;
       const tiers = tiersSaid(doc, target as CompileTarget, models, modelsFrom ?? "", ways, q);
       const pins = doc.nodes.flatMap((node) => {
         const pin = node.kind === "agent" ? node.model?.pin?.[target] : undefined;
@@ -987,10 +990,11 @@ export const AUTHOR_TOOLS: Tool[] = [
       let same = false;
       let tighter: AdoptionChange[] = [];
       let unjudged: AdoptionChange[] = [];
+      let swapped = false;
       // What tightens, and what core does not judge, said as `grooph adopt` says them, each change's name and words as JSON strings.
       const tighterLines = (refused: boolean): string[] => [
         ...(tighter.length > 0 ? [refused ? "tightens a brake:" : "tightens a brake, and is placed with the rest:", ...tighter.map((change) => `  change ${q(change.name)}: undoing it: ${q(change.tightens ?? "")}`)] : []),
-        ...(unjudged.length > 0 ? [NOT_JUDGED, ...unjudged.map((change) => `  change ${q(change.name)}`)] : []),
+        ...(unjudged.length > 0 ? [NOT_JUDGED[swapped ? "swapped" : "new"], ...unjudged.map((change) => `  change ${q(change.name)}: undoing it: ${q(change.unjudged ?? "")}`)] : []),
       ];
       let compared = false;
       let beside: string[] | undefined;
@@ -1057,6 +1061,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         notices = brakes.notices;
         tighter = brakes.tighter;
         unjudged = brakes.unjudged;
+        swapped = brakes.swapped;
         const unanswered = (theirs.length > 0 || moved.length > 0 || uncompared !== undefined) && args["replace"] !== true;
         if (held.length > 0) {
           const byBrake = `${plural(held.length, "change")} in this graph may remove or loosen a brake the package there has`;

@@ -441,6 +441,95 @@ test("adopt takes a working copy that tightens a brake, and says which", async (
   }
 });
 
+test("adopt names a new step marked irreversible, and an answer a gate did not give, without calling either a tightening", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    // A release gate behind the critic's pass, which is a brake gained; and behind its yes a step told to publish,
+    // which is a thing the run could not do before. Printed under "tightens a brake" until the export door's reader
+    // asked whether that label was true of it.
+    amend(run, (working) => {
+      working.nodes.push(
+        { id: "release-gate", kind: "human-gate", name: "Release", prompt: "Publish this version?", options: ["approve", "reject"] },
+        { id: "ship", kind: "agent", name: "Ship", role: "builder", brief: "Run `npm publish`, once.", outputs: ["SHIP.md"], allow: ["read-files", "run-commands", "write-outputs"], irreversible: ["publishes the package to npm"] },
+        { id: "held", kind: "stop", name: "Held", outcome: "halt" },
+      );
+      working.edges.find((edge) => edge.id === "e-critic-pass")!.to = "release-gate";
+      working.edges.push(
+        { id: "e-gate-ship", from: "release-gate", to: "ship", when: "pass" },
+        { id: "e-gate-held", from: "release-gate", to: "held", when: "fail" },
+        { id: "e-ship-done", from: "ship", to: "done" },
+      );
+    });
+    const io = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], io), 0, text(io.stdout) + text(io.stderr));
+    const out = text(io.stdout);
+    assert.match(out, /\ntightens a brake, and is adopted with the rest:\n(?: {2}[^\n]*\n)*? {2}node:release-gate +undoing it: removes a human gate/);
+    assert.match(out, /\nnot judged: an answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before\. It is named here and not called a tightening:\n {2}node:ship +undoing it: removes a node marked irreversible \(publishes the package to npm\)/);
+    assert.doesNotMatch(out, /tightens a brake[^\n]*\n(?: {2}[^\n]*\n)* {2}node:ship /);
+    assert.doesNotMatch(out, /loosens a brake/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("A-019: the audit lane's two check cases, and the two its reader got through the first cut, on the kept grind-loop record, through the command, are refused by name", async () => {
+  // As experiments/audits/0001-claims-as-of-0-3-0/tools/check-through-command.sh sets them up: the proving record's
+  // package graph as the source, its run folder beside it, and the working copy changed by hand.
+  const record = join(repoRoot, "experiments", "patterns", "grind-loop", "run");
+  const cases: [string, (working: Graph) => void, string[], RegExp][] = [
+    ["the check made to pass always", (w) => {
+      const tests = w.nodes.find((n) => n.kind === "check")! as Extract<Graph["nodes"][number], { kind: "check" }>;
+      tests.check = { ...tests.check, run: "true", pass: "exit code 0" };
+    }, ["node:tests.check"], /node:tests\.check +changes the check's definition \(run, pass\)/],
+    ["its two verdicts swapped", (w) => {
+      for (const edge of w.edges) if (edge.from === "tests") edge.when = edge.when === "pass" ? "fail" : edge.when === "fail" ? "pass" : edge.when;
+    }, ["edge:e-tests-fail.when", "edge:e-tests-pass.when"], /a way into "done" that does not pass "pass" from the check "tests"/],
+    // The reader of this change: a failure led to a second stop that ends in success, and passing to the first by a
+    // new edge that asks a person. The first cut printed all three under "tightens a brake" and wrote version 2.
+    ["a failure led to a stop of its own that ends in success", (w) => {
+      w.nodes.push({ id: "done-too", kind: "stop", name: "Done too", outcome: "success" });
+      Object.assign(w.edges.find((edge) => edge.id === "e-tests-pass")!, { when: "fail", to: "done-too" });
+      w.edges.push({ id: "e-tests-passed", from: "tests", to: "done", when: "pass", approval: true });
+    }, ["edge:e-tests-pass.to", "edge:e-tests-pass.when", "edge:e-tests-passed"], /edge:e-tests-pass\.when +.*changes "e-tests-pass", an edge that leaves the check "tests" \(when\)/],
+    // And a bar of the builder's own word, with a stop that leads on when it is passed.
+    ["the loop given a bar and a stop on it", (w) => {
+      w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
+      w.loops[0]!.stops.unshift({ kind: "bar-passed", then: "done" });
+    }, ["loop:grind.stops", "loop:grind.bar"], /loop:grind\.stops +a stop of the loop would lead on to "done", a way that does not pass the check "tests"/],
+    // The driver's reader: the check under another id, with a bar put round it. One name is held, its line shows
+    // the check that comes in, and the bar is listed by name as not judged, where it was printed as a tightening.
+    ["the check under another id, with a bar given to its loop", (w) => {
+      const check = w.nodes.find((n) => n.id === "tests")!;
+      check.id = "test-suite";
+      for (const edge of w.edges) Object.assign(edge, { from: edge.from === "tests" ? "test-suite" : edge.from, to: edge.to === "tests" ? "test-suite" : edge.to });
+      w.loops[0]!.members = w.loops[0]!.members.map((member) => (member === "tests" ? "test-suite" : member));
+      w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
+    }, ["node:tests"], /node:tests +removes a check, while a check the graph has not comes in \("test-suite": runs "npm test"[\s\S]*\nnot judged: with a check removed in this copy, no change is called a tightening\.[\s\S]*\n  loop:grind\.bar +undoing it: removes the loop's bar/],
+  ];
+  for (const [what, change, allow, said] of cases) {
+    const dir = mkdtempSync(join(tmpdir(), "grooph-check-brake-"));
+    try {
+      mkdirSync(join(dir, ".grooph", "g", "runs"), { recursive: true });
+      copyFileSync(join(record, "package", "graph.grooph.json"), join(dir, ".grooph", "g", "graph.grooph.json"));
+      cpSync(join(record, "runs"), join(dir, ".grooph", "g", "runs"), { recursive: true });
+      const run = join(dir, ".grooph", "g", "runs", readdirSync(join(dir, ".grooph", "g", "runs"))[0]!);
+      amend(run, change);
+      const target = join(dir, "adopted.grooph.json");
+      const refused = capture();
+      assert.equal(await grooph(["adopt", run, "--write", "--into", target], refused), 1, what);
+      assert.match(text(refused.stdout), said, what);
+      assert.match(text(refused.stderr), /not written: the working copy loosens a brake/, what);
+      assert.equal(existsSync(target), false, what);
+      // Asked for by each name, it is written: the person who means it can say so.
+      assert.equal(await grooph(["adopt", run, "--write", "--into", target, ...allow.flatMap((name) => ["--allow", name])], capture()), 0, what);
+      assert.equal(readGraph(target).version, 2, what);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
 // ─── share <run dir> ──────────────────────────────────────────────────────
 
 test("share <run dir> prints a kind run link that decodes to the bundle; --out writes the bundle", async () => {

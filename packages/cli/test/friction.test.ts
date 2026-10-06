@@ -13,6 +13,7 @@ import { run } from "../src/index.js";
 
 // A developer's own tier map must not reach these tests.
 delete process.env["GROOPH_MODELS"];
+delete process.env["GROOPH_MODELS_CODEX"];
 import type { Output } from "../src/print.js";
 
 type Capture = Output & { stdout: string[]; stderr: string[] };

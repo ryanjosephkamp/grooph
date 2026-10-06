@@ -15,6 +15,7 @@ import { run } from "../src/index.js";
 
 // A developer's own tier map must not reach the golden packages these tests compare against.
 delete process.env["GROOPH_MODELS"];
+delete process.env["GROOPH_MODELS_CODEX"];
 import type { Output } from "../src/print.js";
 
 const repoRoot = (() => {
@@ -181,6 +182,125 @@ test("export writes the package and prints the kickoff", async () => {
       "the printed kickoff is the KICKOFF.md text",
     );
     assert.ok(!existsSync(join(dir, ".grooph/review-loop/runs")), "runs/ is created at run time, not by export");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/** The review loop in a scratch folder, naming the harness asked for: by the op, through the command a person uses. */
+const reviewLoopNaming = (dir: string, harness: string): Promise<string> => fixtureNaming(dir, "review-loop", harness);
+const fixtureNaming = async (dir: string, name: string, harness: string): Promise<string> => {
+  mkdirSync(dir, { recursive: true });
+  const path = join(dir, `${name}.grooph.json`);
+  copyFileSync(fixture("valid", `${name}.grooph.json`), path);
+  const io = capture();
+  assert.equal(await run(["apply", path, "--ops", "-", "--write"], io, () => JSON.stringify([{ op: "setTarget", harness }])), 0, io.all());
+  assert.equal(JSON.parse(readFileSync(path, "utf8")).target.harness, harness);
+  return path;
+};
+
+test("export accepts Codex and names the selected harness in its kickoff", async () => {
+  const dir = scratch();
+  try {
+    const io = capture();
+    const code = await run(["export", await reviewLoopNaming(dir, "codex"), "--target", "codex", "--into", dir], io);
+    assert.equal(code, 0, io.stderr.join("\n"));
+    assert.ok(existsSync(join(dir, ".codex/agents/review-loop--builder.toml")));
+    assert.match(io.stdout.join("\n"), /Kickoff — paste this into a Codex session/);
+    assert.match(readFileSync(join(dir, ".grooph/review-loop/KICKOFF.md"), "utf8"), /codex/i);
+    // The package's own copy of the graph names the harness the package is for.
+    assert.equal(JSON.parse(readFileSync(join(dir, ".grooph/review-loop/graph.grooph.json"), "utf8")).target.harness, "codex");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("export refuses a document that names one harness when asked for the other's package, both ways, and writes nothing", async () => {
+  // Slice 0076, the review's second read, item 1: the review loop naming Codex, exported with --target claude-code,
+  // exited 0 and wrote Claude Code agent files with Codex's models and no tools lines (every tool).
+  for (const [named, asked] of [["codex", "claude-code"], ["claude-code", "codex"]] as const) {
+    const dir = scratch();
+    try {
+      const path = await reviewLoopNaming(dir, named);
+      const into = join(dir, "package");
+      const io = capture();
+      assert.equal(await run(["export", path, "--target", asked, "--into", into], io), 1, `${named} for ${asked}`);
+      assert.match(io.stderr.join("\n"), new RegExp(`cannot export .* for ${asked}: fix these first`));
+      assert.match(
+        io.stderr.join("\n"),
+        new RegExp(`error {2}E_NO_TARGET {2}the document names the harness "${named}" and the export is for "${asked}": export it for ${named}, or name ${asked} in the document first \\(grooph apply <file> --ops - --write, given \\[\\{"op":"setTarget","harness":"${asked}"\\}\\]\\) and export into a project that does not hold this graph's ${named} package`),
+      );
+      assert.ok(!existsSync(into), "nothing was written");
+      assert.deepEqual(io.stdout.filter((line) => /Kickoff|wrote/.test(line)), []);
+      // The way out the message names: the same file for the harness it names.
+      assert.equal(await run(["export", path, "--target", named, "--into", into], capture()), 0);
+      assert.ok(existsSync(join(into, named === "codex" ? ".codex/agents/review-loop--builder.toml" : ".claude/agents/review-loop--builder.md")));
+      assert.ok(!existsSync(join(into, named === "codex" ? ".claude" : ".codex")), "one harness's files");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
+test("a machine's tier map is one harness's: GROOPH_MODELS is never read for Codex, nor GROOPH_MODELS_CODEX for Claude Code; --models is for the export it is typed on", async () => {
+  // Slice 0076, the driver's reader: with GROOPH_MODELS naming Claude Code's models, a Codex export wrote
+  // model = "sonnet" into both agent files and suggested -m 'opus'; the reverse wrote gpt-6-luna into .claude/agents.
+  const claudeMap = "frontier=opus,strong=claude-map-strong,fast=haiku";
+  const codexMap = "frontier=gpt-6.1-sol,strong=codex-map-strong,fast=gpt-6-luna";
+  const dir = scratch();
+  try {
+    const paths = { "claude-code": await reviewLoopNaming(join(dir, "a"), "claude-code"), codex: await reviewLoopNaming(join(dir, "b"), "codex") };
+    const exported = async (target: "claude-code" | "codex", env: Record<string, string>, flag?: string) => {
+      const into = mkdtempSync(join(dir, "pkg-"));
+      const io = capture();
+      assert.equal(await run(["export", paths[target], "--target", target, "--into", into, ...(flag ? ["--models", flag] : [])], io, () => "", { env }), 0, io.all());
+      const agent = readFileSync(join(into, target === "codex" ? ".codex/agents/review-loop--builder.toml" : ".claude/agents/review-loop--builder.md"), "utf8");
+      const all = [agent, readFileSync(join(into, ".grooph/review-loop/MAPPING.md"), "utf8"), readFileSync(join(into, ".grooph/review-loop/LEAD.md"), "utf8")].join("\n");
+      return { model: /^model(?:: | = ")([^"\n]+)/m.exec(agent)![1]!, all, out: io.stdout.join("\n") };
+    };
+    // Each variable set, the other target exported: the other target's own defaults, and not a word of the map.
+    const codexUnderClaudeMap = await exported("codex", { GROOPH_MODELS: claudeMap });
+    assert.equal(codexUnderClaudeMap.model, "gpt-6-luna");
+    assert.doesNotMatch(codexUnderClaudeMap.all, /claude-map-strong|opus|haiku/);
+    // (The tier line is printed every time since slice 0078, on the driver's decision: what is asserted is that it
+    // names no map, and names this target's own variable as the way to give one.)
+    assert.doesNotMatch(codexUnderClaudeMap.out, /Named by|claude-map-strong|GROOPH_MODELS\b(?!_CODEX)/);
+    assert.match(codexUnderClaudeMap.out, /^tiers in this package: .*No tier map was given \(--models, or GROOPH_MODELS_CODEX\)\./m);
+    const claudeUnderCodexMap = await exported("claude-code", { GROOPH_MODELS_CODEX: codexMap });
+    assert.equal(claudeUnderCodexMap.model, "sonnet");
+    assert.doesNotMatch(claudeUnderCodexMap.all, /codex-map-strong|gpt-/);
+    assert.doesNotMatch(claudeUnderCodexMap.out, /Named by|codex-map-strong|GROOPH_MODELS_CODEX/);
+    assert.match(claudeUnderCodexMap.out, /^tiers in this package: .*No tier map was given \(--models, or GROOPH_MODELS\)\./m);
+    // Each read for its own target, and said by its own name.
+    const codexOwn = await exported("codex", { GROOPH_MODELS: claudeMap, GROOPH_MODELS_CODEX: codexMap });
+    assert.equal(codexOwn.model, "codex-map-strong");
+    assert.match(codexOwn.out, /Named by GROOPH_MODELS_CODEX\./);
+    assert.doesNotMatch(codexOwn.all, /claude-map-strong|opus|haiku/);
+    const claudeOwn = await exported("claude-code", { GROOPH_MODELS: claudeMap, GROOPH_MODELS_CODEX: codexMap });
+    assert.equal(claudeOwn.model, "claude-map-strong");
+    assert.match(claudeOwn.out, /Named by GROOPH_MODELS\./);
+    assert.doesNotMatch(claudeOwn.all, /codex-map-strong|gpt-/);
+    // The flag is typed for this export, whichever its target, and wins over the target's variable.
+    for (const target of ["claude-code", "codex"] as const) {
+      const typed = await exported(target, { GROOPH_MODELS: claudeMap, GROOPH_MODELS_CODEX: codexMap }, "strong=typed-for-this-export");
+      assert.equal(typed.model, "typed-for-this-export", target);
+      assert.match(typed.out, /Named by --models\./, target);
+    }
+    // A map that does not parse is reported under the name of the variable it came from, and only for its own target.
+    const bad = capture();
+    assert.equal(await run(["export", paths.codex, "--target", "codex", "--into", join(dir, "never")], bad, () => "", { env: { GROOPH_MODELS_CODEX: "best=x" } }), 1);
+    assert.match(bad.stderr.join("\n"), /GROOPH_MODELS_CODEX: "best" is not a tier/);
+    assert.equal(await run(["export", paths.codex, "--target", "codex", "--into", join(dir, "fine")], capture(), () => "", { env: { GROOPH_MODELS: "best=x" } }), 0, "Claude Code's variable is not read for Codex, even to be refused");
+    // The note that two tiers are one model names the variable of the target exported. It is printed for a graph
+    // with agents on two tiers that are one model in the target's own map (strong and fast, in both).
+    for (const [target, variable] of [["claude-code", "GROOPH_MODELS"], ["codex", "GROOPH_MODELS_CODEX"]] as const) {
+      const two = await fixtureNaming(join(dir, `two-${target}`), "glyph-vocabulary", target);
+      const io = capture();
+      assert.equal(await run(["export", two, "--target", target, "--into", mkdtempSync(join(dir, "two-pkg-"))], io, () => "", { env: {} }), 0, io.all());
+      const said = /To keep them apart, name the tiers: --models, or ([A-Z_]+)\./.exec(io.stdout.join("\n"));
+      assert.ok(said, `${target}: the note was not printed`);
+      assert.equal(said[1], variable, target);
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

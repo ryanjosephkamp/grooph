@@ -23,7 +23,7 @@ Check
   canonicalize print or rewrite a document in canonical form
 
 Compile
-  export       write the prompt package for a harness (claude-code)
+  export       write the prompt package for a harness (claude-code, codex)
   adopt        take a run's working copy as the graph's next version
 
 See
@@ -131,11 +131,13 @@ nodes of the one document. Nothing is fetched or inlined when a package is compi
            nodes it holds, and the edges that lead in and out. --json prints the same as data.
   update   What a newer version of its template would change in each subgrooph (or in the ones
            named), then the graph with those changes. A change that removes or loosens a brake
-           (a human gate, an approval, an irreversible marker, a budget or a round cap, a bar's
-           acceptance, critic isolation) is listed first and NOT applied unless you ask for it by
-           its name with --allow. The brakes are compared on the whole graph as it would be
-           written, so one cannot be shed under a new id or in two changes: what a run could reach
-           only by a gate, an approval or a critic's verdict, it may not reach without it afterwards.
+           (a human gate, an approval, an irreversible marker, a loop's round cap and budget, a
+           bar's acceptance, critic isolation, a check) is listed first and NOT applied unless you ask
+           for it by its name with --allow. The brakes are compared on the whole graph as it would
+           be written, so one cannot be shed under a new id or in two changes: what a run could
+           reach only by a gate, an approval, a critic's verdict or a check's, it may not reach
+           without it afterwards. Any change to what a check runs or what counts as its pass is
+           held: a program cannot tell a stricter command from a looser one.
            A change says every reason it is held for. Tightening applies with the rest. The shape moves as a whole: while a change to the
            nodes, edges or loop members is held back, the others wait for it. A node you added
            inside the box under another id is yours, and stays. Dry run unless --write.
@@ -247,19 +249,28 @@ Example
 
 ## `grooph export`
 
-Write the prompt package for a harness (claude-code)
+Write the prompt package for a harness (claude-code, codex)
 
 ```text
 grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...] [--change-models] [--allow <change>]... [--uncompared]
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
-Refuses, with the reasons, when the document has errors. Targets: claude-code.
+Refuses, with the reasons, when the document has errors. Targets: claude-code, codex.
 It says what each tier means in the package every time, and names each pin.
+A package is one harness's files: --target is the harness the document names (target.harness),
+and a document that names another is refused (E_NO_TARGET) until it names this one:
+  echo '[{"op":"setTarget","harness":"codex"}]' | grooph apply flaky.grooph.json --ops - --write
+  grooph export flaky.grooph.json --target codex --into <a project that does not hold its claude-code package>
+Two packages of one graph in one folder are a mixed package: export does not yet notice the other's files.
+It does read the graph the package there keeps: where that names the other harness, it says so, writes
+nothing, and waits for --uncompared.
 
   --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
                                 A tier not named keeps the target's own; a pin on a node still wins.
                                 GROOPH_MODELS in the environment says the same for every export
-                                on a machine; the flag wins over it. The graph does not change.
+                                for claude-code on a machine, and GROOPH_MODELS_CODEX for every
+                                export for codex: a model's name is one harness's, so neither is
+                                read for the other target. The flag wins. The graph does not change.
   --change-models               go ahead when the export would change the model of an agent file
                                 already in <dir>, or cannot read one for its model (a header not in
                                 the plain form grooph writes). Without it such an export stops, lists
@@ -273,7 +284,8 @@ It says what each tier means in the package every time, and names each pin.
 The brakes. A package keeps the graph it was written from (.grooph/<id>/graph.grooph.json). Over a
 package already in <dir> for the same graph id, the graph coming in is held to that graph's brakes,
 by the comparison grooph adopt makes (grooph adopt --help): a loop's round cap or budget raised, a
-gate or an approval gone, a bar's acceptance changed, a critic's isolation dropped. Each such change
+gate or an approval gone, a bar's acceptance changed, a critic's isolation dropped, a check changed
+or removed. Each such change
 is listed with its reason, nothing is written, and the exit code is 1, until each is asked for with
 --allow. The comparison cannot tell a stricter wording or a renamed part from a looser one, so it
 lists those too. A brake is removed or loosened only on a person's word: an agent that meets the
@@ -292,9 +304,10 @@ The last line of the output opens "brakes:" and says which of these happened. Th
 graph's own words and may hold any line: it runs from the line after "Kickoff" to the line before
 that last line, which is always grooph's own.
 
-What the comparison does not see: a check's command, a brief, a node's tools, the graph's own
-constraints (its budget line among them), an edge's retry and concurrency. "None of the brakes it
-compares" is all the last line says after a comparison. And it is not a seal: a hand that rewrites
+What the comparison holds and what it does not is in docs/runs.md, "What adoption does not hold";
+it does not see the graph's own constraints (its budget line among them) or an edge's retry and
+concurrency. "None of the brakes it compares" is all the last line says after a comparison. And the
+baseline is not a seal: a hand that rewrites
 the kept graph together with the brief and the mapping notes is not seen, nor is one that takes an
 irreversible marker off the kept graph, which neither file shows.
 
@@ -307,8 +320,9 @@ place, and the package is placed whole or not at all.
 A graph whose id is graphs, proposals, templates, events or hooks is not exported: a package lives in
 .grooph/<id>/, and grooph keeps those folders for something else.
 
-The target's own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet. Two of them are one model, so a critic
-on one over a builder on the other is the same model: the export says so when a graph has agents on both.
+The targets' own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet; for codex: frontier → gpt-6.1-sol, strong → gpt-6-luna, fast → gpt-6-luna.
+In each, two of them are one model, so a critic on one over a builder on the other is the same model:
+the export says so when a graph has agents on both.
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .
@@ -333,8 +347,11 @@ write. Nothing is written without --write; the source the package placed is neve
   --write               write it
 
 A run may tighten a brake and never loosen one: a human gate, an approval, an irreversible
-marker, a round cap, a budget, the stop where a person is asked, a bar's acceptance, critic
-isolation, the adaptation level. The working copy is compared with the source on the whole
+marker, a loop's round cap and budget, the stop where a person is asked, a bar's acceptance,
+critic isolation, a check (what it runs, what counts as a pass, where its verdicts lead), the
+adaptation level. The comparison does not see the graph's own constraints (its budget line among
+them) or an edge's retry and concurrency; what else it does not hold is in docs/runs.md, "What
+adoption does not hold". The working copy is compared with the source on the whole
 graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
 with its reasons, and --write is refused until each is asked for with --allow; one that
 tightens is adopted with the rest, and said. A way round a loop that a person newly opens
@@ -695,7 +712,8 @@ already there is replaced only when it is the graph the call read, a picture gro
 or a package's files as grooph last wrote them; anything else needs "replace": true.
 A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl.
 The graph a package keeps (.grooph/<id>/graph.grooph.json) is written only by grooph_export.
-grooph_export reads GROOPH_MODELS from the server's environment, lays the call's own "models"
+grooph_export reads the target's own tier variable from the server's environment (GROOPH_MODELS
+for claude-code, GROOPH_MODELS_CODEX for codex; neither for the other), lays the call's own "models"
 over it, says what every tier means, and asks before it changes the model of an agent file
 already in place. Over a package in place for the same graph id, while the graph that
 package keeps reads, it also lists each change that may remove or loosen a brake of that graph,

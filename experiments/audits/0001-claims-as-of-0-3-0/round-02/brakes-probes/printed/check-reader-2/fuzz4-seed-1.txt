@@ -1,0 +1,29 @@
+seed 1: 5000 trials; 1508 did not apply; 382 not valid; 3110 counted; THROUGH 8
+  a stop leads on to what pass led to                  counted  157  through 8
+  bar + bar-passed on its loop                         counted  124  through 0
+  bar only on its loop                                 counted  131  through 0
+  cap leads on to what pass led to                     counted  174  through 0
+  check made an agent                                  counted  166  through 0
+  check pass text                                      counted  199  through 0
+  check replaced under another id                      counted  178  through 0
+  check runs true                                      counted  173  through 0
+  edge around the check                                counted  118  through 0
+  edge around, on a verdict, with approval             counted  136  through 0
+  evidence on its edge emptied                         counted  166  through 0
+  evidence on its edge replaced                        counted  170  through 0
+  fail led where pass led                              counted   37  through 0
+  new loop over its round with a bar                   counted  139  through 0
+  new success stop from before the check               counted  163  through 0
+  new success stop on fail                             counted  183  through 0
+  pass edge removed, same edge under a new id on fail  counted  159  through 0
+  pass taken always                                    counted  179  through 0
+  retry/label/isolation on its edge + when             counted  163  through 0
+  verdicts swapped                                     counted  183  through 0
+  weaker check in front, first one skipped             counted   12  through 0
+through, by weakening + decoys:
+    3  a stop leads on to what pass led to  +  (nothing)   e.g. patterns/retrospective-rewrite.grooph.json (tests)
+    1  a stop leads on to what pass led to  +  approval on every check edge & level fixed   e.g. patterns/retrospective-rewrite.grooph.json (tests)
+    1  a stop leads on to what pass led to  +  target of a check edge made a critic   e.g. patterns/retrospective-rewrite.grooph.json (tests)
+    1  a stop leads on to what pass led to  +  a node made a critic   e.g. patterns/retrospective-rewrite.grooph.json (tests)
+    1  a stop leads on to what pass led to  +  cap lowered & level fixed   e.g. patterns/retrospective-rewrite.grooph.json (tests)
+    1  a stop leads on to what pass led to  +  cap lowered   e.g. patterns/retrospective-rewrite.grooph.json (tests)

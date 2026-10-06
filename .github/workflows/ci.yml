@@ -1,8 +1,12 @@
 name: CI
 
+# A branch is checked once, by its pull request. Until 2026-10-05 a push to a slice/** branch started these jobs
+# too, so every push to a branch with a pull request ran all of them twice; with six lanes pushing, that doubled
+# the wait for a machine. A branch with no pull request gets none: open one, as a draft if it is not ready. A pull
+# request that conflicts with main gets none either until main is merged in: GitHub checks the merge, not the head.
 on:
   push:
-    branches: ["main", "slice/**"]
+    branches: ["main"]
   pull_request:
   workflow_dispatch:
 
@@ -34,8 +38,15 @@ jobs:
         run: |
           for graph in review-loop fix-until-green; do
             pnpm exec grooph export "fixtures/valid/$graph.grooph.json" \
-              --target claude-code --into "$RUNNER_TEMP/grooph-pkg-$graph" > /dev/null
-            diff -r "$RUNNER_TEMP/grooph-pkg-$graph" "fixtures/golden/claude-code/$graph"
+              --target claude-code --into "$RUNNER_TEMP/grooph-pkg-claude-code-$graph" > /dev/null
+            diff -r "$RUNNER_TEMP/grooph-pkg-claude-code-$graph" "fixtures/golden/claude-code/$graph"
+            # The fixtures name Claude Code, and an export for a harness the document does not name is refused
+            # (E_NO_TARGET). The Codex package is of the same graph with Codex named in it, by the op.
+            cp "fixtures/valid/$graph.grooph.json" "$RUNNER_TEMP/for-codex-$graph.grooph.json"
+            echo '[{"op":"setTarget","harness":"codex"}]' | pnpm exec grooph apply "$RUNNER_TEMP/for-codex-$graph.grooph.json" --ops - --write > /dev/null
+            pnpm exec grooph export "$RUNNER_TEMP/for-codex-$graph.grooph.json" \
+              --target codex --into "$RUNNER_TEMP/grooph-pkg-codex-$graph" > /dev/null
+            diff -r "$RUNNER_TEMP/grooph-pkg-codex-$graph" "fixtures/golden/codex/$graph"
           done
 
       # An agent's route from nothing to the review loop: new, then apply the example ops.
@@ -100,13 +111,19 @@ jobs:
 
       # Study three's unpaid builds (slice 0095): the counter and the judge a brake experiment's result is read from,
       # the two packages it compiles from one graph, the two derived arms, and the clean profile's command. None of
-      # these starts a model session. The two --check modes fail when a kept prompt, or a line the pre-registration
-      # quotes from a package, is no longer what the compiler and the derivation rule give.
+      # these starts a model session: the last file tests the paid path against a stand-in for the harness, which
+      # calls no model. The two --check modes fail when a kept prompt, or a line the pre-registration quotes from a
+      # package, is no longer what the compiler and the derivation rule give.
       - name: the brake experiment's counter and packages, the derived arms and the comparison profile hold
         run: |
-          node --test scripts/lib/brake-count.test.mjs scripts/lib/brake-run.test.mjs scripts/lib/compare-arms-ef.test.mjs scripts/lib/compare-profile.test.mjs
+          node --test scripts/lib/brake-count.test.mjs scripts/lib/brake-run.test.mjs scripts/lib/compare-arms-ef.test.mjs scripts/lib/compare-profile.test.mjs scripts/lib/study-three-paid.test.mjs
           node scripts/lib/brake-run.mjs --check
           node scripts/lib/compare-arms-ef.mjs --check
+
+      # The Codex proving runner's own tests (slice 0076): what it reads of a kept record, the command it would start,
+      # and that what Codex says and prints goes where git ignores it. No model session: nothing here starts Codex.
+      - name: the Codex proving runner reads a record and keeps the transcript out of git
+        run: node --test scripts/prove-codex.test.mjs
 
       # The quickstart's by-hand path, in a fresh folder, against the built CLI.
       - name: the quickstart's first run works

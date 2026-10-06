@@ -1,0 +1,142 @@
+{
+  "grooph": 0,
+  "id": "push-after-a-go",
+  "name": "Push after a go",
+  "version": 1,
+  "goal": "Make the failing test suite pass, pushing each fix to the shared branch as it is made.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "constraints": {
+    "time": "about 20 minutes"
+  },
+  "adaptation": "fixed",
+  "description": "The fixer pushes, and a person is asked before the run comes to it the first time (a gate) and before every later round (the back edge asks). Every way in passes a human, the way in at the start among them.",
+  "nodes": [
+    {
+      "id": "go",
+      "kind": "human-gate",
+      "name": "Go",
+      "prompt": "Fixes will be pushed to the shared branch as they are made. Start?",
+      "options": [
+        "approve",
+        "reject"
+      ]
+    },
+    {
+      "id": "fixer",
+      "kind": "agent",
+      "name": "Fixer",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "Make the failing tests in tests/ pass by changing src/, then push the change to the shared branch. Do not edit the tests or skip them. Report which tests you fixed and why they failed.",
+      "inputs": [
+        "the failing test output"
+      ],
+      "outputs": [
+        "src/ changes, pushed",
+        "FIXES.md naming each test fixed and its cause"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "src"
+      ],
+      "irreversible": [
+        "push"
+      ]
+    },
+    {
+      "id": "suite",
+      "kind": "check",
+      "name": "Test suite",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "green",
+      "kind": "stop",
+      "name": "Green",
+      "outcome": "success"
+    },
+    {
+      "id": "not-now",
+      "kind": "stop",
+      "name": "Not now",
+      "outcome": "halt"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-go-fixer",
+      "from": "go",
+      "to": "fixer",
+      "when": {
+        "verdict": "approve"
+      }
+    },
+    {
+      "id": "e-go-not-now",
+      "from": "go",
+      "to": "not-now",
+      "when": {
+        "verdict": "reject"
+      }
+    },
+    {
+      "id": "e-fix-suite",
+      "from": "fixer",
+      "to": "suite"
+    },
+    {
+      "id": "e-suite-fail",
+      "from": "suite",
+      "to": "fixer",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ],
+      "approval": true
+    },
+    {
+      "id": "e-suite-pass",
+      "from": "suite",
+      "to": "green",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "fix-cycle",
+      "name": "Fix cycle",
+      "members": [
+        "fixer",
+        "suite"
+      ],
+      "back": [
+        "e-suite-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 20
+        }
+      ]
+    }
+  ]
+}

@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 
 import type { Graph } from "@grooph/core";
 
+import { NOT_JUDGED } from "../src/commands/adopt.js";
 import { run } from "../src/index.js";
 import type { Output } from "../src/print.js";
 
@@ -569,6 +570,65 @@ test("what is typed is echoed on one line before the command runs, and at a term
     assert.equal(said.at(-1), FIRST);
     const kick = said.findIndex((line) => line.startsWith("Kickoff — "));
     assert.ok(said.slice(0, kick).some((line) => line.startsWith("next: ")) && !said.slice(kick + 1, -1).some((line) => line.startsWith("next: open a ")), "grooph's own next: line stands above the kickoff");
+  });
+});
+
+test("what core names and does not call a tightening is said in adopt's two sentences, by why", async () => {
+  const core = await import("@grooph/core");
+  // A check under another id, and the round cap lowered: with a check removed while another comes in, the lower cap is
+  // named and not called a tightening.
+  const fix = fixture("fix-until-green");
+  const renamed = core.applyOps(fix, [{ op: "renameId", from: "suite", to: "suite-two" }] as Parameters<typeof core.applyOps>[1]);
+  assert.ok(renamed.ok);
+  const swapped = withCap(renamed.doc, 2);
+  await withProject(async (project, files) => {
+    assert.equal((await grooph(["export", put(join(files, "g.grooph.json"), fix), "--target", "claude-code", "--into", project])).code, 0);
+    const refused = await grooph(["export", put(join(files, "s.grooph.json"), swapped), "--target", "claude-code", "--into", project]);
+    assert.equal(refused.code, 1, refused.out);
+    assert.match(refused.err, /^ {2}node:suite +removes a check, while a check the graph has not comes in/m);
+    assert.ok(lines(refused.err).includes(NOT_JUDGED.swapped), refused.err);
+    assert.match(refused.err, /^ {2}loop:fix-cycle\.stops +undoing it: raises the round cap from 2 to 5$/m);
+    assert.ok(!refused.err.includes("tightens a brake"), "with a check swapped nothing is called a tightening");
+    const hint = lines(refused.err).find((line) => line.startsWith("To place "))!;
+    const names = [...hint.matchAll(/--allow ((?:node|edge|loop|policy|group|graph):\S+)/g)].map((m) => m[1]!);
+    const placed = await grooph(["export", join(files, "s.grooph.json"), "--target", "claude-code", "--into", project, ...names.flatMap((name) => ["--allow", name])]);
+    assert.equal(placed.code, 0, placed.err);
+    assert.ok(above(placed.out).includes(NOT_JUDGED.swapped), placed.out);
+  });
+  // A gate's new answer, led to a new stop that halts: nothing is held, and it is named under the other sentence.
+  const graph = fixture("review-loop");
+  const withSkip = {
+    ...graph,
+    nodes: [...graph.nodes.map((node) => (node.id === "merge-gate" ? { ...node, options: [...(node as { options: string[] }).options, "skip"] } : node)), { id: "skipped", kind: "stop", name: "Skipped", outcome: "halt" }],
+    edges: [...graph.edges, { id: "e-gate-skip", from: "merge-gate", to: "skipped", when: { verdict: "skip" } }],
+  } as unknown as Graph;
+  await withProject(async (project, files) => {
+    assert.equal((await grooph(exportArgs(put(join(files, "g.grooph.json"), graph), project))).code, 0);
+    const placed = await grooph(exportArgs(put(join(files, "skip.grooph.json"), withSkip), project));
+    assert.equal(placed.code, 0, placed.err);
+    assert.ok(above(placed.out).includes(NOT_JUDGED.new), placed.out);
+    assert.ok(above(placed.out).some((line) => /^ {2}node:merge-gate\.options +undoing it: the gate would no longer offer "skip"$/.test(line)), placed.out);
+    assert.equal(last(placed.out), NONE);
+  });
+});
+
+test("a package of the other harness in the folder is said, and waits for the word; a graph for Codex is held as one for Claude Code is", async () => {
+  const graph = fixture("review-loop");
+  const codex = { ...graph, target: { harness: "codex" } } as Graph;
+  await withProject(async (project, files) => {
+    const forCodex = (file: string, ...more: string[]): string[] => ["export", file, "--target", "codex", "--into", project, ...more];
+    const file = put(join(files, "c.grooph.json"), codex);
+    assert.equal(last((await grooph(forCodex(file))).out), FIRST);
+    assert.equal(last((await grooph(forCodex(file))).out), SAME);
+    const looser = await grooph(forCodex(put(join(files, "c9.grooph.json"), withCap(codex, 9))));
+    assert.equal(looser.code, 1);
+    assert.match(looser.err, /^ {2}loop:review-cycle\.stops +raises the round cap from 4 to 9$/m);
+    // The same graph for Claude Code, into the folder that holds its Codex package.
+    const before = tree(project);
+    const mixed = await grooph(exportArgs(put(join(files, "g.grooph.json"), graph), project));
+    assert.equal(mixed.code, 1, mixed.out);
+    assert.equal(lines(mixed.err)[0], "grooph: not compared, so nothing was written. The package there is this graph's for another harness, and its files would be left beside this one's: a mixed package.");
+    assert.equal(tree(project), before);
   });
 });
 

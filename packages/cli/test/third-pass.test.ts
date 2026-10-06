@@ -1103,3 +1103,59 @@ test("after the merge: two graphs whose ids and node ids make one agent file are
     }
   });
 });
+
+test("the last merge: the tool reads the tier variable of the target it exports for, and says what is not judged in adopt's sentences", async () => {
+  const { NOT_JUDGED } = await import("../src/commands/adopt.js");
+  const core = await import("@grooph/core");
+  const graph = fixture("valid", "review-loop.grooph.json");
+  const codex = { ...graph, target: { harness: "codex" } } as Graph;
+  // A map of Claude Code's models is not read for a Codex package, nor the reverse; each is named by its own variable.
+  for (const [doc, target, own, other] of [
+    [codex, "codex", "GROOPH_MODELS_CODEX", "GROOPH_MODELS"],
+    [graph, "claude-code", "GROOPH_MODELS", "GROOPH_MODELS_CODEX"],
+  ] as const) {
+    await withProject(
+      async (ctx) => {
+        const r = await call(ctx, "grooph_export", { graph: doc, target });
+        assert.equal(r.isError, undefined, textOf(r));
+        assert.ok(!textOf(r).includes("the-other-map") && !JSON.stringify(r.structuredContent).includes("the-other-map"), textOf(r));
+        assert.ok(textOf(r).includes(`No tier map was given ("models", or ${own} where the server starts).`), textOf(r));
+      },
+      { env: { [other]: "strong=the-other-map" } },
+    );
+    await withProject(
+      async (ctx) => {
+        const r = await call(ctx, "grooph_export", { graph: doc, target });
+        assert.equal(r.isError, undefined, textOf(r));
+        assert.ok(textOf(r).includes(`strong → "its-own-map"`) && textOf(r).includes(`Named by ${own}.`), textOf(r));
+      },
+      { env: { [own]: "strong=its-own-map" } },
+    );
+  }
+  // A check under another id with the cap lowered, and a gate's new answer: the two sentences, each change in quotes.
+  const fix = fixture("valid", "fix-until-green.grooph.json");
+  const renamed = core.applyOps(fix, [{ op: "renameId", from: "suite", to: "suite-two" }] as Parameters<typeof core.applyOps>[1]);
+  assert.ok(renamed.ok);
+  const swapped = { ...renamed.doc, loops: renamed.doc.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 2 } : stop)) })) } as Graph;
+  await withProject(async (ctx) => {
+    assert.equal((await call(ctx, "grooph_export", { graph: fix, into: "." })).isError, undefined);
+    const refused = await call(ctx, "grooph_export", { graph: swapped, into: "." });
+    assert.equal(refused.isError, true, textOf(refused));
+    const said = ownNext(refused, "a check swapped");
+    assert.ok(said.includes(NOT_JUDGED.swapped), textOf(refused));
+    assert.ok(said.includes('  change "loop:fix-cycle.stops": undoing it: "raises the round cap from 2 to 5"'), textOf(refused));
+  });
+  const withSkip = {
+    ...graph,
+    nodes: [...graph.nodes.map((node) => (node.id === "merge-gate" ? { ...node, options: [...(node as { options: string[] }).options, "skip"] } : node)), { id: "skipped", kind: "stop", name: "Skipped", outcome: "halt" }],
+    edges: [...graph.edges, { id: "e-gate-skip", from: "merge-gate", to: "skipped", when: { verdict: "skip" } }],
+  } as unknown as Graph;
+  await withProject(async (ctx) => {
+    assert.equal((await call(ctx, "grooph_export", { graph, into: "." })).isError, undefined);
+    const placed = await call(ctx, "grooph_export", { graph: withSkip, into: "." });
+    assert.equal(placed.isError, undefined, textOf(placed));
+    const said = ownNext(placed, "a gate's new answer");
+    assert.ok(said.includes(NOT_JUDGED.new), textOf(placed));
+    assert.ok(said.some((line) => line.startsWith('  change "node:merge-gate.options": undoing it: "the gate would no longer offer')), textOf(placed));
+  });
+});

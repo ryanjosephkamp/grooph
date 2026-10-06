@@ -46,7 +46,7 @@ grooph export flaky.grooph.json --target claude-code --into .
 3. `image` draws it, to look at or to send.
 4. `export` writes the package into the folder (`.claude/agents/`, a skill, and `.grooph/<id>/` with the lead brief) and prints a kickoff prompt. Open Claude Code there and paste it.
 
-Before you paste it, `grooph explain flaky.grooph.json` says in plain words what bounds the run: rounds, budgets, who must say go, and the worst case.
+Before you paste it, `grooph explain flaky.grooph.json` says in plain words what its brakes are: rounds, budgets, who must say go, and the worst case.
 
 ## Where next
 
