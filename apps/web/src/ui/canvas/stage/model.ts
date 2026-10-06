@@ -16,11 +16,11 @@
  * once). The studio these views were chosen from (`handoffs/briefs/studio-3d/`) was held to the graph by a second
  * reader, and what it corrected is kept here: nothing below says which brake a run meets first.
  */
-import { describeStop, edgeWhen, edgeWhenLabel, layerNodes, replaySteps, roleName, type Graph, type Id, type RunNote } from "@grooph/core";
+import { describeStop, edgeWhen, edgeWhenLabel, isPersonStep, layerNodes, replaySteps, roleName, STEP_BY_LABEL, type Graph, type Id, type RunNote } from "@grooph/core";
 
 export type { Id };
 export type V = [number, number, number];
-export type MNode = { id: Id; name: string; kind: "agent" | "check" | "gate" | "stop"; word: string; line: string; tier: "frontier" | "strong" | "fast" | "unset" | null; loop: Id | null; at: [number, number] };
+export type MNode = { id: Id; name: string; kind: "agent" | "person" | "check" | "gate" | "stop"; word: string; line: string; tier: "frontier" | "strong" | "fast" | "unset" | null; loop: Id | null; at: [number, number] };
 export type MEdge = { id: Id; from: Id; to: Id; when: string; back: Id | null; on: string | { verdict: string } | undefined };
 export type MLoop = { id: Id; name: string; inside: Id | null; members: Id[]; own: Id[]; back: Id[]; stops: string[]; cap: number | null; budget: { measure: string; limit: number } | null; human: number | null; perRound: number };
 /** A group: the nodes it holds, its own and those of the groups in it, and the group it is in. */
@@ -121,10 +121,13 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     nodes: doc.nodes.map((n) => ({
       id: n.id,
       name: n.name || n.id,
-      kind: KIND[n.kind][0],
-      word: KIND[n.kind][1],
-      line: n.kind === "agent" ? [roleName(n), n.model?.tier ?? "session default", n.effort].filter(Boolean).join(" · ") : KIND[n.kind][1],
-      tier: n.kind === "agent" ? (n.model?.tier ?? "unset") : null,
+      // A person's step (amendment A-020) says whose it is, as the picture does: "Person", in the color a person's
+      // decision has, and its role with no tier and no effort, since a person is on no model and has none to set.
+      // A card here has one line under its name, so the word is on that line, before the role.
+      kind: isPersonStep(n) ? "person" : KIND[n.kind][0],
+      word: isPersonStep(n) ? STEP_BY_LABEL.person : KIND[n.kind][1],
+      line: n.kind === "agent" ? (isPersonStep(n) ? `${STEP_BY_LABEL.person} · ${roleName(n)}` : [roleName(n), n.model?.tier ?? "session default", n.effort].filter(Boolean).join(" · ")) : KIND[n.kind][1],
+      tier: n.kind === "agent" && !isPersonStep(n) ? (n.model?.tier ?? "unset") : null,
       loop: innermost(n.id),
       at: [at[n.id]?.x ?? 0, at[n.id]?.y ?? 0],
     })),

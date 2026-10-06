@@ -96,6 +96,7 @@
 .s3-card[data-kind="check"] {
   border-left-color: var(--kind-check);
 }
+.s3-card[data-kind="person"],
 .s3-card[data-kind="gate"] {
   border-left-color: var(--kind-human-gate);
 }

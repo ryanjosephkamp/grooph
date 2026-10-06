@@ -72,6 +72,20 @@ describe("what a view draws from", () => {
     }
   });
 
+  it("a person's step says whose it is: Person, its role, no tier and no effort, in the kind a person's decision has; an agent's is as it was", () => {
+    const plan = graph("fixtures/valid/a-plan-with-people.grooph.json");
+    const cards = Object.fromEntries(modelOf(plan).nodes.map((n) => [n.id, [n.kind, n.word, n.line, n.tier]]));
+    expect(cards).toEqual({
+      draft: ["person", "Person", "Person · builder", null],
+      "fact-check": ["agent", "Agent", "researcher · strong · high", "strong"],
+      review: ["person", "Person", "Person · critic", null],
+      publish: ["person", "Person", "Person · builder", null],
+      done: ["stop", "Stop", "Stop", null],
+    });
+    // In Panes each is one card where the picture has it, a person's among them.
+    expect(panes(modelOf(plan), { k: 0, lit: null, took: [] }).prims.filter((p) => p.t === "card").map((p) => (p.t === "card" ? p.id : "")).sort()).toEqual(plan.nodes.map((n) => n.id).sort());
+  });
+
   it("a card says what the canvas says: a role, a tier and an effort, or what kind of node it is", () => {
     const lines = Object.fromEntries(modelOf(NESTED).nodes.map((n) => [n.id, [n.word, n.line, n.tier]]));
     expect(lines["review-builder"]).toEqual(["Agent", "builder · strong · high", "strong"]);
