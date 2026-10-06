@@ -14,7 +14,7 @@
 #   scripts/compare.sh --score <run dir> [--write]                     re-score a kept run from task/ + project.diff
 #   scripts/compare.sh --status                                        the ledger and every project's runs
 #   scripts/compare.sh --clear-work                                    remove what an unfinished run left in the work root
-#   scripts/compare.sh --test                                          the unit tests of the derivation, the scorer and the runner
+#   scripts/compare.sh --test                                          the unit tests of the derivation, the scorer, the runner and the lead's cost
 #
 # Arms (§1): A runs the template's package exactly as scripts/prove-pattern.sh
 # does (same scratch build, settings, invocation, evidence copy and check); B runs
@@ -81,6 +81,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 case "${1:-}" in
   -h|--help) sed -n '2,79p' "$0"; exit 0 ;;
-  --test) exec node --test "$REPO_ROOT/scripts/lib/compare-prompt.test.mjs" "$REPO_ROOT/scripts/lib/compare-score.test.mjs" "$REPO_ROOT/scripts/lib/compare-run.test.mjs" "$REPO_ROOT/scripts/lib/compare-projects.test.mjs" ;;
+  --test) exec node --test "$REPO_ROOT/scripts/lib/compare-prompt.test.mjs" "$REPO_ROOT/scripts/lib/compare-score.test.mjs" "$REPO_ROOT/scripts/lib/compare-run.test.mjs" "$REPO_ROOT/scripts/lib/compare-projects.test.mjs" "$REPO_ROOT/scripts/lib/compare-lead.test.mjs" ;;
 esac
 exec node "$REPO_ROOT/scripts/lib/compare-run.mjs" "$@"
