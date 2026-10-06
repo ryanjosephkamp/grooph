@@ -3,15 +3,15 @@
   "id": "solo-project",
   "name": "A solo project",
   "version": 1,
-  "goal": "{{project}} Done when every line of DONE.md is met and you have decided to publish it.",
+  "goal": "{{project}} Done when every line of DONE.md is met and it is out at {{where}}.",
   "template": {
     "kind": "graph",
     "title": "Solo project",
-    "summary": "One person: a list of what done means written first, the work, a review of your own work with fresh eyes, and a decision before anything is published.",
-    "whenToUse": "You work alone on something you will put in front of other people, and you tend either to keep polishing or to publish too soon.",
+    "summary": "One person's project: what done means written first, the work, a review of your own work with fresh eyes, and a decision before anything is published.",
+    "whenToUse": "You work alone on something you will put in front of other people, and you want what done means, and the decision to publish, written down first.",
     "notFor": "Work with a second person available to review it (use team-handoffs).",
     "profile": {
-      "cost": "low",
+      "cost": "medium",
       "speed": "medium",
       "rigor": "standard"
     },
@@ -23,8 +23,8 @@
       },
       {
         "key": "where",
-        "ask": "Where will it be published?",
-        "example": "my own domain"
+        "ask": "Where will it be published? Finish the sentence: it is out at ...",
+        "example": "its own web address"
       }
     ],
     "tags": [
@@ -35,7 +35,7 @@
       "irreversible"
     ]
   },
-  "description": "A plan for one person; no step here is an agent's. You write down what you will make and how you will know it is done, before you start. You make it. Then you come back later, the next day if you can, and read your own work against that list as if someone else had made it, and it goes back to you while a line is not met. Before anything is published you stop and decide, because publishing cannot be taken back. Nothing here needs a coding harness.",
+  "description": "A plan for one person; no step here is an agent's. You write down what you will make and how you will know it is done, before you start. You make it. Then you come back later, the next day if you can, and read your own work against that list as if someone else had made it, and it goes back to you while a line is not met. Before anything is published you stop and decide. If the review reaches its third round, stop and decide what to change: the work, the list, or the plan.",
   "nodes": [
     {
       "id": "plan",
@@ -59,7 +59,7 @@
       "kind": "agent",
       "name": "Make it",
       "role": "builder",
-      "brief": "Make what DONE.md describes. Stop when you believe every line is met, not when you run out of ideas. On a later round, start from your review and deal with each line that was not met.",
+      "brief": "Make what DONE.md describes. Stop when you believe every line is met. On a later round, start from REVIEW.md: deal with each line that was not met, and with anything you wrote there at the gate.",
       "inputs": [
         "DONE.md",
         "REVIEW.md (from the second round on)"
@@ -80,14 +80,13 @@
       "model": {
         "tier": "strong"
       },
-      "brief": "Come back after a break, the next day if you can. Read the work against DONE.md as if someone else had made it, one line each: met, with where to see it, or not met. Fix nothing in this step: write it down and take it back to the making. Verdict pass when every line is met.",
+      "brief": "Come back after a break, the next day if you can. Read the work against DONE.md as if someone else had made it, one line each: met, with where to see it, or not met. Fix nothing in this step: write it down and take it back to the making. Pass it when every line is met.",
       "inputs": [
         "the work",
         "DONE.md"
       ],
       "outputs": [
-        "REVIEW.md: one line for each line of DONE.md, and a verdict line",
-        "verdict: pass | fail"
+        "REVIEW.md: one line for each line of DONE.md, ending in pass or go again"
       ],
       "allow": [
         "read-files",
@@ -98,7 +97,7 @@
       "id": "publish-gate",
       "kind": "human-gate",
       "name": "Decide to publish",
-      "prompt": "Every line of DONE.md is met. Do you publish it at {{where}}? Once it is out, it is out.",
+      "prompt": "Every line of DONE.md is met. Do you put it out at {{where}}? If not yet, write what is holding you back at the foot of REVIEW.md.",
       "options": [
         "publish",
         "not yet"
@@ -175,7 +174,7 @@
       "to": "make",
       "when": "fail",
       "evidence": [
-        "what is holding you back"
+        "REVIEW.md, with what is holding you back"
       ]
     },
     {

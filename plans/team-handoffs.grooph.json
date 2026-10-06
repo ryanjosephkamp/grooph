@@ -3,15 +3,15 @@
   "id": "team-handoffs",
   "name": "A small team's handoffs",
   "version": 1,
-  "goal": "{{work}} Done when {{reviewer}} finds everything asked for is there, and {{approver}} has signed off.",
+  "goal": "{{work}} Done when {{reviewer}} has passed it against the request and {{approver}} has signed off.",
   "template": {
     "kind": "graph",
     "title": "Team handoffs",
-    "summary": "Who hands what to whom: a request in writing, the work with a handoff note, a review that sends it back, and one person who signs off.",
-    "whenToUse": "Two to five people pass a piece of work between them and things get lost at the handoffs, or nobody is sure who decides it is done.",
+    "summary": "Who hands what to whom on a small team: a written request, the work with a handoff note, a review that can send it back, and one person who signs off.",
+    "whenToUse": "A few people pass a piece of work between them, and you want each handoff, and who decides it is done, written down.",
     "notFor": "Work one person does alone (use solo-project), or a team large enough to need a tracker.",
     "profile": {
-      "cost": "low",
+      "cost": "medium",
       "speed": "medium",
       "rigor": "standard"
     },
@@ -49,7 +49,7 @@
       "loop"
     ]
   },
-  "description": "A plan for people; no step here is an agent's. {{requester}} writes down what is wanted. {{author}} does the work and hands it over with a note on what to look at first. {{reviewer}} reads it against the request, and it goes back to {{author}} while something asked for is missing. {{approver}} signs off, or sends it back with a reason. The point is that each handoff says in writing what is being handed, and that one person, named in advance, decides it is done. Nothing here needs a coding harness.",
+  "description": "A plan for people; no step here is an agent's. {{requester}} writes down what is wanted. {{author}} does the work and hands it over with a note on what to look at first. {{reviewer}} reads it against the request, and it goes back to {{author}} while something asked for is missing. {{approver}} signs off, or sends it back with the reason in writing. Each handoff says in writing what is being handed, and one person, named in advance, decides it is done. If the review reaches its third round, stop and decide together what to change.",
   "nodes": [
     {
       "id": "request",
@@ -73,7 +73,7 @@
       "kind": "agent",
       "name": "{{author}} does the work",
       "role": "builder",
-      "brief": "Do what the request asks. Hand it over with a note: what is done, what is not and why, and what to look at first. On a later round, start from the review and answer each point, or say why it does not apply.",
+      "brief": "Do what the request asks. Hand it over with a note: what is done, what is not and why, and what to look at first. On a later round, start from REVIEW.md and answer each point, or say why it does not apply.",
       "inputs": [
         "REQUEST.md",
         "REVIEW.md (from the second round on)"
@@ -95,15 +95,14 @@
       "model": {
         "tier": "strong"
       },
-      "brief": "Read the work against the request, one line for each thing it asks for: there, with where to see it, or not there. Say what you could not check. You judge and do not fix: what you fix yourself, nobody has reviewed. Verdict pass when everything asked for is there or is named in the handoff note as left out, for a reason you accept.",
+      "brief": "Read the work against the request, one line for each thing it asks for: there, with where to see it, or not there. Say what you could not check. You judge and do not fix: send it back. Pass it when everything asked for is there, or is named in the handoff note as left out for a reason you accept.",
       "inputs": [
         "the work",
         "HANDOFF.md",
         "REQUEST.md"
       ],
       "outputs": [
-        "REVIEW.md: one line per thing asked for, and a verdict line",
-        "verdict: pass | fail"
+        "REVIEW.md: one line per thing asked for, ending in pass or send back"
       ],
       "allow": [
         "read-files",
@@ -114,10 +113,10 @@
       "id": "sign-off",
       "kind": "human-gate",
       "name": "{{approver}} signs off",
-      "prompt": "{{reviewer}} finds that everything asked for is there. Do you sign off?",
+      "prompt": "{{reviewer}} has passed it. REVIEW.md and HANDOFF.md say what was left out. Do you sign off? If you send it back, add the reason to REVIEW.md.",
       "options": [
         "sign off",
-        "send it back, with the reason"
+        "send it back"
       ]
     },
     {
@@ -170,7 +169,7 @@
       "to": "do",
       "when": "fail",
       "evidence": [
-        "the reason it was sent back"
+        "REVIEW.md, with the reason it was sent back"
       ]
     }
   ],

@@ -7,12 +7,12 @@
   "template": {
     "kind": "graph",
     "title": "Literature review, by hand with AI help",
-    "summary": "You frame the question, read and decide; an agent finds candidate papers and reads your notes as a skeptic.",
+    "summary": "A review of published work that you read and write yourself; an agent finds candidate papers and reads your notes as a skeptic.",
     "whenToUse": "You want to know what is published on a question, you mean to read the papers yourself, and you want help finding them and a second reader for your notes.",
     "notFor": "A review an agent writes from abstracts. Here the reading and the judgment are yours.",
     "profile": {
-      "cost": "low",
-      "speed": "slow",
+      "cost": "medium",
+      "speed": "medium",
       "rigor": "standard"
     },
     "slots": [
@@ -34,7 +34,7 @@
       "loop"
     ]
   },
-  "description": "A plan a person follows, with two steps an agent may take. You frame the question and choose which papers to read; you read them and take the notes; you decide what goes in and you write the review. An agent searches for candidate papers, and an agent reads your notes as a skeptic and says what they do not show. Work comes back twice: the search runs again if the list misses part of the question, and the notes go back to you while the skeptic still finds a claim with no source. Nothing here needs a coding harness.",
+  "description": "A plan a person follows, with two steps an agent may take. You frame the question and choose which papers to read; you read them and take the notes; you decide what goes in and you write the review. An agent searches for candidate papers, and an agent reads your notes as a skeptic and says what they do not show. Work comes back twice: the search runs again if the list misses part of the question, and the notes go back to you while the skeptic still finds a claim with no source. If a loop reaches its third round, stop and decide what to change. Nothing here needs a tool that runs agents: where a step is an agent's, give its brief to whatever AI assistant you use.",
   "nodes": [
     {
       "id": "frame",
@@ -58,13 +58,14 @@
       "kind": "agent",
       "name": "Find candidate papers",
       "role": "researcher",
-      "brief": "Search {{sources}} for papers that bear on the question. List each with its full reference, where you found it, and one line on why it may matter. Open a paper before you say what it found, and say so plainly when you could not open one. Do not rank them and do not leave any out for being inconvenient.",
+      "brief": "Search {{sources}} for papers that bear on the question. List each with its full reference, where you found it, and one line on why it may matter. Open a paper before you say what it found, and say so plainly when you could not open one. Do not rank them and do not leave any out for being inconvenient. If you find nothing for some part of the question, list that part as having none. On a later round, add to the list; do not start it over.",
       "inputs": [
         "QUESTION.md",
-        "{{sources}}"
+        "{{sources}}",
+        "what the list is missing (from the second round on)"
       ],
       "outputs": [
-        "CANDIDATES.md: one entry per paper, with its reference and where it was found"
+        "CANDIDATES.md: one entry per paper, with its reference and where it was found, and any part of the question with no paper"
       ],
       "allow": [
         "read-files",
@@ -76,7 +77,7 @@
       "id": "choose",
       "kind": "human-gate",
       "name": "Choose what to read",
-      "prompt": "Read CANDIDATES.md beside QUESTION.md. Which papers will you read in full? Is any part of the question left with no paper?",
+      "prompt": "Read CANDIDATES.md beside QUESTION.md, and mark in CANDIDATES.md the papers you will read in full. If part of the question has no paper and you think another search could find one, say what is missing and search again.",
       "options": [
         "read these",
         "search again"
@@ -87,9 +88,9 @@
       "kind": "agent",
       "name": "Read and take notes",
       "role": "researcher",
-      "brief": "Read each chosen paper yourself. For each, write in your own words what it claims, what that rests on, and what it does not show, with the page for anything you may quote. When two papers disagree, write the disagreement down as it is.",
+      "brief": "Read each paper you marked, yourself. For each, write in your own words what it claims, what that rests on, and what it does not show, with the paper and page for each claim. When two papers disagree, write the disagreement down as it is. On a later round, start from SKEPTIC.md, or from what you said you still need to read.",
       "inputs": [
-        "the papers you chose",
+        "CANDIDATES.md, with the papers you marked",
         "QUESTION.md",
         "SKEPTIC.md (from the second round on)"
       ],
@@ -109,7 +110,7 @@
       "model": {
         "tier": "strong"
       },
-      "brief": "Read the notes against the question as a skeptic. For each claim the notes lean on, say whether the notes name where it comes from, whether another paper in the notes cuts against it, and what is missing for the question to be answered. You judge the notes, not papers you were not given, and you do not rewrite them. Verdict pass only when every claim has its source and every disagreement is written down.",
+      "brief": "Read the notes against the question as a skeptic. For each claim the notes lean on, say whether the notes name the paper and page it comes from, whether another paper in the notes cuts against it, and what is missing for the question to be answered. You judge the notes, not papers you were not given, and you do not rewrite them. Verdict pass only when every claim names its paper and page and every disagreement is written down.",
       "inputs": [
         "NOTES.md",
         "QUESTION.md"
@@ -130,7 +131,7 @@
       "id": "decide",
       "kind": "human-gate",
       "name": "Decide what is in",
-      "prompt": "You have your notes and the skeptic's list. Which findings go into the review, and which papers are left out, and why?",
+      "prompt": "You have your notes and the skeptic's list. Which findings go into the review, which papers are left out, and why? If you need to read more first, write down what.",
       "options": [
         "write it up",
         "read more"
@@ -257,7 +258,7 @@
             "ref": "QUESTION.md"
           }
         ],
-        "acceptance": "Every part of the question in QUESTION.md has at least one candidate paper, and you have chosen which to read."
+        "acceptance": "Every part of QUESTION.md has a candidate paper in CANDIDATES.md, or is listed there as having none."
       },
       "stops": [
         {
@@ -294,7 +295,7 @@
             "ref": "QUESTION.md"
           }
         ],
-        "acceptance": "Every claim the notes lean on names its source and page, and every disagreement between papers is written down."
+        "acceptance": "Every claim the notes lean on names its paper and page, and every disagreement between papers is written down."
       },
       "stops": [
         {
