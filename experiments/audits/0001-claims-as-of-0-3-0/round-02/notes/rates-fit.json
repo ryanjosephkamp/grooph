@@ -1,0 +1,38 @@
+[
+  {
+    "model": "claude-opus-5-5",
+    "columns": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "rates_fit_to_independent_rows": [
+      3.9999999999845386,
+      19.999999999999996,
+      0.20000000000000046,
+      8.00000000000001,
+      5.0000000000000036
+    ],
+    "max_residual": 2.220446049250313e-16,
+    "interpretation": "The Opus full-rank exact fit is unique for these raw token/cost equations at saved precision."
+  },
+  {
+    "model": "claude-sonnet-5-5",
+    "columns": [
+      0,
+      1,
+      2,
+      4
+    ],
+    "rates_fit_to_independent_rows": [
+      -527.3423544354464,
+      10.17146994522908,
+      0.26361731092572405,
+      2.579585150252601
+    ],
+    "max_residual": 0.004024859532395952,
+    "interpretation": "Discarded: solving a subset of inconsistent Sonnet equations yields a negative input rate and does not fit all rows. This is not a valid rate schedule. The 1h cache column is zero for Sonnet, so that coefficient is not identified."
+  }
+]

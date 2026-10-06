@@ -1,0 +1,8 @@
+validator at faba78aeff36
+a cap of 4, no budget                                      no warning about its length  (also W_ONLY_MAX_ITERATIONS)
+a cap of 5, no budget                                      no warning about its length  (also W_ONLY_MAX_ITERATIONS)
+a cap of 6, no budget                                      WARNS  W_LONG_LOOP_NO_BUDGET  (also W_ONLY_MAX_ITERATIONS)
+no cap, no budget (the check passing is the only stop)     WARNS  W_LONG_LOOP_NO_BUDGET
+no cap, a budget of 10 dispatches                          no warning about its length
+no cap, a budget of 100000 dispatches                      no warning about its length
+a cap of 50, a budget of 100000 dispatches                 no warning about its length

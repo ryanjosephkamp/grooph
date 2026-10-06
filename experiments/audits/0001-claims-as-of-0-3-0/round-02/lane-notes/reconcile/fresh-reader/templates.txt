@@ -1,0 +1,27 @@
+patterns/contradiction-seeker · hunt: every new leading-on stop ahead of its first halting limit is refused
+patterns/debate-then-build · debate: NOT REFUSED: budget:usd then judge [called a tightening]; budget:turns then judge [called a tightening]; budget:tokens then judge [called a tightening]; budget:minutes then judge [called a tightening]; max-iterations(kind already there) then judge [called a tightening]; human then judge [called a tightening]; diminishing-returns then judge; evidence-invalid then judge
+patterns/debate-then-build · build: NOT REFUSED: human then planner-a [called a tightening]; human then planner-b [called a tightening]; human then judge [called a tightening]
+patterns/dual-bar · review: every new leading-on stop ahead of its first halting limit is refused
+patterns/fresh-grind-rare-judge · grind: every new leading-on stop ahead of its first halting limit is refused
+patterns/fresh-grind-rare-judge · phases: every new leading-on stop ahead of its first halting limit is refused
+patterns/gauntlet-decomposed · polish: NOT REFUSED: human then planner [called a tightening]
+patterns/gauntlet-decomposed · pieces: every new leading-on stop ahead of its first halting limit is refused
+patterns/grind-loop · grind: every new leading-on stop ahead of its first halting limit is refused
+patterns/heterogeneous-critic · review: every new leading-on stop ahead of its first halting limit is refused
+patterns/merge-queue · queue: every new leading-on stop ahead of its first halting limit is refused
+patterns/metric-sandwich · sandwich: every new leading-on stop ahead of its first halting limit is refused
+patterns/ownership-not-swarm · integrate: NOT REFUSED: human then planner [called a tightening]; human then owner-a [called a tightening]; human then owner-b [called a tightening]; human then worker [called a tightening]
+patterns/ralph-loop · ralph: every new leading-on stop ahead of its first halting limit is refused
+patterns/red-team-loop · attack: every new leading-on stop ahead of its first halting limit is refused
+patterns/retrospective-rewrite.grooph.json · grind: no halting limit
+patterns/review-gate · review: every new leading-on stop ahead of its first halting limit is refused
+patterns/spec-then-loop · build: NOT REFUSED: human then planner [called a tightening]
+patterns/specialist-critic-bank · review: every new leading-on stop ahead of its first halting limit is refused
+patterns/taste-polish · polish: every new leading-on stop ahead of its first halting limit is refused
+plans/literature-review · search: NOT REFUSED: human then frame [called a tightening]
+plans/literature-review · notes: NOT REFUSED: human then frame [called a tightening]; human then find [called a tightening]
+plans/research-study · design-loop: NOT REFUSED: human then question [called a tightening]
+plans/research-study · analysis-loop: NOT REFUSED: human then question [called a tightening]; human then design [called a tightening]; human then design-critic [called a tightening]; human then preregister [called a tightening]; human then collect [called a tightening]
+plans/solo-project · review-loop: NOT REFUSED: human then plan [called a tightening]
+plans/team-handoffs · review-loop: NOT REFUSED: human then request [called a tightening]
+tried 577, not refused 28

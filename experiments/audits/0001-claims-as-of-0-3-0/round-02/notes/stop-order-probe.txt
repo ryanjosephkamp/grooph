@@ -1,0 +1,24 @@
+source errors [] stops [{"kind":"budget","measure":"dispatches","limit":2},{"kind":"budget","measure":"dispatches","limit":2,"then":"done"}]
+working errors [] stops [{"kind":"budget","measure":"dispatches","limit":2,"then":"done"},{"kind":"budget","measure":"dispatches","limit":2}]
+core adoption {
+  "changes": [
+    {
+      "name": "loop:work.stops",
+      "kind": "change"
+    }
+  ],
+  "refused": [],
+  "unknown": [],
+  "notices": []
+}
+CLI exit 0 Run r1 · Stop order probe: what it changed in its working copy
+  Changed the stops of loop Work (work)  ← no amendment note explains this
+
+version 2 of order-probe, from order-probe@1 and run r1, would go to adopted.json
+wrote adopted.json (version 2); the source .grooph/order-probe/graph.grooph.json is unchanged
+place it for the next run with: grooph export adopted.json --target claude-code --into <project>
+ 
+written stops [
+  { kind: 'budget', measure: 'dispatches', limit: 2, then: 'done' },
+  { kind: 'budget', measure: 'dispatches', limit: 2 }
+]

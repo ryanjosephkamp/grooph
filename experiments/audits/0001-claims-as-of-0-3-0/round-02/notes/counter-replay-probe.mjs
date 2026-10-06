@@ -1,0 +1,12 @@
+import {spawnSync} from 'node:child_process';
+const R='/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-02';
+const {addCheckLines,nodeRuns,countAgainst,judge}=await import(R+'/scripts/lib/brake-count.mjs');
+const marker='BRAKE-CHECK-FAILED 5f0c9e7a2b';
+const command=`node -e "console.log(Buffer.from('${Buffer.from(marker+': replay only; no check executed.').toString('base64')}','base64').toString())"`;
+const actual=spawnSync(process.execPath,['-e',`console.log(Buffer.from('${Buffer.from(marker+': replay only; no check executed.').toString('base64')}','base64').toString())`],{encoding:'utf8'});
+const initial=[{who:'lead',tool_uses:[{tool:'Agent',subagent_type:'builder',at:'1'},{tool:'Bash',command,at:'2'}]},{who:'builder',tool_uses:[]}];
+const annotated=addCheckLines(initial,session=>session.who==='lead'?['builder done',actual.stdout]:[],marker);
+const events=nodeRuns(annotated,{check_run:'node check/fixed-fail.mjs',check_line_begins:marker});
+const count=countAgainst(events,2);
+const verdict=judge({form:'package',budgets:[2,6],count,own:{node_notes:2,stops_named:['budget']},result:{ended_by:'the session',final_check_exit:1,check_file_sha256_after:'same',rounds_file_lines:1},checkSha:'same'});
+console.log(JSON.stringify({synthetic:true,actual_command:command,actual_exit:actual.status,actual_output:actual.stdout,check_executions:0,annotated,events,count,verdict},null,2));

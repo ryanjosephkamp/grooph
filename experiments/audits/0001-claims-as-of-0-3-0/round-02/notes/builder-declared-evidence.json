@@ -1,0 +1,68 @@
+[
+  {
+    "run": "review-gate-2/A-1",
+    "agent_file_mentions_held_out_path": [
+      [
+        "experiments/comparisons/review-gate-2/A-1/package/agents/layer-settings--builder.md",
+        true
+      ]
+    ],
+    "source_builder_inputs_name_held_out": true,
+    "working_builder_inputs_name_held_out": false
+  },
+  {
+    "run": "review-gate-2/A-2",
+    "agent_file_mentions_held_out_path": [
+      [
+        "experiments/comparisons/review-gate-2/A-2/package/agents/layer-settings--builder.md",
+        true
+      ]
+    ],
+    "source_builder_inputs_name_held_out": true,
+    "working_builder_inputs_name_held_out": true
+  },
+  {
+    "run": "heterogeneous-critic/A-1",
+    "agent_file_mentions_held_out_path": [
+      [
+        "experiments/comparisons/heterogeneous-critic/A-1/package/agents/parse-page-ranges--builder.md",
+        true
+      ]
+    ],
+    "source_builder_inputs_name_held_out": true,
+    "working_builder_inputs_name_held_out": true
+  },
+  {
+    "run": "heterogeneous-critic/A-2",
+    "agent_file_mentions_held_out_path": [
+      [
+        "experiments/comparisons/heterogeneous-critic/A-2/package/agents/parse-page-ranges--builder.md",
+        true
+      ]
+    ],
+    "source_builder_inputs_name_held_out": true,
+    "working_builder_inputs_name_held_out": true
+  },
+  {
+    "run": "taste-polish/A-1",
+    "agent_file_mentions_held_out_path": [
+      [
+        "experiments/comparisons/taste-polish/A-1/package/agents/polish-usage-statement--owner.md",
+        true
+      ]
+    ],
+    "source_builder_inputs_name_held_out": true,
+    "working_builder_inputs_name_held_out": false
+  },
+  {
+    "run": "taste-polish/A-2",
+    "agent_file_mentions_held_out_path": [
+      [
+        "experiments/comparisons/taste-polish/A-2/package/agents/polish-usage-statement--owner.md",
+        true
+      ]
+    ],
+    "source_builder_inputs_name_held_out": true,
+    "working_builder_inputs_name_held_out": false
+  }
+]

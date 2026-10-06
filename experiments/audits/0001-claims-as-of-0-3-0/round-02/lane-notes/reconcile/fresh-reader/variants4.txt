@@ -1,0 +1,40 @@
+
+== 1. (e) loop with no check or critic; source holds ONLY a halting budget; NEW cap of 1 that leads on to done, ahead
+  source : list: budget:dispatches 2 HALT
+  working: list: max-iterations 1 then done | budget:dispatches 2 HALT
+  validate source: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  changes: loop:list.stops [tightens: removes the round cap (1)]
+  refused: NOTHING
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+  grooph export source: exit 0; working over it, no --allow: exit 0 · brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened
+
+== 2. (e2) same; NEW diminishing-returns that leads on, ahead
+  source : list: budget:dispatches 2 HALT
+  working: list: diminishing-returns 1 then done | budget:dispatches 2 HALT
+  validate source: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  changes: loop:list.stops
+  refused: NOTHING
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+  grooph export source: exit 0; working over it, no --allow: exit 0 · brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened
+
+== 3. (e3) same; NEW budget of the SAME kind and size that leads on, ahead (control: looser should see it)
+  source : list: budget:dispatches 2 HALT
+  working: list: budget:dispatches 2 then done | budget:dispatches 2 HALT
+  validate source: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  changes: loop:list.stops
+  refused: loop:list.stops: the budget of 2 dispatches that leads on to "done" would fire as soon as the one of 2 dispatches that halts the run
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 4. (e4) same; NEW cap of 1 that leads on, BEHIND
+  source : list: budget:dispatches 2 HALT
+  working: list: budget:dispatches 2 HALT | max-iterations 1 then done
+  validate source: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  changes: loop:list.stops [tightens: removes the round cap (1)]
+  refused: NOTHING
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+  grooph export source: exit 0; working over it, no --allow: exit 0 · brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened

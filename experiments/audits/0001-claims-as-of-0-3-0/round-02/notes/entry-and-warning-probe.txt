@@ -1,0 +1,80 @@
+source {
+  "errors": [],
+  "comparison_starts": [
+    "builder",
+    "after"
+  ],
+  "contract_starts": [
+    "builder"
+  ],
+  "contract_reached_without_critic": [
+    "builder",
+    "critic"
+  ],
+  "comparison_reached_without_critic": [
+    "builder",
+    "after",
+    "done",
+    "critic"
+  ]
+}
+working {
+  "errors": [],
+  "comparison_starts": [
+    "builder"
+  ],
+  "contract_starts": [
+    "builder"
+  ],
+  "contract_reached_without_critic": [
+    "builder",
+    "critic",
+    "after",
+    "done"
+  ],
+  "comparison_reached_without_critic": [
+    "builder",
+    "critic",
+    "after",
+    "done"
+  ]
+}
+adoption {
+  "changes": [
+    {
+      "name": "edge:bypass",
+      "kind": "add",
+      "loosens": "adds a way from \"builder\" to end in success that does not pass the critic \"critic\""
+    }
+  ],
+  "refused": [
+    {
+      "name": "edge:bypass",
+      "kind": "add",
+      "loosens": "adds a way from \"builder\" to end in success that does not pass the critic \"critic\""
+    }
+  ],
+  "unknown": [],
+  "notices": []
+}
+CLI 1 Run r1 · Entry probe: what it changed in its working copy
+  Added edge builder → after (bypass)  ← no amendment note explains this
+
+version 2 of entry-probe, from entry-probe@1 and run r1, would go to adopted.json
+
+loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:bypass
+  edge:bypass  adds a way from "builder" to end in success that does not pass the critic "critic"
+  all of them, on purpose: grooph adopt /Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-02/notes/scratch/entry/.grooph/entry-probe/runs/r1 --into /Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-02/notes/scratch/entry/adopted.json --write --allow edge:bypass
+ grooph: not written: the working copy loosens a brake the graph has (edge:bypass, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+budget-only loop warnings []
+irreversible start [
+  `node "builder" performs irreversible actions (merge) and is where the run starts: only a loop's back edge ("e-critic-fail", "e-merge-gate-reject") leads to it, so no human decides before it runs the first time; put a human-gate node before it`
+]
+irreversible nested [
+  `node "builder" performs irreversible actions (merge) and is where the run starts: only a loop's back edge ("e-critic-fail", "e-merge-gate-reject") leads to it, so no human decides before it runs the first time; put a human-gate node before it`
+]
+irreversible stop_then [
+  `node "builder" performs irreversible actions (merge) and is where the run starts: only a loop's back edge ("e-critic-fail", "e-merge-gate-reject") leads to it, so no human decides before it runs the first time; put a human-gate node before it`,
+  'node "land" performs irreversible actions (publish) and can be reached without a human decision through loop "review" stop 1 (max-iterations), which continues there; every way in must pass a human: have the stop continue at a human-gate node that leads to it'
+]

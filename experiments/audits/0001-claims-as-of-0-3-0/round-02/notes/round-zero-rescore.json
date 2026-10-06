@@ -1,0 +1,20 @@
+[
+  {
+    "probe": "review-gate-2 round-zero",
+    "exit": 1,
+    "counts": {
+      "tests": 55,
+      "pass": 44,
+      "fail": 11
+    }
+  },
+  {
+    "probe": "heterogeneous-critic round-zero",
+    "exit": 1,
+    "counts": {
+      "tests": 70,
+      "pass": 52,
+      "fail": 18
+    }
+  }
+]

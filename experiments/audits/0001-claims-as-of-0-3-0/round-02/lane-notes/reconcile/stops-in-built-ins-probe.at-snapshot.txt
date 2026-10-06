@@ -1,0 +1,28 @@
+grooph 0.3.0 at faba78aeff36
+patterns/contradiction-seeker · hunt: NOT REFUSED: human then builder [called a tightening]; human then critic [called a tightening]
+patterns/debate-then-build · debate: NOT REFUSED: max-iterations then judge [called a tightening]; budget:minutes then judge [called a tightening]; budget:usd then judge [called a tightening]; budget:turns then judge [called a tightening]; budget:tokens then judge [called a tightening]; diminishing-returns then judge; evidence-invalid then judge; human then planner-b [called a tightening]; human then judge [called a tightening]
+patterns/debate-then-build · build: NOT REFUSED: human then planner-a [called a tightening]; human then planner-b [called a tightening]; human then judge [called a tightening]; human then plan-gate [called a tightening]; human then builder [called a tightening]; human then tests [called a tightening]
+patterns/dual-bar · review: NOT REFUSED: human then builder [called a tightening]; human then critic [called a tightening]
+patterns/fresh-grind-rare-judge · grind: NOT REFUSED: human then builder [called a tightening]; human then tests [called a tightening]
+patterns/fresh-grind-rare-judge · phases: NOT REFUSED: human then builder [called a tightening]; human then tests [called a tightening]
+patterns/gauntlet-decomposed · polish: NOT REFUSED: human then planner [called a tightening]; human then decomposition-gate [called a tightening]; human then owner [called a tightening]; human then capture-check [called a tightening]
+patterns/gauntlet-decomposed · pieces: NOT REFUSED: human then decomposition-gate [called a tightening]
+patterns/grind-loop · grind: NOT REFUSED: human then builder [called a tightening]; human then tests [called a tightening]
+patterns/heterogeneous-critic · review: NOT REFUSED: human then builder [called a tightening]; human then critic [called a tightening]
+patterns/merge-queue · queue: NOT REFUSED: human then integrate [called a tightening]
+patterns/metric-sandwich · sandwich: NOT REFUSED: human then builder [called a tightening]; human then checks [called a tightening]
+patterns/ownership-not-swarm · integrate: NOT REFUSED: human then planner [called a tightening]; human then owner-a [called a tightening]; human then owner-b [called a tightening]; human then worker [called a tightening]; human then integrator [called a tightening]; human then tests [called a tightening]
+patterns/ralph-loop · ralph: NOT REFUSED: human then builder [called a tightening]; human then tests [called a tightening]
+patterns/red-team-loop · attack: NOT REFUSED: human then builder [called a tightening]; human then red-team [called a tightening]
+patterns/retrospective-rewrite · grind: no halting limit
+patterns/review-gate · review: NOT REFUSED: human then builder [called a tightening]; human then critic [called a tightening]
+patterns/spec-then-loop · build: NOT REFUSED: human then planner [called a tightening]; human then spec-gate [called a tightening]; human then builder [called a tightening]; human then critic [called a tightening]
+patterns/specialist-critic-bank · review: every new leading-on stop ahead of its first halting limit is refused
+patterns/taste-polish · polish: every new leading-on stop ahead of its first halting limit is refused
+
+20 documents, 20 loops. Loops that hold a halting limit ahead of one that leads on: 0.
+New leading-on stops tried: 883 (8 more did not validate). Not refused: 51.
+    44  asks a person and goes on
+     0  leads to a human gate
+     7  leads where a stop of the loop already led
+     0  OTHER (a new stop that leads on with nobody asked, to a place no stop of the loop led)
