@@ -145,8 +145,9 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     if (roomy && host && scroller) {
       const placed = prims.flatMap((p) => (p.t === "card" && cardOf(p.id) ? [[p, cardOf(p.id)!, turned(p.at)] as const] : []));
       // A frame that is asked for nothing is as tall as the room and the words under it leave: its height is part
-      // of what it was worked out for. One held to a height is not made shorter by longer words.
-      const what = (): string => `${w}|${scroller.clientHeight}|${host.style.getPropertyValue("--s3-tall") ? "held" : h}|${placed.map(([p, , t]) => `${p.id}:${t.map(Math.round).join(",")}`).join("|")}`;
+      // of what it was worked out for, and so is how tall each card is (a name on two lines). One held to a height
+      // is not made shorter by longer words.
+      const what = (): string => `${w}|${scroller.clientHeight}|${host.style.getPropertyValue("--s3-tall") ? "held" : h}|${placed.map(([p, el, t]) => `${p.id}:${el.offsetHeight}:${t.map(Math.round).join(",")}`).join("|")}`;
       // Put off when this is the observer's call: the working out changes the size the observer watches.
       if (what() !== tallFor && observing) later ||= requestAnimationFrame(() => ((later = 0), fit(), draw()));
       else if (what() !== tallFor) {
