@@ -105,7 +105,7 @@ export function amendEntry(ledger, entry, fields, path = LEDGER_PATH) {
   return line;
 }
 
-/** The lines that reported a model no run uses and that nobody has answered for yet: while there is one, nothing starts. */
+/** The lines that reported a model this project's runs do not use without the owner's authorization (decision 0031) and that nobody has answered for yet: while there is one, nothing starts. */
 export const neverLines = (ledger) => ledger.invocations.filter((e) => (e.never_used ?? []).length > 0 && !e.never_acknowledged);
 
 /** The ledger's name for one run: `<project>/<arm>-<replicate>`, or `<project>/judge`. */
@@ -124,7 +124,7 @@ export function gate(ledger, { project, arm, replicate, kind, retry }) {
 
   const flagged = neverLines(ledger);
   if (flagged.length > 0) {
-    return refuse(`invocation ${flagged.map((e) => `${e.n} (${e.run}: ${e.never_used.join(", ")})`).join(", ")} reported a model no run uses. Nothing starts until the driver knows and the answer is recorded with \`compare-ledger.mjs ack-never --n <n> --by "<who and what was decided>"\``);
+    return refuse(`invocation ${flagged.map((e) => `${e.n} (${e.run}: ${e.never_used.join(", ")})`).join(", ")} reported a model this project's runs do not use without the owner's authorization (decision 0031). Nothing starts until the driver knows and the answer is recorded with \`compare-ledger.mjs ack-never --n <n> --by "<who and what was decided>"\``);
   }
   const running = ledger.invocations.filter((entry) => entry.status === "running");
   if (running.length > 0) {
@@ -276,7 +276,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     };
     const line = ledger.invocations.find((e) => e.n === Number(opt("n")));
     if (!line || !(line.never_used ?? []).length || !opt("by")) {
-      console.error('usage: compare-ledger.mjs ack-never --n <invocation that reported a model no run uses> --by "<who and what was decided>"');
+      console.error('usage: compare-ledger.mjs ack-never --n <invocation that reported a model not authorized for this project (decision 0031)> --by "<who and what was decided>"');
       process.exit(64);
     }
     line.never_acknowledged = { on: new Date().toISOString().slice(0, 10), by: opt("by") };

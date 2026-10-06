@@ -12,7 +12,7 @@ import { test } from "node:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
 
 import { mapLive, mapLiveLine, parseEvents, summarizeSessions } from "../src/events.js";
-import { offlinePage } from "../src/offline.js";
+import { offlinePage } from "../src/index.js";
 import { MAP_CODES, byHandLines, canonicalizeMap, carrierText, endName, handoffCarrierText, wakesItself, isMapLike, mapShape, mapShapeLine, parseMapText, validateMap, type MapIssue } from "../src/map.js";
 import { parseGraphText } from "../src/parse.js";
 import { mapPicture } from "../src/picture/map-picture.js";

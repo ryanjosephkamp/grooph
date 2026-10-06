@@ -89,7 +89,7 @@ export const LEAD_EFFORT = "high";
 /** Every arm any version has, for reading the command line and the run folders. */
 export const ARMS = ["A", "B", "C", "D"];
 export const TIERS = ["frontier", "strong", "fast"];
-/** Never Fable, never Astra: not a lead, a subagent, a judge or a tier (the owner's rule, 2026-10-04). The pattern is the proving runner's. */
+/** Fable and Astra: not a lead, a subagent, a judge or a tier, unless the owner authorizes it (his policy for this project's own runs, 2026-10-04 and 2026-10-05; decision 0031; no rule for a user of grooph). The pattern is the proving runner's. */
 export { NEVER, neverUsed };
 
 // ── the runner's work root (version 2) ───────────────────────────────────
@@ -222,7 +222,7 @@ export const tierMapText = (map) => TIERS.filter((tier) => map[tier] !== undefin
  * (expect.json `tier_map`); until it does, a dry run or a derivation may take one from GROOPH_MODELS so everything
  * up to the first paid run can be built, and a paid run is refused. The environment may repeat the pre-registered
  * map but not contradict it. Every tier is named, so none falls back to the target's own, and none is a model this
- * study never uses.
+ * study does not use without the owner's authorization (decision 0031).
  */
 export function resolveTierMap({ registered, envText, paid }) {
   let fromEnv;
@@ -235,7 +235,7 @@ export function resolveTierMap({ registered, envText, paid }) {
     const missing = TIERS.filter((tier) => !map[tier]);
     if (missing.length > 0) return `${from} must name every tier, so none falls back to the target's own: ${missing.join(", ")} missing`;
     const never = TIERS.filter((tier) => NEVER.test(map[tier]));
-    if (never.length > 0) return `${from} names a model this study never uses: ${never.map((tier) => `${tier}=${map[tier]}`).join(", ")}`;
+    if (never.length > 0) return `${from} names a model this study does not use without the owner's authorization (decision 0031): ${never.map((tier) => `${tier}=${map[tier]}`).join(", ")}`;
     return null;
   };
   if (registered) {
@@ -387,10 +387,10 @@ function buildIn(work, proj, arm) {
   for (const path of [built.scratch, realpathSync(built.scratch)]) if (/grooph|compar/i.test(path)) fail(`${proj.project}: the scratch folder's path (${path}) names the tool or the study, and a session sees its path`);
   if (built.substituted.length > 0) fail(`${proj.project}: the held-out folder's path reached a task file (${built.substituted.join(", ")}); in protocol version 2 only a slot value names it`);
   if (proj.tierMap && !built.exportOutput.includes(`Named by GROOPH_MODELS`)) fail(`grooph export did not report the tier map it was given; is the CLI built from this branch (slice 0079)?`);
-  // The package itself is read, whatever the map said: no agent file names a model this study never uses (a pin on a node would win over the map).
+  // The package itself is read, whatever the map said: no agent file names a model this study does not use without the owner's authorization (decision 0031) (a pin on a node would win over the map).
   built.agentModels = agentModels(built.scratch, built.graphId);
   const never = Object.entries(built.agentModels).filter(([, model]) => NEVER.test(model));
-  if (never.length > 0) fail(`${proj.project}: the package would run ${never.map(([agent, model]) => `${agent.split("--").pop()} on ${model}`).join(", ")}, a model this study never uses`);
+  if (never.length > 0) fail(`${proj.project}: the package would run ${never.map(([agent, model]) => `${agent.split("--").pop()} on ${model}`).join(", ")}, a model this study does not use without the owner's authorization (decision 0031)`);
   const pkg = readPackage(built.scratch);
   const derived = derive(pkg, { heldOut: built.heldOut?.realDir });
   const n = roundCap(pkg.doc);
@@ -536,7 +536,7 @@ function invoke({ ledger, proj, arm, replicate, kind, iteration, retry, scratch,
     reported_cost_usd: reported,
     session_id: output?.session_id ?? resumeSession ?? null,
     note: [note, output?.subtype && output.subtype !== "success" ? `result ${output.subtype}` : "", child.error ? `spawn: ${child.error.message}` : "", child.status ? `exit ${child.status}` : ""].filter(Boolean).join("; "),
-    // A model no run uses, reported by the harness: the line carries it, and the ledger lets nothing else start until someone answers for it.
+    // A model this project's runs do not use without the owner's authorization (decision 0031), reported by the harness: the line carries it, and the ledger lets nothing else start until someone answers for it.
     ...(never.length > 0 ? { never_used: never } : {}),
   });
   console.log(`claude exit ${child.status ?? child.signal ?? "?"} after ${wall}s; reported cost ${reported === null ? "unknown" : `$${reported.toFixed(4)}`}`);
@@ -947,7 +947,7 @@ function runArmC({ proj, built, ledger, binDir, retry, evidenceDir, harnessVersi
       break;
     }
     if ((inv.entry.never_used ?? []).length > 0) {
-      console.log(`iteration ${i} reported a model no run uses; the loop stops here and its evidence is kept`);
+      console.log(`iteration ${i} reported a model this project's runs do not use without the owner's authorization (decision 0031); the loop stops here and its evidence is kept`);
       break;
     }
     if (inv.saysDone && inv.testsAfter) break;
@@ -1200,9 +1200,9 @@ function writeDerivation(proj) {
   return 0;
 }
 
-/** A model this study never uses was reported by a run: the evidence is kept, and nothing else starts until the driver knows. */
+/** A model this study does not use without the owner's authorization (decision 0031) was reported by a run: the evidence is kept, and nothing else starts until the driver knows. */
 function flagNever(models, where) {
-  console.error(`\n\x1b[31mNEVER\x1b[0m ${where} reported ${models.join(", ")}, a model this study never uses. The run's evidence is kept as it is. Stop here and tell the driver before any other run.`);
+  console.error(`\n\x1b[31mNEVER\x1b[0m ${where} reported ${models.join(", ")}, a model this study does not use without the owner's authorization (decision 0031). The run's evidence is kept as it is. Stop here and tell the driver before any other run.`);
   return 3;
 }
 
@@ -1250,7 +1250,7 @@ async function main() {
   const proj = loadProject(args.project);
   // Study one is finished and ran on models no call of this runner uses now: its folders are read (--status, --score, the summary), never run.
   if (proj.closed) fail(`${proj.project} is a project of study ${proj.study} (protocol version ${proj.protocol}), which is finished: its records stand as they are, and the runner makes no new call, derivation or judgment for it. Read it with --status, --score <run dir> or scripts/lib/compare-summary.mjs`);
-  if (NEVER.test(proj.leadModel) || NEVER.test(proj.judgeModel)) fail(`protocol version ${proj.protocol} names a model this study never uses`);
+  if (NEVER.test(proj.leadModel) || NEVER.test(proj.judgeModel)) fail(`protocol version ${proj.protocol} names a model this study does not use without the owner's authorization (decision 0031)`);
   if (proj.protocol >= 2) {
     const paid = !args.dryRun && !args.derive;
     const resolved = resolveTierMap({ registered: proj.expect.tier_map, envText: process.env.GROOPH_MODELS, paid });

@@ -56,7 +56,7 @@
 #
 #   GROOPH_MODELS=frontier=…,strong=…,fast=… scripts/compare.sh <project> D --dry-run
 #
-# No call uses Fable. A tier map or an agent file that names it is refused; the
+# No call of this project's studies uses Fable without the owner's authorization (decision 0031). A tier map or an agent file that names it is refused; the
 # harness's aliases are pinned for the run, so a lead that asks for `fable` gets
 # Opus 5.5; and an invocation that reports it all the same is flagged in the
 # ledger, which then refuses every new call until someone answers for it. Study

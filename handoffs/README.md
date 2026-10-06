@@ -56,7 +56,7 @@ Rules that keep lanes out of each other's way:
 - **One slice, one branch, one worktree.** A lane never checks out another branch in the main clone.
 - **A lane's handoff names the paths it owns.** Two lanes at once never own the same file. Shared files (`apps/web/src/styles.css`, `apps/web/src/App.tsx`, `apps/web/vite.config.ts`, `scripts/perf-budget.json`, `AGENTS.md`) belong to one lane at a time or to the driver.
 - **Browser tests run on a port of the lane's own**: `GROOPH_E2E_PORT=<port>`, given in the handoff. Port 4173 is never used: another project on this Mac holds it.
-- **At most four lanes at once**, Opus 5.5 by default, Sonnet 5.5 for checklists, never Fable.
+- **At most four lanes at once**, Opus 5.5 by default, Sonnet 5.5 for checklists; no Fable or Astra unless the owner authorizes it (decision 0031).
 
 ## Small changes
 
