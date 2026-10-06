@@ -73,6 +73,9 @@ export function planSteps(doc: Graph): PlanStep[] {
     const base = { id: node.id, name: oneLine(node.name ?? "") || node.id };
     switch (node.kind) {
       case "agent":
+        // A person's step (amendment A-020): its role is the whole of what it is; a person is on no tier.
+        // (`isPersonStep` of `semantics.ts`, said here in its own two words: this file imports nothing but types.)
+        if (node.by === "person") return { ...base, whose: "a person", does: oneLine(roleOf(node)), leaves: oneLine(node.outputs.join("; ")) };
         // The lead is the harness's own session (docs/graph-ir.md §1), and is counted with what the lead does.
         return { ...base, whose: roleOf(node) === "lead" ? "the lead" : "an agent", does: oneLine([roleOf(node), node.model?.tier, node.effort ? `${node.effort} effort` : undefined].filter(Boolean).join(", ")), leaves: oneLine(node.outputs.join("; ")) };
       case "human-gate": {

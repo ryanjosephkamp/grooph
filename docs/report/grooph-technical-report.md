@@ -41,7 +41,7 @@ A graph is one session: the lead is the harness's main session, and every other 
 
 ## 3. The validator
 
-Thirty-five rules, 24 for graphs and 11 for maps, each with a stable code and a fixture that fires it ([`docs/rules.md`](../rules.md), generated from the fixtures). An `E_` rule blocks export. A `W_` rule is shown and carried into the lead's brief.
+Forty-one rules (counted on 2026-10-06), 30 for graphs and 11 for maps, each with a stable code and a fixture that fires it ([`docs/rules.md`](../rules.md), generated from the fixtures). An `E_` rule blocks export. A `W_` rule is shown and carried into the lead's brief.
 
 The rules encode a small number of ideas:
 
