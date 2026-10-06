@@ -68,7 +68,7 @@ To offer a choice, build two or three graphs that differ in shape (a lean one, a
 
 | Tool | Give it | It returns |
 |---|---|---|
-| `grooph_templates` | nothing, or `id` | the library with when to use each; or one template in full, with its document |
+| `grooph_templates` | nothing, or `id` | the library with when to use each, and the plan templates apart from it (graphs a person follows; no cost, speed or rigor is said of one); or one template in full, with its document |
 | `grooph_use_template` | `id`, `name`, `values` | a graph, the questions for unfilled slots, its issues |
 | `grooph_new` | `name`, optionally `goal`, `target` | an empty graph |
 | `grooph_apply` | `graph`, `ops` | the changed graph and its issues; or the failing operation by index, and the graph unchanged |

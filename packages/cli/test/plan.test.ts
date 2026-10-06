@@ -576,12 +576,121 @@ test("a graph with a person's step is a plan at the commands: picked, shared and
     assert.deepEqual(forged.out.split(LF).filter((line) => line.startsWith("next:")).length, 1, forged.out);
     assert.match(forged.out.split(LF).at(-1)!, /^next: grooph plan /);
 
-    // A plan made from a template with a blank left in it is sent to the check, not to the plan.
+    // A plan made from a template with a blank left in it is told to fill it first: its last line is still the plan.
     const template = { ...personStep, id: "by-hand", name: "By hand", goal: "Do {{the-thing}} by hand.", template: { title: "By hand", summary: "A plan a person follows.", whenToUse: "The work is a person's.", kind: "graph", tags: ["plan"], profile: { cost: "low", speed: "fast", rigor: "light" }, slots: [{ key: "the-thing", ask: "What is to be done?", example: "the literature review" }] } };
     put(join(dir, ".grooph", "templates", "by-hand.grooph.json"), template);
     const blank = await grooph(["template", "use", "by-hand", "--name", "Mine", "--out", join(dir, "blank.grooph.json")], dir);
-    assert.match(blank.out, /^next: grooph validate --for-export .*blank\.grooph\.json$/m, `${blank.out}${blank.err}`);
+    assert.match(blank.out, /^next: fill the slots named above, then grooph plan .*blank\.grooph\.json$/m, `${blank.out}${blank.err}`);
     const filled = await grooph(["template", "use", "by-hand", "--name", "Mine", "--set", "the-thing=the review", "--out", join(dir, "filled.grooph.json")], dir);
     assert.match(filled.out, /^next: grooph plan .*filled\.grooph\.json$/m, `${filled.out}${filled.err}`);
+  });
+});
+
+// ─── the four plan templates (plans/) ─────────────────────────────────────
+
+const PLANS = ["literature-review", "research-study", "solo-project", "team-handoffs"];
+/** Every slot of a plan template, filled from the slot's own example. */
+const filledFrom = (id: string): string[] => {
+  const template = JSON.parse(readFileSync(join(repoRoot, "plans", `${id}.grooph.json`), "utf8")) as { template: { slots?: { key: string; example: string }[] } };
+  return (template.template.slots ?? []).flatMap((slot) => ["--set", `${slot.key}=${slot.example}`]);
+};
+
+test("the plan templates are in the package's own folder, listed under a heading of their own with no profile, and not counted with the twenty", async () => {
+  await withFolder(async (dir) => {
+    const listed = await grooph(["template", "list"], dir);
+    assert.equal(listed.code, 0, listed.err);
+    const lines = listed.out.split(LF);
+    // The library's group ends before the plans' begins, and holds none of them.
+    const builtIn = lines.findIndex((line) => line.startsWith("built-in ("));
+    const heading = lines.findIndex((line) => line.startsWith("Plans ("));
+    assert.ok(builtIn >= 0 && heading > builtIn, listed.out);
+    assert.match(lines[heading]!, /\/plans\/\)$/);
+    const library = lines.slice(builtIn + 1, heading).filter((line) => /^ {2}[a-z]/.test(line));
+    assert.equal(library.length, 20, library.join(LF));
+    assert.ok(library.every((line) => / · /.test(line) && !PLANS.includes(line.trim().split(/\s+/)[0]!)), library.join(LF));
+    // Each plan: its id and kind and nothing measured, then when to use it, as for the twenty.
+    for (const id of PLANS) {
+      const at = lines.findIndex((line, i) => i > heading && new RegExp(`^ {2}${id} +graph$`).test(line));
+      assert.ok(at > heading, `${id}: ${listed.out}`);
+      const when = (JSON.parse(readFileSync(join(repoRoot, "plans", `${id}.grooph.json`), "utf8")) as { template: { whenToUse: string } }).template.whenToUse;
+      assert.equal(lines[at + 1], `      ${when}`);
+    }
+    assert.ok(!lines.slice(heading).some((line) => /(low|medium|high) · /.test(line)), listed.out);
+    assert.equal(lines.at(-1), '20 templates, and 4 plans apart from them. Read one: grooph template show <name>. Start from one: grooph template use <name> --name "<graph name>".');
+
+    // As data: the library is still twenty under "templates", and the plans are a list of their own with no profile.
+    const json = JSON.parse((await grooph(["template", "list", "--json"], dir)).out) as { templates: { id: string }[]; plans: Record<string, unknown>[] };
+    assert.equal(json.templates.length, 20);
+    assert.deepEqual(json.plans.map((plan) => plan["id"]), PLANS);
+    assert.ok(json.plans.every((plan) => !("profile" in plan) && typeof plan["whenToUse"] === "string" && plan["source"] === "built-in"), JSON.stringify(json.plans));
+
+    const shown = await grooph(["template", "show", "solo-project"], dir);
+    assert.ok(!/^Profile:/m.test(shown.out) && /^A plan: a graph a person follows/m.test(shown.out), shown.out);
+    assert.match((await grooph(["template", "show", "grind-loop"], dir)).out, /^Profile: cost /m);
+
+    // A project's own template of the same id is the one a name finds, and the plan is said to be shadowed.
+    const mine = JSON.parse(readFileSync(join(repoRoot, "patterns", "grind-loop.grooph.json"), "utf8")) as { id: string };
+    mine.id = "solo-project";
+    mkdirSync(join(dir, ".git"));
+    put(join(dir, ".grooph", "templates", "solo-project.grooph.json"), mine);
+    const shadowed = await grooph(["template", "list"], dir);
+    assert.match(shadowed.out, /^ {2}solo-project +graph {3}\(shadowed by the project one\)$/m);
+    assert.match(shadowed.out, /^21 templates, and 3 plans apart from them\. /m);
+  });
+});
+
+test("each plan template is found by name, makes a graph that is a plan with nothing of its own in error, ends with the plan, and writes one", async () => {
+  await withFolder(async (dir) => {
+    for (const id of PLANS) {
+      const file = join(dir, `${id}.grooph.json`);
+      const used = await grooph(["template", "use", id, "--name", `Mine ${id}`, ...filledFrom(id), "--out", file], dir);
+      assert.equal(used.code, 0, `${id}: ${used.err}`);
+      assert.equal(used.out.split(LF).at(-1), `next: grooph plan ${file}`, id);
+      assert.equal((await grooph(["validate", file])).code, 0, id);
+      // No package is made of it, and the plan is written whole.
+      assert.equal((await grooph(["export", file, "--target", "claude-code", "--into", join(dir, "project")])).code, 1, id);
+      assert.equal(existsSync(join(dir, "project")), false, id);
+      const planned = await grooph(["plan", file, "--into", join(dir, "out", id)]);
+      assert.equal(planned.code, 0, `${id}: ${planned.err}`);
+      assert.equal(planned.out.split(LF).at(-1), "As a plan for people to read and follow it is whole.", `${id}: ${planned.out}`);
+      assert.match(readFileSync(join(dir, "out", id, "PLAN.md"), "utf8"), /\| a person \| /, id);
+    }
+    // With a slot left unfilled the last line is still the plan, after the slot.
+    const blank = await grooph(["template", "use", "solo-project", "--name", "Blank", "--out", join(dir, "blank.grooph.json")], dir);
+    assert.match(blank.out.split(LF).at(-1)!, /^next: fill the slots named above, then grooph plan .*blank\.grooph\.json$/);
+  });
+});
+
+test("the tools list the plans apart from the library, in a session and in a chat, and a graph made from one is a plan", async () => {
+  for (const chat of [false, true]) {
+    await withProject(
+      async (ctx) => {
+        const list = await call(ctx, "grooph_templates", {});
+        assert.equal(list.isError, undefined, textOf(list));
+        const said = textOf(list).split(LF);
+        for (const id of PLANS) assert.ok(said.some((line) => line.startsWith(`template ${JSON.stringify(id)}: `) && line.endsWith(", a plan: a graph a person follows, each step marked as a person's or an agent's")), `${id}: ${textOf(list)}`);
+        assert.match(textOf(list), /^templates: 20; each is said with its cost, speed and rigor\. And 4 plans, apart from them: /m);
+        assert.equal((list.structuredContent!["templates"] as unknown[]).length, 20);
+        assert.deepEqual((list.structuredContent!["plans"] as { id: string }[]).map((plan) => plan.id), PLANS);
+        assert.ok((list.structuredContent!["plans"] as Record<string, unknown>[]).every((plan) => !("profile" in plan)));
+        const one = await call(ctx, "grooph_templates", { id: "team-handoffs" });
+        assert.match(textOf(one), /^Profile: none\. This is a plan, a graph a person follows: nothing was measured of it\.$/m);
+        const template = JSON.parse(readFileSync(join(repoRoot, "plans", "team-handoffs.grooph.json"), "utf8")) as { template: { slots: { key: string; example: string }[] } };
+        const made = await call(ctx, "grooph_use_template", { id: "team-handoffs", name: "Spring newsletter", values: Object.fromEntries(template.template.slots.map((slot) => [slot.key, slot.example])) });
+        assert.equal(made.isError, undefined, textOf(made));
+        assert.match(textOf(made).split(LF).at(-1)!, /^next: this graph is a plan, for people to follow .*grooph_export_plan to write it out\. Change whose a step is with grooph_apply only as the person asks$/);
+        const plan = await call(ctx, "grooph_export_plan", { graph: "spring-newsletter" });
+        assert.equal(plan.isError, undefined, textOf(plan));
+        assert.match(plan.content[1]!.text, /\| a person \| /);
+      },
+      chat ? { chat: true } : {},
+    );
+  }
+  // A server given no folder of plans lists none and says nothing of them.
+  await withProject(async (ctx) => {
+    const { plansDir: _none, ...registry } = ctx.registry!;
+    const list = await call({ ...ctx, registry }, "grooph_templates", {});
+    assert.match(textOf(list), /^templates: 20; each is said with its cost, speed and rigor\.$/m);
+    assert.deepEqual(list.structuredContent!["plans"], []);
   });
 });

@@ -19,6 +19,12 @@ const base = (): string => fileURLToPath(new URL("../", import.meta.url));
 /** The built-in pattern library, bundled beside the code at build time (docs/templates.md §3). */
 export const patternsDir = (): string => join(base(), "patterns");
 
+/**
+ * The plan templates (plans/ in the repository), bundled beside the code like the pattern library and kept apart from
+ * it: they are graphs a person follows, and no count or index of the built-in templates includes them.
+ */
+export const plansDir = (): string => join(base(), "plans");
+
 /** A script under hooks/, as this CLI ships it: beside dist/ in the clone and in the npm package. The chat skill carries none. */
 export const shippedHook = (name: string): string => resolve(base(), "..", "hooks", name);
 

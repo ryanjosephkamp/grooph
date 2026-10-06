@@ -27,13 +27,16 @@ mkdir -p "$SCRATCH/skills" "$SCRATCH/work"
 [[ "$(ls "$SCRATCH/skills")" == "grooph-chat" ]] || fail "the zip must hold one folder, named as the skill is"
 SKILL="$SCRATCH/skills/grooph-chat"
 [[ "$(sed -n 's/^name: //p' "$SKILL/SKILL.md")" == "grooph-chat" ]] || fail "the skill's name is not its folder's"
-for f in SKILL.md scripts/grooph.mjs patterns/index.json reference/agents.md; do [[ -s "$SKILL/$f" ]] || fail "the skill has no $f"; done
+for f in SKILL.md scripts/grooph.mjs patterns/index.json plans/solo-project.grooph.json reference/agents.md; do [[ -s "$SKILL/$f" ]] || fail "the skill has no $f"; done
 find "$SKILL" -name node_modules | grep . >/dev/null && fail "the skill carries node_modules"
 
 cd "$SCRATCH/work"
 G() { node "$SKILL/scripts/grooph.mjs" "$@"; }
 [[ "$(G --version)" == "$VERSION" ]] || fail "the skill's script did not print $VERSION"
 G template list | grep >/dev/null "^  grind-loop " || fail "the skill's script did not find its templates"
+G template list | grep >/dev/null "^20 templates, and 4 plans apart from them\. " || fail "the skill's script did not find its four plan templates"
+G template use solo-project --name "A zine" --set project="A zine about tide pools." --set where="its own web address" --out zine.grooph.json >/dev/null
+G plan zine.grooph.json >/dev/null && [[ -s a-zine-plan/PLAN.md ]] || fail "the skill's script wrote no plan from a plan template"
 G template use grind-loop --name "Fix the flaky test" --set task="make the checkout test pass" --set test-command="pnpm test checkout" --out flaky.grooph.json
 G validate --for-export flaky.grooph.json
 G explain flaky.grooph.json | grep >/dev/null "at most 5 rounds" || fail "explain did not say what the graph's brakes are"
@@ -41,7 +44,7 @@ G share flaky.grooph.json | grep >/dev/null '^https://ryanjosephkamp.github.io/g
 G image flaky.grooph.json --out flaky.svg
 head -c 5 flaky.svg | grep >/dev/null "<svg" || fail "image wrote no SVG"
 # Every command the skill's instructions rely on is named in them and is one the script has.
-for command in template apply validate explain share image export; do
+for command in template new apply validate explain share image plan export; do
   grep >/dev/null -E "(^|[ \`])$command " "$SKILL/SKILL.md" || fail "the skill's instructions no longer name the command $command"
   G help "$command" >/dev/null || fail "the skill names the command $command, which the script does not have"
 done
@@ -71,10 +74,11 @@ const send = [
   { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "grooph_use_template", arguments: { id: "grind-loop", name: "From the extension", values: { task: "t", "test-command": "c" } } } },
   { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "grooph_share", arguments: { graph: "from-the-extension" } } },
   { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "grooph_new", arguments: { name: "Never written", out: "never-written.grooph.json" } } },
+  { jsonrpc: "2.0", id: 6, method: "tools/call", params: { name: "grooph_templates", arguments: {} } },
 ];
 const run = spawnSync(m.server.mcp_config.command, args, { cwd: "/", input: send.map((s) => JSON.stringify(s)).join("\n") + "\n", encoding: "utf8" });
 need(run.status === 0 && run.stderr === "", `the server exited ${run.status}: ${run.stderr}`);
-const [init, list, use, share, written] = run.stdout.trim().split("\n").map((l) => JSON.parse(l));
+const [init, list, use, share, written, library] = run.stdout.trim().split("\n").map((l) => JSON.parse(l));
 need(init.result.serverInfo.version === version, "the server reports another version");
 const names = list.result.tools.map((t) => t.name);
 need(JSON.stringify(names) === JSON.stringify(m.tools.map((t) => t.name)), "the manifest's tools are not the server's");
@@ -82,6 +86,9 @@ need(names.length === 11 && !names.includes("grooph_plan"), "the extension offer
 need(use.result.structuredContent.graph.id === "from-the-extension", "grooph_use_template returned no graph");
 need(/^https:\/\/ryanjosephkamp\.github\.io\/grooph\/#\/open\?d=/.test(share.result.structuredContent.link), "grooph_share, given the graph's id, returned no link");
 need(written.result.isError === true && /writes no file/.test(written.result.content[0].text), "the extension's server was willing to write a file");
+const plans = library.result.structuredContent.plans.map((t) => t.id).sort();
+need(JSON.stringify(plans) === JSON.stringify(["literature-review", "research-study", "solo-project", "team-handoffs"]), `the extension's server lists these plans: ${plans.join(", ")}`);
+need(library.result.structuredContent.templates.length === 20, "the extension's server no longer lists twenty templates apart from the plans");
 JS
 
 if [[ -n "$KEEP" ]]; then mkdir -p "$KEEP" && cp "$KIT/grooph-chat.zip" "$KIT/grooph.mcpb" "$KEEP/"; fi

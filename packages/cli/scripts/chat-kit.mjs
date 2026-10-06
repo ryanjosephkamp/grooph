@@ -39,6 +39,11 @@ const patterns = readdirSync(join(pkg, "dist", "patterns"))
   .filter((name) => name.endsWith(".grooph.json") || name === "index.json")
   .sort()
   .map((name) => ({ name: `patterns/${name}`, data: readFileSync(join(pkg, "dist", "patterns", name)) }));
+// The plan templates go with the command wherever it goes: beside patterns/, where the script looks for them.
+const plans = readdirSync(join(pkg, "dist", "plans"))
+  .filter((name) => name.endsWith(".grooph.json"))
+  .sort()
+  .map((name) => ({ name: `plans/${name}`, data: readFileSync(join(pkg, "dist", "plans", name)) }));
 const license = { name: "LICENSE.txt", data: readFileSync(join(repo, "LICENSE")) };
 
 // ─── the skill ────────────────────────────────────────────────────────────
@@ -58,6 +63,7 @@ const skillZip = zip(
     { name: "SKILL.md", data: Buffer.from(skill) },
     { name: "scripts/grooph.mjs", data: script, mode: 0o755 },
     ...patterns,
+    ...plans,
     { name: "reference/agents.md", data: readFileSync(join(repo, "docs", "agents.md")) },
     license,
   ]),
@@ -98,6 +104,7 @@ const bundle = zip([
   { name: "manifest.json", data: Buffer.from(`${JSON.stringify(desktop, null, 2)}\n`) },
   { name: "server/grooph.mjs", data: script, mode: 0o755 },
   ...patterns,
+  ...plans,
   { name: "icon.png", data: readFileSync(join(repo, "apps", "web", "public", "icon-512.png")) },
   license,
 ]);

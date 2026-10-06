@@ -52,6 +52,11 @@ npm install --no-audit --no-fund --loglevel=error "$TARBALL"
 # The built-in templates answer with the network's registry out of reach.
 export GROOPH_REGISTRY=http://127.0.0.1:9/unreachable/index.json
 npx grooph template list | grep >/dev/null "^  grind-loop " || fail "the built-in templates are not in the package"
+# The plan templates too: under a heading of their own, apart from the twenty and their count, and found by name.
+npx grooph template list | grep >/dev/null "^Plans (" || fail "the plan templates are not listed under their own heading"
+npx grooph template list | grep >/dev/null "^20 templates, and 4 plans apart from them\. " || fail "the package does not carry twenty templates and four plans"
+npx grooph template use solo-project --name "A zine" --set project="A zine about tide pools." --set where="its own web address" --out zine.grooph.json | grep >/dev/null "^next: grooph plan zine.grooph.json$" || fail "a plan template did not end with the plan"
+npx grooph plan zine.grooph.json >/dev/null && [[ -s a-zine-plan/PLAN.md ]] || fail "grooph plan wrote no PLAN.md from a plan template"
 
 # The quickstart's path.
 npx grooph template use grind-loop --name "Fix the flaky test" --set task="make the checkout test pass ten times in a row" --set test-command="pnpm test checkout" --out flaky.grooph.json

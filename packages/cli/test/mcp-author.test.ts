@@ -510,7 +510,7 @@ test("the data a tool returns carries the reply's lines, next: included, and the
     assert.match(made.structuredContent!["text"] as string, /\nnext: get a value for each slot listed above from the person/);
     // The library's rows are the data; its lines there are only the legend and what to do next, not the list twice.
     const list = await call(ctx, "grooph_templates", {});
-    assert.match(list.structuredContent!["text"] as string, /^templates: \d+; each is said with its cost, speed and rigor\.\nnext: /);
+    assert.match(list.structuredContent!["text"] as string, /^templates: 20; each is said with its cost, speed and rigor\. And 4 plans, apart from them: [^\n]*\nnext: /);
     // The package's kickoff is in the data once.
     const exported = await call(ctx, "grooph_export", { graph: fixture("valid", "fix-until-green.grooph.json") });
     assert.ok(!(exported.structuredContent!["text"] as string).includes(exported.structuredContent!["kickoff"] as string));

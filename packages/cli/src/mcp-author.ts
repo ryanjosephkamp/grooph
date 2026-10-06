@@ -390,7 +390,11 @@ function writable(doc: Graph): { doc: Graph } | { schema: Issue[] } {
  */
 function localTemplates(ctx: McpContext): Found[] {
   const env = ctx.registry ?? { ...defaultRegistryEnv(), cwd: ctx.project };
-  const found = ctx.chat === true ? scanFolder({ source: "built-in", dir: env.builtinDir }).found : scanLocal(env).found;
+  // In a chat, the server's own two folders: the library, and the plan templates beside it.
+  const found =
+    ctx.chat === true
+      ? [...scanFolder({ source: "built-in", dir: env.builtinDir }).found, ...(env.plansDir !== undefined ? scanFolder({ source: "built-in", dir: env.plansDir, plans: true }).found : [])]
+      : scanLocal(env).found;
   const seen = new Set<string>();
   return found.filter((f) => (seen.has(f.doc.id) ? false : (seen.add(f.doc.id), true)));
 }
@@ -528,7 +532,8 @@ export const AUTHOR_TOOLS: Tool[] = [
             id: f.doc.id,
             title: block.title,
             kind: block.kind,
-            profile: block.profile,
+            // A plan carries no cost, speed and rigor here: nothing was measured of one.
+            ...(f.plan === true ? { plan: true } : { profile: block.profile }),
             whenToUse: block.whenToUse,
             ...(block.notFor !== undefined ? { notFor: block.notFor } : {}),
             shape: shapeLine(estimateShape(f.doc)),
@@ -537,15 +542,19 @@ export const AUTHOR_TOOLS: Tool[] = [
           };
         });
         const lines = rows.flatMap((r) => [
-          `template ${q(r.id)}: ${q(r.title)}${r.kind === "fragment" ? " (a fragment: nodes to add to a graph, not a whole graph)" : ""}, cost ${word(r.profile.cost, COSTS)}, speed ${word(r.profile.speed, SPEEDS)}, rigor ${word(r.profile.rigor, RIGORS)}`,
+          !("profile" in r)
+            ? `template ${q(r.id)}: ${q(r.title)}, a plan: a graph a person follows, each step marked as a person's or an agent's`
+            : `template ${q(r.id)}: ${q(r.title)}${r.kind === "fragment" ? " (a fragment: nodes to add to a graph, not a whole graph)" : ""}, cost ${word(r.profile.cost, COSTS)}, speed ${word(r.profile.speed, SPEEDS)}, rigor ${word(r.profile.rigor, RIGORS)}`,
           `  when: ${q(r.whenToUse)}`,
           ...(r.notFor !== undefined ? [`  not for: ${q(r.notFor)}`] : []),
           `  shape: ${q(r.shape)}`,
           ...(r.slots.length > 0 ? [`  slots: ${r.slots.map(q).join(", ")}`] : []),
         ]);
-        const count = `templates: ${rows.length}; each is said with its cost, speed and rigor.`;
+        const planRows = rows.filter((r) => !("profile" in r)).length;
+        const count = `templates: ${rows.length - planRows}; each is said with its cost, speed and rigor.${planRows > 0 ? ` And ${plural(planRows, "plan")}, apart from them: for work people do, made with grooph_use_template like any other and written out with grooph_export_plan; nothing was measured of a plan, so it has no cost, speed or rigor.` : ""}`;
         const next = "grooph_templates with id for one in full, or grooph_use_template with id, name and values. When a strong builder would finish the task in one pass and the person wants neither a brake nor a record, the right answer is no graph: say so.";
-        return { text: reply([...lines, count], next), brief: reply([count], next), data: { templates: rows } };
+        // The data keeps the two apart as the lines do: `templates` is the library, and `plans` the plan templates.
+        return { text: reply([...lines, count], next), brief: reply([count], next), data: { templates: rows.filter((r) => "profile" in r), plans: rows.filter((r) => !("profile" in r)) } };
       }
       const found = findTemplate(ctx, id);
       const block = found.doc.template!;
@@ -555,7 +564,9 @@ export const AUTHOR_TOOLS: Tool[] = [
         `Summary: ${q(block.summary)}`,
         `When to use: ${q(block.whenToUse)}`,
         ...(block.notFor !== undefined ? [`Not for: ${q(block.notFor)}`] : []),
-        `Profile: cost ${word(block.profile.cost, COSTS)}, speed ${word(block.profile.speed, SPEEDS)}, rigor ${word(block.profile.rigor, RIGORS)}`,
+        found.plan === true
+          ? "Profile: none. This is a plan, a graph a person follows: nothing was measured of it."
+          : `Profile: cost ${word(block.profile.cost, COSTS)}, speed ${word(block.profile.speed, SPEEDS)}, rigor ${word(block.profile.rigor, RIGORS)}`,
         `Shape: ${q(shapeLine(estimateShape(found.doc)))}`,
         ...(block.credits ?? []).map((c) => `Inspired by: ${q(c.name)} at ${q(c.url)}, ${q(c.note)}`),
         ...(slots.length > 0 ? ["Slots:", ...slots.map((s) => `  slot ${q(s.key)}: ${q(s.ask)} (e.g. ${q(s.example)})`)] : ["Slots: none."]),
@@ -625,7 +636,13 @@ export const AUTHOR_TOOLS: Tool[] = [
         ...(replaced !== undefined ? [replaced] : []),
         ...(wrote !== undefined ? [`wrote ${q(wrote)}`] : []),
       ];
-      const next = unfilled.length > 0 ? "get a value for each slot listed above from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)" : nextAfter(issues, false, true);
+      // A graph made from a plan template is a plan: the check for a package is not its next step.
+      const next =
+        unfilled.length > 0
+          ? "get a value for each slot listed above from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)"
+          : isPlan(doc) && !hasErrors(issues)
+            ? 'this graph is a plan, for people to follow (pass its id as "graph"; the server remembers it): grooph_share for a link the person opens, grooph_picture to show it here, grooph_export_plan to write it out. Change whose a step is with grooph_apply only as the person asks'
+            : nextAfter(issues, false, true);
       return { text: reply(lines, next), data: { ok: !hasErrors(issues), graph: docData(doc), unfilled, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
   },  {

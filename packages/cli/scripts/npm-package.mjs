@@ -6,6 +6,7 @@
  *                           optional one (@resvg/resvg-js, for PNG; it has no install script)
  *   dist/bundle/grooph.js   the CLI and core as one file (scripts/bundle.mjs): the `grooph` command
  *   dist/patterns/          the built-in templates
+ *   dist/plans/             the plan templates, listed apart from them
  *   dist/app/               the built web app `grooph watch` serves, without its source maps
  *   hooks/                  the event hook and the script that sends events to a branch
  *   README.md, LICENSE
@@ -40,6 +41,8 @@ mkdirSync(out, { recursive: true });
 
 await bundleCli(join(out, "dist", "bundle", "grooph.js"));
 cpSync(join(pkg, "dist", "patterns"), join(out, "dist", "patterns"), { recursive: true });
+if (!existsSync(join(pkg, "dist", "plans"))) fail("the CLI is not built with its plan templates: run pnpm -r build first");
+cpSync(join(pkg, "dist", "plans"), join(out, "dist", "plans"), { recursive: true });
 cpSync(join(pkg, "hooks"), join(out, "hooks"), { recursive: true });
 // The app as `vite build` leaves it, less the source maps (three megabytes nobody watching a run reads) and less what
 // the site adds beside it after a build: the rendered documents, the published templates, the gallery. A local run of
@@ -100,6 +103,7 @@ const kb = (bytes) => `${Math.round(bytes / 1024).toLocaleString("en")} KB`;
 console.log(`grooph@${manifest.version} assembled in ${relative(repo, out)}: ${files.length} files, ${kb(total)} unpacked`);
 console.log(`  the command  ${kb(part("dist/bundle/"))}`);
 console.log(`  templates    ${kb(part("dist/patterns/"))}`);
+console.log(`  plans        ${kb(part("dist/plans/"))}`);
 console.log(`  the app      ${kb(part("dist/app/"))}`);
 console.log(`  hooks        ${kb(part("hooks/"))}`);
 console.log(`next: (cd ${relative(repo, out)} && npm pack --dry-run) lists what would be published; scripts/pack-check.sh installs the tarball in a fresh folder and runs it`);
