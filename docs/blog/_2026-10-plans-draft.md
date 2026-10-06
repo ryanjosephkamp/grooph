@@ -2,17 +2,12 @@
 
 *A draft the owner has not edited. Written on October 5, 2026, by an AI session (the project's audit lane) for slice 0100. It is not on the site: the site lists `docs/blog/*.md` and skips a file whose name begins with an underscore, which is why this one does.*
 
-> **To settle before this is published.** Each is marked in the text.
+> **To settle before this is published.** Two things, each marked in the text.
 >
-> 1. **[not yet]** `grooph plan` arrives with version 0.4.0. It was not a command in grooph's main copy that evening.
-> 2. **[not yet]** The design skill did not propose plans. It proposed graphs for agents to run.
-> 3. **[not yet tried]** Asking a chat assistant for a plan has not been tried. Writing this draft started no AI session.
-> 4. **[not yet]** The four plan templates are in the repository and not in what a person installs.
-> 5. **[not yet]** The web app labeled every step "Agent", a person's included, when the example's link was opened on the live site that evening. `grooph image` and the outline say "Person".
+> 1. **[not yet tried]** Asking a chat assistant for a plan has not been tried. Writing this draft started no AI session.
+> 2. **[not yet tried]** The design skill is told how to propose a plan as of version 0.4.0. No session was watched doing it for this draft.
 >
-> 6. **[not yet]** A person's step is in grooph's main copy and not in version 0.3.0. It ships with 0.4.0.
->
-> The two commands shown were run that evening in an empty folder, and answered as the text says.
+> Checked on October 6, 2026, against grooph 0.4.0 built from its tag, in an empty folder: the two commands shown answered as the text says, `grooph plan` wrote its three files, `grooph template list` showed the four plan templates under "Plans", and the example's link, opened on the live site, drew each step's card as "Person" or "Agent".
 
 A plan drawn as a graph asks three questions. What will "done" mean? When the work is reviewed, against what? Who decides that it goes out? It has a place to write each answer.
 
@@ -56,31 +51,31 @@ Give an agent's step to whatever assistant you use, and save what comes back und
 
 ## What grooph does with a plan
 
-It keeps the plan as one text file. You type its commands in a terminal, and the [quickstart](../quickstart.md) installs it. **[not yet]** A person's step ships with version 0.4.0.
+It keeps the plan as one text file. You type its commands in a terminal, and the [quickstart](../quickstart.md) installs it. A person's step needs version 0.4.0 or later.
 
 - **It checks the shape.** `grooph validate` holds the file to a list of rules: a loop with no stop at all is refused, for one. It does not insist on a cap or a gate, read the work, or judge whether these are the right steps.
 - **It draws it flat, in two dimensions.** `grooph image` made the picture above.
-- **It draws it in three dimensions.** In the [web app](https://ryanjosephkamp.github.io/grooph/) a graph has a switch, Picture and 3D. **[not yet]** The app says whose step each one is.
-- **It exports it.** `grooph outline` writes it as text, every step's instructions in full. `grooph page` writes one file that opens with no network. `grooph share` prints a link with the whole plan inside it (and, for a plan, two lines about a harness, beginning "error", that do not stop it). **[not yet]** `grooph plan`, arriving with version 0.4.0, writes a folder to pass along: a page saying who does what, the picture, and the file.
+- **It draws it in three dimensions.** In the [web app](https://ryanjosephkamp.github.io/grooph/) a graph has a switch, Picture and 3D. Its cards say whose step each one is, as the picture does.
+- **It exports it.** `grooph outline` writes it as text, every step's instructions in full. `grooph page` writes one file that opens with no network. `grooph share` prints a link with the whole plan inside it (for a plan it adds a line on what stands in the way of a package for a harness, which does not stop the link). `grooph plan` writes a folder to pass along: a page saying who does what, the picture, and the file.
 
 It runs no step, and it asks for no account.
 
 ## Getting one made
 
-**From a template.** The literature review is one of four plan templates (plans with blanks to fill) in the project's [`plans/`](../../plans/README.md) folder, with a research study, a small team's handoffs and a solo project. **[not yet]** They are not in what you install; the folder's README has the one line that copies them in. Then:
+**From a template.** The literature review is one of four plan templates (plans with blanks to fill) in the project's [`plans/`](../../plans/README.md) folder, with a research study, a small team's handoffs and a solo project. They come with grooph: `grooph template list` shows them under "Plans". Fill in the blanks and draw it:
 
 ```bash
 grooph template use literature-review --set question="Does spaced practice help adults remember new vocabulary for longer?" --set sources="Semantic Scholar and Google Scholar" --out review.grooph.json
 grooph image review.grooph.json --out review.png
 ```
 
-The first answered `review.grooph.json: no issues` and wrote the file (its `next:` line is for graphs a harness runs). The second wrote the picture.
+The first answered `review.grooph.json: no issues`, wrote the file, and named `grooph plan` as the next step. The second wrote the picture.
 
 **By asking an agent.** Three ways.
 
 - *In a chat.* **[not yet tried]** A plan is one small text file, and an assistant can be asked to write one. Give it a template as an example, and say the job, who takes which step, where work can come back, and where you decide. Save the answer as a file ending in `.grooph.json`, run `grooph validate`, and paste any message back for a fix. Then read the picture: whether the steps are right is yours to judge.
-- *In Claude Code*, which is a harness, a command grooph adds, `/grooph-design`, proposes one to three checked graphs for what you describe, with a link to compare them on a phone. **[not yet]** It proposes plans, with as much AI help as you ask for.
-- *From an agent that has grooph.* **[not yet]** Ask it to end with `grooph plan`, and you get the folder above.
+- *In Claude Code*, which is a harness, a command grooph adds, `/grooph-design`, proposes one to three checked graphs for what you describe, with a link to compare them on a phone. **[not yet tried]** It is told how to propose a plan too, with as much AI help as you ask for.
+- *From an agent that has grooph.* Ask it to end with `grooph plan`, and you get the folder above.
 
 ## What is shown, and what is not
 
