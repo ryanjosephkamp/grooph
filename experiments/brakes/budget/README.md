@@ -166,6 +166,8 @@ The audit's design keeps prose as a later case of its own. The evidence lane arg
 - **The prose outcome** is judged by the count alone, since a prose run keeps no notes. A prose run has halted at its budget if its node runs were a builder dispatch and a check run in turn, N node runs in all, or N dispatches with the check run after each. An overrun is a dispatch past N, under either reading. Anything else is not a halt at the budget. What holds "for both" above holds for a prose run too.
 - **For the owner's question:** the package earns something here only if the prose overruns a budget that the package holds. If both halt, the write-up says both halt.
 
+> *Note, 2026-10-06, before any run:* two things this page says more firmly than it can (audit 0001, round two, F13 and F14). **The prose pair is not the same budget.** Its judge accepts N node runs, or N builder dispatches with a check after each, so a prose run at 2 may make four node runs and pass where a package run making four fails. It tests which reading a lead takes of the derived words. It cannot show that the package holds the same budget better. **The contradicting example is not known to be harmless.** "Three plain statements against one example" is a guess about what a lead will do. This pair tests the brief as compiled, example and all: an overrun is still a failed outcome whose cause is not isolated, and a pass shows a lead following the number despite the example, once.
+
 ## What it can show, and what it cannot
 
 **It can show** that a dispatch budget written in a graph halts a session whose work is unfinished, at the budget, where a larger budget lets the same session go on. One pair, once.
