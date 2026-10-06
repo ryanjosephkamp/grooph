@@ -166,12 +166,14 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     // A note's round is its loop's: a loop's own note names that loop's, and a note at a node its innermost loop's.
     // But a node in a loop inside another is in a round of each, the contract's one number does not say which, and
     // leads have written the outer loop's there (the recorded Gauntlet and fresh-grind runs) as well as the inner
-    // one's (the nested fixture). Two signs in the run's own notes tell the two apart, each as early as it can
+    // one's (the nested fixture). Three signs in the run's own notes tell the two apart, each as early as it can
     // matter. An inner loop starts afresh when the loop it is inside comes round, so a note at one of its nodes
-    // right after that outer way back that names a round other than 0 is not naming the inner loop's. And a loop's
-    // own note names the round just finished, so one that names a higher round than its node's note just before it
+    // right after that outer way back that names a round other than 0 is not naming the inner loop's. A loop's own
+    // way back is its next round, so a note at one of its nodes right after that way back (and no outer one) that
+    // names no higher a round than the loop's node before it is not naming it either. And a loop's own note names
+    // the round just finished, so one that names a higher round than its node's note just before it
     // shows the node's number was not this loop's (a lower one shows nothing: the loop's note may have been written
-    // late). In a run with either sign the number at a node of an inner loop is not read, and each loop's round is
+    // late). In a run with any of them the number at a node of an inner loop is not read, and each loop's round is
     // worked out from the ways back the run took, as it is wherever a note names none (graph-ir, "Rounds" and
     // "Nested loops"): a loop's way back is that loop's next round, and every loop inside it starts afresh at
     // round 0; otherwise a loop is in the round it was last seen in.
@@ -181,15 +183,20 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       return false;
     };
     const said: Record<Id, number | undefined> = {};
+    const before: Record<Id, number> = {};
     const first = walk(model.edges);
     let others = false;
     for (const { focus, note } of replay.steps.slice(1)) {
       if (!focus || !note) continue;
       if (focus.kind === "node" && is(focus.id)) {
         const own = innermost(focus.id);
+        // (A loop that comes round, at whichever of its nodes, starts each loop inside it afresh: what was named
+        // there before is no longer what the next number is held against.)
+        const back = first.into(focus.id).flatMap((e) => (e.back ? [e.back] : []));
+        for (const l of loops) if (back.some((id) => inside(l.id, id))) delete before[l.id];
         if (own && inner(own) && note.round !== undefined) {
-          others ||= note.round !== 0 && first.into(focus.id).some((e) => e.back && inside(own, e.back));
-          said[own] = note.round;
+          others ||= back.some((id) => inside(own, id)) ? note.round !== 0 : back.includes(own) && note.round <= (before[own] ?? -1);
+          said[own] = before[own] = note.round;
         }
         first.at(focus.id, { round: null, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: note.outcome === "started" });
       } else if (focus.kind === "loop") {

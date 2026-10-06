@@ -122,7 +122,8 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     const room = (p: Prim): [number, number, number, number] => {
       // A card that is its name alone is as wide as its name.
       const half = (p.t === "card" && p.small ? (cardOf(p.id)?.offsetWidth ?? 88) : 106) / 2 + 5;
-      if (p.t === "card") return p.side ? (p.small ? [8, half * 2, 14, 14] : [8, 128, 22, 22]) : p.stand ? [half, half, 60, 8] : [58, 58, 24, 24];
+      // (And one that stands over its point is as tall as it is: a name on two lines, at the largest a card is drawn.)
+      if (p.t === "card") return p.side ? (p.small ? [8, half * 2, 14, 14] : [8, 128, 22, 22]) : p.stand ? [half, half, Math.max(60, (cardOf(p.id)?.offsetHeight ?? 0) * 1.15 + 14), 8] : [58, 58, 24, 24];
       if (p.t === "text") return [8, 8, p.up ? 16 * p.text.split("\n").length * 1.6 : 12, 12];
       return [3, 3, 3, 3];
     };

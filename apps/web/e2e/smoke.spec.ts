@@ -237,7 +237,7 @@ test("a graph is seen in three dimensions and as its picture again, whichever wa
   for (const ms of took) expect(ms).toBeLessThan(2500);
 });
 
-test("a graph's other kinds of view in three dimensions: Panes and the spiral in and out, whichever way this engine changes the view", async ({ page }, testInfo) => {
+test("a graph's other kinds of view in three dimensions: Panes, the spiral and rings in and out, whichever way this engine changes the view", async ({ page }, testInfo) => {
   // Handoff 0096: the stage draws on a 2D canvas and puts the graph's cards over it as elements, and each card is
   // seen to come from the stairs' card or the picture's node where the engine has view transitions. The log says
   // which way this engine took and how long each move was; none may hold the page.
@@ -281,6 +281,14 @@ test("a graph's other kinds of view in three dimensions: Panes and the spiral in
   await expect.poll(() => frame.locator("canvas").evaluate((el) => (el as HTMLCanvasElement).getContext("2d")!.getImageData(0, 0, (el as HTMLCanvasElement).width, (el as HTMLCanvasElement).height).data.some((v) => v !== 0))).toBe(true);
   await expect(page.getByRole("list", { name: "Each loop's brakes" }).getByRole("listitem")).toHaveText(["Review max iterations: 4 (the lid, over round 3); budget: 10 dispatches, at most 5 full rounds (the dashed ring, a reading)"]);
 
+  // Rings, from the spiral: the same cards again, round a ring.
+  await kinds.getByRole("radio", { name: "Rings" }).tap();
+  await expect(page.locator('.s3[data-kind="rings"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  expect((await frame.locator(".s3-card").evaluateAll((els) => els.map((el) => (el as HTMLElement).dataset["node"]))).sort()).toEqual([...ids].sort());
+  await expect.poll(() => frame.locator("canvas").evaluate((el) => (el as HTMLCanvasElement).getContext("2d")!.getImageData(0, 0, (el as HTMLCanvasElement).width, (el as HTMLCanvasElement).height).data.some((v) => v !== 0))).toBe(true);
+  await expect(page.getByRole("list", { name: "Each loop's brakes" })).toHaveCount(0);
+
   await kinds.getByRole("radio", { name: "Stairs" }).tap();
   await expect(page.locator(".space-scene")).toBeVisible();
   await viewIsStill(page);
@@ -290,8 +298,8 @@ test("a graph's other kinds of view in three dimensions: Panes and the spiral in
   await viewIsStill(page);
   for (const id of ids) await expect(node(page, id)).toBeVisible();
   const ms = await took();
-  console.log(`KINDS ${testInfo.project.name} | view transitions: ${moves ? "yes" : "no"} | each move (the stairs, panes, the spiral, the stairs, the picture), asked for to ended, ms: ${ms.join(", ") || "none"}`);
-  expect(ms.length).toBe(moves ? 5 : 0);
+  console.log(`KINDS ${testInfo.project.name} | view transitions: ${moves ? "yes" : "no"} | each move (the stairs, panes, the spiral, rings, the stairs, the picture), asked for to ended, ms: ${ms.join(", ") || "none"}`);
+  expect(ms.length).toBe(moves ? 6 : 0);
   for (const each of ms) expect(each).toBeGreaterThanOrEqual(0);
   for (const each of ms) expect(each).toBeLessThan(2500);
 });

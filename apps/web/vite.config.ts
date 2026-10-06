@@ -59,7 +59,7 @@ const planSource = fileURLToPath(new URL("../../packages/core/src/plan.ts", impo
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[]; offline?: string[]; exporting?: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[]; more?: string[]; offline?: string[]; exporting?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -150,7 +150,13 @@ function routes(): Plugin {
         if (!graphStage) throw new Error("grooph-routes: no chunk of its own for a graph's other views in three dimensions (src/ui/canvas/graph-stage.tsx). The build no longer splits where vite.config.ts expects.");
         // Over what a canvas has by then: the switch's own piece, which asks for this one, is not weighed here again.
         const stage = [...closure(graphStage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f) && !closure(graphViews).has(f));
-        found.later = [...new Set([...found.later, ...stage, ...found.templates, ...found.front])];
+        // The kinds that are not in the stage's piece (src/ui/canvas/graph-more.tsx: Rings, and Columns with it): one
+        // piece, fetched beside the stage when either is chosen, named in the page with the rest, and weighed apart
+        // from the stage, over what the stage has brought by then.
+        const graphMore = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-more.tsx"));
+        if (!graphMore) throw new Error("grooph-routes: no chunk of its own for a graph's kinds of view that are not in the stage (src/ui/canvas/graph-more.tsx). The build no longer splits where vite.config.ts expects.");
+        found.more = [...closure(graphMore)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f) && !closure(graphViews).has(f) && !stage.includes(f));
+        found.later = [...new Set([...found.later, ...stage, ...found.more, ...found.templates, ...found.front])];
         // Both are on no address's first load, and each has a line of its own in scripts/perf-budget.json: the
         // stage, which choosing one of those views fetches, and the switch with the graph's reading, which every
         // address that draws on the canvas fetches once the canvas is drawn. A piece nothing measures grows.
