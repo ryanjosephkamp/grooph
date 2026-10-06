@@ -21,6 +21,7 @@ const STAGE = /\/assets\/graph-stage-[^/]*\.js$/;
 const STAIRS = /\/assets\/space-[^/]*\.js$/;
 /** The built-in templates whose cards still touch in Panes under an open details sheet, at two phones' sizes. */
 const TIGHT_390: string[] = ["debate-then-build", "gauntlet-decomposed", "ownership-not-swarm", "patrol-pulse", "specialist-critic-bank", "tournament-then-judge"];
+const MARGIN_360: string[] = ["heterogeneous-critic", "review-gate"];
 const TIGHT_360: string[] = ["debate-then-build", "gauntlet-decomposed", "merge-queue", "ownership-not-swarm", "patrol-pulse", "spec-then-loop", "specialist-critic-bank", "tournament-then-judge"];
 /** Whether the note that a view could not be fetched lies over any of the view's bar, its picture or its words. */
 const noteIsClear = (page: Page) =>
@@ -749,13 +750,19 @@ test("a template's page opens on a phone with its details sheet up: choosing a k
       await page.waitForTimeout(80);
       const [frame, room] = [(await page.locator(".s3-frame").boundingBox())!.height, await page.locator(".graph-space").evaluate((el) => el.clientHeight)];
       expect(frame, id).toBeLessThanOrEqual(Math.max(180, Math.round(room * 0.8)) + 1);
-      if ((await overlaps(page)).length) touching.push(id);
+      if ((await overlaps(page)).length) {
+        touching.push(id);
+        // What the frame had, for the log: which templates touch at the margin is the browser's text to say.
+        console.log(`touching at ${width}: ${id}, frame ${Math.round(frame)} of ${room}, cards ${(await cards(page).evaluateAll((els) => els.map((el) => `${(el as HTMLElement).offsetWidth}x${(el as HTMLElement).offsetHeight}`))).join(" ")}`);
+      }
       if (await tight.isVisible()) told.push(id);
     }
     // Where cards touch under the sheet, the bar says so and what to do; and it says so nowhere else.
     expect(told, `at ${width}`).toEqual(touching);
     // Said by name: half a phone's screen is not room for these. Closing the sheet, or the fold, clears every one.
-    expect(touching, `at ${width}`).toEqual(width === 390 ? TIGHT_390 : TIGHT_360);
+    // At the smaller size two more are at the margin, and touch in one browser's text and not in another's.
+    const [always, may] = width === 390 ? [TIGHT_390, []] : [TIGHT_360, MARGIN_360];
+    expect(touching.filter((id) => !may.includes(id)), `at ${width}`).toEqual(always);
   }
   // And the picture brings the sheet back as it was.
   await view(page, "Picture").click();
@@ -893,8 +900,8 @@ test("a pane's name stands where no card is over it, and an edge's head is at th
         const drawn = (window as unknown as { drawn: { said: { text: string; x: number; y: number; wide: number; tall: number }[]; heads: [number, number][] } }).drawn;
         const under = (x: number, y: number, w: number, h: number): number => cards.reduce((sum, c) => sum + Math.max(0, Math.min(x + w, c[0] + c[2]) - Math.max(x, c[0])) * Math.max(0, Math.min(y + h, c[1] + c[3]) - Math.max(y, c[1])), 0) / (w * h);
         return {
-          // Each line of each pane's name (the only words Panes draws; a long name is on more lines than one), with
-          // the share of its box that lies under a card.
+          // Each line of the words Panes draws (each pane's name, a long one on more lines than one, and "the
+          // picture" over the picture's own pane), with the share of its box that lies under a card.
           names: drawn.said.map((s) => [s.text, Math.round(under(s.x, s.y - s.tall / 2, s.wide, s.tall) * 100)] as const),
           // Each arrowhead's tip, with whether it is more than two pixels inside a card.
           heads: drawn.heads.map(([x, y]) => cards.some((c) => x > c[0] + 2 && x < c[0] + c[2] - 2 && y > c[1] + 2 && y < c[1] + c[3] - 2)),
@@ -936,6 +943,10 @@ test("on a phone the sheet that went down for a kind comes up again when the kin
   await viewIsStill(page);
   await expect(body).toBeHidden();
   await expect(page.locator("aside.sheet .sheet-toggle")).toBeHidden();
+  // A press that asks for no panel leaves it down: here on the canvas's own toolbar, beside its buttons.
+  await page.locator(".toolbar").click({ position: { x: 3, y: 3 } });
+  await page.waitForTimeout(100);
+  await expect(body).toBeHidden();
   // Another panel, asked for from the bar over the canvas: it comes up whole, with its button.
   await page.getByRole("button", { name: "Export", exact: true }).click();
   await expect(page.locator("aside.sheet")).toHaveAttribute("aria-label", /Export/);

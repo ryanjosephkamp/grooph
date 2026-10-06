@@ -82,7 +82,8 @@ export const panes: View = (m) => {
     const twin = m.edges.slice(0, k).filter((x) => (x.from === e.from && x.to === e.to) || (x.from === e.to && x.to === e.from)).length;
     const bow = (e.back ? 70 + Math.abs(p[1] - q[1]) * 0.2 : 0) + 22 * twin;
     const out = e.back ? 50 : 0;
-    const [dx, dy] = [q[1] - p[1], p[0] - q[0]];
+    // (An edge from a node to itself has no line to be beside: it goes out to the right and comes back.)
+    const [dx, dy] = e.from === e.to ? [1, 0] : [q[1] - p[1], p[0] - q[0]];
     const side = (dx < 0 || (!dx && dy > 0) ? -bow : bow) / (Math.hypot(dx, dy) || 1);
     paths[e.id] = bow ? Array.from({ length: 19 }, (_, n) => ((v: V): V => [v[0] + side * dx * 4 * (n / 18) * (1 - n / 18), v[1] + side * dy * 4 * (n / 18) * (1 - n / 18), v[2]])(lerp([p[0] + out, p[1], p[2]], [q[0] + out, q[1], q[2]], n / 18))) : [p, q];
     prims.push(edgeLine(m, e, paths[e.id]!, { inset: [4, 8] }));

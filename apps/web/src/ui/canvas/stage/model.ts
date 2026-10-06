@@ -36,7 +36,7 @@ export type Model = {
   loops: MLoop[];
   groups: MGroup[];
   pass: { edge: Id; loop: Id | null; says: string }[];
-  run?: { end: string; /** the node the run ended or halted at, where the notes show one */ at: Id | null; dispatches: Dispatch[]; notes: { says: string; about: "graph" | "node" | "edge" | "loop"; id: Id | null; round: number | null; outcome: string | null; verdict: string | null; what: "proposal" | "amendment" | null; /** the short line before a dispatch: the next note at the same node is the same visit */ open: boolean; /** a loop's note that names the stop that fired */ stop: boolean; words: string; dispatch?: number }[]; rounds: Record<Id, number> };
+  run?: { end: string; /** the node the run ended or halted at, where the notes show one */ at: Id | null; dispatches: Dispatch[]; notes: { says: string; about: "graph" | "node" | "edge" | "loop"; id: Id | null; round: number | null; outcome: string | null; verdict: string | null; what: "proposal" | "amendment" | null; /** the short line before a dispatch: the next note at the same node is the same visit */ open: boolean; /** a loop's note that names the stop that fired */ stop: string | null; words: string; dispatch?: number }[]; rounds: Record<Id, number> };
 };
 /** One stop of the slider: what it says, what it lights, and where what is at it came from. */
 export type Step = { says: string; nodes?: Id[]; edge?: Id; loops?: Id[]; from?: Id; to?: Id; r0?: number; r1?: number; /** the other edges taken to reach this step's node, with the round each was taken from */ also?: { edge: Id; r0: number }[]; about?: boolean; dispatch?: number };
@@ -167,8 +167,7 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
         verdict: note.verdict ?? null,
         what: note.proposal ? "proposal" : note.amendment ? "amendment" : null,
         open: note.outcome === "started",
-        // A person's stop halts the run and is lifted by their answer: the way back is taken then, on what was reported.
-        stop: focus.kind === "loop" && note.stop !== undefined && note.stop !== "human",
+        stop: focus.kind === "loop" ? (note.stop ?? null) : null,
         // The note's own words, cut at a word: a note about the run or about an edge is not a move.
         words: own.length > 150 ? `${own.slice(0, own.lastIndexOf(" ", 150))} …` : own,
       };
@@ -202,23 +201,25 @@ type Said = { round: number | null; outcome: string | null; verdict: string | nu
  * Three rules of the contract are kept. Two notes running at one node, the first the line before its dispatch, are
  * one visit, and nothing was taken between them, though the node may have an edge to itself. A stop is looked at
  * before any way back is taken: where a loop's note names the stop that fired, no way back of that loop was taken
- * on what its nodes had reported by then (`stopped`); a person's stop is not such a one, since their answer lifts it
- * and the way back is taken then. And a second `invalid-evidence` from a node in a row, in one round, routes as a
- * fail.
+ * on what its nodes had reported by then (`stopped`). A person's stop is lifted by their answer: the note at a node
+ * that comes next may have got there by the way back, on what was reported before the halt, and nothing after it
+ * may; a run that ends at the halt took none (`over` is for the run's end, which is no answer). And a second
+ * `invalid-evidence` from a node in a row, in one round, routes as a fail. A line that reports nothing (a word at a
+ * node, the line before a dispatch) is no report: it takes back none, and no edge is taken on it.
  */
-export function walk(edges: MEdge[]): { into(to: Id): (MEdge & { r0: number })[]; at(node: Id, said: Said): void; stopped(loop: Id): void } {
+export function walk(edges: MEdge[]): { into(to: Id, over?: boolean): (MEdge & { r0: number })[]; at(node: Id, said: Said): void; stopped(loop: Id, person?: boolean): void } {
   const said = new Map<Id, Said & { k: number; routes: string | null; not: Set<Id> }>();
   const reached = new Map<Id, number>();
-  let [k, last, open]: [number, Id | null, Id | null] = [0, null, null];
+  let [k, last, open, lifted]: [number, Id | null, Id | null, Id | null] = [0, null, null, null];
   return {
-    into(to) {
+    into(to, over) {
       if (open === to) return [];
       const since = reached.get(to) ?? -1;
       return [...said]
         .filter(([from, was]) => !was.open && (from === to || was.k > since))
         .sort(([a, x], [b, y]) => Number(b === last) - Number(a === last) || y.k - x.k)
         .flatMap(([from, was]) => {
-          const between = edges.filter((e) => e.from === from && e.to === to && !(e.back && was.not.has(e.back)));
+          const between = edges.filter((e) => e.from === from && e.to === to && !(e.back && was.not.has(e.back) && (over || e.back !== lifted)));
           const took = between.find((e) => typeof e.on === "object" && e.on.verdict === was.verdict) ?? between.find((e) => typeof e.on === "string" && e.on === was.routes) ?? between.find((e) => e.on === undefined || e.on === "always");
           return took ? [{ ...took, r0: was.round ?? 0 }] : [];
         });
@@ -229,12 +230,13 @@ export function walk(edges: MEdge[]): { into(to: Id): (MEdge & { r0: number })[]
       // A node that has ended is not un-ended by a later line that reports nothing: the line before its next
       // dispatch, or a word at the node. One still running has said nothing yet. The second invalid evidence is the
       // second in one round: the node is asked once more in the same round, and no further.
-      if (!was || was.open || (!now.open && (now.outcome ?? now.verdict) !== null)) said.set(node, { ...now, k, routes: now.outcome === "invalid-evidence" && was?.outcome === "invalid-evidence" && !was.open && was.round === now.round ? "fail" : now.outcome, not: new Set() });
+      if (now.open ? !was || was.open : (now.outcome ?? now.verdict) !== null) said.set(node, { ...now, k, routes: now.outcome === "invalid-evidence" && was?.outcome === "invalid-evidence" && !was.open && was.round === now.round ? "fail" : now.outcome, not: new Set() });
       reached.set(node, k);
-      [last, open] = [node, now.open ? node : null];
+      [last, open, lifted] = [node, now.open ? node : null, null];
     },
-    stopped(loop) {
+    stopped(loop, person) {
       for (const was of said.values()) was.not.add(loop);
+      lifted = person ? loop : null;
     },
   };
 }
@@ -278,7 +280,7 @@ export function stepsOf(m: Model): Step[] {
       [stood, here] = [round, s.id];
     } else if (s.about === "loop" && s.id) {
       Object.assign(step, { says: `${of}: ${s.says}`, loops: [s.id] });
-      if (s.stop) ways.stopped(s.id);
+      if (s.stop) ways.stopped(s.id, s.stop === "human");
     }
     else if (s.about === "edge" && s.id) {
       // A proposal or an amendment about an edge is not a move along it, and is said not to be. A plain note at an
@@ -295,7 +297,7 @@ export function stepsOf(m: Model): Step[] {
   const final = out[notes.findLastIndex((n) => n.about === "graph" && n.outcome !== null) + 1]!;
   const last = m.run.at;
   if (last && last !== here && final !== out[0] && !final.nodes && !final.edge && !final.loops) {
-    const [took, ...also] = ways.into(last);
+    const [took, ...also] = ways.into(last, true);
     if (took) Object.assign(final, { nodes: [last], to: last, edge: took.id, from: took.from, r0: took.r0, r1: 0 }, also.length ? { also: also.map((e) => ({ edge: e.id, r0: e.r0 })) } : {});
   }
   return out;

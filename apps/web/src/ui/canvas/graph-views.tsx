@@ -356,11 +356,17 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     if (on === "picture" || on === "stairs") safe.current = on;
     told(reached);
   });
-  // A press anywhere else on the page brings the sheet up again: on its head, or on what asks for another panel
-  // (Export, the outline, the title). And the mark goes with this.
+  // A press on the sheet's head, or on the bar over the canvas, brings the sheet up again; and so does any press
+  // after which the sheet is another panel's (one that asks for a panel, wherever it is: Fit and Undo ask for
+  // none, and leave it down). And the mark goes with this.
   useEffect(() => {
     const editor = host.current?.closest(".editor");
-    const up = (e: Event): void => void (e.target instanceof Node && !host.current?.contains(e.target) && fold());
+    const title = (): string | null | undefined => editor?.querySelector(".sheet:not(.sheet-rail)")?.getAttribute("aria-label");
+    const up = (e: Event): void => {
+      const was = title();
+      if (e.target instanceof Element && e.target.closest(".topbar,.sheet-head")) fold();
+      else requestAnimationFrame(() => title() !== was && fold());
+    };
     editor?.addEventListener("click", up, true);
     return () => (editor?.removeEventListener("click", up, true), editor?.removeAttribute("data-space-folds"));
   }, []);
