@@ -15,8 +15,8 @@ import { allIds, hasErrors, slotKeys, slugify, uniqueId, validate, type Graph, t
 
 import { piece } from "../piece.js";
 
-/** Where a template came from: the bundled pattern library, or saved on this device. */
-export type TemplateSource = "built-in" | "yours";
+/** Where a template came from: the bundled pattern library, saved on this device, or the bundled plans. */
+export type TemplateSource = "built-in" | "yours" | "plan";
 
 export type TemplateEntry = { source: TemplateSource; doc: Graph };
 
@@ -41,6 +41,21 @@ export function sortTemplates(docs: readonly Graph[]): Graph[] {
 
 /** One of them by its id, once they are here. */
 export const builtInTemplate = (id: string): Graph | undefined => held?.find((doc) => doc.id === id);
+
+let heldPlans: readonly Graph[] | undefined;
+
+/**
+ * Fetch the plan templates (`plan-templates.ts`, slice 0100), once they have come. Asked for when a person asks
+ * to see the plans, or opens one by its address: no screen fetches them unasked, so they are on no first load.
+ * Named in the page as every piece is, and so held by the service worker from the first visit.
+ */
+export const loadPlanTemplates = (): Promise<readonly Graph[]> => piece("plan-templates", () => import("./plan-templates.js")).then((m) => (heldPlans = m.PLAN_TEMPLATES));
+
+/** What is said of a plan template wherever one is shown: what it is, and what it is not. */
+export const PLAN_NOTE = "A plan: a graph a person follows. It has no recorded run, and no package for a harness is made of a graph with a person's step.";
+
+/** The plan templates, if they are here. */
+export const planTemplates = (): readonly Graph[] | undefined => heldPlans;
 
 /**
  * Why a template may not be kept in Yours: the rule `grooph template save` and

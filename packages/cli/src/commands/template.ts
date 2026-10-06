@@ -16,6 +16,7 @@ import {
   extractTemplate,
   findSlots,
   hasErrors,
+  isPlan,
   indexGraph,
   insertFragment,
   instantiate,
@@ -30,6 +31,7 @@ import {
 } from "@grooph/core";
 
 import { readText, writeText } from "../io.js";
+import { A_PLAN_LACKS } from "./plan.js";
 import { plural, printIssues, type Output } from "../print.js";
 import {
   RegistryError,
@@ -128,7 +130,7 @@ export async function templateList(io: Output, env: RegistryEnv, flags: ListFlag
       JSON.stringify(
         {
           templates: [
-            ...rows.map((r) => ({ ...r.entry, source: r.source, location: r.location, ...localGlyph(r), ...(r.shadowedBy ? { shadowedBy: r.shadowedBy } : {}) })),
+            ...rows.filter((r) => r.plan !== true).map((r) => ({ ...r.entry, source: r.source, location: r.location, ...localGlyph(r), ...(r.shadowedBy ? { shadowedBy: r.shadowedBy } : {}) })),
             ...remote.map((r) => ({
               ...r.entry,
               source: "remote",
@@ -137,6 +139,9 @@ export async function templateList(io: Output, env: RegistryEnv, flags: ListFlag
               ...(r.shadowedBy ? { shadowedBy: r.shadowedBy } : {}),
             })),
           ],
+          // The plan templates, in a list of their own: what counts `templates` counts the library, as it did. A plan's
+          // entry carries no profile, since nothing was measured of one.
+          plans: rows.filter((r) => r.plan === true).map(({ entry: { profile: _unmeasured, ...entry }, ...r }) => ({ ...entry, source: r.source, location: r.location, ...(r.shadowedBy ? { shadowedBy: r.shadowedBy } : {}) })),
           skipped,
           errors: remoteErrors,
         },
@@ -148,18 +153,27 @@ export async function templateList(io: Output, env: RegistryEnv, flags: ListFlag
   }
 
   const width = Math.max(24, ...rows.map((r) => r.doc.id.length), ...remote.map((r) => r.entry.id.length)) + 2;
-  const line = (id: string, kind: TemplateKind, profile: Profile, shadowedBy: string | undefined, when: string): void => {
-    io.out(`  ${id.padEnd(width)}${kind.padEnd(10)}${profileText(profile)}${shadowedBy ? `   (shadowed by the ${shadowedBy} one)` : ""}`);
+  // A plan's line has no cost, speed and rigor: nothing was measured of one, and the format's middle values say nothing.
+  const line = (id: string, kind: TemplateKind, profile: Profile | undefined, shadowedBy: string | undefined, when: string): void => {
+    io.out(`  ${id.padEnd(width)}${profile === undefined ? kind : `${kind.padEnd(10)}${profileText(profile)}`}${shadowedBy ? `   (shadowed by the ${shadowedBy} one)` : ""}`);
     io.out(`      ${when}`);
   };
+  const plans = rows.filter((r) => r.plan === true);
   const groups: [string, (Found & { shadowedBy?: string })[]][] = (["project", "user", "built-in"] as const).map((source) => [
     source,
-    rows.filter((r) => r.source === source),
+    rows.filter((r) => r.source === source && r.plan !== true),
   ]);
   for (const [source, list] of groups) {
     if (list.length === 0) continue;
     io.out(`${source} (${list[0]!.location.slice(0, list[0]!.location.lastIndexOf("/") + 1)})`);
     for (const r of list) line(r.doc.id, r.entry.kind, r.entry.profile, r.shadowedBy, r.entry.whenToUse);
+    io.out("");
+  }
+  // The plan templates, under a heading of their own: graphs a person follows, apart from the library and its count.
+  if (plans.length > 0) {
+    io.out(`Plans (${plans[0]!.location.slice(0, plans[0]!.location.lastIndexOf("/") + 1)})`);
+    io.out("  For work people do: each step is marked as a person's or an agent's, and grooph plan writes one out to follow.");
+    for (const r of plans) line(r.doc.id, r.entry.kind, undefined, r.shadowedBy, r.entry.whenToUse);
     io.out("");
   }
   for (const url of [...new Set(remote.map((r) => r.url))]) {
@@ -169,8 +183,9 @@ export async function templateList(io: Output, env: RegistryEnv, flags: ListFlag
   }
   for (const s of skipped) io.err(`skipped ${s.location}: it ${s.reason}`);
   for (const message of remoteErrors) io.err(`grooph: ${message}`);
-  const count = winner.size + remote.filter((r) => !r.shadowedBy).length;
-  io.out(`${plural(count, "template")}. Read one: grooph template show <name>. Start from one: grooph template use <name> --name "<graph name>".`);
+  const planCount = plans.filter((r) => !r.shadowedBy).length;
+  const count = winner.size - planCount + remote.filter((r) => !r.shadowedBy).length;
+  io.out(`${plural(count, "template")}${planCount > 0 ? `, and ${plural(planCount, "plan")} apart from them` : ""}. Read one: grooph template show <name>. Start from one: grooph template use <name> --name "<graph name>".`);
   return remoteErrors.length > 0 ? 1 : 0;
 }
 
@@ -194,7 +209,8 @@ export async function templateShow(io: Output, env: RegistryEnv, name: string, f
   io.out("");
   io.out(`When to use: ${block.whenToUse}`);
   if (block.notFor !== undefined) io.out(`Not for: ${block.notFor}`);
-  io.out(`Profile: cost ${block.profile.cost} · speed ${block.profile.speed} · rigor ${block.profile.rigor}`);
+  if (found.plan === true) io.out("A plan: a graph a person follows, each step marked as a person's or an agent's. grooph plan writes one out; nothing was measured of it, so it has no profile.");
+  else io.out(`Profile: cost ${block.profile.cost} · speed ${block.profile.speed} · rigor ${block.profile.rigor}`);
   if (block.tags !== undefined && block.tags.length > 0) io.out(`Tags: ${block.tags.join(", ")}`);
   // decision 0010: what was taken from whose published work, with the link; never an endorsement.
   for (const credit of block.credits ?? []) io.out(`Inspired by: ${credit.name} <${credit.url}> — ${credit.note}`);
@@ -273,7 +289,12 @@ export async function templateUse(io: Output, env: RegistryEnv, name: string, fl
   printIssues(info, checked.issues, out ?? checked.doc.id);
   if (out !== undefined) {
     info.out(`wrote ${out} (graph "${checked.doc.id}" from ${found.doc.id}@${found.doc.version}, ${found.source})`);
-    info.out(`next: grooph validate --for-export ${out}`);
+    // A graph with a person's step, or with no harness, is a plan: the check for a package would answer with what is no fault of one.
+    // A plan's last line is the plan. With a slot still unfilled, it says to fill it first: a plan with a blank in it
+    // is written out with the blank. Anything else in the way is a fault of the graph, and the check lists it.
+    const inTheWay = validate(checked.doc, { forExport: true }).filter((issue) => issue.severity === "error" && !A_PLAN_LACKS.includes(issue.code));
+    if (!isPlan(checked.doc) || inTheWay.some((issue) => issue.code !== "E_UNFILLED_SLOT")) info.out(`next: grooph validate --for-export ${out}`);
+    else info.out(inTheWay.length > 0 ? `next: fill the slots named above, then grooph plan ${out}` : `next: grooph plan ${out}`);
   }
   return hasErrors(checked.issues) ? 1 : 0;
 }

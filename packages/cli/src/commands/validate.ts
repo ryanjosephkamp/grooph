@@ -5,6 +5,7 @@ import { byHandLines, hasErrors, isMapLike, isProposalSetLike, mapShape, mapShap
 
 import { readText } from "../io.js";
 import { printIssues, printNext, type Output } from "../print.js";
+import { onlyAPlansLacks } from "./plan.js";
 
 export type ValidateFlags = { forExport?: boolean; json?: boolean };
 
@@ -62,7 +63,10 @@ export function validateCommand(io: Output, file: string, flags: ValidateFlags =
     io.out(JSON.stringify({ file, ok: !hasErrors(issues), issues }, null, 2));
   } else {
     printIssues(io, issues, file);
-    if (hasErrors(issues)) printNext(io, `fix what is listed (docs/rules.md explains each code), then grooph validate ${flags.forExport === true ? "--for-export " : ""}${file}`);
+    // A graph with a person's step, asked whether a package could be made of it: where that step is all that stands
+    // in the way, it is nothing to repair, and the next thing is the plan (as the tools say it).
+    if (parsed.doc && onlyAPlansLacks(issues)) printNext(io, `this graph has a step that is a person's, so it is a plan, and none of that is a fault of one: grooph plan ${file}`);
+    else if (hasErrors(issues)) printNext(io, `fix what is listed (docs/rules.md explains each code), then grooph validate ${flags.forExport === true ? "--for-export " : ""}${file}`);
     else if (flags.forExport === true) printNext(io, `grooph export ${file} --target <harness> --into .`);
     else printNext(io, `grooph validate --for-export ${file}`);
   }

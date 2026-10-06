@@ -1,0 +1,98 @@
+{
+  "duration_api_ms": 49153,
+  "stop_reason": "end_turn",
+  "session_id": "fe325c6d-a5a4-41a7-90a1-2e181ba6f71a",
+  "total_cost_usd": 0.23068420000000003,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 30775,
+    "cache_read_input_tokens": 324891,
+    "output_tokens": 4257,
+    "output_tokens_details": {
+      "thinking_tokens": 164
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30775,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1986,
+        "cache_read_input_tokens": 42978,
+        "cache_creation_input_tokens": 8155,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8155
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 4257,
+      "cacheReadInputTokens": 324891,
+      "cacheCreationInputTokens": 30775,
+      "webSearchRequests": 0,
+      "costUSD": 0.23068420000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 164,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I designed one option, the grind loop. A single fast-tier builder writes `slugify` and its tests, and `npm test` is the check. A failing run goes back to the builder, and a pass ends it. I validated the graph with no issues and nothing has been exported or started.\n\nComparison link:\n\nhttps://ryanjosephkamp.github.io/grooph/#/open?d=bVZNb9s4EP0rA51aQPY6KHpxL5umi-5lt4u2tyJAaZGW2FCklqTiZAP_930z1IfTFD5Y4sd8vHnzRk_VfbW_qqs763W1r4YYhpCUS1Vd6dBU-6eqjSEM3T_Lxn5XV5bPJje29viIk9lmZ9aVV9k85NdkPaXY_JZytL5N2x9s8xCtOeLktdb0_HQOP52mk80dZZNyekd-6OWRBpUSDpBNlDtDaWwakxI1nWnutvTJGwpDtsFTNP-OuGD0Fm4b5bXVChaq_benEn4bOeW6cupgHN6_BBdoXmyjGro1-xdJb-aDXvUXmS_3701MiEKgbYNyU8rqp6SPo28k2hfZ12QehhARPykXsGa1oUYNNitn_zP1BTo0em2i3AcmKpMPOLvZCF7apiZwNFv6EIDOqTOevs9wfhc8TWKMsoqtyZxzp6IHqIi5cWrUZtPAYHUGVNYb1Ro-M6icTfQzjhsHmGDkGEP_bO33K76oTWqilcIwEnQYreOYm0751pRSshNCnQCSVJPi6MuOZLmlazoq68ZoqA24c1A4A9z4xGyvgDJdoTDmYczvYJCzJON1sQfDW_rKLsXPRKWDijUlsQcXWPSBEHS2TTnM2VDKYUgEjC1wjwHIc1EoRFnItudYNHAke1xjJ29QAomCkeb6XBBxCr5amhAQ-7xy6_2yH4O02XqhhyXH5cgW7_vqqFJmvM3xCO5goTfajv1F4_2l7kwJTCXAF0cE_FjqwG01F6ImpbUsSPwnwQSbj6Tw0FtpQqYUUMqU7uwARhrY9owFgjIZxSxlQI0YkFIF7lE8OvRiLAACdFAvE1NH_HOV2XUpHz2GUZwiRI1ups-G-wIhqbJXOKSFOqfONnNX-HBaELcelhjyak6duTr5ueAKvZIoSmGvKPjX1W1dlb3lenEIAzd_Xv_98Y8v217vSzhzKLmzMztKVI9sRjkXTmwkGqU3R-sMKyIKlJcXMFPaNlW353qiR3lfyCGcXcnxddoty2DCdGy-BYt4m_sdCwwJVsyDzaXldhIjyC44cCkHo6vz4l9DNlb33ACr9w9lDwA1oehg0ePqfMuZtZc0N5uJt5s5tkksVjrnsES-uDfl-Iartd6ZTciN1QCrm7SBnDX3EE3fGCncWuQLbGfjAsqvjU_pT5blICfHavCLYTLh8nF67U1_gPZyABdZlgKjJxWX7NvzFG9LV1_YFM0RV1MNevWwsegfxXrKgSKyt5zTtF8USNyrBL3kK9aPWSjmbG-hDG9251v8OIhk9KcXQl6MKzdXWUjShqClF2X0IlViXdiv03mS0qP1NnXE40Ikle-zNG1Yphaxnmg3aSxTMwaB6qYzahAydvjfoxFFEWs8zOy_UcxSFuK3pdGSmHuzozlT4NgwOrD3fp4O8ITBwUodTr7IhMTHQ5mYrhDzJCdE4vDUBkxXcWq4FNc0OIXvGkTaD9CgMDqNNO-MeyQdVlh-hIPMIhBunjj4IGlC1BwXbnPDc7c2IbFMszCg0IMxelZxlMC2gUXd2bYTVRc4-JbAkeTjQmIrj235vtkt5LyqZS4kvgJq-zIkdswovLXyKL74JIYtT_8d_JxCTPkGSHwWZEGueuKUwHkJ8pl7gTPre4xXVQb80_q9dUFjVsFJrzAgQJHl6-0dDxse-8IEsAVoYnyyuJ-UB6sg_APMI2mgeG_NiUKZrlK4ODr-gjmfz_8D\n\n**Solo grind** (1 agent · 1 check · 1 loop · up to 5 rounds · 30 minutes)\n- **Reason to pick it:** tests define success, so it is the cheapest shape that works, and the 5-round and 30-minute caps keep it bounded.\n- **Reason not to:** the builder writes its own tests, so slug edge cases it misses go unchecked. For a task this small, a plain prompt would probably do the same job without the run record.\n\nI recommend the grind loop. If you want independent review of the slug rules, I can swap in a `review-gate` variant instead.\n\nDo you want to pick it? If so, I'll copy it to `.grooph/graphs/slugify-grind.grooph.json`, export the Claude Code package into the project, and give you the kickoff command. I won't start the run until you say so.",
+  "ttft_ms": 2434,
+  "type": "result",
+  "duration_ms": 51197,
+  "uuid": "4468ac13-4590-47c0-a22f-72a4079b972d",
+  "ttft_stream_ms": 1330,
+  "time_to_request_ms": 42,
+  "first_content_frame_ms": 1330,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

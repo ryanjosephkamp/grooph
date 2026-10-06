@@ -1,0 +1,26 @@
+# grooph
+
+> grooph is an authoring and checking surface for multi-agent loop graphs: one small JSON document that says which agent builds, which checks, where a person decides and what stops each loop. It validates the document against rules with stable codes, draws it, and compiles it into a prompt package for a coding harness (Claude Code). grooph never runs an agent and never calls a model.
+
+If you are an agent asked for a grooph graph, a loop graph, or a team of agents for a task, read the page for agents first. It has the shortest path (name a template, fill it, check it, share it), every operation by example, what to do about each rule, and when no graph is the right answer.
+
+## For agents
+
+- [grooph for agents](https://ryanjosephkamp.github.io/grooph/docs/agents/): the page to read first
+- [The same page as Markdown](https://raw.githubusercontent.com/ryanjosephkamp/grooph/main/docs/agents.md)
+- [From a chat](https://ryanjosephkamp.github.io/grooph/docs/chat/): what works in Claude's desktop app, in claude.ai and in ChatGPT; with no tools, write the document and have the person paste it into the app
+- [The graph document](https://ryanjosephkamp.github.io/grooph/docs/graph-ir/): every field, what a package must make the harness do, and the rules
+- [Every rule by its code](https://ryanjosephkamp.github.io/grooph/docs/rules/): each with a document that fires it
+
+## Reaching grooph
+
+- The command line: `npx grooph --help` (Node 22 or later)
+- An MCP server over standard input and output: `npx -y grooph mcp` (in a chat app: `npx -y grooph mcp --chat`)
+- The app, which opens a pasted document or a link and checks it: https://ryanjosephkamp.github.io/grooph/
+
+## Reference
+
+- [Templates](https://ryanjosephkamp.github.io/grooph/docs/templates/): the pattern library and its index, [patterns/index.json](https://ryanjosephkamp.github.io/grooph/patterns/index.json)
+- [The JSON Schema of a graph document](https://raw.githubusercontent.com/ryanjosephkamp/grooph/main/packages/core/schema/grooph-0.schema.json)
+- [The field guide](https://ryanjosephkamp.github.io/grooph/docs/field-guide/): every template as a shape, with what its recorded run showed
+- [Source](https://github.com/ryanjosephkamp/grooph)

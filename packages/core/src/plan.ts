@@ -7,18 +7,18 @@
  * fix before a harness can run this". A package for a harness is another thing, and is still written only by
  * `compile`, for a document with no error.
  *
- * Pure, and the same bytes for the same document: no date, no machine. Not on the web app's way in: it brings the
- * validator's export rules, the outline and the picture with a subgrooph's box.
+ * Pure, and the same bytes for the same document: no date, no machine. Not on the web app's way in.
+ *
+ * This file imports nothing but types. What it validates, outlines, draws and writes a document with is handed to
+ * it (`plan-kit.ts` says why): the web app fetches it as a piece of its own when the Export panel is opened, and a
+ * piece that imports nothing moves nothing else. In Node there is no door: `index.ts` binds the kit, and
+ * `planBundle(doc)` is called as it always was.
  */
 
-import { canonicalize } from "./canonicalize.js";
 import type { Issue } from "./issues.js";
-import { outline, outlineMarkdown, type OutlineSection } from "./outline.js";
-import { pictureWithUnits } from "./picture/graph-units.js";
-import { unitsKit } from "./picture/units-kit.js";
-import { isPersonStep } from "./semantics.js";
+import type { OutlineSection } from "./outline.js";
+import type { PlanKit } from "./plan-kit.js";
 import type { Graph, Node } from "./types.js";
-import { validate } from "./validate.js";
 
 export type PlanBundle = {
   /** path → file contents, in the order a person opens them: `PLAN.md`, the picture, the document */
@@ -74,7 +74,8 @@ export function planSteps(doc: Graph): PlanStep[] {
     switch (node.kind) {
       case "agent":
         // A person's step (amendment A-020): its role is the whole of what it is; a person is on no tier.
-        if (isPersonStep(node)) return { ...base, whose: "a person", does: oneLine(roleOf(node)), leaves: oneLine(node.outputs.join("; ")) };
+        // (`isPersonStep` of `semantics.ts`, said here in its own two words: this file imports nothing but types.)
+        if (node.by === "person") return { ...base, whose: "a person", does: oneLine(roleOf(node)), leaves: oneLine(node.outputs.join("; ")) };
         // The lead is the harness's own session (docs/graph-ir.md §1), and is counted with what the lead does.
         return { ...base, whose: roleOf(node) === "lead" ? "the lead" : "an agent", does: oneLine([roleOf(node), node.model?.tier, node.effort ? `${node.effort} effort` : undefined].filter(Boolean).join(", ")), leaves: oneLine(node.outputs.join("; ")) };
       case "human-gate": {
@@ -99,9 +100,10 @@ export function planSteps(doc: Graph): PlanStep[] {
 const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 /** A section of the outline without its heading: the items, as `grooph outline` writes them. */
-const itemsOf = (section: OutlineSection): string => outlineMarkdown([{ ...section, title: "x" }]).replace(/^# x\n*/, "").trimEnd();
+const itemsOf = (outlineMarkdown: PlanKit[2], section: OutlineSection): string => outlineMarkdown([{ ...section, title: "x" }]).replace(/^# x\n*/, "").trimEnd();
 
-function planMarkdown(doc: Graph, toFix: readonly Issue[], pictureFile: string, documentFile: string): string {
+function planMarkdown(kit: PlanKit, doc: Graph, toFix: readonly Issue[], pictureFile: string, documentFile: string): string {
+  const [, outline, outlineMarkdown, validate] = kit;
   const name = plain(doc.name ?? "") || doc.id;
   const errors = toFix.filter((issue) => issue.severity === "error");
   const warnings = toFix.filter((issue) => issue.severity !== "error");
@@ -126,15 +128,19 @@ function planMarkdown(doc: Graph, toFix: readonly Issue[], pictureFile: string, 
     "",
     `A plan, kept by grooph: the picture, who does what, and every step in full. grooph runs nothing: a plan is for people to read and follow. The document it is drawn from is \`${documentFile}\`, and that is the one to edit.${notes > 0 ? ` It carries ${count(notes, "note", "notes")} from runs, which ${notes === 1 ? "is" : "are"} in that file and not shown here.` : ""}`,
     "",
-    errors.length === 0
-      ? `A coding harness could run this as it is: nothing in it is in error.${doc.target?.harness ? ` \`grooph export\` writes its package for ${plain(doc.target.harness)}.` : ""}`
-      : `**A coding harness cannot run this as it is.** ${count(errors.length, "thing has", "things have")} to be fixed first, listed under "To fix before a harness can run this". ${
-          own === 0
-            ? steps.length > 0
-              ? "As a plan for people to read and follow it is whole."
-              : "It has no steps yet."
-            : `${own === errors.length ? (own === 1 ? "It is a rule" : "They are rules") : `${own} of them ${own === 1 ? "is a rule" : "are rules"}`} a graph itself is held to, not only what a package asks for: until ${own === 1 ? "it is" : "they are"} fixed, parts of the plan below may be missing or drawn wrong.`
-        }`,
+    // The plan's own state first, then what a harness would need: someone who wants only the plan should not read
+    // a harness's list as a fault of the plan. Nothing is left out: every finding is under its own heading below.
+    `${
+      own > 0
+        ? `As a plan this is not whole yet: it breaks ${own === 1 ? "a rule a graph itself is held to" : `the rules a graph itself is held to in ${own} places`}, and until ${own === 1 ? "that is" : "those are"} fixed, parts of what follows may be missing or drawn wrong.`
+        : steps.length === 0
+          ? "This plan has no steps yet."
+          : "As a plan for people to read and follow, this is whole."
+    } ${
+      errors.length === 0
+        ? `A coding harness could run it as it is: nothing in it is in error.${doc.target?.harness ? ` \`grooph export\` writes its package for ${plain(doc.target.harness)}.` : ""}`
+        : `**To run it in a coding harness, ${count(errors.length, "thing is", "things are")} to be fixed first**${own > 0 && own < errors.length ? ` (${own === 1 ? "that one" : `those ${own}`} among them)` : ""}, listed under "To fix before a harness can run this".`
+    }`,
     "",
     ...(oneLine(doc.goal ?? "") ? [`**Goal:** ${plain(doc.goal!)}`, ""] : []),
     `![${name}](${pictureFile})`,
@@ -162,8 +168,8 @@ function planMarkdown(doc: Graph, toFix: readonly Issue[], pictureFile: string, 
     // stand, when read as text or when rendered. From here down the document speaks in full, as written.
     "## In full",
     "",
-    ...(first ? [itemsOf(first), ""] : []),
-    ...rest.flatMap((section) => [`### ${section.kind}: ${plain(section.title) || section.id}`, "", `\`${section.id}\``, "", itemsOf(section), ""]),
+    ...(first ? [itemsOf(outlineMarkdown, first), ""] : []),
+    ...rest.flatMap((section) => [`### ${section.kind}: ${plain(section.title) || section.id}`, "", `\`${section.id}\``, "", itemsOf(outlineMarkdown, section), ""]),
   ];
   return `${lines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd()}\n`;
 }
@@ -172,14 +178,16 @@ function planMarkdown(doc: Graph, toFix: readonly Issue[], pictureFile: string, 
  * The files of a plan, for any document that reads as a graph. Nothing is refused: a document with no target, no
  * goal, a loop with no stop or a dangling edge still gets its plan, and each such finding is listed in it.
  */
-export function planBundle(doc: Graph): PlanBundle {
+export function planBundleWith(kit: PlanKit, doc: Graph): PlanBundle {
+  // The kit's parts by their names, in the kit's own order.
+  const [canonicalize, , , validate, picture] = kit;
   const toFix = validate(doc, { forExport: true });
   const pictureFile = `${doc.id}.svg`;
   const documentFile = `${doc.id}.grooph.json`;
   return {
     files: {
-      "PLAN.md": planMarkdown(doc, toFix, pictureFile, documentFile),
-      [pictureFile]: pictureWithUnits(unitsKit, doc),
+      "PLAN.md": planMarkdown(kit, doc, toFix, pictureFile, documentFile),
+      [pictureFile]: picture(doc),
       [documentFile]: canonicalize(doc),
     },
     toFix,

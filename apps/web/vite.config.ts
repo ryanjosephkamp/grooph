@@ -26,6 +26,9 @@ const adoptionSource = fileURLToPath(new URL("../../packages/core/src/adoption.t
 // And the one-file offline page (slice 0093's second part): made when a person presses "Offline page" under Keep a
 // copy, and by nothing an address shows. src/doc/keep.ts fetches it then, and it is named in the page too.
 const offlineSource = fileURLToPath(new URL("../../packages/core/src/offline.ts", import.meta.url));
+// And a plan's files (slice 0100): PLAN.md, the picture and the document, for any graph that reads. Their maker is
+// part of the Export panel's piece (src/ui/ExportDoor.tsx), which is fetched when Export is pressed and named in the page.
+const planSource = fileURLToPath(new URL("../../packages/core/src/plan.ts", import.meta.url));
 
 /**
  * What each address loads, and the app's share of it fetched at once.
@@ -40,6 +43,10 @@ const offlineSource = fileURLToPath(new URL("../../packages/core/src/offline.ts"
  * front page, the library and the template list do not load. The page asks for it too when the address opens on
  * one of those screens, so such an address loads what it did before, at once. Every stylesheet of the app is
  * still asked for at every app address: they are small, and their order is then the same on every screen.
+ *
+ * Since slice 0078 what opens a document a person hands over, from a file or from a paste, is fetched when they
+ * pick the file or open the paste box (src/ui/Import.tsx), and is named in the same list as the compiler, for the
+ * same reason.
  *
  * Since slice 0070 the compiler is fetched when a person first exports. No address is told to fetch it, but the
  * page names it, in a list the browser does nothing with: the service worker reads a page for the files it names
@@ -56,7 +63,7 @@ const offlineSource = fileURLToPath(new URL("../../packages/core/src/offline.ts"
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[]; offline?: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[]; more?: string[]; offline?: string[]; exporting?: string[]; plans?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -92,12 +99,13 @@ function routes(): Plugin {
         const mapViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/views.tsx"));
         const mapSpace = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/space.ts"));
         const units = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/units.tsx"));
+        const importer = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/Import.tsx"));
         const graphViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-views.tsx"));
         const themes = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/theme/themes.ts"));
         const brakes = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/run/brakes.tsx"));
         // A page without these lists would still work, and load in more rounds than anyone measured. Say so instead.
-        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !mapSpace || !units || !graphViews || !themes || !brakes) {
-          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, mapSpace, units, graphViews, themes, brakes }).filter(([, c]) => !c).map(([name]) => name);
+        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !mapSpace || !units || !importer || !graphViews || !themes || !brakes) {
+          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, mapSpace, units, importer, graphViews, themes, brakes }).filter(([, c]) => !c).map(([name]) => name);
           throw new Error(`grooph-routes: no chunk of its own for ${missing.join(", ")}. The build no longer splits where vite.config.ts expects.`);
         }
         const inEntry = closure(entry);
@@ -117,10 +125,10 @@ function routes(): Plugin {
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
           // What no address loads first and the page still names, so that the worker fetches it as it installs: the
-          // compiler, the map's views, a map in three dimensions, a subgrooph's box, the pictures' themes, and the
-          // embed's own script and styles. The front page plays its recorded run in a frame at `#/embed`, and a visit
-          // that never watched it should still have it with no network (handoff 0083).
-          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(mapSpace), ...closure(units), ...closure(graphViews), ...closure(themes), ...closure(brakes), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          // compiler, the map's views, a map in three dimensions, a subgrooph's box, what opens a handed-over document,
+          // the pictures' themes, and the embed's own script and styles. The front page plays its recorded run in a
+          // frame at `#/embed`, and a visit that never watched it should still have it with no network (handoff 0083).
+          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(mapSpace), ...closure(units), ...closure(importer), ...closure(graphViews), ...closure(themes), ...closure(brakes), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
           // What choosing a map's view in three dimensions fetches, over what the map screen has already (handoff 0087).
           space: [...closure(mapSpace)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(mapViews).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
@@ -147,7 +155,13 @@ function routes(): Plugin {
         if (!graphStage) throw new Error("grooph-routes: no chunk of its own for a graph's other views in three dimensions (src/ui/canvas/graph-stage.tsx). The build no longer splits where vite.config.ts expects.");
         // Over what a canvas has by then: the switch's own piece, which asks for this one, is not weighed here again.
         const stage = [...closure(graphStage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f) && !closure(graphViews).has(f));
-        found.later = [...new Set([...found.later, ...stage, ...found.templates, ...found.front])];
+        // The kinds that are not in the stage's piece (src/ui/canvas/graph-more.tsx: Rings, and Columns with it): one
+        // piece, fetched beside the stage when either is chosen, named in the page with the rest, and weighed apart
+        // from the stage, over what the stage has brought by then.
+        const graphMore = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-more.tsx"));
+        if (!graphMore) throw new Error("grooph-routes: no chunk of its own for a graph's kinds of view that are not in the stage (src/ui/canvas/graph-more.tsx). The build no longer splits where vite.config.ts expects.");
+        found.more = [...closure(graphMore)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f) && !closure(graphViews).has(f) && !stage.includes(f));
+        found.later = [...new Set([...found.later, ...stage, ...found.more, ...found.templates, ...found.front])];
         // Both are on no address's first load, and each has a line of its own in scripts/perf-budget.json: the
         // stage, which choosing one of those views fetches, and the switch with the graph's reading, which every
         // address that draws on the canvas fetches once the canvas is drawn. A piece nothing measures grows.
@@ -164,6 +178,18 @@ function routes(): Plugin {
         const inCanvas = closure(screens);
         found.offline = [...closure(offlinePage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
         found.later = [...new Set([...found.later, ...found.offline])];
+        // And the Export panel (src/ui/ExportPanel.tsx, slice 0100) with the plan's maker in it: fetched when Export is
+        // pressed, and soon after an editor opens. No address loads it first, and the worker holds it from its install.
+        const exportPanel = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/ExportPanel.tsx"));
+        if (!exportPanel) throw new Error("grooph-routes: no chunk of its own for the Export panel (src/ui/ExportPanel.tsx). Something imports it outright, and every canvas carries it again.");
+        found.exporting = [...closure(exportPanel)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
+        found.later = [...new Set([...found.later, ...found.exporting])];
+        // And the plan templates (src/doc/plan-templates.ts, slice 0100): the four documents of `plans/`, fetched when a
+        // person asks to see the plans or opens one. No address loads them first; the worker holds them from its install.
+        const planTemplates = chunks.find((c) => c.facadeModuleId?.endsWith("/src/doc/plan-templates.ts"));
+        if (!planTemplates) throw new Error("grooph-routes: no chunk of its own for the plan templates (src/doc/plan-templates.ts). Something imports them outright, and an address carries them.");
+        found.plans = [...closure(planTemplates)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
+        found.later = [...new Set([...found.later, ...found.plans])];
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them
@@ -196,6 +222,7 @@ export default defineConfig({
       { find: "@grooph/core/themes", replacement: themesSource },
       { find: "@grooph/core/adoption", replacement: adoptionSource },
       { find: "@grooph/core/offline", replacement: offlineSource },
+      { find: "@grooph/core/plan", replacement: planSource },
       { find: "@grooph/core", replacement: coreSource },
     ],
   },

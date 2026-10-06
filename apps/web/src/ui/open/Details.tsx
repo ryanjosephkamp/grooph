@@ -36,26 +36,30 @@ export function NodeDetails({ node }: { node: Node }) {
     ["Coupled", node.coupled ? "yes" : undefined],
   ];
   switch (node.kind) {
-    case "agent":
+    case "agent": {
+      // A person's step has no model, effort or capabilities: those rows are an agent's, and are not drawn for it.
+      const agents = node.by !== "person";
       return (
         <div className="inspector">
           <Rows
             rows={[
               ...common,
+              ["Done by", agents ? undefined : "a person"],
               ["Role", typeof node.role === "string" ? node.role : `${node.role.custom} (custom)`],
-              ["Model", node.model ? [node.model.tier, ...Object.entries(node.model.pin ?? {}).map(([h, m]) => `${h}: ${m}`)].join(" · ") : "session default"],
-              ["Effort", node.effort],
+              ["Model", !agents ? undefined : node.model ? [node.model.tier, ...Object.entries(node.model.pin ?? {}).map(([h, m]) => `${h}: ${m}`)].join(" · ") : "session default"],
+              ["Effort", agents ? node.effort : undefined],
               ["Brief", prose(node.brief)],
               ["Inputs", list(node.inputs)],
               ["Outputs", list(node.outputs)],
-              ["Allowed", list(node.allow)],
-              ["Denied", list(node.deny)],
+              ["Allowed", agents ? list(node.allow) : undefined],
+              ["Denied", agents ? list(node.deny) : undefined],
               ["Owns", list(node.owns)],
               ["Irreversible", list(node.irreversible)],
             ]}
           />
         </div>
       );
+    }
     case "human-gate":
       return (
         <div className="inspector">
@@ -138,11 +142,17 @@ export function GraphDetails({ doc }: { doc: Graph }) {
   );
 }
 
-export function IssueList({ issues }: { issues: readonly IssueLike[] }) {
+/**
+ * `needs` is what only a package for a harness asks for, already said in words (`ui/IssuesPanel.tsx`'s
+ * `PackageNeeds`): a graph that names no harness or states no goal is a plan, and has no issue for it.
+ */
+export function IssueList({ issues, needs, whole = true }: { issues: readonly IssueLike[]; needs?: ReactNode; whole?: boolean }) {
   if (issues.length === 0) {
     return (
       <div className="inspector">
-        <p className="all-clear">No issues. The graph validates for export.</p>
+        {/* "For export" only where a package could be written of it: not with needs outstanding, and not of a template. */}
+        <p className="all-clear">{needs || !whole ? "No issues. The graph validates." : "No issues. The graph validates for export."}</p>
+        {needs}
       </div>
     );
   }
@@ -161,6 +171,7 @@ export function IssueList({ issues }: { issues: readonly IssueLike[] }) {
           </li>
         ))}
       </ul>
+      {needs}
     </div>
   );
 }

@@ -19,7 +19,7 @@ async function save(doc: Graph): Promise<GraphRecord> {
   return record;
 }
 
-/** A new, empty graph. No target is chosen for the user (spec §7.4): export asks for one. */
+/** A new, empty graph. No target is chosen for the user (spec §7.4): it is a plan until one is, and a package asks for one. */
 export async function createGraph(): Promise<GraphRecord> {
   const id = uniqueId("untitled-graph", await libraryIds());
   const name = id === "untitled-graph" ? "Untitled graph" : `Untitled graph ${id.slice("untitled-graph-".length)}`;

@@ -1,12 +1,5 @@
 import {
-  ShareError,
   formatIssue,
-  isMapLike,
-  isProposalSetLike,
-  isRunBundleLike,
-  parseMap,
-  parseProposalSet,
-  parseRunBundle,
   followsName,
   runStateLine,
   setGraphName,
@@ -25,15 +18,15 @@ import {
   duplicateGraph,
   importGraph,
   listGraphs,
-  readGraphFile,
   renameGraph,
 } from "../store/library.js";
-import { templateRefusal, type TemplateRefusal } from "../doc/templates.js";
-import { listRuns, saveRun } from "../store/runs.js";
+import type { TemplateRefusal } from "../doc/templates.js";
+import { listRuns } from "../store/runs.js";
 import { saveUserTemplate } from "../store/templates.js";
 import { Glyph, hasLongGlyph } from "./Glyph.js";
 import { Landing } from "./landing/Landing.js";
 import { PersistNotice } from "./Notices.js";
+import { piece } from "../piece.js";
 import { templateHref } from "./templates/TemplatesScreen.js";
 
 const when = (ms: number): string => {
@@ -44,13 +37,13 @@ const when = (ms: number): string => {
   return new Date(ms).toLocaleDateString();
 };
 
-const jsonOf = (text: string): unknown => {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-};
+/**
+ * What opens a document a person hands over, from a file or from a paste, is a piece of its own (./Import.tsx),
+ * fetched when someone picks a file or opens the paste box. What is here is the door to it.
+ */
+type Door = typeof import("./Import.js");
+/** Through `piece` (../piece.ts), so a fetch that failed is asked for again, in a way every engine honors. */
+const door = (): Promise<Door> => piece("Import", () => import("./Import.js"));
 
 /** On the front page the controls sit below the fold: bring what an import said into view. */
 const inView = (el: HTMLElement | null): void => el?.scrollIntoView({ block: "nearest" });
@@ -87,6 +80,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [templateOffer, setTemplateOffer] = useState<{ name: string; doc: Graph; exists?: Graph; refusal: TemplateRefusal | null } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [PasteBox, setPasteBox] = useState<Door["PasteBox"] | null>(null);
 
   const refresh = useCallback(async () => {
     setRecords(await listGraphs());
@@ -95,62 +89,26 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
   }, []);
   useEffect(() => void refresh(), [refresh]);
 
-  const onFile = async (file: File | undefined) => {
-    if (!file) return;
-    const text = await file.text();
-    const json = jsonOf(text);
-    if (isRunBundleLike(json)) {
-      // A run (grooph runs bundle, or share --out on a run folder) is kept beside the graphs and opens in the run view.
-      const parsed = parseRunBundle(json);
-      if (!parsed.bundle) {
-        setImportProblem({
-          name: file.name,
-          issues: parsed.issues.map((message) => ({ code: "E_SCHEMA", severity: "error" as const, message, at: [] })),
-          what: "It is a run bundle grooph cannot read. Make it again with grooph runs bundle <run dir> --out <file>.",
-        });
-        return;
-      }
-      const { record } = await saveRun(parsed.bundle);
-      location.hash = runHref(record.key);
-      return;
-    }
-    if (isMapLike(json)) {
-      // An operation map (docs/operation-map.md) opens as its picture, like its link; a map is looked at, not stored.
-      const parsed = parseMap(json);
-      if (!parsed.map) {
-        setImportProblem({ name: file.name, issues: parsed.issues, what: "It is an operation map grooph cannot read." });
-        return;
-      }
-      location.hash = openRouteFor(parsed.map);
-      return;
-    }
-    if (isProposalSetLike(json)) {
-      // A proposal set (grooph share --out) opens in the compare view, like its link; nothing is stored yet.
-      const parsed = parseProposalSet(JSON.parse(text));
-      try {
-        if (!parsed.set) throw new ShareError("not a proposal set", parsed.issues);
-        location.hash = openRouteFor(parsed.set);
-      } catch (err) {
-        if (!(err instanceof ShareError)) throw err;
-        setImportProblem({ name: file.name, issues: err.issues, what: "It is a proposal set grooph cannot show. Make a self-contained copy with grooph share --out, which carries every graph." });
-      }
-      return;
-    }
-    const result = readGraphFile(text);
-    if (!result.doc) {
-      setImportProblem({ name: file.name, issues: result.issues });
-      return;
-    }
-    setImportProblem(null);
-    if (result.doc.template) {
-      // A template file (from Download template, or a registry): offer it to "Yours" rather than opening it as a graph,
-      // unless it carries errors, which grooph template add refuses too.
-      setTemplateOffer({ name: file.name, doc: result.doc, refusal: templateRefusal(result.doc) });
-      return;
-    }
-    const record = await importGraph(result.doc);
-    open(record.key);
+  // The door, and what is said when the piece cannot be fetched: a first visit that lost its connection before the
+  // worker held the file. The next try asks for it afresh.
+  const host = { open, route: openRouteFor, problem: setImportProblem, offer: setTemplateOffer, close: () => setPasteBox(null) };
+  const through = (name: string, then: (door: Door) => unknown): void =>
+    void door().then(then, () => setImportProblem({ name, issues: [], what: "The part of grooph that opens it could not be fetched. It needs a connection the first time: try again when you have one." }));
+  const onFile = (file: File | undefined): void => {
+    if (file) through(file.name, async (door) => door.importText(await file.text(), file, host));
   };
+  // A paste on this screen that is not into a field: a document or a link in it is opened, anything else is left
+  // alone, and nothing is said. The text is read now, while the event holds it.
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent): void => {
+      const text = event.clipboardData?.getData("text/plain");
+      if (text && event.target instanceof Element && !event.target.closest("input, textarea, select")) {
+        void door().then((door) => door.openPasted(text, host, true), () => undefined);
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  });
 
   const addTemplate = async (doc: Graph, replace: boolean) => {
     const saved = await saveUserTemplate(doc, { replace });
@@ -185,12 +143,17 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
             type="file"
             accept=".json,application/json"
             onChange={(e) => {
-              void onFile(e.target.files?.[0]);
+              onFile(e.target.files?.[0]);
               e.target.value = "";
             }}
           />
         </label>
+        <button type="button" className="btn btn-large" onClick={() => through("what you paste", (door) => setPasteBox((shown: Door["PasteBox"] | null) => (shown ? null : door.PasteBox)))}>
+          Paste a document
+        </button>
       </div>
+
+      {PasteBox ? <PasteBox host={host} /> : null}
 
       {!persistent ? (
         <p className="notice" role="status">

@@ -2,7 +2,7 @@ import { glyph, mermaid, validate, type Graph } from "@grooph/core";
 import { useEffect, useMemo, useState } from "react";
 
 import { copyText, download } from "../../doc/exportPackage.js";
-import { builtInTemplate, slotsOf, type TemplateSource } from "../../doc/templates.js";
+import { builtInTemplate, loadPlanTemplates, PLAN_NOTE, slotsOf, type TemplateSource } from "../../doc/templates.js";
 import { deleteUserTemplate, getUserTemplate, templateFileName, templateFileText } from "../../store/templates.js";
 import { Glyph } from "../Glyph.js";
 import { GraphViewer } from "../open/GraphViewer.js";
@@ -10,13 +10,21 @@ import { Credits } from "./Credits.js";
 import { ProfileChips } from "./ProfileChips.js";
 import { templateHref } from "./TemplatesScreen.js";
 
-/** A template by source and id: built-ins at once, yours from the device. `null` when there is none. */
-export function useTemplate(source: TemplateSource, id: string): Graph | null | undefined {
-  const [doc, setDoc] = useState<Graph | null | undefined>(() => (source === "built-in" ? (builtInTemplate(id) ?? null) : undefined));
+/**
+ * A template by source and id: built-ins at once, yours from the device, a plan once the plans have been fetched.
+ * `null` when there is none; `"unfetched"` when it is a plan and the plans could not be fetched.
+ */
+export function useTemplate(source: TemplateSource, id: string): Graph | null | undefined | "unfetched" {
+  const [doc, setDoc] = useState<Graph | null | undefined | "unfetched">(() => (source === "built-in" ? (builtInTemplate(id) ?? null) : undefined));
   useEffect(() => {
     if (source === "built-in") return;
     let live = true;
-    void getUserTemplate(id).then((found) => live && setDoc(found ?? null));
+    if (source === "plan") {
+      loadPlanTemplates().then(
+        (plans) => live && setDoc(plans.find((plan) => plan.id === id) ?? null),
+        () => live && setDoc("unfetched"),
+      );
+    } else void getUserTemplate(id).then((found) => live && setDoc(found ?? null));
     return () => {
       live = false;
     };
@@ -24,10 +32,10 @@ export function useTemplate(source: TemplateSource, id: string): Graph | null | 
   return doc;
 }
 
-export function TemplateMissing() {
+export function TemplateMissing({ unfetched }: { unfetched?: boolean }) {
   return (
     <div className="notfound">
-      <p>This template is not on this device.</p>
+      <p>{unfetched ? "The plans could not be fetched. They need a connection the first time." : "This template is not on this device."}</p>
       <a className="btn btn-primary" href="#/templates">
         Back to templates
       </a>
@@ -39,7 +47,7 @@ export function TemplateMissing() {
 export function TemplateView({ source, id }: { source: TemplateSource; id: string }) {
   const doc = useTemplate(source, id);
   if (doc === undefined) return <div className="loading">Opening…</div>;
-  if (doc === null) return <TemplateMissing />;
+  if (doc === null || doc === "unfetched") return <TemplateMissing unfetched={doc === "unfetched"} />;
   return <TemplateViewer key={`${source}/${id}`} source={source} doc={doc} />;
 }
 
@@ -68,7 +76,7 @@ function TemplateViewer({ source, doc }: { source: TemplateSource; doc: Graph })
     <GraphViewer
       doc={doc}
       back={{ href: "#/templates", label: "All templates" }}
-      context={`${source === "yours" ? "your" : "built-in"} ${fragment ? "fragment" : "template"}`}
+      context={source === "plan" ? "plan template" : `${source === "yours" ? "your" : "built-in"} ${fragment ? "fragment" : "template"}`}
       issues={issues}
       about={{ title: t.title, subtitle: `${doc.id}@${doc.version}`, body: <TemplateDetails source={source} doc={doc} /> }}
       bar={bar}
@@ -83,6 +91,7 @@ function TemplateDetails({ source, doc }: { source: TemplateSource; doc: Graph }
   return (
     <div className="inspector template-details">
       <GlyphCard doc={doc} />
+      {source === "plan" ? <p className="field-hint">{PLAN_NOTE}</p> : null}
       <p className="prose">{t.summary}</p>
       {t.kind === "graph" ? (
         <a className="btn btn-primary template-use" href={templateHref(source, doc.id, true)}>
@@ -91,7 +100,8 @@ function TemplateDetails({ source, doc }: { source: TemplateSource; doc: Graph }
       ) : (
         <p className="field-hint">A fragment: open a graph, then Add → Insert a template.</p>
       )}
-      <ProfileChips profile={t.profile} />
+      {/* A plan's profile is a field the format requires; nothing was measured (plans/README.md), so it is not shown. */}
+      {source === "plan" ? null : <ProfileChips profile={t.profile} />}
       <Credits credits={t.credits} />
       <dl className="readonly">
         <div className="readonly-row">

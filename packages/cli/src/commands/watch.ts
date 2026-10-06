@@ -2,12 +2,12 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { networkInterfaces } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { canonicalizeRunBundle, isQuiet, parseMapText, runStateLine, sessionLine, type LiveView } from "@grooph/core";
 
 import { EVENTS_DIR, readLive, type EventSource } from "../events-io.js";
 import { readText } from "../io.js";
+import { appDir } from "../paths.js";
 import type { Output } from "../print.js";
 import { isGraphDir, isRunDir, newestRun, readRun, type LoadedRun } from "../run-io.js";
 import { LoadError, shown, type OpenUrl } from "../share-io.js";
@@ -69,12 +69,14 @@ export function watchTarget(arg: string | undefined, cwd = process.cwd()): Watch
 export const currentRun = (target: WatchTarget): LoadedRun => (target.kind === "run" ? readRun(target.path) : newestRun(target.path));
 
 /**
- * The built web app: `GROOPH_WEB_DIST` when it is set, else `apps/web/dist` in
- * the clone this CLI runs from (the CLI is linked from a clone; decision
- * 0001's "same web bundle, served locally"). Undefined when it is not built.
+ * The built web app: `GROOPH_WEB_DIST` when it is set, else the copy the npm
+ * package carries, else `apps/web/dist` in the clone this CLI runs from
+ * (decision 0001's "same web bundle, served locally"). Undefined when there is none.
  */
 export function findWebDist(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  const dir = resolve(env["GROOPH_WEB_DIST"] ?? fileURLToPath(new URL("../../../../../apps/web/dist/", import.meta.url)));
+  const given = env["GROOPH_WEB_DIST"];
+  if (given === undefined) return appDir();
+  const dir = resolve(given);
   return existsSync(join(dir, "index.html")) ? dir : undefined;
 }
 

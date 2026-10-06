@@ -1,0 +1,5 @@
+# The fallback every chat has, 2026-10-04: no tool of any kind, no MCP server, no skill. The prompt is the request and
+# the text of docs/agents.md as it stood at this commit. The reply's document is then taken out the way the app's
+# "Paste a document" takes it out, and checked with the CLI. Run from an empty folder (<scratch>/chat-d).
+claude -p "$(cat prompt.txt)" --model claude-sonnet-5-5 --tools "" --disable-slash-commands --setting-sources project,local \
+  --strict-mcp-config --max-budget-usd 2 --output-format stream-json --verbose > local/stream.jsonl

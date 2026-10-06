@@ -63,13 +63,15 @@ function NodeBody({ doc, node, run }: { doc: Graph; node: Node; run?: RunHere })
   switch (node.kind) {
     case "agent": {
       const role = typeof node.role === "string" ? node.role : node.role.custom;
+      // A person's step has a role and no tier, effort or capabilities: what a document still carries of those is not read.
+      const agents = node.by !== "person";
       rows.push(
-        ["Role", [role, node.model?.tier, node.effort].filter(Boolean).join(" · ")],
+        ["Role", agents ? [role, node.model?.tier, node.effort].filter(Boolean).join(" · ") : role],
         ["Brief", <p className="gx-prose">{node.brief}</p>],
         ["Reads", list(node.inputs)],
         ["Leaves", list(node.outputs)],
-        ["May", node.allow?.join(", ")],
-        ["May not", node.deny?.join(", ")],
+        ["May", agents ? node.allow?.join(", ") : undefined],
+        ["May not", agents ? node.deny?.join(", ") : undefined],
         ["Irreversible", node.irreversible?.join(", ")],
       );
       break;
@@ -171,7 +173,7 @@ export function pickedTitle(doc: Graph | OperationMap, picked: Picked): { kind: 
   if ("grooph" in doc) {
     if (picked.kind === "node") {
       const node = doc.nodes.find((n) => n.id === picked.id);
-      return node ? { kind: KIND[node.kind], name: node.name || node.id } : undefined;
+      return node ? { kind: node.kind === "agent" && node.by === "person" ? "Person" : KIND[node.kind], name: node.name || node.id } : undefined;
     }
     if (picked.kind === "loop") {
       const loop = doc.loops.find((l) => l.id === picked.id);

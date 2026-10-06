@@ -83,7 +83,7 @@ type Route =
 /**
  * Hash routes, so GitHub Pages needs no rewrite rules: `#/`, `#/g/<key>`,
  * `#/open?d=<payload>[&c=<candidate>]`, `#/templates`,
- * `#/templates/<built-in|yours>/<id>[/use]`, `#/run?live` (the run `grooph
+ * `#/templates/<built-in|yours|plan>/<id>[/use]`, `#/run?live` (the run `grooph
  * watch` serves), `#/live` (the sessions it serves) and `#/run/<key>` (a run
  * kept on this device). A run from a
  * link opens at `#/open?d=…` like any share.
@@ -110,7 +110,7 @@ function parse(hash: string): Route {
   if (hash === "#/about") return { name: "about" };
   if (hash === "#/templates") return { name: "templates" };
   if (hash === "#/embed" || hash.startsWith("#/embed?")) return { name: "embed" };
-  const template = /^#\/templates\/(built-in|yours)\/([^/?]+)(\/use)?$/.exec(hash);
+  const template = /^#\/templates\/(built-in|yours|plan)\/([^/?]+)(\/use)?$/.exec(hash);
   if (template) return { name: "template", source: template[1] as TemplateSource, id: decodeKey(template[2]!), use: template[3] !== undefined };
   const graph = /^#\/g\/([^/?]+)(\?new)?$/.exec(hash);
   if (graph) return { name: "graph", key: decodeKey(graph[1]!), fresh: graph[2] !== undefined };

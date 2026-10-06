@@ -56,7 +56,8 @@ export function decorateGraph(root: SVGSVGElement, doc: Graph, replay?: { step: 
     const id = g.dataset["node"]!;
     const node = doc.nodes.find((n) => n.id === id);
     const run = summary?.nodes[id];
-    const kind = node ? (KIND[node.kind] ?? node.kind) : "Node";
+    // A step a person does is called what core's picture, beside these words, calls it (amendment A-020).
+    const kind = node ? (node.kind === "agent" && node.by === "person" ? "Person" : (KIND[node.kind] ?? node.kind)) : "Node";
     reachable(g, `${kind} ${node?.name || id}${run && run.state !== "pending" ? `, ${run.state}` : run ? ", not reached yet" : ""}`);
     if (!run) {
       delete g.dataset["state"];

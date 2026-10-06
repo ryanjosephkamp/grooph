@@ -22,3 +22,13 @@ const glyphs = existsSync(join(from, "glyphs")) ? readdirSync(join(from, "glyphs
 if (glyphs.length > 0) mkdirSync(join(to, "glyphs"), { recursive: true });
 for (const file of glyphs) copyFileSync(join(from, "glyphs", file), join(to, "glyphs", file));
 console.log(`bundled ${files.length} pattern files and ${glyphs.length} glyphs into dist/patterns/`);
+
+// The plan templates (plans/), beside the library and apart from it: no index, no glyphs, and no count of the
+// built-in templates includes them. `grooph template list` shows them under a heading of their own.
+const plansFrom = join(pkg, "..", "..", "plans");
+const plansTo = join(pkg, "dist", "plans");
+rmSync(plansTo, { recursive: true, force: true });
+const plans = existsSync(plansFrom) ? readdirSync(plansFrom).filter((name) => name.endsWith(".grooph.json")) : [];
+if (plans.length > 0) mkdirSync(plansTo, { recursive: true });
+for (const file of plans) copyFileSync(join(plansFrom, file), join(plansTo, file));
+console.log(`bundled ${plans.length} plan templates into dist/plans/`);

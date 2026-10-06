@@ -1,0 +1,2 @@
+# The harness's raw stream for each recorded session: kept on this machine, like experiments/hooks/*/local/.
+runs/*/*/local/

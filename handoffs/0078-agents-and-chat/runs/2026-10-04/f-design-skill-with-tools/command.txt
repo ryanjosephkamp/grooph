@@ -1,0 +1,7 @@
+# The design skill with grooph's tools, 2026-10-04: the same project, prompt and model as run E, with grooph's MCP
+# server attached the way "claude mcp add grooph -- grooph mcp" attaches it (mcp.json), started in the project. The
+# session may use the server's tools, the grooph command, and read and write files in the project.
+PATH=<scratch>/bin-e:/opt/homebrew/bin:/usr/bin:/bin claude -p "$(cat prompt.txt)" --model claude-sonnet-5-5 \
+  --plugin-dir <repo>/plugins/grooph --setting-sources project,local --strict-mcp-config --mcp-config mcp.json \
+  --allowedTools mcp__grooph "Bash(grooph:*)" Read Write Edit Skill Glob Grep \
+  --max-budget-usd 3 --output-format stream-json --verbose > local/stream.jsonl

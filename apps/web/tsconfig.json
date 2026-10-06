@@ -23,7 +23,9 @@
       // Adoption held to a graph's brakes is another, fetched when Adopt is pressed on a run's page.
       "@grooph/core/adoption": ["../../packages/core/src/adoption.ts"],
       // The one-file offline page is another, fetched when "Offline page" is pressed under Keep a copy.
-      "@grooph/core/offline": ["../../packages/core/src/offline.ts"]
+      "@grooph/core/offline": ["../../packages/core/src/offline.ts"],
+      // A plan's files are another: their maker is part of the Export panel's piece (slice 0100).
+      "@grooph/core/plan": ["../../packages/core/src/plan.ts"]
     }
   },
   "include": ["src", "test", "e2e", "vite.config.ts", "playwright.config.ts"]

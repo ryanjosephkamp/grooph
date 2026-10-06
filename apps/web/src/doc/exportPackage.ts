@@ -12,7 +12,9 @@ import { piece } from "../piece.js";
 
 export type ExportAttempt =
   | { ok: true; target: CompileTarget; result: CompileResult }
-  | { ok: false; target: string; reason: "schema" | "rules"; issues: Issue[] };
+  | { ok: false; target: string; reason: "schema" | "rules"; issues: Issue[] }
+  /** Not a rule of the document: its id is a folder grooph keeps under `.grooph/`, where its package would go. `said` is the compiler's sentence. */
+  | { ok: false; target: string; reason: "id"; issues: Issue[]; said: string };
 
 type Compiler = typeof import("@grooph/core/compile");
 let compiler: Compiler | undefined;
@@ -41,6 +43,9 @@ export function attemptExport(doc: Graph): ExportAttempt | undefined {
   const issues = validate(parsed.doc, { forExport: true });
   if (issues.some((issue) => issue.severity === "error")) return { ok: false, target: harness ?? "(none)", reason: "rules", issues };
   if (!compiler) return undefined;
+  // The same refusal, in the same words, that `grooph export` and the grooph_export tool give (handoff 0078).
+  const kept = compiler.keptFolder(parsed.doc.id);
+  if (kept !== undefined) return { ok: false, target, reason: "id", issues: [], said: kept };
   const attempt = compiler.tryCompile(parsed.doc, target);
   return attempt.ok
     ? { ok: true, target, result: attempt.result }

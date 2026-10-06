@@ -1,22 +1,25 @@
 import type { Issue } from "@grooph/core";
 
-import { countBySeverity, highlightFor } from "../doc/issues.js";
+import { countBySeverity, highlightFor, packageNeeds } from "../doc/issues.js";
 import { useDoc } from "../doc/store.js";
 import { useEditor } from "./editorContext.js";
+import { PackageNeeds } from "./PackageNeeds.js";
 
 /**
- * The validator's list, as `grooph validate --for-export` prints it. Tapping
- * an issue highlights the objects in its `at` and brings them into view.
+ * The validator's list, as `grooph validate` prints it: the graph's own findings. Tapping
+ * an issue highlights the objects in its `at` and brings them into view. What only a package asks for is under it.
  */
 export function IssuesPanel({ issues }: { issues: Issue[] }) {
   const editor = useEditor();
   const doc = useDoc(editor.store);
   const { errors, warnings } = countBySeverity(issues);
 
+  const needs = <PackageNeeds doc={doc} onOpen={() => editor.openPanel({ type: "graph" })} />;
   if (issues.length === 0) {
     return (
       <div className="inspector">
-        <p className="all-clear">No issues. The graph validates for export.</p>
+        <p className="all-clear">{packageNeeds(doc).length === 0 ? "No issues. The graph validates for export." : "No issues. The graph validates."}</p>
+        {needs}
       </div>
     );
   }
@@ -30,7 +33,7 @@ export function IssuesPanel({ issues }: { issues: Issue[] }) {
     <div className="inspector">
       <p className="issue-summary">
         {errors} error{errors === 1 ? "" : "s"}, {warnings} warning{warnings === 1 ? "" : "s"}.{" "}
-        {errors > 0 ? "Export waits until the errors are fixed." : "Warnings are carried into the lead brief."}
+        {errors > 0 ? "A package waits until the errors are fixed; the plan can be kept as it is." : "Warnings are carried into the lead brief."}
       </p>
       <ul className="issues">
         {issues.map((issue, i) => {
@@ -79,6 +82,7 @@ export function IssuesPanel({ issues }: { issues: Issue[] }) {
           );
         })}
       </ul>
+      {needs}
     </div>
   );
 }

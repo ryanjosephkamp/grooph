@@ -1,0 +1,6 @@
+# A stand-in for claude.ai's code tool, 2026-10-04: an empty folder (<scratch>/chat-c) holding only the unzipped skill
+# (grooph-chat.zip, as built) under .claude/skills/, a shell that may run node, ls and cat and nothing else, no MCP
+# server, and a PATH without the folder the grooph command is installed in. Same prompt and model as runs A and B.
+PATH=/opt/homebrew/bin:/usr/bin:/bin claude -p "$(cat prompt.txt)" --model claude-sonnet-5-5 --tools "Bash,Read,Write,Skill" \
+  --setting-sources project,local --strict-mcp-config --allowedTools "Bash(node:*)" "Bash(ls:*)" "Bash(cat:*)" Read Write Skill \
+  --max-budget-usd 2 --output-format stream-json --verbose > local/stream.jsonl

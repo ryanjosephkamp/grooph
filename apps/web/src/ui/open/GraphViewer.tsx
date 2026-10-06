@@ -1,13 +1,14 @@
-import { validate, type Graph, type Id, type Issue } from "@grooph/core";
+import type { Graph, Id, Issue } from "@grooph/core";
 import { useMemo, useState, type ReactNode } from "react";
 
-import { KIND_LABEL } from "../../doc/catalog.js";
+import { kindLabel } from "../../doc/catalog.js";
 import { LookMenu } from "../canvas/LookMenu.js";
-import { countBySeverity } from "../../doc/issues.js";
+import { computeIssues, countBySeverity, packageNeeds } from "../../doc/issues.js";
 import { isDesktop } from "../canvas/fit.js";
 import { ViewCanvas } from "../canvas/ViewCanvas.js";
 import { Sheet } from "../Sheet.js";
 import { Keep } from "../Keep.js";
+import { PackageNeeds } from "../PackageNeeds.js";
 import { Outline, OutlineButton } from "../Outline.js";
 import { GraphDetails, IssueList, LoopDetails, NodeDetails } from "./Details.js";
 import { editorHref, useSaveFromLink } from "./save.js";
@@ -37,7 +38,9 @@ export function GraphViewer({
   about?: { title: string; subtitle?: string; body: ReactNode };
   bar?: ReactNode;
 }) {
-  const issues = useMemo(() => given ?? validate(doc, { forExport: true }), [doc, given]);
+  // The graph's own findings. What only a package for a harness asks for is said apart, under them (amendment
+  // A-020: a graph is a plan first, and a plan needs no harness and no goal).
+  const issues = useMemo(() => given ?? computeIssues(doc), [doc, given]);
   const { errors, warnings } = countBySeverity(issues);
   const [panel, setPanel] = useState<Panel>(about ? { type: "about" } : null);
   const [expanded, setExpanded] = useState(false);
@@ -70,7 +73,7 @@ export function GraphViewer({
     if (!panel || panel.type === "outline") return null;
     if (panel.type === "node") {
       const node = doc.nodes.find((n) => n.id === panel.id);
-      return node ? { title: KIND_LABEL[node.kind], subtitle: node.id, body: <NodeDetails node={node} /> } : null;
+      return node ? { title: kindLabel(node), subtitle: node.id, body: <NodeDetails node={node} /> } : null;
     }
     if (panel.type === "loop") {
       const loop = doc.loops.find((l) => l.id === panel.id);
@@ -91,7 +94,8 @@ export function GraphViewer({
         ),
       };
     }
-    return { title: "Validation", subtitle: "as export sees it", body: <IssueList issues={issues} /> };
+    // A template is not exported until it is filled in, and its own page says so: nothing more is said of it here.
+    return { title: "Validation", subtitle: "the graph's own findings", body: <IssueList issues={issues} whole={doc.template === undefined} needs={doc.template === undefined && packageNeeds(doc).length > 0 ? <PackageNeeds doc={doc} /> : undefined} /> };
   })();
 
   return (

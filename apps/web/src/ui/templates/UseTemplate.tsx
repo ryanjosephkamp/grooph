@@ -15,6 +15,7 @@ import { templateHref } from "./TemplatesScreen.js";
  */
 export function UseTemplate({ source, id }: { source: TemplateSource; id: string }) {
   const doc = useTemplate(source, id);
+  if (doc === "unfetched") return <TemplateMissing unfetched />;
   if (doc === undefined) return <div className="loading">Opening…</div>;
   if (doc === null) return <TemplateMissing />;
   return <UseForm source={source} template={doc} />;
@@ -70,7 +71,7 @@ function UseForm({ source, template }: { source: TemplateSource; template: Graph
         {slots.length > 0 ? (
           <fieldset className="slots">
             <legend className="list-title">What it needs to know</legend>
-            <p className="field-hint">Any of these can wait: an empty one stays marked in the graph, and export waits until it is filled.</p>
+            <p className="field-hint">Any of these can wait: an empty one stays marked in the graph, and a package waits until it is filled.</p>
             {slots.map((slot) => (
               <TextArea
                 key={slot.key}
