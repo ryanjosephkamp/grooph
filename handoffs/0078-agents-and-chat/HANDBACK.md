@@ -549,6 +549,21 @@ After #146 (core's `planBundle`) reached `main`, `main` at `08b2cdb` was merged 
 
 **Tests:** three more in `packages/cli/test/plan.test.ts`: the list, its data, `show` and shadowing; each of the four used by name, checked, refused for a package, and written as a plan that is whole; and the tools in a session, in a chat, and with no plan folder. CLI tests: 235. Core 580, web 127. Browser suite on port 4366: 314 passed. **No fresh reader on this step**: it is packaging and a listing, and every path is run by the pack check and the kit check from the built artifacts.
 
+## Step B: the release cut, 0.4.0
+
+`main` at `7f06526` merged in once, with the 3D views, the app's Export panel (#153) and a person's step in the app (#157) on it. Then the version, the notes and the whole set of checks.
+
+**Touched by hand in the merge:**
+
+- `plans/README.md` conflicted: `main` had rewritten the two sentences this branch had also changed. The page now says what both do: the command line carries the four plan templates and lists them under **Plans**, and the app lists them under its own "Plans" heading.
+- `apps/web/src/ui/ExportPanel.tsx` merged with no conflict and did not build: this branch's block for a graph whose id is a folder grooph keeps (`templates`, `graphs` and the like) was written for the panel's old layout and named two things `main`'s new panel no longer has. It is now a refusal inside the panel's "A package for a harness" group, like the panel's other refusals; the plan and "Keep a copy" are offered beside it as for any graph. The browser test for it (`export-kept-ids.spec.ts`) passes.
+
+**The driver's waiting items, each checked by grep on the merged tree.** Already done at the first step of this merge, and skipped here: (a) the A-019 row's dated note for the fourth door; (b) "a loop's round cap and budget" in adopt's and sub's help; (c) the "not judged" list, from adopt's one constant, at both export doors; (d) `docs/runs.md`'s export line, claims row C45 and `docs/agents.md`; (e) the design skill's line on export. Done now: (f) `grooph plan` and the `grooph_export_plan` tool open as `PLAN.md` now opens on `main`, in its order and its words: first "As a plan for people to read and follow, this is whole." (or that it is not whole yet, or has no steps), then "To run it in a coding harness, N things are to be fixed first", with every finding printed. A test holds the command's two lines and the file's sentence together. `plans/README.md` and `docs/exports.md` each had one sentence quoting the old order.
+
+**The version is 0.4.0 in all 8 places** (`node scripts/version.mjs 0.4.0`), and `docs/releases.md` has the section "0.4.0 · October 6, 2026" in place of "Not yet released", with the bullet on the default models kept as it was.
+
+**Checks on this head, locally:** clean build of all three packages; core 580, CLI 236, web 204; the browser suite on port 4367, 364 passed (164 skipped: the other browsers, which are CI's); goldens for both targets; every generator's `--check`; site pages; outside addresses; pictures; American English; the brake-values check; the study's unpaid tests; `first-run.sh`; `test-install-local.sh`; `pack-check.sh` (grooph-0.4.0.tgz, 908 KB, 97 files); `kit-check.sh` (grooph-chat.zip 296 KB, grooph.mcpb 290 KB). The budget, locally: first load 160.77 of 164, canvas 258.08 of 262, a template's own address 279.13 of 280, embed 129.79 of 132. **A template's address is the tight line**: `main` reads 279.00 by CI, and this branch has read about 0.4 KB over its local figure there before.
+
 ## For the 0.4.0 notes
 
 Four paragraphs, in the order a person meets them. The second covers the upgrade for both doors.
