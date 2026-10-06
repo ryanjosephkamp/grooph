@@ -9,6 +9,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 
 import { downloadBytes, fixturePath, goldenDir, importDocument, libraryDocs, linkFor, node, readTree, repoRoot, requestsOut, runBundle, runTab, status, viewIsStill, visitIsOver } from "./support.js";
+import { timeMoves } from "./support-moves.js";
 
 /**
  * Handoff 0081, item 4: the smoke set. Five visits a stranger makes, short enough to run in Safari's engine
@@ -234,6 +235,57 @@ test("a graph is seen in three dimensions and as its picture again, whichever wa
   expect(took.length).toBe(moves ? 2 : 0);
   for (const ms of took) expect(ms).toBeGreaterThanOrEqual(0);
   for (const ms of took) expect(ms).toBeLessThan(2500);
+});
+
+test("a graph's other kinds of view in three dimensions: Panes in and out, whichever way this engine changes the view", async ({ page }, testInfo) => {
+  // Handoff 0096: the stage draws on a 2D canvas and puts the graph's cards over it as elements, and each card is
+  // seen to come from the stairs' card or the picture's node where the engine has view transitions. The log says
+  // which way this engine took and how long each move was; none may hold the page.
+  const took = await timeMoves(page);
+  await page.goto("./#/templates/built-in/review-gate");
+  const ids = ["builder", "critic", "merge-gate", "done"];
+  for (const id of ids) await expect(node(page, id)).toBeVisible();
+  const views = page.getByRole("radiogroup", { name: "View of the graph" });
+  const kinds = page.getByRole("radiogroup", { name: "Kind of view in three dimensions" });
+  await expect(views).toBeVisible();
+  const moves = await page.evaluate(() => typeof document.startViewTransition === "function");
+
+  await views.getByRole("radio", { name: "3D" }).tap();
+  await expect(page.locator(".space-scene")).toBeVisible();
+  await viewIsStill(page);
+  await kinds.getByRole("radio", { name: "Panes" }).tap();
+  const frame = page.locator(".s3-frame");
+  await expect(frame).toBeVisible();
+  await viewIsStill(page);
+  await expect(page.locator(".space")).toHaveCount(0);
+  // Every node has its card: a button with a name, drawn with a size, inside the frame, with no name left on it
+  // for a move that has ended.
+  const box = (await frame.boundingBox())!;
+  const cards = await frame.locator(".s3-card").evaluateAll((els) => els.map((el) => ({ id: (el as HTMLElement).dataset["node"], named: !!el.getAttribute("aria-label"), box: el.getBoundingClientRect().toJSON(), carries: (el as HTMLElement).style.getPropertyValue("view-transition-name") })));
+  expect(cards.map((c) => c.id).sort()).toEqual([...ids].sort());
+  for (const c of cards) {
+    expect([c.id, c.named, c.box.width > 10, c.carries]).toEqual([c.id, true, true, ""]);
+    expect(c.box.left, c.id).toBeGreaterThanOrEqual(box.x);
+    expect(c.box.right, c.id).toBeLessThanOrEqual(box.x + box.width);
+    expect(c.box.top, c.id).toBeGreaterThanOrEqual(box.y);
+    expect(c.box.bottom, c.id).toBeLessThanOrEqual(box.y + box.height);
+  }
+  // The canvas under the cards has been drawn on: it is not blank.
+  expect(await frame.locator("canvas").evaluate((el) => (el as HTMLCanvasElement).getContext("2d")!.getImageData(0, 0, (el as HTMLCanvasElement).width, (el as HTMLCanvasElement).height).data.some((v) => v !== 0))).toBe(true);
+
+  await kinds.getByRole("radio", { name: "Stairs" }).tap();
+  await expect(page.locator(".space-scene")).toBeVisible();
+  await viewIsStill(page);
+  await expect(page.locator(".s3")).toHaveCount(0);
+  await views.getByRole("radio", { name: "Picture" }).tap();
+  await expect(page.locator(".space")).toHaveCount(0);
+  await viewIsStill(page);
+  for (const id of ids) await expect(node(page, id)).toBeVisible();
+  const ms = await took();
+  console.log(`KINDS ${testInfo.project.name} | view transitions: ${moves ? "yes" : "no"} | each move, asked for to ended, ms: ${ms.join(", ") || "none"}`);
+  expect(ms.length).toBe(moves ? 4 : 0);
+  for (const each of ms) expect(each).toBeGreaterThanOrEqual(0);
+  for (const each of ms) expect(each).toBeLessThan(2500);
 });
 
 test("a graph is imported and its export panel gives the golden package, byte for byte", async ({ page }) => {
