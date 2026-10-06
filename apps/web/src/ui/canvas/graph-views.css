@@ -80,6 +80,17 @@
     padding: 118px 28px 104px;
   }
 }
+/* On a phone a panel's sheet lies over the lower half of the canvas, and a template's page opens with one up. When
+   one of the stage's kinds of 3D is chosen (not the stairs) the sheet goes down to its head, as it does while a node is being picked on
+   the canvas, and with the button that makes it taller put away as it is then; a press on its head, on a card, or on anything that asks for a panel brings it up again, and so does a kind that never comes (`graph-views.tsx` sets and takes away the mark). */
+@media (max-width: 899px) {
+  [data-space-folds] .sheet-body {
+    display: none;
+  }
+  [data-space-folds] .sheet-toggle {
+    visibility: hidden;
+  }
+}
 /* The row of kinds: under the switch, while a view in three dimensions is up. */
 .graph-kinds {
   position: absolute;

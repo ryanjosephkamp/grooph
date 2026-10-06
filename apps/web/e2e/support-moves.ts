@@ -25,7 +25,8 @@ export async function noteMoves(page: Page, held = false): Promise<() => Promise
         .map((a) => (a.effect as KeyframeEffect).pseudoElement!)
         .filter((part) => part.startsWith(`::view-transition-${side}(gv`))
         .map((part) => part.slice(part.indexOf("(")));
-    Object.assign(window, { __moves: log, __took: took, letGo: () => its().forEach((a) => a.finish()) });
+    const landed: string[] = [];
+    Object.assign(window, { __moves: log, __took: took, __landed: landed, letGo: () => its().forEach((a) => a.finish()) });
     document.startViewTransition = (update?: unknown) => {
       const from = performance.now();
       const move = real(update as ViewTransitionUpdateCallback);
@@ -36,6 +37,9 @@ export async function noteMoves(page: Page, held = false): Promise<() => Promise
           if (hold) its().forEach((a) => a.pause());
           const after = new Set(pictures("new"));
           seen.pairs = new Set(pictures("old").filter((name) => after.has(name))).size;
+          // What carries a name once the page has changed: the parts the move ends at.
+          const named = [...document.querySelectorAll<HTMLElement>(".react-flow__node, .space-card, .s3-card")].filter((el) => el.style.getPropertyValue("view-transition-name"));
+          landed[at] = [...new Set(named.map((el) => (el.classList.contains("s3-card") ? "stage" : el.classList.contains("space-card") ? "stairs" : "picture")))].sort().join("+") || "nothing";
         },
         () => (seen.pairs = 0),
       );
@@ -45,6 +49,12 @@ export async function noteMoves(page: Page, held = false): Promise<() => Promise
   }, held);
   return () => page.evaluate(() => (window as unknown as { __moves?: Move[] }).__moves ?? []);
 }
+/**
+ * What each move ended at: the parts that carried a name once the page had changed, "picture" for the canvas's nodes,
+ * "stairs" for the stairs' cards, "stage" for the cards of a view on the stage. A move that carried the picture's
+ * nodes to nothing has as many pairs as one that carried them to their cards, if only the names are counted.
+ */
+export const landed = (page: Page): Promise<string[]> => page.evaluate(() => (window as unknown as { __landed?: string[] }).__landed ?? []);
 export const slowest = (page: Page): Promise<number> => page.evaluate(() => Math.max(0, ...((window as unknown as { __took?: number[] }).__took ?? [])));
 /** How many parts of the page still carry a name for the browser to move them by. */
 export const namedStill = (page: Page): Promise<number> => page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".react-flow__node, .space-card, .s3-card")].filter((el) => el.style.getPropertyValue("view-transition-name")).length);

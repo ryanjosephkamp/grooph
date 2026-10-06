@@ -98,12 +98,31 @@ describe("a recorded run", () => {
       ["critic", 1, "pass"],
     ]);
     expect(model.run!.rounds).toEqual({ sandwich: 1 });
+    // A note at an agent that reports nothing (a word, a proposal) is not a dispatch, with a stamp or without one.
+    const word = (k: number, more: Partial<RunNote> = {}): RunNote => ({ id: `w-${k}`, run: NOTES[0]!.run, at: "node:builder", text: "a word at the builder", ...more }) as RunNote;
+    const wordy = [...NOTES.slice(0, 3), word(1), word(2, { ended: "2026-09-19T13:00:00Z" }), ...NOTES.slice(3), word(3, { proposal: { summary: "s", reason: "r" } } as Partial<RunNote>)];
+    expect(modelOf(RUN, wordy).run!.dispatches.map((d) => [d.node, d.round, d.outcome])).toEqual(model.run!.dispatches.map((d) => [d.node, d.round, d.outcome]));
   });
 
-  it("a dispatch's minutes are by the stamps of the ends: the first from its own start, each after from the end before it", () => {
-    // 05:01:00 to 05:20:42, 05:21:16, 05:28:43, 05:32:57, 05:33:25, 05:38:15. Two of these notes are stamped as
-    // starting after they end; the first's own note of its cost says 22 minutes. Neither is used.
-    expect(model.run!.dispatches.map((d) => d.minutes)).toEqual([19.7, 0.57, 7.45, 4.23, 0.47, 4.83]);
+  it("a dispatch's minutes are its own: from its start, on its note or on the line before it, to its end; and it has none where its stamps do not say", () => {
+    // 05:01:00 to 05:20:42; 05:20:51 to 05:21:16; 05:22:00 to 05:28:43; then two notes stamped as starting after
+    // they end, which have no minutes; and 05:32:57 to 05:33:25. Not from the end of the dispatch before.
+    expect(model.run!.dispatches.map((d) => d.minutes && Math.round(d.minutes * 100) / 100)).toEqual([19.7, 0.42, 6.72, null, 0.47, null]);
+    const stamp = (min: number, sec = 0): string => `2026-09-19T13:${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}Z`;
+    const note = (k: number, at: string, more: Partial<RunNote>): RunNote => ({ id: `n-${k}`, run: "r", at: at.includes(":") ? at : `node:${at}`, ...more }) as RunNote;
+    const took = (doc: Graph, list: RunNote[]) => modelOf(doc, list).run!.dispatches.map((d) => [d.node, d.minutes]);
+    // Three candidates run side by side from one start: each has its own minutes, not the time since a sibling's end.
+    const tournament = graph("patterns/tournament-then-judge.grooph.json");
+    expect(took(tournament, ["candidate-a", "candidate-b", "candidate-c"].map((id, k) => note(k, id, { outcome: "pass", started: stamp(0), ended: stamp(1 + k) })))).toEqual([["candidate-a", 1], ["candidate-b", 2], ["candidate-c", 3]]);
+    // A person's wait at a gate is nobody's block: the builder after the gate ran half a minute, three hours on.
+    const waited = took(REVIEW, [note(1, "builder", { outcome: "pass", started: stamp(0), ended: stamp(5) }), note(2, "critic", { outcome: "pass", started: stamp(5), ended: stamp(7) }), note(3, "merge-gate", { outcome: "halt", ended: stamp(8) }), note(4, "merge-gate", { outcome: "fail", ended: "2026-09-19T16:08:00Z" }), note(5, "builder", { outcome: "pass", started: "2026-09-19T16:08:10Z", ended: "2026-09-19T16:08:40Z" })]);
+    expect(waited).toEqual([["builder", 5], ["critic", 2], ["builder", 0.5]]);
+    // The start on the line before the dispatch, as the contract has it, is the dispatch's start.
+    expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0, 5) }), note(2, "builder", { outcome: "pass", ended: stamp(9) })])).toEqual([["builder", 8.916666666666666]]);
+    // And is used once: the next dispatch at that node, with no start of its own, has no minutes.
+    expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0) }), note(2, "builder", { outcome: "fail", ended: stamp(2) }), note(3, "builder", { outcome: "pass", ended: stamp(6) })])).toEqual([["builder", 2], ["builder", null]]);
+    // No end, no start, a stamp that is not a time: a dispatch all the same, with no minutes, and those after it unharmed.
+    expect(took(REVIEW, [note(1, "builder", { outcome: "pass" }), note(2, "critic", { outcome: "fail", started: stamp(1), ended: "10:05 UTC" }), note(3, "builder", { outcome: "pass", ended: stamp(9) }), note(4, "critic", { outcome: "pass", started: stamp(9), ended: stamp(12) })])).toEqual([["builder", null], ["critic", null], ["builder", null], ["critic", 3]]);
   });
 
   it("its steps are its notes: a move is along the edge the run took, in the round it took it", () => {
@@ -165,6 +184,138 @@ describe("a recorded run", () => {
 });
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("which edges a run took", () => {
+  /** Notes written for a graph: `[node or loop:id, outcome, round or none, verdict or stop]`, with stamps a minute apart unless `bare`. */
+  const notes = (list: [string, string, number?, string?][], bare = false): RunNote[] =>
+    list.map(([at, outcome, round, more], k) => ({ id: `n-${String(k + 1).padStart(4, "0")}`, run: "r", at: at.includes(":") ? at : `node:${at}`, ...(bare ? {} : { ended: `2026-09-19T13:${String(k).padStart(2, "0")}:00Z` }), outcome, ...(round === undefined ? {} : { round }), ...(more ? (at.startsWith("loop:") ? { stop: more } : { verdict: more }) : {}) }) as RunNote);
+  const BANK = graph("patterns/specialist-critic-bank.grooph.json");
+  const taken = (doc: Graph, list: RunNote[]) => stepsOf(modelAt(doc, places(doc), list)).map((s) => (s.about ? [] : [s.edge, ...(s.also ?? []).map((x) => x.edge)].filter(Boolean).sort()));
+
+  it("a node that fans out reaches each of its targets, and one that fans in is reached by each of its sources", () => {
+    const critics = BANK.edges.filter((e) => e.from === "builder").map((e) => e.to);
+    expect(critics).toHaveLength(4);
+    const judge = BANK.edges.find((e) => e.from === critics[0])!.to;
+    const steps = stepsOf(modelAt(BANK, places(BANK), notes([["builder", "pass", 0], ...critics.map((id): [string, string, number] => [id, "pass", 0]), [judge, "pass", 0]])));
+    // Each critic's note is a move from the builder, whichever critic's note came before it.
+    for (const [n, id] of critics.entries()) expect(steps[2 + n], id).toMatchObject({ to: id, from: "builder", edge: BANK.edges.find((e) => e.from === "builder" && e.to === id)!.id });
+    // The judge's note: the edge from the critic whose note came last is the one followed, and the other three were taken with it.
+    expect(steps[6]).toMatchObject({ to: judge, from: critics[3] });
+    expect([steps[6]!.edge, ...steps[6]!.also!.map((x) => x.edge)].sort()).toEqual(BANK.edges.filter((e) => e.to === judge && critics.includes(e.from)).map((e) => e.id).sort());
+  });
+
+  it("an edge with a condition is taken only by a report that meets it, and only from a node that has reported since its target was last reached", () => {
+    const critics = BANK.edges.filter((e) => e.from === "builder").map((e) => e.to);
+    const judge = BANK.edges.find((e) => e.from === critics[0])!.to;
+    // The judge passed and the gate rejected: back at the builder, the gate's way back was taken and the judge's,
+    // which is for a fail, was not, though the judge has reported since the builder was last reached.
+    const back = taken(BANK, notes([["builder", "pass", 0], ...critics.map((id): [string, string, number] => [id, "pass", 0]), [judge, "pass", 0], ["gate", "fail", 0], ["builder", "pass", 1]]));
+    expect(back[8]).toEqual(["e-gate-reject"]);
+    // A second note at the judge with no critic between takes nothing.
+    expect(taken(BANK, notes([["builder", "pass", 0], [critics[0]!, "pass", 0], [judge, "pass", 0], [judge, "pass", 0]]))[4]).toEqual([]);
+  });
+
+  it("a run whose notes carry no stamps takes the same edges: a note is open by being the line before a dispatch, not by having no end", () => {
+    const [doc, written] = runAt("run-nested");
+    const bare = written.map(({ started: _started, ended: _ended, ...rest }) => rest as RunNote);
+    expect(taken(doc, bare)).toEqual(taken(doc, written));
+    expect(taken(doc, bare).filter((t) => t.length)).toHaveLength(7);
+    // And its dispatches are still dispatches, with no minutes to their name.
+    const model = modelAt(doc, places(doc), bare);
+    expect(model.run!.dispatches.map((d) => [d.node, d.minutes])).toEqual(["builder", "tests", "builder", "tests", "judge", "builder", "tests"].map((id) => [id, null]));
+    // The line before a dispatch and the result after it are one visit: nothing was taken between them.
+    const solo: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-again", from: "builder", to: "builder" }] } as Graph;
+    expect(taken(solo, notes([["builder", "started", 0], ["builder", "pass", 0]]))).toEqual([[], [], []]);
+    expect(taken(solo, notes([["builder", "pass", 0], ["builder", "pass", 0]]))[2]).toEqual(["e-again"]);
+  });
+
+  it("a stop is looked at before a way back is taken: where a loop's note names the stop that fired, its way back was not taken", () => {
+    // Grind stops on its cap and the run goes on to the judge, who sends it back to the builder. The tests' fail,
+    // reported before the stop, did not take the tests' way back.
+    const [doc] = runAt("run-nested");
+    const stopped = taken(doc, notes([["builder", "pass", 0], ["tests", "fail", 0], ["loop:grind", "halt", 0, "max-iterations"], ["judge", "fail", 0, "next-phase"], ["builder", "pass", 0]]));
+    expect(stopped[5]).toEqual(["e-judge-next-phase"]);
+    // With no stop named, the round ended and the way back was taken.
+    const on = taken(doc, notes([["builder", "pass", 0], ["tests", "fail", 0], ["loop:grind", "fail", 0], ["builder", "pass", 1]]));
+    expect(on[4]).toEqual(["e-tests-fail"]);
+    // A person's stop is lifted by their answer: Gauntlet asks a person every two rounds of Pieces, and when the
+    // run goes on, the way back was taken on what was reported before the halt. A cap there bars it.
+    const lifted = (stop: string) => taken(GAUNTLET, notes([["next-piece", "pass", 1], ["loop:pieces", "halt", 1, stop], ["owner", "started", 2], ["owner", "pass", 2]]));
+    expect(lifted("human")).toEqual([[], [], [], ["e-next-piece-pass"], []]);
+    expect(lifted("max-iterations")).toEqual([[], [], [], [], []]);
+    // A run that ends at the halt took no way back: its end is no answer. Here core reads the end at the owner,
+    // the last node to have halted, and the run's end note shows no arrival there by the way back.
+    const halted = [...notes([["owner", "halt", 1], ["next-piece", "pass", 1], ["loop:pieces", "halt", 1, "human"]]), { id: "n-9", run: "r", at: "graph", outcome: "halt", text: "waiting for a person" } as RunNote];
+    expect(modelAt(GAUNTLET, places(GAUNTLET), halted).run!.at).toBe("owner");
+    expect(taken(GAUNTLET, halted)).toEqual([[], [], [], [], []]);
+    // And the answer lifts it once: reached again later, another way, on the same old report, it is barred.
+    const elsewhere = taken(GAUNTLET, notes([["next-piece", "pass", 1], ["loop:pieces", "halt", 1, "human"], ["integrator", "pass"], ["owner", "pass", 2]]));
+    expect(elsewhere[4]).toEqual([]);
+    // A word at a node, or another loop's stop, between the halt and the dispatch that follows the answer does not
+    // spend the lift; the same loop's own stop that is no person's takes it away.
+    const between = (more: RunNote[]) => taken(GAUNTLET, [...notes([["next-piece", "pass", 1], ["loop:pieces", "halt", 1, "human"]]), ...more, ...notes([["owner", "started", 2]])]).at(-1);
+    expect(between([{ id: "w-1", run: "r", at: "node:next-piece", text: "they said go on" } as RunNote])).toEqual(["e-next-piece-pass"]);
+    expect(between(notes([["loop:polish", "pass", 0, "bar-passed"]]))).toEqual(["e-next-piece-pass"]);
+    expect(between(notes([["loop:pieces", "halt", 1, "max-iterations"]]))).toEqual([]);
+  });
+
+  it("a line that reports nothing does not take back what a node reported: a word at the node, or the line before its next dispatch", () => {
+    const [doc] = runAt("run-nested");
+    const word = { id: "w-1", run: "r", at: "node:tests", text: "a word at the tests" } as RunNote;
+    const [first, last] = [notes([["builder", "pass", 0], ["tests", "pass", 0]]), notes([["judge", "pass", 0]])];
+    expect(taken(doc, [...first, word, ...last])[4]).toEqual(["e-tests-judge"]);
+    expect(taken(doc, [...first, ...notes([["tests", "started", 0]]), ...last])[4]).toEqual(["e-tests-judge"]);
+    // A second visit to a node with an edge to itself: the line before the dispatch is the arrival, and the result
+    // after it is the same visit, though the node had reported before.
+    const solo: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-again", from: "builder", to: "builder" }] } as Graph;
+    expect(taken(solo, notes([["builder", "pass", 0], ["builder", "started", 0], ["builder", "pass", 0]]))).toEqual([[], [], ["e-again"], []]);
+    // Of the edges taken into a node, the one from the node of the note before is the one followed, though another
+    // source reported later: here a word at the first critic comes between the second critic's pass and the judge.
+    const critics = BANK.edges.filter((e) => e.from === "builder").map((e) => e.to);
+    const judge = BANK.edges.find((e) => e.from === critics[0])!.to;
+    const said = [...notes([["builder", "pass", 0], [critics[0]!, "pass", 0], [critics[1]!, "pass", 0]]), { ...word, at: `node:${critics[0]}` } as RunNote, ...notes([[judge, "pass", 0]])];
+    expect(stepsOf(modelAt(BANK, places(BANK), said))[5]).toMatchObject({ to: judge, from: critics[0] });
+  });
+
+  it("no edge is taken on a line that reports nothing: a word at a node that has not reported, or at one still running", () => {
+    const say = (at: string, k: number): RunNote => ({ id: `w-${k}`, run: "r", at: `node:${at}`, text: "a word" }) as RunNote;
+    // Words at the builder and then at the critic, nobody dispatched: nothing was taken between them.
+    expect(taken(REVIEW, [say("builder", 1), say("critic", 2)])).toEqual([[], [], []]);
+    // Three candidates fan in to one filter. The first is still running, with a word at it, when the filter is
+    // reached: its edge was not taken, and the other two's were.
+    const TOURNAMENT = graph("patterns/tournament-then-judge.grooph.json");
+    const running = [...notes([["candidate-a", "started"]]), say("candidate-a", 1), ...notes([["candidate-b", "pass"], ["candidate-c", "pass"], ["filter", "started"]])];
+    expect(taken(TOURNAMENT, running)[5]).toEqual(["e-candidate-b-filter", "e-candidate-c-filter"]);
+    expect(taken(TOURNAMENT, running.filter((n) => n.id !== "w-1"))[4]).toEqual(["e-candidate-b-filter", "e-candidate-c-filter"]);
+    // A word between the line before a dispatch and its result, at a node with an edge to itself: one visit still.
+    const solo: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-again", from: "builder", to: "builder" }] } as Graph;
+    expect(taken(solo, [...notes([["builder", "started", 0]]), say("builder", 1), ...notes([["builder", "pass", 0]])])).toEqual([[], [], [], []]);
+  });
+
+  it("a second invalid-evidence in a row routes as a fail; and a run that ends at a stop node with no note there still got there", () => {
+    // The critic cannot read its evidence, twice: the builder is next, by the critic's way back for a fail.
+    const twice = taken(RUN, notes([["builder", "pass", 0], ["checks", "pass", 0], ["critic", "invalid-evidence", 0], ["critic", "invalid-evidence", 0], ["builder", "pass", 1]]));
+    expect(twice[5]).toEqual(["e-critic-fail"]);
+    // Once is not a fail: the lead dispatches the critic again, and nothing has been taken to the builder.
+    expect(taken(RUN, notes([["builder", "pass", 0], ["checks", "pass", 0], ["critic", "invalid-evidence", 0], ["builder", "pass", 1]]))[4]).toEqual([]);
+    // Nor is once in a later round, after twice in an earlier one: the second is the second in one round.
+    expect(taken(RUN, notes([["builder", "pass", 0], ["checks", "pass", 0], ["critic", "invalid-evidence", 0], ["critic", "invalid-evidence", 0], ["builder", "pass", 1], ["checks", "pass", 1], ["critic", "invalid-evidence", 1], ["builder", "pass", 2]]))[8]).toEqual([]);
+    // The recorded run's notes, with the one at Done written as leads often write it: a plain note at the edge
+    // into Done. Core reads the run as ended at Done; the critic's pass took its edge there, and the run's end
+    // note, the last about the run with an outcome, is where that is shown. The edge's own note is not a move.
+    const without = NOTES.map((n) => (n.at === "node:done" ? ({ id: n.id, run: n.run, at: "edge:e-critic-pass", text: "critic -> done" } as RunNote) : n));
+    const model = modelAt(RUN, places(RUN), without);
+    expect(model.run!.at).toBe("done");
+    const steps = stepsOf(model);
+    expect(steps[13]!.says).toMatch(/^Note 13 of 15, at the edge .+: critic -> done$/);
+    expect([steps[13]!.about, steps[13]!.to]).toEqual([true, undefined]);
+    expect(without[13]!.outcome).toBe("pass");
+    expect([steps[14]!.to, steps[14]!.edge, steps[14]!.says.startsWith("Note 14 of 15, about the run")]).toEqual(["done", "e-critic-pass", true]);
+    expect(steps[15]!.edge).toBeUndefined();
+    // With its own note at Done, the last notes pick nothing out, as before.
+    expect(stepsOf(modelAt(RUN, places(RUN), NOTES)).at(-1)!.edge).toBeUndefined();
+  });
+});
 
 describe("panes", () => {
   const shown = { k: 0, lit: null, took: [] };
@@ -236,6 +387,48 @@ describe("panes", () => {
     expect(Object.fromEntries(deep.map((b) => [b.name, b.depth]))).toEqual({ Review: 3, "Review gate": 2, All: 1 });
   });
 
+  it("two edges between the same two nodes are drawn apart, and a pane's name has other places to stand than its own", () => {
+    const [doc] = runAt("run-nested");
+    const built = panes(modelAt(doc, places(doc)), shown);
+    const [a, b] = [built.path("e-judge-fail"), built.path("e-judge-next-phase")];
+    expect([a.length, b.length]).toEqual([19, 19]);
+    expect(Math.abs(a[9]![0] - b[9]![0])).toBe(22);
+    expect([a[0], a[18]]).toEqual([b[0], b[18]]);
+    // The first of two in the document is drawn as it would be alone: here the forward edge (builder to tests,
+    // tests back to builder), a straight line. Listed after its twin it is the one that bows.
+    expect(built.path("e-builder-tests")).toHaveLength(2);
+    const turned: Graph = { ...doc, edges: [...doc.edges.filter((e) => e.id !== "e-builder-tests"), doc.edges.find((e) => e.id === "e-builder-tests")!] };
+    expect(panes(modelAt(turned, places(turned)), shown).path("e-builder-tests")).toHaveLength(19);
+    // In a row, where the nodes are side by side, it is to the side of the line all the same: under it. The review
+    // loop's layout is one row; its way back, and a second edge beside the forward one, each leave the line.
+    const flat = graph("fixtures/valid/review-loop.grooph.json");
+    const twice: Graph = { ...flat, edges: [...flat.edges, { ...flat.edges.find((e) => e.id === "e-review-pass")!, id: "e-review-pass-too" }] };
+    const row = panes(modelAt(twice, places(twice, 4)), shown);
+    const [straight, back, second] = [row.path("e-build-review"), row.path("e-review-fail"), row.path("e-review-pass-too")];
+    expect(straight).toHaveLength(2);
+    expect(straight[0]![1]).toBe(straight[1]![1]);
+    // (A way back's 70, and 22 past the forward edge it is the twin of.)
+    expect([back[9]![1] - back[0]![1], back[18]![1] - back[0]![1]]).toEqual([-92, 0]);
+    expect([second[9]![1] - second[0]![1], second[9]![0]]).toEqual([-22, (second[0]![0] + second[18]![0]) / 2]);
+    expect(row.path("e-review-pass")).toHaveLength(2);
+    // An edge from a node to itself, a way back or not, goes out to the right of its node and comes back.
+    const selfish: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-self", from: "builder", to: "builder", when: "fail" }, { id: "e-self-too", from: "builder", to: "builder" }], loops: REVIEW.loops.map((l) => ({ ...l, back: [...(l.back ?? []), "e-self"] })) } as Graph;
+    const own = panes(modelAt(selfish, places(selfish)), shown);
+    for (const [id, out] of [["e-self", 70], ["e-self-too", 92]] as const) {
+      const path = own.path(id);
+      expect([path[9]![0] - path[0]![0], path[9]![1] - path[0]![1], path[18]], id).toEqual([out, 0, path[0]]);
+      // It leaves from the right of its card's middle, as a way back does, and goes out past the card's edge (53).
+      expect(path[0]![0] - own.node("builder")[0], id).toBe(50);
+    }
+    // One plain edge to itself, alone: seen too.
+    const once: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-self", from: "builder", to: "builder" }] } as Graph;
+    expect(panes(modelAt(once, places(once)), shown).path("e-self")[9]![0] - panes(modelAt(once, places(once)), shown).node("builder")[0]).toBe(120);
+    // Each pane's name may stand at any of six places round its pane: the stage takes the first no card is over.
+    const names = built.prims.flatMap((p) => (p.t === "text" && / · (loop|subgrooph)/.test(p.text) ? [p] : []));
+    expect(names.map((p) => p.text).sort()).toEqual(["Grind · loop", "Phases · loop"]);
+    for (const p of names) expect(p.or).toHaveLength(5);
+  });
+
   it("every node is where the canvas has it, on a phone and on a wide screen, and every node and edge is drawn once", () => {
     // The review loop is a row on the picture, and a row here: not a column of this view's own.
     const row = graph("fixtures/valid/review-loop.grooph.json");
@@ -267,6 +460,7 @@ describe("the spiral and its lid", () => {
   const rings = (prims: Prims) => prims.filter((p) => p.t === "line" && p.stroke === "k-gate");
   const dashed = (prims: Prims) => prims.filter((p) => p.t === "line" && p.stroke === "brake" && p.dash);
   const turns = (y: number): number => Math.round((y / 54) * 100) / 100;
+  const turnsOf = turns;
   /** What the slider hands a view at a step: the component's own working out (`shownAt`), not a copy of it. */
   const at = (model: ReturnType<typeof modelAt>, k: number): Shown => shownAt(model, stepsOf(model), k);
   /** The edges a view has drawn and not hidden: each by its key, with how strong it is and the turns it starts and ends at. */
@@ -540,6 +734,122 @@ describe("the spiral and its lid", () => {
     expect(edges(spiral(modelAt(lr, places(lr)), whole).prims)["e-critic-again@0>1"]).toEqual([1, 0.5, 0.5]);
   });
 
+  it("on a frame a phone's width the spirals stand one under the other and every card is its name alone; a graph with no loop is a column", () => {
+    const narrow = modelAt(GAUNTLET, places(GAUNTLET), undefined, true);
+    const built = spiral(narrow, whole);
+    // The two spirals' middles are in one upright line, the inner loop's above the outer's by more than its own height.
+    // Each spiral has an upright line up its middle: the foot of each, the higher first. The loop inside is placed first.
+    const feet = (prims: typeof built.prims) => prims.flatMap((p) => (p.t === "line" && p.stroke === "line-strong" && p.pts.length === 2 ? [p.pts[0]!] : []));
+    /** Each spiral's top (where its middle line ends) and its turn's radius (the floor under it is 12 wider). */
+    const feetOf = (prims: typeof built.prims): { y: number; r: number }[] => {
+      const floors = prims.flatMap((p) => (p.t === "poly" && p.fill === "floor" ? [p.pts] : []));
+      return prims.flatMap((p) => (p.t === "line" && p.stroke === "line-strong" && p.pts.length === 2 ? [p.pts] : [])).map(([foot, top], n) => ({ y: top![1], r: Math.max(...floors[n]!.map((v) => Math.hypot(v[0] - foot![0], v[2] - foot![2]))) - 12 }));
+    };
+    const [polish, pieces] = feet(built.prims).sort((a, b) => b[1] - a[1]);
+    expect(turnsOf(built.node("owner")[1] - polish![1])).toBe(0);
+    expect(turnsOf(built.node("next-piece")[1] - pieces![1])).toBe(0.5);
+    expect([polish![0], polish![2]]).toEqual([pieces![0], pieces![2]]);
+    expect(polish![1] - pieces![1]).toBeGreaterThan(3 * 54 + 100);
+    // What is in no loop is in the same line, above the spirals before them and under them after.
+    const ys = narrow.rows.flat().map((id) => built.node(id)[1]);
+    expect(ys[0]!).toBeGreaterThan(polish![1] + 3 * 54);
+    expect(ys[ys.length - 1]!).toBeLessThan(pieces![1]);
+    expect(built.prims.every((p) => p.t !== "card" || p.small)).toBe(true);
+    // Side by side where there is room, as before, and a card on a spiral whole.
+    const wide = spiral(modelAt(GAUNTLET, places(GAUNTLET)), whole);
+    expect(feet(wide.prims).map((foot) => foot[1])).toEqual([0, 0]);
+    expect(new Set(feet(wide.prims).map((foot) => foot[0])).size).toBe(2);
+    expect(wide.prims.some((p) => p.t === "card" && !p.small)).toBe(true);
+    // Stacked, over is along the line, so an edge goes out to the side. Round the top of each spiral it passes, lid
+    // and turns: where it is level with that top it is more than the lid's radius (the turn's and 18) from the
+    // middle, on every template; and on the side of its own end there, so that it does not cross the turns.
+    let [passed, right, exits] = [0, 0, 0];
+    for (const path of ALL) {
+      const doc = graph(path);
+      const g = modelAt(doc, places(doc), undefined, true);
+      const drawn = spiral(g, whole);
+      const tops = feetOf(drawn.prims);
+      for (const e of g.edges) {
+        const pts = drawn.path(e.id, 0, e.back ? 1 : 0);
+        if (pts.length !== 19) continue;
+        for (const top of tops) {
+          const k = pts.findIndex((v, n) => n > 0 && (pts[n - 1]![1] - top.y) * (v[1] - top.y) < 0);
+          if (k < 0) continue;
+          const x = pts[k - 1]![0] + ((pts[k]![0] - pts[k - 1]![0]) * (top.y - pts[k - 1]![1])) / (pts[k]![1] - pts[k - 1]![1]);
+          expect(Math.abs(x), `${path} ${e.id}`).toBeGreaterThan(top.r + 18 + 8);
+          // Between two places on the right of their spirals it stays on the right.
+          if (drawn.node(e.from)[0] > 0 && drawn.node(e.to)[0] > 0) expect(x, `${path} ${e.id}`).toBeGreaterThan(0), (right += 1);
+          passed += 1;
+        }
+      }
+    }
+    expect([passed > 6, right > 0]).toEqual([true, true]);
+    // An exit taken in a later round comes down outside the turns under it, on its own side: the recorded sandwich
+    // run left its loop from round 1, and where that edge is level with the spiral's foot it is outside the turn,
+    // on the side its critic stands on.
+    for (const [name, edge] of [["slice-0007-sandwich", "e-critic-pass"]] as const) {
+      const [doc, written] = runAt(name);
+      const g = modelAt(doc, places(doc), written, true);
+      const drawn = spiral(g, at(g, 0));
+      const taken = drawn.prims.flatMap((p) => (p.t === "line" && p.key?.startsWith(`edge:${edge}@`) && (p.alpha ?? 1) === 1 ? [p.pts] : []));
+      expect(taken.length, name).toBeGreaterThan(0);
+      const [foot] = feet(drawn.prims).sort((a, b) => a[1] - b[1]);
+      const { r } = feetOf(drawn.prims).sort((a, b) => a.y - b.y)[0]!;
+      for (const pts of taken) {
+        if (pts[0]![1] - foot![1] < 54) continue;
+        const k = pts.findIndex((v, n) => n > 0 && (pts[n - 1]![1] - foot![1]) * (v[1] - foot![1]) <= 0);
+        const x = pts[k - 1]![0] + ((pts[k]![0] - pts[k - 1]![0]) * (foot![1] - pts[k - 1]![1])) / (pts[k]![1] - pts[k - 1]![1] || 1);
+        expect([Math.abs(x) > r + 18, Math.sign(x) === Math.sign(pts[0]![0])], `${name} ${edge}`).toEqual([true, true]);
+        // And all the way down to there: never inside the turns, seen from above.
+        for (const v of pts.slice(0, k)) expect(Math.hypot(v[0] - foot![0], v[2] - foot![2]), `${name} ${edge}`).toBeGreaterThan(r - 1);
+        exits += 1;
+      }
+    }
+    expect(exits).toBeGreaterThan(0);
+    // With a node on the ground between its ends it goes to the left, whatever side its end is on: the cards on the
+    // ground are to the right. Spec, then a loop: an edge from the planner past the gate to the critic, on the right.
+    const spec = graph("patterns/spec-then-loop.grooph.json");
+    const withGate = modelAt(spec, places(spec), undefined, true);
+    const [first, gate] = withGate.rows.flat();
+    const onRight = withGate.nodes.find((n) => n.loop && spiral(withGate, whole).node(n.id)[0] > 0)!;
+    const added: Graph = { ...spec, edges: [...spec.edges, { id: "e-added", from: first!, to: onRight.id }] } as Graph;
+    const bowed = spiral(modelAt(added, places(added), undefined, true), whole);
+    expect(withGate.nodes.find((n) => n.id === gate)!.loop).toBeNull();
+    expect(Math.max(...bowed.path("e-added").slice(0, 10).map((v) => v[0]))).toBeLessThanOrEqual(bowed.node(first!)[0]);
+    // Two edges between the same two nodes are not one line: the second is drawn past the first, stacked and wide.
+    const fresh = graph("patterns/fresh-grind-rare-judge.grooph.json");
+    for (const narrowly of [true, false]) {
+      const twins = spiral(modelAt(fresh, places(fresh), undefined, narrowly), whole);
+      const [one, two] = [twins.path("e-judge-fail", 0, 1), twins.path("e-judge-next-phase", 0, 1)];
+      expect(Math.hypot(one[9]![0] - two[9]![0], one[9]![1] - two[9]![1]), String(narrowly)).toBeGreaterThan(10);
+    }
+    // Round the nodes on the ground between its ends, to the left, where no card stands: three candidates each go
+    // to the filter, and the first's edge is 30 or more to the left of the second and the third where it passes them.
+    const tournament = graph("patterns/tournament-then-judge.grooph.json");
+    const stacked = spiral(modelAt(tournament, places(tournament), undefined, true), whole);
+    const across = (id: string, y: number): number => {
+      const pts = stacked.path(id);
+      const k = pts.findIndex((v, n) => n > 0 && (pts[n - 1]![1] - y) * (v[1] - y) <= 0);
+      return pts[k - 1]![0] + ((pts[k]![0] - pts[k - 1]![0]) * (y - pts[k - 1]![1])) / (pts[k]![1] - pts[k - 1]![1] || 1);
+    };
+    for (const between of ["candidate-b", "candidate-c"]) expect(across("e-candidate-a-filter", stacked.node(between)[1]) - stacked.node(between)[0], between).toBeLessThan(-30);
+    expect(across("e-candidate-b-filter", stacked.node("candidate-c")[1]) - stacked.node("candidate-c")[0]).toBeLessThan(-30);
+    expect(stacked.path("e-candidate-c-filter").every((v) => v[0] === stacked.node("filter")[0])).toBe(true);
+    // And a graph with no loop keeps its cards whole there: a column has room for them.
+    expect(stacked.prims.some((p) => p.t === "card" && p.small)).toBe(false);
+    // Two takings of one edge between the two spirals of the nested run, one over the other, are apart.
+    const [nestedDoc, nestedNotes] = runAt("run-nested");
+    const ran = modelAt(nestedDoc, places(nestedDoc), nestedNotes, true);
+    const takings = spiral(ran, at(ran, 0)).prims.flatMap((p) => (p.t === "line" && p.key?.startsWith("edge:e-tests-judge@") ? [p.pts] : []));
+    expect(takings).toHaveLength(2);
+    expect(Math.abs(takings[0]![9]![0] - takings[1]![9]![0])).toBeGreaterThan(5);
+    // No loop, narrow: a column, each node 52 under the one before it.
+    const line = graph("patterns/tournament-then-judge.grooph.json");
+    const column = spiral(modelAt(line, places(line), undefined, true), whole);
+    const down = modelAt(line, places(line)).rows.flat().map((id) => column.node(id));
+    for (let n = 1; n < down.length; n += 1) expect([down[n]![0], down[n - 1]![1] - down[n]![1], down[n]![2]]).toEqual([down[0]![0], 52, down[0]![2]]);
+  });
+
   it("a node that fans out reaches each of its targets and one that fans in is reached by each of its sources: every such edge was taken", () => {
     // The critic bank: the builder's pass goes to four critics at once, and each critic's pass to the judge.
     const bank = graph("patterns/specialist-critic-bank.grooph.json");
@@ -771,15 +1081,18 @@ describe("rings", () => {
     // Three candidates go to one filter: the nearest one's edge is straight, and the others go out to the left
     // round the candidates between, the farthest widest.
     const into = m.edges.filter((e) => e.to === order[3]).sort((a, b) => order.indexOf(b.from) - order.indexOf(a.from));
-    expect(into.map((e) => Math.round(Math.min(...flat.path(e.id).map((p) => p[0]))))).toEqual([0, -34, -68]);
+    expect(into.map((e) => Math.round(Math.min(...flat.path(e.id).map((p) => p[0]))))).toEqual([0, -34, -76]);
     expect(flat.prims.every((p) => p.t !== "card" || !p.small)).toBe(true);
     // And an edge that would run through a node it has nothing to do with goes round it, on the ground or on a
-    // ring: on every template and valid fixture, each edge that is not along its ring is out to the side, by 34 for
-    // each, of every node within 24 of the straight line between its ends.
-    const near = (p: number[], q: number[], o: number[]): boolean => {
-      const [d, w] = [[q[0]! - p[0]!, q[1]! - p[1]!, q[2]! - p[2]!], [o[0]! - p[0]!, o[1]! - p[1]!, o[2]! - p[2]!]];
-      const t = Math.max(0, Math.min(1, (w[0]! * d[0]! + w[1]! * d[1]! + w[2]! * d[2]!) / (d[0]! ** 2 + d[1]! ** 2 + d[2]! ** 2 || 1)));
-      return Math.hypot(w[0]! - d[0]! * t, w[1]! - d[1]! * t, w[2]! - d[2]! * t) < 24;
+    // ring. Measured, not restated: on every template and valid fixture, for each edge that is not along its ring
+    // and each node within 24 of the straight line between its ends, seen from above, and not hard by an end, the
+    // line as drawn is aside, where it is level with that node, by the room the node's card takes: 60 where the
+    // card stands over its node on a ring (it is 53 to each side), 32 on the ground, where the card is to the right
+    // and the line goes to the left.
+    const plan = (p: number[], q: number[], o: number[]): [number, number] => {
+      const [dx, dz, wx, wz] = [q[0]! - p[0]!, q[2]! - p[2]!, o[0]! - p[0]!, o[2]! - p[2]!];
+      const t = Math.max(0, Math.min(1, (wx * dx + wz * dz) / (dx * dx + dz * dz || 1)));
+      return [Math.hypot(wx - dx * t, wz - dz * t), t];
     };
     let lifted = 0;
     const valid = readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`);
@@ -791,11 +1104,18 @@ describe("rings", () => {
         const pts = drawn.path(e.id);
         const [p, q] = [drawn.node(e.from), drawn.node(e.to)];
         if (pts.length !== 19) continue;
-        const through = g.nodes.filter((n) => n.id !== e.from && n.id !== e.to && near(p, q, drawn.node(n.id))).length;
-        // How far the middle of the path is, on the ground, from the middle of the straight line.
-        const aside = Math.round(Math.hypot(pts[9]![0] - (p[0] + q[0]) / 2, pts[9]![2] - (p[2] + q[2]) / 2));
-        expect(aside, `${path} ${e.id}`).toBe(34 * through);
-        lifted += through;
+        for (const n of g.nodes) {
+          const [off, t] = plan(p, q, drawn.node(n.id));
+          if (n.id === e.from || n.id === e.to || off >= 24 || t < 0.1 || t > 0.9) continue;
+          // Where the line as drawn is when it is level with the node: so far from the straight line's place there.
+          const [k, f] = [Math.min(17, Math.floor(t * 18)), t * 18 - Math.min(17, Math.floor(t * 18))];
+          const [x, z] = [pts[k]![0] + (pts[k + 1]![0] - pts[k]![0]) * f, pts[k]![2] + (pts[k + 1]![2] - pts[k]![2]) * f];
+          const aside = Math.hypot(x - (p[0] + (q[0] - p[0]) * t), z - (p[2] + (q[2] - p[2]) * t));
+          expect(aside, `${path} ${e.id} past ${n.id}`).toBeGreaterThanOrEqual(n.loop ? 60 : 32);
+          // To the left of a line on the ground, whichever way the edge runs along it.
+          if (p[0] === 0 && q[0] === 0) expect(Math.max(...pts.map((b) => b[0])), `${path} ${e.id}`).toBeLessThanOrEqual(0);
+          lifted += 1;
+        }
       }
     }
     expect(lifted).toBeGreaterThan(4);
@@ -804,7 +1124,136 @@ describe("rings", () => {
     const queue = graph("patterns/merge-queue.grooph.json");
     const q = rings(modelAt(queue, places(queue)), whole);
     const across = q.path("e-integrate-land-gate");
-    expect([Math.round(across[0]![0]), Math.round(across[18]![0]), Math.round(Math.min(...across.map((v) => v[0])))]).toEqual([0, 0, -34]);
+    expect([Math.round(across[0]![0]), Math.round(across[18]![0])]).toEqual([0, 0]);
+    // Bisector's card stands over its place, 53 to each side: behind it, where the card is from where the view
+    // starts, the line is more than that to the left of it.
+    const bisect = q.node("bisect");
+    const behind = across.filter((v) => v[2] <= bisect[2] && v[2] >= bisect[2] - 70);
+    expect(behind.length).toBeGreaterThan(2);
+    for (const v of behind) expect(v[0]).toBeLessThan(bisect[0] - 55);
+  });
+
+  it("an edge goes to the left of a line on the ground whichever way it runs, round what stands under it when it rises, and round the foot of a ring on a ring; a node's own edge is a small round beside it", () => {
+    const base = { ...REVIEW, policies: [] };
+    const node = (id: string) => ({ ...REVIEW.nodes.find((n) => n.id === "builder")!, id, name: id.toUpperCase() });
+    const loopOf = (id: string, members: string[], back: string[]) => ({ ...REVIEW.loops[0]!, id, name: id, members, back });
+    // Ground nodes s1 and s2 after a loop of a and b; an edge from s2 back up the line to b passes s1, to its left.
+    const up = { ...base, nodes: ["a", "b", "s1", "s2"].map(node), edges: [{ id: "ab", from: "a", to: "b" }, { id: "ba", from: "b", to: "a", when: "fail" }, { id: "b1", from: "b", to: "s1", when: "pass" }, { id: "12", from: "s1", to: "s2" }, { id: "2b", from: "s2", to: "b" }], loops: [loopOf("l", ["a", "b"], ["ba"])] } as unknown as Graph;
+    const drawnUp = rings(modelAt(up, places(up)), whole);
+    expect(Math.max(...drawnUp.path("2b").map((v) => v[0]))).toBeLessThanOrEqual(Math.max(drawnUp.node("s2")[0], drawnUp.node("b")[0]));
+    expect(Math.min(...drawnUp.path("2b").map((v) => v[0]))).toBeLessThan(-30);
+    // An outer loop of a and an inner ring of b and c: an edge from the ground to b rises over a, and goes round it;
+    // and one from the ground past the inner ring's foot goes round the foot.
+    const rise = { ...base, nodes: ["g", "a", "b", "c", "end"].map(node), edges: [{ id: "ga", from: "g", to: "a" }, { id: "gb", from: "g", to: "b" }, { id: "ab", from: "a", to: "b" }, { id: "bc", from: "b", to: "c" }, { id: "cb", from: "c", to: "b", when: "fail" }, { id: "ca", from: "c", to: "a", when: "blocked" }, { id: "ce", from: "c", to: "end", when: "pass" }, { id: "ge", from: "g", to: "end" }], loops: [loopOf("outer", ["a", "b", "c"], ["ca"]), loopOf("inner", ["b", "c"], ["cb"])] } as unknown as Graph;
+    const m = modelAt(rise, places(rise));
+    const drawn = rings(m, whole);
+    const level = (id: string, o: number[]): number => {
+      const pts = drawn.path(id);
+      const k = pts.findIndex((v, n) => n > 0 && (pts[n - 1]![2] - o[2]!) * (v[2] - o[2]!) <= 0);
+      return k < 0 ? Number.NaN : pts[k]![0] - o[0]!;
+    };
+    // Over a (a card on a ring, 53 to each side of it): the rising edge is level with a more than that to its left.
+    expect(level("gb", drawn.node("a"))).toBeLessThan(-55);
+    // The inner ring's foot is under its middle: the edge along the ground from g to the end goes round it.
+    const foot = m.loops.find((l) => l.id === "inner")!;
+    const under = drawn.prims.flatMap((p) => (p.t === "dot" && p.r === 4 ? [p.at] : []))[0]!;
+    expect(foot.inside).toBe("outer");
+    expect(Math.abs(level("ge", under))).toBeGreaterThan(30);
+    // A node's own way back, in a loop of two: a round of 26 beside the node, away from the ring's middle, that
+    // starts and ends at the node. Not a stick up and down.
+    const selfish = { ...up, edges: [...up.edges, { id: "aa", from: "a", to: "a", when: "blocked" }], loops: [loopOf("l", ["a", "b"], ["ba", "aa"])] } as unknown as Graph;
+    const own = rings(modelAt(selfish, places(selfish)), whole);
+    const round = own.path("aa");
+    const a = own.node("a");
+    expect(round).toHaveLength(25);
+    expect([round[0], round[24]].map((v) => v!.map((x) => Math.round(x)))).toEqual([a, a].map((v) => v.map((x) => Math.round(x))));
+    expect(new Set(round.map((v) => v[1])).size).toBe(1);
+    expect(Math.round(Math.max(...round.map((v) => Math.hypot(v[0] - a[0], v[2] - a[2]))))).toBe(52);
+  });
+
+  it("held against one-line changes: an edge to the next station is an arc of the smallest ring both ends are on, only that loop's own way back closes it, twins are outside and higher, rings on a ring stand clear, nothing on the ground is in a ring, and a ring's name is outside it at the near left", () => {
+    const node = (id: string) => ({ ...REVIEW.nodes.find((n) => n.id === "builder")!, id, name: id.toUpperCase() });
+    const loopOf = (id: string, members: string[], back: string[]) => ({ ...REVIEW.loops[0]!, id, name: id, members, back });
+    const make = (nodes: string[], edges: [string, string, string, string?][], loops: [string, string[], string[]][]): Graph => ({ ...REVIEW, policies: [], nodes: nodes.map(node), edges: edges.map(([id, from, to, when]) => ({ id, from, to, ...(when ? { when } : {}) })), loops: loops.map(([id, members, back]) => loopOf(id, members, back)) }) as unknown as Graph;
+    /** A ring's middle and how far out its line is, from the band it is drawn as (15 to each side of the line). */
+    const ringOf = (built: ReturnType<typeof rings>, id: string): { c: number[]; r: number } => {
+      const band = built.prims.find((p) => p.t === "poly" && p.key === `loop:${id}`) as Extract<ReturnType<typeof rings>["prims"][number], { t: "poly" }>;
+      const c = [0, 1, 2].map((k) => (Math.min(...band.pts.map((v) => v[k]!)) + Math.max(...band.pts.map((v) => v[k]!))) / 2);
+      return { c, r: Math.max(...band.pts.map((v) => Math.hypot(v[0] - c[0]!, v[2] - c[2]!))) - 15 };
+    };
+    const out = (v: number[], c: number[]): number => Math.hypot(v[0]! - c[0]!, v[2]! - c[2]!);
+    // Builder to tests is in Grind and in Phases: it is an arc of Grind's ring, the smaller, every point of it on
+    // that ring's line. A straight line between the two would be nearer the middle.
+    const [nested] = runAt("run-nested");
+    const built = rings(modelAt(nested, places(nested)), whole);
+    const grind = ringOf(built, "grind");
+    for (const v of built.path("e-builder-tests")) expect(Math.abs(out(v, grind.c) - grind.r)).toBeLessThan(0.01);
+    // Whichever of the two loops the document lists first.
+    const turned: Graph = { ...nested, loops: [...nested.loops].reverse() };
+    const again = rings(modelAt(turned, places(turned)), whole);
+    for (const v of again.path("e-builder-tests")) expect(Math.abs(out(v, ringOf(again, "grind").c) - ringOf(again, "grind").r)).toBeLessThan(0.01);
+    // A node of an inner loop that stands on another loop's ring (the two share it, and it is the other's) is not
+    // at the inner ring's station on the outer one: an edge to it from the outer ring goes across to where it is.
+    const lent = make(["o", "i", "x", "s"], [["oi", "o", "i"], ["ix", "i", "x"], ["xi", "x", "i", "fail"], ["xo", "x", "o", "blocked"], ["xs", "x", "s", "pass"], ["sx", "s", "x", "fail"], ["ox", "o", "x", "pass"]], [["shared", ["x", "s"], ["sx"]], ["inner", ["i", "x"], ["xi"]], ["outer", ["o", "i", "x"], ["xo"]]]);
+    const away = modelAt(lent, places(lent));
+    expect(away.nodes.find((n) => n.id === "x")!.loop).toBe("shared");
+    expect(rings(away, whole).path("ox")).toHaveLength(19);
+    // The judge's second way back to the builder (the first is the rest of Phases' ring) is outside the first, on a
+    // line 16 farther out, and not inside it.
+    const phases = ringOf(built, "phases");
+    const [first, second] = [built.path("e-judge-fail"), built.path("e-judge-next-phase")].sort((x, y) => out(x[12]!, phases.c) - out(y[12]!, phases.c));
+    expect(Math.round(out(second![12]!, phases.c) - out(first![12]!, phases.c))).toBe(16);
+    expect(Math.abs(out(first![12]!, phases.c) - phases.r)).toBeLessThan(0.01);
+    // A way back of the outer loop between two nodes of the inner one, from its last station to its first, is not
+    // the inner ring's own: it does not close that ring, and is drawn across. Nor is a way back to the next station
+    // laid along the ring as the edge onward is.
+    const other = make(["a", "b", "j"], [["ab", "a", "b"], ["ba", "b", "a", "fail"], ["ba2", "b", "a", "blocked"], ["bj", "b", "j", "pass"], ["ja", "j", "a", "fail"], ["ab2", "a", "b", "blocked"]], [["inner", ["a", "b"], ["ba", "ab2"]], ["outer", ["a", "b", "j"], ["ja", "ba2"]]]);
+    const crossed = rings(modelAt(other, places(other)), whole);
+    expect([crossed.path("ba").length, crossed.path("ba2").length, crossed.path("ab").length, crossed.path("ab2").length]).toEqual([25, 19, 25, 19]);
+    // Two plain edges between the same two nodes, not along a ring: the second is 22 higher.
+    const pair = make(["a", "b", "c"], [["ab", "a", "b"], ["bc", "b", "c"], ["ac", "a", "c"], ["ac2", "a", "c"]], []);
+    const twice = rings(modelAt(pair, places(pair)), whole);
+    expect([Math.max(...twice.path("ac").map((v) => v[1])), Math.max(...twice.path("ac2").map((v) => v[1]))]).toEqual([0, 22]);
+    // Two rings standing on one ring, of five nodes and of three, with two more stations on it: their lines are
+    // clear of each other by more than the two bands (30).
+    const big = make(
+      ["p", "q", "r", "s", "w", "t", "u", "v", "x", "y"],
+      [["pq", "p", "q"], ["qr", "q", "r"], ["rs", "r", "s"], ["sw", "s", "w"], ["wp", "w", "p", "fail"], ["wt", "w", "t", "pass"], ["tu", "t", "u"], ["uv", "u", "v"], ["vt", "v", "t", "fail"], ["vx", "v", "x", "pass"], ["xy", "x", "y"], ["yp", "y", "p", "fail"]],
+      [["one", ["p", "q", "r", "s", "w"], ["wp"]], ["two", ["t", "u", "v"], ["vt"]], ["all", ["p", "q", "r", "s", "w", "t", "u", "v", "x", "y"], ["yp"]]],
+    );
+    const stood = rings(modelAt(big, places(big)), whole);
+    const [one, two] = [ringOf(stood, "one"), ringOf(stood, "two")];
+    expect([one.r, two.r].map(Math.round)).toEqual([150, 90]);
+    expect(out(one.c, two.c)).toBeGreaterThan(one.r + two.r + 30);
+    // On every template and valid fixture: no node on the ground is inside a ring's band or within it, counting
+    // the rings that stand on it; and the node before a ring is 100 or more short of the ring's far side, where
+    // the first station's card stands over the ground behind it.
+    const valid = readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`);
+    let looked = 0;
+    for (const path of [...ALL, ...valid, "big"]) {
+      const doc = path === "big" ? make(["g", ...big.nodes.map((n) => n.id), "end"], [["gp", "g", "p"], ...big.edges.map((e): [string, string, string, string?] => [e.id, e.from, e.to, (e as { when?: string }).when]), ["ye", "y", "end", "pass"]], big.loops.map((l): [string, string[], string[]] => [l.id, l.members, l.back ?? []])) : graph(path);
+      const g = modelAt(doc, places(doc));
+      const drawn = rings(g, whole);
+      for (const n of g.nodes.filter((x) => !x.loop)) {
+        for (const l of g.loops) {
+          const { c, r } = ringOf(drawn, l.id);
+          expect(out(drawn.node(n.id), c), `${path}: ${n.id} and ${l.id}`).toBeGreaterThan(r + 15);
+          if (!l.inside && drawn.node(n.id)[2] < c[2]!) expect(c[2]! - r - drawn.node(n.id)[2], `${path}: ${n.id} before ${l.id}`).toBeGreaterThanOrEqual(100);
+          looked += 1;
+        }
+      }
+      // A ring's name: outside its band, to the left of its middle and nearer the reader.
+      for (const l of g.loops) {
+        const { c, r } = ringOf(drawn, l.id);
+        const name = drawn.prims.find((p) => p.t === "text" && p.text.split("\n")[0] === l.name) as Extract<ReturnType<typeof rings>["prims"][number], { t: "text" }>;
+        expect(out(name.at, c), `${path}: ${l.id}`).toBeGreaterThan(r + 15);
+        expect([name.at[0] < c[0]!, name.at[2] > c[2]!], `${path}: ${l.id}`).toEqual([true, true]);
+      }
+    }
+    expect(looked).toBeGreaterThan(40);
+    // In a frame a phone's width every card is its name alone; where there is room, a card on a ring is whole.
+    expect(rings(modelAt(GAUNTLET, places(GAUNTLET), undefined, true), whole).prims.every((p) => p.t !== "card" || p.small)).toBe(true);
+    expect(rings(modelAt(GAUNTLET, places(GAUNTLET)), whole).prims.some((p) => p.t === "card" && !p.small)).toBe(true);
   });
 
   it("two edges between the same two nodes are drawn apart, and a loop of one node has a ring that its way back goes all the way round", () => {
@@ -893,44 +1342,106 @@ describe("columns", () => {
     expect(Object.values(TIER).filter((h) => h === 16)).toHaveLength(1);
   });
 
-  it("on a run a column is a block for each dispatch so far, as tall as its minutes, in its outcome's color; the blocks are said in words, and the column's whole time beside it", () => {
+  it("on a run a column is a block for each dispatch so far, as tall as its own minutes, in its outcome's color; one with no minutes is a faint line; the blocks are said in words, and the column's whole time beside it", () => {
     const m = modelAt(RUN, places(RUN), NOTES);
-    // The whole run. The builder: 19.7 and 4.23 minutes, on a slab 4 high, 2 between blocks.
+    const name = RUN.loops[0]!.name;
+    // The whole run. The builder: 19.7 minutes, and a second dispatch whose stamps do not say (it is stamped as
+    // starting after it ended): on a slab 4 high, one block on the other with nothing between, the second a faint line.
     const builder = lids(columns(m, at(m, 0)).prims, "builder");
-    expect(builder).toEqual([[Math.round((4 + 19.7 * MINUTE) * 100) / 100, "ok", 1], [Math.round((4 + 19.7 * MINUTE + 2 + 4.23 * MINUTE) * 100) / 100, "ok", 1]]);
-    // The critic failed, then passed; the checks' two blocks are under half a minute's height and are 3 tall.
-    expect(lids(columns(m, at(m, 0)).prims, "critic").map((x) => x[1])).toEqual(["bad", "ok"]);
-    expect(lids(columns(m, at(m, 0)).prims, "checks").map((x) => x[0])).toEqual([Math.round((4 + 0.57 * MINUTE) * 100) / 100, Math.round((4 + 0.57 * MINUTE + 2 + 0.47 * MINUTE) * 100) / 100]);
-    // A block is never less than 3 tall, however short its dispatch.
-    const quick = modelAt(RUN, places(RUN), NOTES.map((n) => (n.id === "n-0005" ? ({ ...n, ended: NOTES.find((x) => x.id === "n-0004")!.ended } as RunNote) : n)));
-    expect(lids(columns(quick, at(quick, 5)).prims, "checks")).toEqual([[7, "ok", 1]]);
-    // A node with no dispatch is a slab, and no block.
+    expect(builder).toEqual([[151.75, "ok", 1], [152.75, "ok", 0.4]]);
+    // The critic failed, then passed (no minutes); the checks' two blocks are their 25 and 28 seconds tall.
+    expect(lids(columns(m, at(m, 0)).prims, "critic")).toEqual([[54.38, "bad", 1], [55.38, "ok", 0.4]]);
+    expect(lids(columns(m, at(m, 0)).prims, "checks").map((x) => x[0])).toEqual([7.13, 10.63]);
+    // Heights compare minutes: a block is its minutes and no more, down to a line 1 tall for none at all.
+    const quick = modelAt(RUN, places(RUN), NOTES.map((n) => (n.id === "n-0005" ? ({ ...n, ended: n.started } as RunNote) : n)));
+    expect(lids(columns(quick, at(quick, 5)).prims, "checks")).toEqual([[5, "ok", 1]]);
+    // A node with no dispatch is a slab, and no block; every node of a run stands on a slab 4 high.
     expect(lids(columns(m, at(m, 0)).prims, "done")).toEqual([]);
-    expect(blocks(m, at(m, 0))).toEqual([
-      { id: "builder", name: "Builder", words: ["round 0, 19.7 min", "round 1, 4.23 min"], total: 19.7 + 4.23 },
-      { id: "checks", name: "Cheap checks", words: ["round 0, 0.57 min", "round 1, 0.47 min"], total: 0.57 + 0.47 },
-      { id: "critic", name: "Critic", words: ["round 0, 7.45 min, fail", "round 1, 4.83 min"], total: 7.45 + 4.83 },
+    expect(columns(m, at(m, 0)).prims.filter((p) => p.t === "poly" && p.fill === "floor" && p.fa === 1 && p.pts[0]![1] === 4)).toHaveLength(m.nodes.length);
+    expect(blocks(m, at(m, 0)).map(({ id, name: of, words, total }) => ({ id, of, words, total }))).toEqual([
+      { id: "builder", of: "Builder", words: [`${name} round 0, 19.7 min`, `${name} round 1, no time`], total: "19.7 min and more" },
+      { id: "checks", of: "Cheap checks", words: [`${name} round 0, 0.4 min`, `${name} round 1, 0.5 min`], total: "0.9 min" },
+      { id: "critic", of: "Critic", words: [`${name} round 0, 6.7 min, fail`, `${name} round 1, no time`], total: "6.7 min and more" },
     ]);
-    // By note 6, the critic's fail: one block each, and the words stop there too.
-    expect(blocks(m, at(m, 6)).map((x) => [x.id, x.words])).toEqual([["builder", ["round 0, 19.7 min"]], ["checks", ["round 0, 0.57 min"]], ["critic", ["round 0, 7.45 min, fail"]]]);
+    // By note 6, the critic's fail: one block each, and the words and the whole stop there too.
+    expect(blocks(m, at(m, 6)).map((x) => [x.id, x.words, x.total])).toEqual([["builder", [`${name} round 0, 19.7 min`], "19.7 min"], ["checks", [`${name} round 0, 0.4 min`], "0.4 min"], ["critic", [`${name} round 0, 6.7 min, fail`], "6.7 min"]]);
     expect(lids(columns(m, at(m, 6)).prims, "builder")).toHaveLength(1);
     expect(blocks(m, at(m, 1))).toEqual([]);
-    // The whole of a column, to two places, beside its top.
-    const beside = columns(m, at(m, 0)).prims.flatMap((p) => (p.t === "text" && p.text.endsWith(" min") ? [p.text] : []));
-    expect(beside).toEqual(["23.93 min", "1.04 min", "12.28 min"]);
+    // The whole of a column beside its top, at its left, as far as the slider has come; with a place over the top
+    // to stand at where a card is over that.
+    const beside = (k: number) => columns(m, at(m, k)).prims.flatMap((p) => (p.t === "text" && /min|no time/.test(p.text) ? [p] : []));
+    expect(beside(0).map((p) => p.text)).toEqual(["19.7 min and more", "0.9 min", "6.7 min and more"]);
+    expect(beside(6).map((p) => p.text)).toEqual(["19.7 min", "0.4 min", "6.7 min"]);
+    const foot = columns(m, at(m, 0)).node("builder");
+    expect([beside(0)[0]!.at, beside(0)[0]!.or]).toEqual([[foot[0] - 33, 152.75, foot[2] + 18], [{ at: [foot[0], 164.75, foot[2]], align: "center" }]]);
+    // A dispatch with no minutes alone: "no time", and no figure.
+    const bare = modelAt(RUN, places(RUN), NOTES.map(({ started: _s, ...n }) => n as RunNote));
+    expect(blocks(bare, at(bare, 0)).map((x) => x.total)).toEqual(["no time", "no time", "no time"]);
     // A dispatch that neither passed nor failed is gray, and says its outcome; one at a node in no loop has no round.
     const odd = modelAt({ ...RUN, loops: [] }, places(RUN), NOTES.map((n) => (n.id === "n-0006" ? ({ ...n, outcome: "halt" } as RunNote) : n)));
     expect(lids(columns(odd, at(odd, 0)).prims, "critic").map((x) => x[1])).toEqual(["ink-3", "ok"]);
-    expect(blocks(odd, at(odd, 0)).find((x) => x.id === "critic")!.words).toEqual(["7.45 min, halt", "4.83 min"]);
+    expect(blocks(odd, at(odd, 0)).find((x) => x.id === "critic")!.words).toEqual(["6.7 min, halt", "no time"]);
+    // A round is its loop's: in the nested run the builder is in Grind's rounds, the judge in Phases'.
+    const [nested, nestedNotes] = runAt("run-nested");
+    const n = modelAt(nested, places(nested), nestedNotes);
+    expect(blocks(n, at(n, 0)).map((x) => [x.id, x.words[0]])).toEqual([["builder", "Grind round 0, no time"], ["tests", "Grind round 0, no time, fail"], ["judge", "Phases round 0, no time, fail"]]);
   });
 
-  it("two edges between the same two nodes are drawn apart", () => {
+  it("an edge runs from the edge of its column's foot that faces the other, through no column; two between the same two nodes are apart, down the page and across it; a loop is the ground under its nodes, with its name", () => {
+    /** Whether a point on the ground is inside a column's foot (58 by 36), a hair in. */
+    const inside = (v: number[], c: number[]): boolean => Math.abs(v[0]! - c[0]!) < 28 && Math.abs(v[2]! - c[2]!) < 17;
+    const valid = readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`);
+    let curved = 0;
+    for (const path of [...ALL, ...valid]) for (const wide of [2, 4]) {
+      const doc = graph(path);
+      const m = modelAt(doc, places(doc, wide));
+      const built = columns(m, whole);
+      for (const e of m.edges) {
+        const pts = built.path(e.id);
+        // Finely, along the line as drawn: in no column's foot, its own two among them.
+        const fine = pts.slice(1).flatMap((b, k) => Array.from({ length: 8 }, (_, n) => [pts[k]![0] + ((b[0] - pts[k]![0]) * n) / 8, 0, pts[k]![2] + ((b[2] - pts[k]![2]) * n) / 8]));
+        for (const n of m.nodes) expect(fine.some((v) => inside(v, built.node(n.id))), `${path} at ${wide} to a row: ${e.id} through ${n.id}`).toBe(false);
+        if (e.from !== e.to) for (const [end, id] of [[pts[0]!, e.from], [pts[pts.length - 1]!, e.to]] as const) expect([Math.abs(end[0] - built.node(id)[0]) <= 35.01, Math.abs(end[2] - built.node(id)[2]) <= 24.01], `${path} ${e.id}`).toEqual([true, true]);
+        curved += Number(pts.length === 19 && !e.back && !m.edges.some((x) => x !== e && ((x.from === e.from && x.to === e.to) || (x.from === e.to && x.to === e.from))));
+      }
+    }
+    // Some of them went round a column to be so: forward edges with no twin, bowed.
+    expect(curved).toBeGreaterThan(3);
+    // Down the page (the nested run's judge has two ways back to the builder): 18 apart, to the left.
     const [doc] = runAt("run-nested");
     const built = columns(modelAt(doc, places(doc)), whole);
     const [a, b] = [built.path("e-judge-fail"), built.path("e-judge-next-phase")];
     expect([a.length, b.length]).toEqual([19, 19]);
-    expect(Math.abs(a[9]![0] - b[9]![0])).toBe(18);
+    expect(Math.round(Math.hypot(a[9]![0] - b[9]![0], a[9]![2] - b[9]![2]))).toBe(18);
     expect([a[0], a[18]]).toEqual([b[0], b[18]]);
+    // Across it (the review loop's own layout is one row): the forward edge is straight, its way back is toward
+    // the reader of it, and a second forward edge 18 toward the reader.
+    const flat = graph("fixtures/valid/review-loop.grooph.json");
+    const twice: Graph = { ...flat, edges: [...flat.edges, { ...flat.edges.find((e) => e.id === "e-review-pass")!, id: "e-review-pass-too" }] };
+    const row = columns(modelAt(twice, places(twice, 4)), whole);
+    expect(row.path("e-build-review")).toHaveLength(2);
+    expect(row.path("e-review-fail")[9]![2] - row.path("e-review-fail")[0]![2]).toBeGreaterThan(34);
+    expect([row.path("e-review-pass").length, Math.round(row.path("e-review-pass-too")[9]![2] - row.path("e-review-pass-too")[0]![2])]).toEqual([2, 18]);
+    // A node's own edge is a spur out to its left and back.
+    const selfish: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-self", from: "builder", to: "builder" }] } as Graph;
+    const own = columns(modelAt(selfish, places(selfish)), whole);
+    expect([own.path("e-self")[0]![0] - own.node("builder")[0], own.path("e-self")[9]![0] - own.path("e-self")[0]![0], own.path("e-self")[18]]).toEqual([-35, -34, own.path("e-self")[0]]);
+    // A loop: a rectangle on the ground under its own nodes and no others', and its name at its corner.
+    const g = modelAt(GAUNTLET, places(GAUNTLET));
+    const drawn = columns(g, whole);
+    for (const loop of g.loops) {
+      const ground = drawn.prims.find((p) => p.t === "poly" && p.key === `loop:${loop.id}`) as Extract<ReturnType<typeof columns>["prims"][number], { t: "poly" }>;
+      const [x0, x1, z0, z1] = [Math.min(...ground.pts.map((v) => v[0])), Math.max(...ground.pts.map((v) => v[0])), Math.min(...ground.pts.map((v) => v[2])), Math.max(...ground.pts.map((v) => v[2]))];
+      for (const n of g.nodes) expect(drawn.node(n.id)[0] > x0 && drawn.node(n.id)[0] < x1 && drawn.node(n.id)[2] > z0 && drawn.node(n.id)[2] < z1, `${loop.id} ${n.id}`).toBe(loop.members.includes(n.id));
+      expect(drawn.prims.filter((p) => p.t === "text" && p.text === loop.name && p.bold).map((p) => (p.t === "text" ? p.at : []))).toEqual([[x0 - 4, 0, z1]]);
+    }
+    // The tier's word: at the column's left, half way up, with a place over its top to stand at.
+    const planner = g.nodes.find((n) => n.tier && n.tier !== "unset")!;
+    const word = drawn.prims.find((p) => p.t === "text" && p.text === planner.tier && Math.abs(p.at[0] - (drawn.node(planner.id)[0] - 33)) < 0.01 && p.at[2] === drawn.node(planner.id)[2] + 18) as Extract<ReturnType<typeof columns>["prims"][number], { t: "text" }>;
+    expect([word.at[1], word.or]).toEqual([TIER[planner.tier!]! / 2, [{ at: [drawn.node(planner.id)[0], TIER[planner.tier!]! + 12, drawn.node(planner.id)[2]], align: "center" }]]);
+    // In a frame a phone's width a card is its name alone; where there is room it is whole.
+    expect(columns(modelAt(GAUNTLET, places(GAUNTLET), undefined, true), whole).prims.every((p) => p.t !== "card" || p.small)).toBe(true);
+    expect(drawn.prims.some((p) => p.t === "card" && p.small)).toBe(false);
   });
 
   it("on a run an edge the run has not taken by the note is faint, and on a template none is", () => {

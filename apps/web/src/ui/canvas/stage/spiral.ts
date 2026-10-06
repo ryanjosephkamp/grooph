@@ -66,9 +66,10 @@ export const spiral: View = (m, shown) => {
   const prims: Prim[] = [];
   const at: Record<Id, V> = {};
   const tower: Record<Id, { c: V; r: number; stops: Stop[]; k: number }> = {};
-  const R = (loop: MLoop): number => Math.max(64, stations(m, loop).length * 27);
+  // Wide enough round for its stations' cards to stand clear of each other.
+  const R = (loop: MLoop): number => Math.max(m.narrow ? 76 : 64, stations(m, loop).length * (m.narrow ? 31 : 27));
   type Tower = (typeof tower)[Id];
-  const on = (t: Tower, u: number, out = 0): V => [t.c[0] - (t.r + out) * Math.cos(TAU * u), u * H, t.c[2] + (t.r + out) * Math.sin(TAU * u)];
+  const on = (t: Tower, u: number, out = 0): V => [t.c[0] - (t.r + out) * Math.cos(TAU * u), t.c[1] + u * H, t.c[2] + (t.r + out) * Math.sin(TAU * u)];
   const helix = (t: Tower, u0: number, u1: number): V[] => {
     const n = Math.max(1, Math.ceil(Math.abs(u1 - u0) * 36));
     return Array.from({ length: n + 1 }, (_, k) => on(t, u0 + ((u1 - u0) * k) / n));
@@ -84,28 +85,30 @@ export const spiral: View = (m, shown) => {
     const came = m.run ? (run?.most ?? null) : (k - 1) / k;
     // As tall whatever the slider is at.
     const top = topOf(m, loop);
-    prims.push({ t: "poly", pts: circle(c, t.r + 12, 0), fill: "floor", fa: 0.8, stroke: "line", lift: -400 });
-    prims.push({ t: "line", pts: [[c[0], 0, c[2]], [c[0], top * H, c[2]]], stroke: "line-strong", w: 1 });
+    prims.push({ t: "poly", pts: circle(c, t.r + 12, c[1]), fill: "floor", fa: 0.8, stroke: "line", lift: -400 });
+    prims.push({ t: "line", pts: [[c[0], c[1], c[2]], [c[0], c[1] + top * H, c[2]]], stroke: "line-strong", w: 1 });
     // Every round the lid allows, faint; as far as the run came (for a template, its first pass), solid.
     prims.push({ t: "line", pts: helix(t, 0, top), stroke: color, w: 1.3, alpha: 0.5, dash: [3, 4] });
     if (came !== null && came > 0) prims.push({ t: "line", pts: helix(t, 0, Math.min(came, top)), stroke: color, w: 3.2, key: `loop:${loop.id}` });
     // The brakes, each where it is on the way up. The lid has no key: it is not lit when its loop is.
     const brake = brakes(loop, top);
-    if (brake.lid !== null) prims.push({ t: "poly", pts: circle(c, t.r + 18, brake.lid * H), fill: "brake", fa: 0.24, stroke: "brake", w: 1.8, lift: 300 });
+    if (brake.lid !== null) prims.push({ t: "poly", pts: circle(c, t.r + 18, c[1] + brake.lid * H), fill: "brake", fa: 0.24, stroke: "brake", w: 1.8, lift: 300 });
     // At the lid's own height too, where the person's stop is looked at before the cap: a ring inside the lid.
-    for (const u of brake.asked) prims.push({ t: "line", pts: circle(c, t.r + (u === brake.lid ? 9 : 18), u * H), stroke: "k-gate", w: 2.2, lift: 320 });
-    if (brake.budget !== null) prims.push({ t: "line", pts: circle(c, t.r + 18, brake.budget * H), stroke: "brake", w: 1.2, dash: [4, 4], alpha: 0.85 });
+    for (const u of brake.asked) prims.push({ t: "line", pts: circle(c, t.r + (u === brake.lid ? 9 : 18), c[1] + u * H), stroke: "k-gate", w: 2.2, lift: 320 });
+    if (brake.budget !== null) prims.push({ t: "line", pts: circle(c, t.r + 18, c[1] + brake.budget * H), stroke: "brake", w: 1.2, dash: [4, 4], alpha: 0.85 });
     const over = Math.max(top, brake.budget ?? 0);
     // The loop's name over its spiral, and on a run's page the round the run is in there, or was last in. Its
     // brakes are said in words under the view (`graph-stage.tsx`), where they are not written over anything.
     const where = !m.run ? "" : run === null ? "\nnot entered" : `\nround ${Math.floor(run.now)}${loop.cap ? `, lid over round ${loop.cap - 1}` : ""}`;
-    prims.push({ t: "text", at: [c[0], over * H + 46, c[2]], text: `${loop.name}${where}`, align: "center", up: true, fill: color, size: 11, bold: true, max: Math.max(120, 2 * t.r + 30) });
+    prims.push({ t: "text", at: [c[0], c[1] + over * H + 46, c[2]], text: `${loop.name}${where}`, align: "center", up: true, fill: color, size: 11, bold: true, max: Math.max(120, 2 * t.r + 30) });
     stops.forEach((stop, i) => {
       if (stop.node) {
         const p = on(t, i / k, 46);
         at[stop.node] = [p[0], p[1] - 30, p[2]];
-        prims.push(card(by(m.nodes, stop.node), at[stop.node]!), { t: "line", pts: [on(t, i / k), on(t, i / k, 30)], stroke: color, w: 1, alpha: 0.7 });
-      } else if (stop.loop) prims.push({ t: "text", at: on(t, i / k, 34), text: `${stop.loop.name}: the spiral beside`, align: "center", fill: hue(m, stop.loop.id), size: 10.5, bold: true, max: 96 });
+        // On a frame a phone's width a card here is its name alone, as the ones on the ground are: with its second
+        // line it is as tall as the gap to the next station's.
+        prims.push(card(by(m.nodes, stop.node), at[stop.node]!, { stand: true, small: m.narrow }), { t: "line", pts: [on(t, i / k), on(t, i / k, 30)], stroke: color, w: 1, alpha: 0.7 });
+      } else if (stop.loop) prims.push({ t: "text", at: on(t, i / k, m.narrow ? 84 : 34), text: `${stop.loop.name}: the spiral ${m.narrow ? "above" : "beside"}`, align: "center", fill: hue(m, stop.loop.id), size: 10.5, bold: true, max: 96 });
       // A node this loop shares with another, which stands on the other's spiral: said here, and drawn there once.
       else if (stop.away) prims.push({ t: "text", at: on(t, i / k, 34), text: `${by(m.nodes, stop.away).name}: on ${by(m.loops, by(m.nodes, stop.away).loop!).name}`, align: "center", fill: "ink-3", size: 10.5, max: 96 });
     });
@@ -134,21 +137,39 @@ export const spiral: View = (m, shown) => {
   const firstLoop = order.findIndex((item) => item.loop);
   const lastLoop = order.length - 1 - [...order].reverse().findIndex((item) => item.loop);
   let x = 0;
-  order.forEach((item, n) => {
-    if (item.loop) {
-      const r = R(item.loop) + 40;
-      place(item.loop, [x + r, 0, 0]);
-      x += 2 * r + 56;
-    } else if (firstLoop >= 0 && n > firstLoop && n < lastLoop) ((at[item.node!] = [x + 50, 0, 0]), (x += 130));
-  });
-  if (firstLoop >= 0) {
+  if (m.narrow && firstLoop >= 0) {
+    // On a frame a phone's width, one under the other, each thing clear of the one above it: two spirals side by
+    // side leave each half the width, and the cards do not shrink with them. (Under, and not behind: a line of
+    // things running away from the reader is drawn small at its far end and large at its near one, and the far
+    // cards would lie over each other.) A spiral takes its height, its name over it and its nearest cards under it.
+    let down = 0;
+    for (const item of order) {
+      const top = item.loop ? topOf(m, item.loop) : 0;
+      const [over, under] = item.loop ? [Math.max(top, brakes(item.loop, top).budget ?? 0) * H + 96, 0.3 * (R(item.loop) + 50) + 56] : [23, 23];
+      down += over;
+      if (item.loop) place(item.loop, [0, -down, 0]);
+      else at[item.node!] = [-60, -down, 0];
+      down += under;
+    }
+  } else
+    order.forEach((item, n) => {
+      if (item.loop) {
+        const r = R(item.loop) + 40;
+        place(item.loop, [x + r, 0, 0]);
+        x += 2 * r + 56;
+      } else if (firstLoop >= 0 && n > firstLoop && n < lastLoop) ((at[item.node!] = [x + 20, 0, 130]), (x += 190));
+    });
+  if (m.narrow && firstLoop >= 0) {
+    // Placed above.
+  } else if (firstLoop >= 0) {
     // Far enough back, and far enough forward, to stand clear of the cards on the first and last spirals.
     order.slice(0, firstLoop).reverse().forEach((item, n) => (at[item.node!] = [-170 - n * 56, 0, -230 - n * 124]));
     order.slice(lastLoop + 1).forEach((item, n) => (at[item.node!] = [x - 6 + n * 20, 0, 130 + n * 124]));
   } else {
-    // No loop: the nodes in the order of a first pass, one behind the other, each clear of the next.
-    order.forEach((item, n) => (at[item.node!] = [n * 20, 0, (n - (order.length - 1) / 2) * 150]));
-    prims.push({ t: "text", at: [10 * order.length, 60, -75 * order.length], text: "No loop in this graph: nothing goes round, and there is no spiral to draw.", align: "center", up: true, fill: "ink-3", size: 11, max: 220 });
+    // No loop: the nodes in the order of a first pass, one behind the other, each clear of the next; on a frame a
+    // phone's width one under the other, where a line running away from the reader would crowd its far end.
+    order.forEach((item, n) => (at[item.node!] = m.narrow ? [0, (order.length - 1 - n) * 52, 0] : [n * 20, 0, (n - (order.length - 1) / 2) * 150]));
+    prims.push({ t: "text", at: m.narrow ? [60, order.length * 52 + 10, 0] : [10 * order.length, 60, -75 * order.length], text: "No loop in this graph: nothing goes round, and there is no spiral to draw.", align: "center", up: true, fill: "ink-3", size: 11, max: 220 });
   }
   // What is in no loop stands on the ground, by its name alone where there is a loop: this view is of the loops.
   for (const item of order) if (item.node) prims.push(card(by(m.nodes, item.node), at[item.node]!, { stand: true, side: true, small: firstLoop >= 0 }), { t: "dot", at: at[item.node]!, r: 3, fill: "ink-2", lift: -3990 });
@@ -162,6 +183,8 @@ export const spiral: View = (m, shown) => {
   const round = (e: MEdge): MLoop | undefined => m.loops.find((l) => l.own.includes(e.from) && l.own.includes(e.to));
   const path = (id: Id, r0 = 0, r1 = 0): V[] => {
     const e = by(m.edges, id);
+    // A second edge between the same two nodes is drawn past the first, where it is drawn across.
+    const twin = m.edges.slice(0, m.edges.indexOf(e)).filter((x) => x.from === e.from && x.to === e.to).length;
     const loop = round(e);
     if (loop) {
       const t = tower[loop.id]!;
@@ -174,7 +197,7 @@ export const spiral: View = (m, shown) => {
       const own = e.back === loop.id;
       if ((!e.back && j === i + 1) || (own && i === t.k - 1 && j === 0)) return helix(t, r0 + i / t.k, (own ? r0 + 1 : r1) + j / t.k);
       const lands = !e.back || own ? r1 : under(m.loops, loop.id, e.back) ? 0 : m.run ? r1 : r0;
-      return arch(on(t, r0 + i / t.k), on(t, lands + j / t.k), 26, 18);
+      return arch(on(t, r0 + i / t.k), on(t, lands + j / t.k), 26 + 14 * twin, 18);
     }
     // Between a loop and what is outside it, or between two loops: from where each is in its round. A way back
     // into a loop inside the one whose way back it is arrives at that loop's round 0: its rounds start afresh. A way
@@ -189,7 +212,27 @@ export const spiral: View = (m, shown) => {
     const place = (id: Id): number => order.findIndex((item) => item.node === id || !!item.loop?.own.includes(id));
     const [a, b] = [place(e.from), place(e.to)].sort((x, y) => x - y) as [number, number];
     const over = by(m.nodes, e.from).loop && landing ? 0 : 26 * order.slice(a + 1, b).filter((item) => item.node).length;
-    return arch(spot(e.from, rise(e.from, r0)), spot(e.to, arrives), e.back ? 40 : over, 18);
+    const [p, q] = [spot(e.from, rise(e.from, r0)), spot(e.to, arrives)];
+    if (!m.narrow) return arch(p, q, (e.back ? 40 : over) + 14 * twin, 18);
+    // Where the spirals stand one under the other, over is along the line: the edge goes out to the side instead.
+    // Round the nodes on the ground between; round the top of any spiral it comes down past or goes up past, lid
+    // and turns, so that it does not come through the lid. (Two takings of one edge, between different rounds, pass
+    // those tops at different places along their way and so are apart.)
+    // What it goes round, each by how far along the edge it is: the top of a spiral it passes, and the foot of the
+    // spiral its own end is on, a turn or more up (an exit taken in a later round comes down outside the turns
+    // under it). The side: that of its own end on such a spiral, so that it leaves or reaches its place from
+    // outside the turns; to the left where a node on the ground is between its ends, since the cards there are to
+    // the right.
+    const mine = (loop: MLoop): boolean => loop.own.includes(e.from) || loop.own.includes(e.to);
+    const past = m.loops
+      .flatMap((loop) => [tower[loop.id]!.c[1] + topOf(m, loop) * H, ...(mine(loop) && Math.abs((loop.own.includes(e.from) ? p : q)[1] - tower[loop.id]!.c[1]) >= H ? [tower[loop.id]!.c[1]] : [])].map((y) => ({ loop, u: (y - p[1]) / (q[1] - p[1] || 1) })))
+      .filter((x) => x.u > 0 && x.u < 1);
+    const end = past.find((x) => mine(x.loop))?.loop;
+    const side = !over && (end ? (end.own.includes(e.from) ? p : q)[0] > 0 : p[0] > 0 && q[0] > 0) ? 1 : -1;
+    let out = e.back ? 40 : over * 1.3;
+    for (const { loop, u } of past) out = Math.max(out, (tower[loop.id]!.r + 30 - side * (p[0] + (q[0] - p[0]) * u)) / Math.max(0.36, 4 * u * (1 - u)));
+    out += 14 * twin;
+    return arch(p, q, 0, 18).map((v, n): V => [v[0] + side * out * 4 * (n / 18) * (1 - n / 18), v[1], v[2]]);
   };
   // The edges. A template's are drawn as they are in round 0. A run's are drawn where the run took them, between
   // the rounds it took them, as far as the slider has come; one it never took is faint, at round 0. An edge that is

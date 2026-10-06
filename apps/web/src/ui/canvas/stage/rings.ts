@@ -30,7 +30,7 @@ export const rings: View = (m, shown) => {
   };
   // How far a ring and all that stands on it reach from its middle.
   const reach = (loop: MLoop): number => R(loop) + Math.max(0, ...m.loops.filter((l) => l.inside === loop.id).map(reach));
-  // A station's place on its ring: the first at the far side, where the way in arrives, and on round to the right.
+  // A station's place on its ring: the first at the far side, and on round to the right.
   const where = (c: V, r: number, i: number, k: number): V => [c[0] + r * Math.sin((TAU * i) / k), c[1], c[2] - r * Math.cos((TAU * i) / k)];
   function place(loop: MLoop, c: V): void {
     const stops = stations(m, loop);
@@ -41,10 +41,11 @@ export const rings: View = (m, shown) => {
     // Its name outside it, at the near left, where no card stands (a card stands over its station, and the near
     // station's is over the middle of a small ring); and on a run's page the round the run is in there, or was last in.
     const run = m.run ? (shown.until?.[loop.id] ?? null) : undefined;
-    prims.push({ t: "text", at: [c[0] - r * 0.78, c[1], c[2] + r * 0.9], text: `${loop.name}${run === undefined ? "" : run === null ? "\nnot entered" : `\nround ${Math.floor(run.now)}`}`, align: "right", bold: true, fill: color, size: 10.5, max: 110 });
+    prims.push({ t: "text", at: [c[0] - (r + 24) * 0.65, c[1], c[2] + (r + 24) * 0.76], text: `${loop.name}${run === undefined ? "" : run === null ? "\nnot entered" : `\nround ${Math.floor(run.now)}`}`, align: "right", bold: true, fill: color, size: 10.5, max: 110 });
     stops.forEach((stop, i) => {
       const p = where(c, r, i, stops.length);
-      if (stop.node) ((at[stop.node] = p), prims.push(card(by(m.nodes, stop.node), p)));
+      // (In a frame a phone's width a card is its name alone, as in the spiral: three whole cards cover a small ring.)
+      if (stop.node) ((at[stop.node] = p), prims.push(card(by(m.nodes, stop.node), p, { stand: true, small: m.narrow })));
       else if (stop.loop) {
         // A loop inside this one: a ring of its own, standing on this ring where its nodes would be.
         const up: V = [p[0], p[1] + 64, p[2]];
@@ -75,15 +76,21 @@ export const rings: View = (m, shown) => {
   // apart from the first: outside it on the ring, or higher.
   const station = (stops: Stop[], id: Id): number => stops.findIndex((stop) => stop.node === id || (!!stop.loop && (by(m.nodes, id).loop === stop.loop.id || under(m.loops, by(m.nodes, id).loop ?? "", stop.loop.id))));
   const taken = (id: Id): boolean => shown.took.some((x) => x.edge === id && (shown.k === 0 || x.step <= shown.k));
-  // How many nodes other than its ends a straight line from p to q runs through, or close by.
+  // How far aside an edge from p to q goes to be clear of what a straight line would run through, seen from above
+  // (an edge that rises to a ring on a ring runs over what stands under it): each node other than its ends, by the
+  // room its card takes (a card on a ring stands over its node, to both sides; one on the ground is to the right).
+  // The foot of a ring that stands on another is under that ring's first node, so an edge along the ground goes
+  // round it with the node. The bow is widest at its middle, so a thing nearer an end asks for more of it, to be
+  // as clear where it stands.
+  const need = (o: V, p: V, q: V, clear: number): number => {
+    const [dx, dz, wx, wz] = [q[0] - p[0], q[2] - p[2], o[0] - p[0], o[2] - p[2]];
+    const t = Math.max(0, Math.min(1, (wx * dx + wz * dz) / (dx * dx + dz * dz || 1)));
+    // (By as much more as the thing is off the line: it may be on the side the edge goes to.)
+    const off = Math.hypot(wx - dx * t, wz - dz * t);
+    return off < 24 ? (clear + off) / Math.max(0.36, 4 * t * (1 - t)) : 0;
+  };
   const passes = (e: { from: Id; to: Id }, p: V, q: V): number =>
-    m.nodes.filter((n) => {
-      const o = at[n.id]!;
-      if (n.id === e.from || n.id === e.to) return false;
-      const [d, w] = [[q[0] - p[0], q[1] - p[1], q[2] - p[2]], [o[0] - p[0], o[1] - p[1], o[2] - p[2]]] as const;
-      const t = Math.max(0, Math.min(1, (w[0] * d[0] + w[1] * d[1] + w[2] * d[2]) / (d[0] * d[0] + d[1] * d[1] + d[2] * d[2] || 1)));
-      return Math.hypot(w[0] - d[0] * t, w[1] - d[1] * t, w[2] - d[2] * t) < 24;
-    }).length;
+    m.nodes.reduce((sum, n) => sum + (n.id !== e.from && n.id !== e.to ? need(at[n.id]!, p, q, n.loop && !m.narrow ? 62 : 34) : 0), 0);
   m.edges.forEach((e, n) => {
     const [p, q] = [at[e.from]!, at[e.to]!];
     const twin = m.edges.slice(0, n).filter((x) => x.from === e.from && x.to === e.to).length;
@@ -98,10 +105,20 @@ export const rings: View = (m, shown) => {
       // A station that is a ring of its own is entered and left at the node, up on that ring.
       if (pts) pts = [...(stops[i]!.loop || twin ? [p] : []), ...pts, ...(stops[j % k]!.loop || twin ? [q] : [])];
     }
-    // Round a node it would run through: out to the side on the ground, to the left, where no card stands (a card
-    // stands over its node, and one on the ground to its right). Up, it would run behind the node's card.
-    const [aside, far] = [34 * passes(e, p, q), Math.hypot(q[0] - p[0], q[2] - p[2]) || 1];
-    paths[e.id] = pts ?? arch(p, q, (e.back ? 54 : 0) + 22 * twin, 18).map((v, n): V => [v[0] - ((q[2] - p[2]) / far) * aside * 4 * (n / 18) * (1 - n / 18), v[1], v[2] + ((q[0] - p[0]) / far) * aside * 4 * (n / 18) * (1 - n / 18)]);
+    // A node's own edge to itself, where it is not the whole ring: a small round beside the node, away from its
+    // ring's middle, or to the left of the line on the ground.
+    if (!pts && e.from === e.to) {
+      const o = loop ? ring[loop.id]!.c : [p[0] + 1, 0, p[2]];
+      const d = (26 + 8 * twin) / (Math.hypot(p[0] - o[0], p[2] - o[2]) || 1);
+      const c: V = [p[0] + (p[0] - o[0]) * d, p[1], p[2] + (p[2] - o[2]) * d];
+      const a = Math.atan2(p[2] - c[2], p[0] - c[0]);
+      pts = circle(c, 26 + 8 * twin, p[1], 24, a, a + TAU);
+    }
+    // Round what it would run through: out to the side on the ground, to the left whichever way it runs, where
+    // no card on the ground stands (that is to a node's right). Up, it would run behind the node's card.
+    const [aside, far] = [passes(e, p, q), Math.hypot(q[0] - p[0], q[2] - p[2]) || 1];
+    const [ux, uz] = [(q[2] - p[2]) / far, (q[0] - p[0]) / far].map((u) => (q[2] < p[2] ? -u : u)) as [number, number];
+    paths[e.id] = pts ?? arch(p, q, (e.back ? 54 : 0) + 22 * twin, 18).map((v, n): V => [v[0] - ux * aside * 4 * (n / 18) * (1 - n / 18), v[1], v[2] + uz * aside * 4 * (n / 18) * (1 - n / 18)]);
     // On a run's page an edge the run has not taken by this note is faint.
     prims.push(edgeLine(m, e, paths[e.id]!, m.run && !taken(e.id) ? { alpha: 0.3 } : {}));
   });

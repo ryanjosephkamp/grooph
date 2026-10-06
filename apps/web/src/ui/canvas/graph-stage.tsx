@@ -22,18 +22,19 @@ import { along, shownAt, type View } from "./stage/shapes.js";
 import { brakes, spiral, topOf } from "./stage/spiral.js";
 
 /** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, whether its frame is made as tall as its cards need to be clear of each other, and whether each loop's brakes are said under it. */
-const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean; brakes?: boolean; rounds?: boolean; blocks?: boolean }> = {
-  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: true, says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
-  spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: true, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
-  rings: { view: rings, start: { yaw: -0.5, pitch: 0.86 }, as: "a ring for each loop", apart: true, rounds: true, says: "Each loop is a ring, with its own nodes round it in the order of a first pass. A loop inside another is a ring standing on the outer one; a node two loops share stands on one of them. A way back from a loop's last node to its first is the rest of the ring." },
-  columns: { view: columns, start: { yaw: -0.18, pitch: 0.44 }, as: "columns", apart: true, blocks: true, says: "Every node stands where the picture has it. On a template an agent's column is taller for a higher model tier, frontier over strong over fast: an order, not a price. On a run a column is a block for each dispatch, as tall as the minutes between the notes' stamps." },
+const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: number; brakes?: boolean; rounds?: boolean; blocks?: boolean }> = {
+  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: 2, says: "Every node is where the picture has it, one pane toward you for each loop or subgrooph around it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving a loop or a subgrooph." },
+  spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: 7, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
+  rings: { view: rings, start: { yaw: -0.5, pitch: 0.86 }, as: "a ring for each loop", apart: 7, rounds: true, says: "Each loop is a ring, with its own nodes around it in the order of a first pass. A loop inside another is a ring standing on the outer one; a node two loops share stands on one of them. A way back from a loop's last node to its first is the rest of the ring." },
+  columns: { view: columns, start: { yaw: -0.18, pitch: 0.44 }, as: "columns", apart: 7, blocks: true, says: "Every node stands where the picture has it. On a template an agent's column is taller for a higher tier, frontier over strong over fast: the order the document asks for, not a price and not a model (a profile or a pin can give two tiers one model). A check, a gate or a stop is a slab. On a run a column is a block for each dispatch, as tall as the minutes between its own start and end stamps, and a faint line where they do not say." },
 };
 
 let styled = false;
 const still = (): boolean => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** `wide` is how wide the window was when the canvas under this was drawn: its rows wrap as the canvas's do. */
-export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide: number; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] } }) {
+/** `drawn` is told once the view has been drawn for the first time: a browser that cannot draw it throws before. */
+export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: string; wide: number; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] }; drawn?: () => void }) {
   if (!styled) {
     const sheet = document.createElement("style");
     sheet.textContent = css;
@@ -42,7 +43,11 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
   }
   const the = KINDS[kind]!;
   // Where the canvas has each node: the document's layout where it has one, and the canvas's own for this screen.
-  const model = useMemo(() => modelOf(doc, resolvePositions(doc, columnsAt(wide), DEFAULT_LAYOUT_BOX).positions, of.notes), [doc, wide, of.notes]);
+  // Whether the frame is a phone's width: the frame's own, since a window with the details beside the view is wide
+  // and its frame is not. Read once it is on the page, before anything is painted, and again when its width
+  // changes (a panel opened beside it).
+  const [slim, setSlim] = useState(wide < 640);
+  const model = useMemo(() => modelOf(doc, resolvePositions(doc, columnsAt(wide), DEFAULT_LAYOUT_BOX).positions, of.notes, slim), [doc, wide, of.notes, slim]);
   // Every loop and box a node is in, the nearest first: what its card is said to be in.
   const within = (id: Id): string =>
     [...model.loops.filter((l) => l.members.includes(id)).sort((a, b) => a.members.length - b.members.length).map((l) => `in the loop ${l.name}`), ...model.groups.filter((g) => g.nodes.includes(id)).sort((a, b) => a.nodes.length - b.nodes.length).map((g) => `in the ${g.from ? "subgrooph" : "group"} ${g.name}`)].join(", ");
@@ -56,8 +61,16 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
   const cards = useRef<HTMLDivElement>(null);
   const stage = useRef<Stage>(undefined);
   const glide = useRef(0);
+  const once = useRef(false);
   const was = useRef(0);
 
+  useLayoutEffect(() => {
+    const see = (): void => setSlim(frame.current!.clientWidth < 640);
+    see();
+    const sized = new ResizeObserver(see);
+    sized.observe(frame.current!);
+    return () => sized.disconnect();
+  }, []);
   useLayoutEffect(() => {
     const made = (stage.current = makeStage(frame.current!, canvas.current!, cards.current!, the.start, the.apart));
     // What a view grows (a spiral, its lid) is not there when the view comes: the cards land first, and then it is
@@ -105,6 +118,7 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
     } else on.set(built.prims);
     was.current = k;
     on.draw();
+    if (!once.current) ((once.current = true), drawn?.());
   }, [model, kind, k]);
   useEffect(() => {
     if (!playing) return;
@@ -118,6 +132,8 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
     <div className="s3" data-picture="space" data-kind={kind}>
       <div className="s3-bar">
         <span>Drag to turn. Pinch to move in and out.</span>
+        {/* Shown in its place where the frame is as tall as it may be and cards still touch (`stage/draw.ts`). */}
+        <span className="s3-tight">Not every card has room here. Move in to read them, or close the details if they are open under this view.</span>
         <button type="button" aria-label="Move out" onClick={() => stage.current?.zoom(0.8)}>
           −
         </button>
@@ -128,7 +144,7 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
           Starting view
         </button>
       </div>
-      <div ref={frame} className="s3-frame" tabIndex={0} role="group" aria-label={`${model.name} as ${the.as}: ${model.nodes.length} cards, ${model.edges.length} edges${model.loops.length ? `, and ${model.loops.length === 1 ? "the loop" : "the loops"} ${model.loops.map((l) => l.name).join(", ")}` : ""}. Drag to turn it; the arrow keys turn it too, and plus and minus move in and out.`}>
+      <div ref={frame} className="s3-frame" tabIndex={0} role="group" aria-label={`${model.name} as ${the.as}: ${model.nodes.length} card${model.nodes.length === 1 ? "" : "s"}, ${model.edges.length} edge${model.edges.length === 1 ? "" : "s"}${model.loops.length ? `, and ${model.loops.length === 1 ? "the loop" : "the loops"} ${model.loops.map((l) => l.name).join(", ")}` : ""}. Drag to turn it; the arrow keys turn it too, and plus and minus move in and out.`}>
         <canvas ref={canvas} aria-hidden="true" />
         <div ref={cards}>
           {model.nodes.map((n) => (
@@ -189,7 +205,10 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
           ))}
         </ul>
       ) : null}
-      <p className="s3-note">{the.says}</p>
+      <p className="s3-note">
+        {the.says}
+        {kind === "panes" && !model.loops.length && !model.groups.some((g) => g.from) ? " This graph has no loop and no subgrooph, so nothing is lifted." : ""}
+      </p>
     </div>
   );
 }
