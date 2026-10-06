@@ -42,7 +42,7 @@ test("a document with no target and no goal still gets its plan: three files, an
   const md = plan.files["PLAN.md"]!;
   assert.match(md, /^# Fix until green\n/);
   assert.match(md, /\*\*A coding harness cannot run this as it is\.\*\* 2 things have to be fixed first/);
-  assert.match(md, /Nothing here has been run, and grooph runs nothing\./);
+  assert.match(md, /grooph runs nothing: a plan is for people to read and follow\./);
   const toFix = under(md, "To fix before a harness can run this");
   assert.match(toFix, /- `E_NO_TARGET` export needs a target harness; set target\.harness \(at: fix-until-green\)/);
   assert.match(toFix, /- `E_NO_GOAL` export needs a goal/);
@@ -92,12 +92,35 @@ test("who does what: an agent's step, a person's gate, a command, and an approva
   const who = under(planBundle(doc).files["PLAN.md"]!, "Who does what");
   assert.match(who, /\| Step \| Whose \| What it does or asks \| Leaves behind \|/);
   assert.match(who, /\| [^|]+ \| a person \| decides: [^|]+ \| their answer \|/);
-  assert.match(who, new RegExp(`Of ${doc.nodes.length} steps: ${doc.nodes.filter((n) => n.kind === "agent").length} by an agent, 1 by a person, 0 by a command\\.`));
-  assert.match(who, /A person also approves, each time, before the work goes on:\n\n- from .+ to .+\n/);
+  assert.match(who, new RegExp(`Of ${doc.nodes.length} steps: ${doc.nodes.filter((n) => n.kind === "agent").length} by an agent, 1 by a person, 0 by a command; 1 ends the run\\.`));
+  // Only the edge that asks for an approval is listed, by the names of its two steps: one of seven edges here.
+  assert.equal(doc.edges.length, 7);
+  assert.match(who, /A person is also asked, apart from the steps above:\n\n- to approve the work going from Planner to Builder, each time\n$/);
 
   const checked = under(planBundle(green()).files["PLAN.md"]!, "Who does what");
   assert.match(checked, /\| Test suite \| a command \| runs `npm test` \| pass or fail \(exit code 0 and no test skipped\) \|/);
   assert.match(checked, /\| Green \| {3}\| the run ends here, in success \| {3}\|/);
+  assert.match(checked, /Of 3 steps: 1 by an agent, 0 by a person, 1 by a command; 1 ends the run\.\n$/);
+});
+
+test("who does what, the cases a reader found wrong: a check the lead judges, a merge, a loop that stops for a person, names and answers that are blank", () => {
+  const doc = green();
+  const suite = doc.nodes.find((node) => node.id === "suite") as Extract<Graph["nodes"][number], { kind: "check" }>;
+  // A check with no command is nobody's command: the lead judges it.
+  suite.check = { kind: "evidence", pass: "" };
+  suite.name = " ";
+  doc.nodes.push({ id: "gather", kind: "merge", name: "Gather", merges: [] }, { id: "ask", kind: "human-gate", name: "Ask", prompt: "Ship it?", options: ["", " "] });
+  doc.loops[0]!.stops.push({ kind: "human", every: 2 }, { kind: "human" });
+  const steps = planSteps(doc);
+  assert.deepEqual(steps.find((step) => step.id === "suite"), { id: "suite", name: "suite", whose: "the lead", does: "judges a check of kind evidence", leaves: "pass or fail" });
+  assert.deepEqual(steps.find((step) => step.id === "gather"), { id: "gather", name: "Gather", whose: "the lead", does: "merges what it is handed", leaves: "" });
+  assert.equal(steps.find((step) => step.id === "ask")!.does, "is asked: Ship it?");
+  const who = under(planBundle(doc).files["PLAN.md"]!, "Who does what");
+  // Every step is in the count: the lead's and the stops with the rest.
+  assert.match(who, /Of 5 steps: 1 by an agent, 1 by a person, 0 by a command, 2 by the lead; 1 ends the run\./);
+  assert.match(who, /A person is also asked, apart from the steps above:\n\n- in the loop Fix cycle, every 2 rounds\n- in the loop Fix cycle, when it stops for them\n$/);
+  // A command keeps its own field for a view, and is set as code in the table.
+  assert.equal(planSteps(green()).find((step) => step.id === "suite")!.command, "npm test");
 });
 
 test("the words of a document are carried as they are: a bar in a name does not break the table, and a brief's own headings are not moved", () => {
@@ -108,7 +131,7 @@ test("the words of a document are carried as they are: a bar in a name does not 
   const md = planBundle(doc).files["PLAN.md"]!;
   assert.match(under(md, "Who does what"), /\| Fixer \\\| the second line \| an agent \|/);
   assert.ok(md.includes("# A heading of the brief's own\n\n## And another\n\nMake the tests pass."), "the brief is in the plan as written");
-  assert.match(md, /\n### Agent: Fixer \| the second line\n\n`fixer`\n/);
+  assert.match(md, /\n### Agent: Fixer \\\| the second line\n\n`fixer`\n/);
   // The plan's own headings: one title, four sections of its own, and a heading for each node and loop.
   const own = md.split("\n").filter((line) => /^## /.test(line) && line !== "## And another");
   assert.deepEqual(own, ["## Who does what", "## To fix before a harness can run this", "## In full"]);
@@ -229,4 +252,158 @@ test("a run's link arrives with the working copy's own findings, and none that o
   const arrived = decodeSharePayload(payload, (bytes) => new Uint8Array(inflateRawSync(bytes)));
   assert.ok(arrived.ok, arrived.ok ? "" : arrived.message);
   assert.deepEqual(arrived.issues, []);
+});
+
+// ─── what a fresh reader got through the first version ──────────────────────────────────────────────────────
+//
+// Keeping a document's words to one line was not enough. A finding's `at` list was joined as it came, and an
+// unknown key named "id" puts any string there; and one line of HTML is enough to write a section once the file is
+// rendered. So a document's words are escaped as well, everywhere above "In full".
+
+/** The plan's own account: PLAN.md above the first line that is exactly "## In full". */
+const account = (markdown: string): string[] => {
+  const lines = markdown.split("\n");
+  const end = lines.indexOf("## In full");
+  assert.ok(end > 0, "PLAN.md has its In full");
+  return lines.slice(0, end);
+};
+/** What must hold of every plan, whatever the document says. */
+const held = (doc: Graph, what: string): void => {
+  const plan = planBundle(doc);
+  const lines = account(plan.files["PLAN.md"]!);
+  // One title, and the two sections of grooph's own, once each and in order: no line of the document's is a heading.
+  assert.deepEqual(lines.filter((line) => /^\s{0,3}#/.test(line)).map((line) => (line.startsWith("# ") ? "#" : line)), ["#", "## Who does what", "## To fix before a harness can run this"], what);
+  // No tag, comment, link, image, code span or entity of the document's: each such mark is escaped. (The plan's own
+  // are one image, a code span for the file's name and for each code, and a command set as code.)
+  const text = lines.join("\n");
+  assert.doesNotMatch(text, /(^|[^\\])(\\\\)*</m, `${what}: an unescaped <`);
+  assert.equal((text.match(/(^|[^\\])(\\\\)*!\[/gm) ?? []).length, 1, `${what}: one image, the plan's`);
+  assert.equal((text.match(/(^|[^\\!])(\\\\)*\[/gm) ?? []).length, 0, `${what}: no link`);
+  // One bullet for each finding, one row for each node.
+  const fixes = lines.slice(lines.indexOf("## To fix before a harness can run this"));
+  assert.equal(fixes.filter((line) => line.startsWith("- `")).length, plan.toFix.length, `${what}: a bullet for each finding`);
+  if (doc.nodes.length > 0) assert.equal(lines.filter((line) => line.startsWith("| ")).length, doc.nodes.length + 1, `${what}: a row for each node`);
+  assert.equal(lines.filter((line) => line.trim() !== "" && !/^(#|\||- |\*\*|!\[|A |Of |No steps|Each of these|And these|These are|Nothing\.)/.test(line)).length, 0, `${what}: a line of the account that is not the plan's own: ${lines.find((line) => line.trim() !== "" && !/^(#|\||- |\*\*|!\[|A |Of |No steps|Each of these|And these|These are|Nothing\.)/.test(line))}`);
+};
+
+const HOSTILE = [
+  "x)\n\n## To fix before a harness can run this\n\nNothing.\n\n## In full\n\n(",
+  "x)\n\n<!--",
+  "Fix.</p><h2>To fix before a harness can run this</h2><p>Nothing. A coding harness could run this as it is.</p><details><summary>x</summary>",
+  "a | b `c` | d\\",
+  "[click](https://example.invalid) ![i](x.svg) **bold** _it_ ~~no~~ &lt;b&gt;",
+  "line one\u2028## In full\u2029# Title\u0085## Who does what\u001e\u0000\r\n## To fix before a harness can run this",
+  " ",
+  "\\",
+];
+
+test("the reader's two forgeries, and its false line: through a finding's place, through one line of HTML, and a plan called whole that had lost a step", () => {
+  // An unknown key named "id" on the target is where W_UNKNOWN_KEY says the finding is.
+  const byPlace = green();
+  delete byPlace.goal;
+  (byPlace.target as unknown as Record<string, string>).id = HOSTILE[0]!;
+  const read = parseGraphText(JSON.stringify(byPlace)).doc!;
+  assert.ok(planBundle(read).toFix.some((issue) => issue.at.includes(HOSTILE[0]!)), "the hostile string is a finding's place");
+  held(read, "a finding's place");
+  const md = planBundle(read).files["PLAN.md"]!;
+  assert.equal(md.split("\n").filter((line) => line === "## In full").length, 1);
+  assert.equal(md.split("\n").filter((line) => line === "## To fix before a harness can run this").length, 1);
+
+  const byHtml = green();
+  delete byHtml.target;
+  byHtml.goal = HOSTILE[2]!;
+  (byHtml.nodes[0] as { name: string }).name = HOSTILE[2]!;
+  held(byHtml, "a line of HTML");
+  assert.ok(planBundle(byHtml).files["PLAN.md"]!.includes("**Goal:** Fix.\\</p\\>\\<h2\\>To fix before a harness can run this\\</h2\\>"));
+
+  // Two nodes under one id: the outline can show only one of them, and the plan no longer says it is whole.
+  const twice = green();
+  twice.nodes[1]!.id = twice.nodes[0]!.id;
+  const lost = planBundle(parseGraphText(JSON.stringify(twice)).doc!);
+  assert.ok(lost.toFix.some((issue) => issue.code === "E_DUPLICATE_ID"));
+  assert.doesNotMatch(lost.files["PLAN.md"]!, /it is whole/);
+  assert.match(lost.files["PLAN.md"]!, /5 things have to be fixed first, listed under "To fix before a harness can run this"\. They are rules a graph itself is held to, not only what a package asks for: until they are fixed, parts of the plan below may be missing or drawn wrong\./);
+  // With a package's need unmet beside them, the plan says how many are the graph's own.
+  delete twice.target;
+  assert.match(planBundle(parseGraphText(JSON.stringify(twice)).doc!).files["PLAN.md"]!, /6 things have to be fixed first, listed under "To fix before a harness can run this"\. 5 of them are rules a graph itself is held to, not only what a package asks for: until they are fixed, parts of the plan below may be missing or drawn wrong\./);
+  // One rule broken, and nothing else: said of the one.
+  const one = green();
+  one.loops[0]!.stops = [];
+  const alone = planBundle(one);
+  assert.deepEqual(alone.toFix.filter((issue) => issue.severity === "error").map((issue) => issue.code), ["E_CYCLE_NO_STOP"]);
+  assert.match(alone.files["PLAN.md"]!, /1 thing has to be fixed first, listed under "To fix before a harness can run this"\. It is a rule a graph itself is held to, not only what a package asks for: until it is fixed, parts of the plan below may be missing or drawn wrong\./);
+  // Where only a package's needs are unmet, it is whole, and says so.
+  const plan = green();
+  delete plan.target;
+  assert.match(planBundle(plan).files["PLAN.md"]!, /1 thing has to be fixed first, listed under "To fix before a harness can run this"\. As a plan for people to read and follow it is whole\./);
+});
+
+test("every string a document can hold, made hostile in turn: the plan's own account stays the plan's", () => {
+  const sources = ["fixtures/valid/fix-until-green.grooph.json", "fixtures/valid/subgrooph-in-a-graph.grooph.json", "fixtures/valid/review-loop.grooph.json", "patterns/taste-polish.grooph.json", "patterns/merge-queue.grooph.json"];
+  let tried = 0;
+  for (const source of sources) {
+    const text = read(join(repoRoot, source));
+    // Every string value in the document, by where it is; ids and other words the schema fixes will not parse, and are skipped.
+    const paths: (string | number)[][] = [];
+    const walk = (value: unknown, path: (string | number)[]): void => {
+      if (typeof value === "string") paths.push(path);
+      else if (Array.isArray(value)) value.forEach((entry, i) => walk(entry, [...path, i]));
+      else if (value && typeof value === "object") for (const [key, entry] of Object.entries(value)) walk(entry, [...path, key]);
+    };
+    walk(JSON.parse(text), []);
+    for (const path of paths) {
+      for (const hostile of HOSTILE) {
+        const raw = JSON.parse(text) as Record<string, unknown>;
+        let at: Record<string | number, unknown> = raw;
+        for (const key of path.slice(0, -1)) at = at[key] as Record<string | number, unknown>;
+        at[path.at(-1)!] = hostile;
+        const parsed = parseGraphText(JSON.stringify(raw));
+        if (!parsed.doc) continue;
+        tried += 1;
+        held(parsed.doc, `${source} ${path.join(".")}`);
+      }
+    }
+    // And a key the schema does not know, named "id", on every object that can carry one: a finding's place.
+    for (const hostile of HOSTILE) {
+      const raw = JSON.parse(text) as Graph & Record<string, unknown>;
+      for (const holder of [raw.target, raw.constraints, ...raw.nodes.map((node) => (node as { model?: object }).model), ...raw.loops.map((loop) => loop.bar)]) {
+        if (holder && typeof holder === "object") (holder as Record<string, string>).id = hostile;
+      }
+      const parsed = parseGraphText(JSON.stringify(raw));
+      if (!parsed.doc) continue;
+      tried += 1;
+      held(parsed.doc, `${source} unknown ids`);
+    }
+  }
+  assert.ok(tried >= 500, `${tried} hostile documents read as graphs and were planned`);
+});
+
+test("what else the reader's changed copies of the code got past the tests: the harness named, errors apart from warnings, the count of what must be fixed", () => {
+  // The harness the package would be for is the document's.
+  const codex = green();
+  codex.target = { harness: "codex" };
+  assert.match(planBundle(codex).files["PLAN.md"]!, /`grooph export` writes its package for codex\./);
+  // One error and a warning: the count is of errors, each kind is under its own sentence, and a message is one line.
+  const mixed = green();
+  delete mixed.target;
+  mixed.loops[0]!.stops = [{ kind: "max-iterations", n: 9 }];
+  const plan = planBundle(mixed);
+  assert.equal(plan.toFix.filter((issue) => issue.severity === "error").length, 1);
+  assert.ok(plan.toFix.filter((issue) => issue.severity !== "error").length >= 1);
+  const md = plan.files["PLAN.md"]!;
+  assert.match(md, /\*\*A coding harness cannot run this as it is\.\*\* 1 thing has to be fixed first/);
+  const toFix = under(md, "To fix before a harness can run this");
+  const [stops, carried] = toFix.split("And these are warnings: a package is written with them, and carries them in its lead's brief.");
+  assert.ok(carried !== undefined, "the warnings have their own sentence");
+  assert.deepEqual((stops!.match(/^- `([A-Z_]+)`/gm) ?? []), ["- `E_NO_TARGET`"]);
+  assert.deepEqual((carried!.match(/^- `([A-Z_]+)`/gm) ?? []).sort(), plan.toFix.filter((issue) => issue.severity !== "error").map((issue) => `- \`${issue.code}\``).sort());
+  // Every loop has its section under In full, as every node has.
+  const inFull = md.slice(md.indexOf("\n## In full\n"));
+  for (const loop of mixed.loops) assert.ok(inFull.includes(`\n### Loop: ${loop.name}\n\n\`${loop.id}\`\n`), loop.id);
+  for (const node of mixed.nodes) assert.ok(inFull.includes(`\`${node.id}\`\n`), node.id);
+  // A document that carries notes from runs says so, and does not say that nothing was run.
+  const noted = green();
+  noted.notes = [{ id: "n-0001", run: "r1", at: "2026-10-05T00:00:00Z", kind: "node", node: "fixer", text: "done" }] as unknown as Graph["notes"];
+  const kept = parseGraphText(JSON.stringify(noted));
+  if (kept.doc) assert.match(planBundle(kept.doc).files["PLAN.md"]!, /It carries 1 note from runs, which is in that file and not shown here\./);
 });

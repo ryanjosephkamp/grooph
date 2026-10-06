@@ -89,7 +89,7 @@ A graph can be kept as a plan: something for people to read and follow, whether 
 
 | File | What it is |
 |---|---|
-| `PLAN.md` | The plan to read: the picture; who does what, as a table of every step with whose it is (an agent's, a person's, a command's), what it does or asks, and what it leaves behind, and the edges a person approves; **"To fix before a harness can run this"**; and then, under "In full", the goal, the description and every step as the outline has them |
+| `PLAN.md` | The plan to read. First grooph's own account: whether a harness could run it; the goal on one line; the picture; **who does what**, a table of every step with whose it is (an agent's, a person's, a command's, the lead's), what it does or asks and what it leaves behind, and where else a person is asked (an edge that needs their approval, a loop that stops for them); and **"To fix before a harness can run this"**. Then, under "In full", the goal, the description and every step as the outline has them |
 | `<id>.svg` | The picture, as `grooph image` draws it |
 | `<id>.grooph.json` | The document, in canonical form: the one to edit |
 
@@ -97,7 +97,9 @@ A graph can be kept as a plan: something for people to read and follow, whether 
 
 **A plan is not a package.** It has no lead's brief, no agent files and no kickoff, and nothing in it can be handed to a harness. A package for a harness is still written by `grooph export`, and only for a document with nothing in error (`graph-ir.md` §3). The plan says which of the two a document is ready for.
 
-`PLAN.md` is Markdown, and a document's own words may be Markdown too. So everything above "In full" is grooph's own account, with the document's words in it only as single lines (a name, a goal, a table cell): a description that holds a heading "To fix before a harness can run this" and the word "Nothing" is printed below the real one, not in its place. Below "In full" the document's words are as written.
+`PLAN.md` is Markdown, and a document's own words may be Markdown too. So everything above "In full" is grooph's own account, with the document's words in it only as single lines with the marks of Markdown and HTML escaped (a name, a goal, a table cell, the place a finding names): a description that holds a heading "To fix before a harness can run this" and the word "Nothing" is printed below the real one, not in its place, and a line of HTML cannot write a section either. Below "In full" the document's words are as written. A reader got both through the first version: through an unknown key named `id`, which is where a finding says it is, and through one line of HTML in a goal.
+
+**Where the plan is not whole, it says so.** A document that lacks only what a package asks for (a harness, a goal) is whole as a plan. One that breaks a rule of its own may not be: with two nodes under one id the outline can show only one of them. The plan's second paragraph then says how many of the things to fix are rules a graph itself is held to, and that parts of what follows may be missing or drawn wrong.
 
 The same document gives the same bytes: there is no date in a plan and nothing of the machine that made it.
 
