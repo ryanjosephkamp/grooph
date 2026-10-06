@@ -141,8 +141,8 @@ export function Landing({ device }: { device?: ReactNode }) {
                 not.
               </li>
               <li>
-                <strong>Every run is asked for a record.</strong> Notes, rounds and why it stopped, in a folder a monitor reads. A halted run goes on when a
-                person answers.
+                <strong>Every run is asked for a record.</strong> Notes, rounds and why it stopped, in a folder a monitor reads. To go on, a halted run is
+                resumed in the same session with the person&rsquo;s answer and its run id.
               </li>
             </ul>
           </div>
