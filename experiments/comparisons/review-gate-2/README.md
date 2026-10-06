@@ -102,6 +102,8 @@ One call, `claude-opus-5-5`, no tools, eight candidates under random letters ([`
 
 **The design, in all three of its forms, ended above no design: 55 of 55 against 51 of 55 in both replicates**, a range wholly above the other, for about twice D's cost in B and C ($0.64 to $0.80 against $0.33 and $0.35) and three and a half times in A. The four cases are the one open point the lone session resolved against the suite. That is the reviewer's held-out evidence reaching the builder, which is what the design is for; it is the same in the package and in the prose.
 
+> *Note, 2026-10-06:* "ended above no design" means scored higher on the author's held-out suite or reference checks. The blind judges of the two code projects, given only the visible task, ranked the task-alone outputs higher, and the comparison did not separate the effect of the structure from the extra evidence a reviewer held (audit 0001, round two, finding F3; the owner's answer on the review desk, q60). The write-up above is left as written.
+
 ## What this comparison cannot show
 
 Beyond what the pre-registration says: with n = 2 the difference of four cases between D and the rest rests on two runs that failed the same four cases. D's one session was Opus 5.5 and the builders of A, B and C were Sonnet 5.5, so the 51 at D against the 44 at round 0 elsewhere is two models' guesses as much as two designs. And the suite was built so a first pass would fail: what the runs show is that a reviewer holding cases the builder cannot see moves the builder to them in one round, in a package and in prose alike, on a task where such cases exist.

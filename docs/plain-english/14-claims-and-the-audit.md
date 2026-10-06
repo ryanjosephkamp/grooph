@@ -67,7 +67,7 @@ The first two are the subject of the audit's second round, which had not been se
 
 Two reasons.
 
-**First, it tells you how to read everything else grooph says.** For every such statement made as of version 0.3.0, there is a numbered row on the claims page saying what the evidence supports. If you ever find a sentence that says more than its row, the row is right.
+**First, it tells you how to read everything else grooph says.** For every such statement made as of version 0.3.0, there is a numbered row on the claims page saying what the evidence supports. If you ever find a sentence that says more than its row, the row is right. A row is the project's reading at a date. Check it against its evidence and the version, as the audit does.
 
 **Second, it is the tool's own idea turned on itself.** grooph is built on the belief that work should be checked by someone who did not do it, against something that can be looked at, with a record kept. The audit is that belief applied to the project's own claims: a second reader, the evidence in the open, every round on file. Whether that belief makes agent work better is, as chapter 13 said, not yet shown. It is at least practiced.
 

@@ -8,7 +8,7 @@ You do not need to install anything or type anything to read it. The commands ar
 
 grooph is a tool for **writing down a plan for a team of AI agents** before they start, **checking that plan** for a few known mistakes, and **turning it into instructions** an agent can follow.
 
-It does not run the agents. Another program does that. grooph's work ends when the instructions are written, and begins again when the agents are finished and you want to see what they did.
+It does not run the agents. Another program does that. grooph's work on the plan ends when the instructions are written. While the agents work it can show you what they record, and afterward what they did. It controls none of it.
 
 Before you read on, here is the honest state of the evidence, in plain words:
 
