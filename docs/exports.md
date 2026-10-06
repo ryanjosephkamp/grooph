@@ -14,7 +14,7 @@ The read-only viewers (a link, a template, an operation map) have the same Keep 
 
 400 units wide, so at a phone's width one unit is about one pixel and the smallest text is about 10 px. A graph is one column in the order work reaches each node:
 
-- a card per node: its kind, its name, and one line (an agent's role, tier and effort; a gate's answers; a check's command);
+- a card per node: its kind, its name, and one line (an agent's role, tier and effort; a gate's answers; a check's command). A person's step (`graph-ir.md` §1) says "Person" where an agent's says "Agent", in the color a person's decision has, and its line is its role alone;
 - an arrow to the very next card, with its condition in a pill;
 - every other forward edge in the left margin, and every loop's back edge in the right, dashed in the loop's color, each on its own track so no line crosses a word;
 - nodes of one rank in a tinted band, marked "side by side";
@@ -89,7 +89,7 @@ A graph can be kept as a plan: something for people to read and follow, whether 
 
 | File | What it is |
 |---|---|
-| `PLAN.md` | The plan to read. First grooph's own account: whether a harness could run it; the goal on one line; the picture; **who does what**, a table of every step with whose it is (an agent's, a person's, a command's, the lead's), what it does or asks and what it leaves behind, and where else a person is asked (an edge that needs their approval, a loop that stops for them); and **"To fix before a harness can run this"**. Then, under "In full", the goal, the description and every step as the outline has them |
+| `PLAN.md` | The plan to read. First grooph's own account: whether a harness could run it; the goal on one line; the picture; **who does what**, a table of every step with whose it is (an agent's, a person's, a command's, the lead's; a person's is a human gate or a step marked `by: "person"`), what it does or asks and what it leaves behind, and where else a person is asked (an edge that needs their approval, a loop that stops for them); and **"To fix before a harness can run this"**. Then, under "In full", the goal, the description and every step as the outline has them |
 | `<id>.svg` | The picture, as `grooph image` draws it |
 | `<id>.grooph.json` | The document, in canonical form: the one to edit |
 

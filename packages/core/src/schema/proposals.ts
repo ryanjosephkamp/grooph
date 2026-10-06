@@ -18,6 +18,7 @@ const count = () => num({ integer: true, minimum: 0 });
 const shapeSchema = obj(
   {
     agents: count(),
+    people: opt(count()),
     checks: count(),
     gates: count(),
     loops: count(),

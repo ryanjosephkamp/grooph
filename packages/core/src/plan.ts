@@ -16,6 +16,7 @@ import type { Issue } from "./issues.js";
 import { outline, outlineMarkdown, type OutlineSection } from "./outline.js";
 import { pictureWithUnits } from "./picture/graph-units.js";
 import { unitsKit } from "./picture/units-kit.js";
+import { isPersonStep } from "./semantics.js";
 import type { Graph, Node } from "./types.js";
 import { validate } from "./validate.js";
 
@@ -72,6 +73,8 @@ export function planSteps(doc: Graph): PlanStep[] {
     const base = { id: node.id, name: oneLine(node.name ?? "") || node.id };
     switch (node.kind) {
       case "agent":
+        // A person's step (amendment A-020): its role is the whole of what it is; a person is on no tier.
+        if (isPersonStep(node)) return { ...base, whose: "a person", does: oneLine(roleOf(node)), leaves: oneLine(node.outputs.join("; ")) };
         // The lead is the harness's own session (docs/graph-ir.md §1), and is counted with what the lead does.
         return { ...base, whose: roleOf(node) === "lead" ? "the lead" : "an agent", does: oneLine([roleOf(node), node.model?.tier, node.effort ? `${node.effort} effort` : undefined].filter(Boolean).join(", ")), leaves: oneLine(node.outputs.join("; ")) };
       case "human-gate": {
