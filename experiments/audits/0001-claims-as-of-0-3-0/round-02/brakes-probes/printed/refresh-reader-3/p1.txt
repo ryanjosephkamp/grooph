@@ -1,0 +1,48 @@
+placed edges: [
+  'e-release-done: release->done ""',
+  'e-review-builder-review-critic: review-builder->review-critic ""',
+  'review-e-critic-fail: review-critic->review-builder "fail"',
+  'review-e-critic-pass: review-critic->review-merge-gate "pass"',
+  'review-e-merge-gate-reject: review-merge-gate->review-builder "fail"',
+  'e-review-merge-gate-release: review-merge-gate->release "pass"',
+  'e-plan-review-builder: plan->review-builder ""'
+]
+placed loops: [{"id":"review-review","members":["review-builder","review-critic","review-merge-gate"],"back":["review-e-critic-fail","review-e-merge-gate-reject"],"stops":[{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]}]
+placed policies: [{"id":"review-p-critic-isolation","kind":"critic-isolation","scope":"graph"},{"id":"review-p-no-self-grading","kind":"no-self-grading","scope":"graph"}] errors: []
+
+=== P1 parallel back edge critic->builder in a new loop capped at 100
+applied: []
+held:    [
+  'edge:review-e-critic-retry [a round between "review-critic" and "review-builder", which the loop "review-review" bounds, would be counted by "review-retry" and not against its stops; "review-e-critic-retry" (review-critic → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "review-retry" would count it, and each time round "review-review" starts afresh]',
+  'loop:review-retry [a round between "review-critic" and "review-builder", which the loop "review-review" bounds, would be counted by "review-retry" and not against its stops; "review-e-critic-retry" (review-critic → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "review-retry" would count it, and each time round "review-review" starts afresh]'
+]
+schema: ok | errors before: [] after: []
+brakesLost(before, result): []
+loops after: [{"id":"review-review","back":["review-e-critic-fail","review-e-merge-gate-reject"],"stops":[{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]}]
+
+=== P2 adds max-iterations n=1 then builder beside n=4
+applied: []
+held:    [
+  'loop:review-review.stops [the round cap of 1 that leads on to "review-builder" would fire before the one of 4 that halts the run; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count]'
+]
+schema: ok | errors before: [] after: []
+brakesLost(before, result): []
+stops after: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]
+
+=== P2b adds budget dispatches limit=1 then builder beside limit=10
+applied: []
+held:    [
+  'loop:review-review.stops [the budget of 1 dispatches that leads on to "review-builder" would fire before the one of 10 dispatches that halts the run; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count]'
+]
+schema: ok | errors before: [] after: []
+brakesLost(before, result): []
+stops after: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]
+
+=== P3 evidence moved from builder->critic to a new gate->critic edge
+applied: [ 'edge:review-e-merge-gate-recheck', 'loop:review-review.back' ]
+held:    [
+  'edge:e-review-builder-review-critic.evidence [the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test" by "review-builder"]'
+]
+schema: ok | errors before: [] after: []
+brakesLost(before, result): []
+into critic after: [{"id":"e-review-builder-review-critic","from":"review-builder","evidence":["diff of the change","the repository as the change leaves it, read-only","output of pnpm test","docs/checklist.md"]},{"id":"review-e-merge-gate-recheck","from":"review-merge-gate","evidence":["diff of the change","the repository as the change leaves it, read-only","output of pnpm test"]}]

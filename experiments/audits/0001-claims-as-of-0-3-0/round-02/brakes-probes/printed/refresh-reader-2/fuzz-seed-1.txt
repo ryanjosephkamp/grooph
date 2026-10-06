@@ -1,0 +1,15 @@
+seed 1: 3825 refreshed, 0 refused with a TemplateError, 175 skipped; crashes/slow: 0
+
+BRAKE gate-answer-leads-elsewhere | held none  (x23)
+  debate-then-build | sound template: false
+  newer version: addEdge plan-gate->judge "pass"
+  -> gate-answer-leads-elsewhere:s-plan-gate
+  applied: edge:s-x-plan-gate-judge
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held some  (x3)
+  human-gated-irreversible | sound template: true
+  newer version: options gate ; repoint e-act-done.from act->gate
+  -> gate-answer-leads-elsewhere:s-gate
+  applied: edge:e-s-act-done, edge:e-s-gate-done
+  held: node:s-gate.options

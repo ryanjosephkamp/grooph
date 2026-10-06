@@ -1,0 +1,20 @@
+seed 1, 3000 trials; thrown: 0 []
+family                                                         kind      counted refused  said-to-tighten   first reason given (count)
+cap lowered                                                    tightens     145       0      145          
+budget lowered                                                 tightens     149       0      149          
+a human stop added (last)                                      tightens     132       0      132          
+an approval added                                              tightens     167       0      167          
+a brief reworded                                               neutral      167       0        0          
+a notes step added after an agent that led nowhere or anywhere neutral      167       0      167          
+a loop under another id, nothing else changed                  neutral      148     148      148          removes a loop with its stops and its bar (141) | there would be a way round the nodes of "…" that its stops do not coun (7)
+an edge under another id, nothing else changed                 neutral      167       3        3          a round between "…" and "…", which the loop "…" bounds, would be count (3)
+gate: an answer added (no edge)                                neutral       85       0       85          
+critic handed one more piece of evidence                       neutral      100       0      100          
+nodes, edges and stops' keys reordered                         neutral      166       0        0          
+level made stricter                                            tightens     124       0      124          
+a policy under another id, same kind and scope                 neutral      106     103      103          lets a node grade its own work (53) | removes critic isolation (50)
+the cap's halt made a halting stop node                        neutral      132       0        0          
+bar-passed moved after the cap (order only)                    neutral       76       0        0          
+a second gate put in front of a gate (on the edge into it)     tightens      63       0       63          
+a marker added to a step already behind a person               tightens       8       0        8          
+wild pairs: 600 compared, 0 threw []

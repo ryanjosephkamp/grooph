@@ -9,15 +9,26 @@ import { mapKit } from "./picture/map-kit.js";
 import { mapSequenceWith, mapWideWith } from "./picture/map-views.js";
 import type { MapPictureOptions, PictureOptions } from "./picture/svg.js";
 import type { Graph, OperationMap } from "./types.js";
+import { offlineKit } from "./offline-kit.js";
+import { offlinePageWith, type OfflinePageOptions } from "./offline.js";
 
 export * from "./base.js";
 export { compile, tryCompile, CompileError } from "./compile/index.js";
+// A target's whole profile: the compilers' and the CLI's, not on the web app's way in (`targets/names.ts`).
+export { getProfile } from "./targets/index.js";
 // Placing and refreshing a subgrooph, and what a group holds: not on the web app's way in (`groups.ts` says why).
 export * from "./subgrooph.js";
 // Adoption held to the graph's brakes: it brings the same comparison, and is not on the web app's way in either.
 export * from "./adoption.js";
+// A plan: the files a person keeps of a document, whether or not a harness could run it. Not on the web app's way in.
+export * from "./plan.js";
 export { mapSequenceWith, mapWideWith, pictureWithUnits, unitsKit, type UnitsOptions };
 export type { UnitsKit } from "./picture/units-kit.js";
+// The one-file offline page's maker: here it is simply there (`base.ts` says why it is not on the web app's way in).
+export { offlinePageWith };
+
+/** A graph or an operation map as one self-contained HTML page (`offline.ts`), with core's parts already in hand. */
+export const offlinePage = (doc: Graph | OperationMap, options: OfflinePageOptions = {}): string => offlinePageWith(offlineKit, doc, options);
 
 /**
  * A graph's picture (docs/exports.md). A subgrooph is one box, closed unless `open` names it; a graph with none is

@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 import { ALIAS_ENV } from "./prove-pattern.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const TEMPLATE = join(root, "experiments", "comparisons", "profile", "settings.json");
+export const TEMPLATE = join(root, "experiments", "comparisons", "profile", "settings.json");
 export const DEFAULT_HOME = join(homedir(), "grooph-compare");
 /** The path a session's commands get: node, npm and git, and not ~/.local/bin, where the grooph command and the harness are. */
 export const SESSION_PATH = "/opt/homebrew/bin:/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin";
@@ -63,7 +63,8 @@ export function userTemp(dir = systemTemp() ?? tmpdir()) {
  * `commandFor`, on the command line. A run needs both, as the game's profile closes its hook both ways.
  */
 export function settingsFor({ home = DEFAULT_HOME, temp = userTemp(), closed = [] } = {}) {
-  const text = readFileSync(TEMPLATE, "utf8").replaceAll("__NPM_CACHE__", layout(home).cache).replaceAll("__USER_TEMP__", temp);
+  // Closed to a session's commands as well: where earlier sessions' folders are moved to, and where their transcripts are kept.
+  const text = readFileSync(TEMPLATE, "utf8").replaceAll("__NPM_CACHE__", layout(home).cache).replaceAll("__USER_TEMP__", temp).replaceAll("__KEPT__", join(home, "kept")).replaceAll("__PROJECTS__", join(layout(home).profile, "projects"));
   const settings = JSON.parse(text);
   settings.sandbox.filesystem.denyWrite = [...closed];
   return settings;
@@ -77,7 +78,7 @@ export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, ef
   const at = layout(home);
   for (const [name, value] of Object.entries({ claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd })) if (value === undefined || value === null || value === "") throw new Error(`commandFor needs ${name}`);
   if (!resolve(cwd).startsWith(`${at.work}/`)) throw new Error(`a session's folder must be under ${at.work}, which the profile's sandbox leaves open; ${cwd} is not`);
-  if (/fable|astra/i.test(model)) throw new Error(`${model} is a model this project never uses`);
+  if (/fable|astra/i.test(model)) throw new Error(`${model} is a model this project's experiments do not use without the owner's authorization (decision 0031)`);
   for (const path of closed) if (!resolve(path).startsWith(`${resolve(cwd)}/`)) throw new Error(`a closed path must be inside the session's folder; ${path} is not inside ${cwd}`);
   const env = {
     HOME: userHome,
@@ -146,6 +147,9 @@ export function check({ home = DEFAULT_HOME, claude = found("claude") } = {}) {
     add("it holds no instructions, skills, agents or plugins", extra.length === 0, extra.length === 0 ? "none" : extra.join(", "));
     add("its temp folder is empty", readdirSync(at.temp).length === 0, at.temp);
     add("its work folder is empty", readdirSync(at.work).length === 0, at.work);
+    // npm reads its own settings from a file in its cache folder, which every session may write: one session must not leave them for the next.
+    const npmrc = join(at.cache, "npmrc");
+    add("no npm settings were left in its npm cache", !existsSync(npmrc), existsSync(npmrc) ? `${npmrc}: an earlier session wrote npm's settings there, and the next would read them. A person looks, and moves it` : "none");
   }
   const above = instructionsAbove(at.work);
   add("no instruction file above a session's folder", above.length === 0, above.length === 0 ? `none in ${at.work} or any folder above it` : above.join(", "));
@@ -194,7 +198,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const home = resolve(at("--home") ?? DEFAULT_HOME);
   const where = layout(home);
   if (flags.includes("--make")) {
-    for (const dir of [where.profile, where.shell, where.temp, where.cache, where.work]) mkdirSync(dir, { recursive: true });
+    // The two folders the settings close to a session's commands are made too, so that no rule names a path that is not there.
+    for (const dir of [where.profile, where.shell, where.temp, where.cache, where.work, join(home, "kept"), join(where.profile, "projects")]) mkdirSync(dir, { recursive: true });
     writeFileSync(join(where.profile, "settings.json"), `${JSON.stringify(settingsFor({ home }), null, 2)}\n`, "utf8");
     console.log(`made ${where.profile} with its settings, and ${where.temp}, ${where.cache}, ${where.work}\nnot signed in: that is the owner's, once, in a terminal:\n  CLAUDE_CONFIG_DIR=${where.profile} claude auth login`);
   } else if (flags.includes("--print")) {

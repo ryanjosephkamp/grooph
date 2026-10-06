@@ -1,0 +1,138 @@
+
+== patterns/debate-then-build.grooph.json
+  checks: tests  critics: judge  stops: done:success  gates: plan-gate
+  loop debate[planner-a,planner-b,judge] back=e-judge-rebut mode=judgment bar=y stops=bar-passed|max-iterations>judge|budget
+  loop build[builder,tests] back=e-tests-fail mode=grind bar=n stops=max-iterations|budget
+  e-builder-tests: builder -> tests 
+  e-tests-fail: tests -> builder fail ev=["test output"]
+  e-tests-pass: tests -> done pass
+
+== patterns/fresh-grind-rare-judge.grooph.json
+  checks: tests  critics: judge  stops: done:success  gates: 
+  loop grind[builder,tests] back=e-tests-fail mode=grind bar=n stops=max-iterations|budget
+  loop phases[builder,tests,judge] back=e-judge-fail,e-judge-next-phase mode=judgment bar=y stops=bar-passed|max-iterations|budget
+  e-builder-tests: builder -> tests 
+  e-tests-fail: tests -> builder fail ev=["test output"]
+  e-tests-judge: tests -> judge pass ev=["diff since the last phase boundary","the repository as the change leaves it, read-only","docs/PHASES.md","test output"]
+
+== patterns/gauntlet-decomposed.grooph.json
+  checks: capture-check, next-piece  critics: critic, final-critic  stops: done:success  gates: decomposition-gate,release-gate
+  loop polish[owner,capture-check,critic] back=e-capture-check-fail,e-critic-fail mode=judgment bar=y stops=bar-passed|diminishing-returns|max-iterations|budget
+  loop pieces[owner,capture-check,critic,next-piece] back=e-next-piece-pass mode=judgment bar=y stops=bar-passed>integrator|human|max-iterations|budget
+  e-owner-capture-check: owner -> capture-check 
+  e-capture-check-fail: capture-check -> owner fail ev=["capture check output"]
+  e-capture-check-critic: capture-check -> critic pass ev=["captures/ of the current revision","references/card-reference.svg","PIECES.md"]
+  e-critic-pass: critic -> next-piece pass
+  e-next-piece-pass: next-piece -> owner pass ev=["PIECES.md"]
+  e-next-piece-fail: next-piece -> integrator fail
+
+== patterns/grind-loop.grooph.json
+  checks: tests  critics:   stops: done:success  gates: 
+  loop grind[builder,tests] back=e-tests-fail mode=grind bar=n stops=max-iterations|budget
+  e-builder-tests: builder -> tests 
+  e-tests-fail: tests -> builder fail ev=["test output"]
+  e-tests-pass: tests -> done pass
+
+== patterns/merge-queue.grooph.json
+  checks: integrate  critics:   stops: done:success  gates: land-gate
+  loop queue[integrate,bisect] back=e-bisect-integrate mode=grind bar=n stops=max-iterations|budget
+  e-integrate-fail: integrate -> bisect fail ev=["the integration output","QUEUE.md"]
+  e-bisect-integrate: bisect -> integrate 
+  e-integrate-land-gate: integrate -> land-gate pass
+
+== patterns/metric-sandwich.grooph.json
+  checks: checks  critics: critic  stops: done:success  gates: 
+  loop sandwich[builder,checks,critic] back=e-checks-fail,e-critic-fail mode=judgment bar=y stops=bar-passed|max-iterations|budget
+  e-builder-checks: builder -> checks 
+  e-checks-fail: checks -> builder fail ev=["check output"]
+  e-checks-critic: checks -> critic pass ev=["diff of the change","the repository as the change leaves it, read-only","docs/REVIEW-CHECKLIST.md"]
+
+== patterns/ownership-not-swarm.grooph.json
+  checks: tests  critics:   stops: done:success  gates: 
+  loop integrate[integrator,tests] back=e-tests-fail mode=grind bar=n stops=max-iterations|budget
+  e-integrator-tests: integrator -> tests 
+  e-tests-fail: tests -> integrator fail ev=["test output"]
+  e-tests-pass: tests -> done pass
+
+== patterns/patrol-pulse.grooph.json
+  checks: scan  critics: investigator  stops: clean:success, done:success  gates: prioritize
+  e-scan-clean: scan -> clean fail
+  e-scan-investigator: scan -> investigator pass ev=["the scan output","TICKETS.md, read-only","the repository, read-only"]
+
+== patterns/ralph-loop.grooph.json
+  checks: tests, plan-check  critics:   stops: done:success  gates: 
+  loop ralph[builder,tests,plan-check] back=e-tests-fail,e-plan-check-fail mode=grind bar=n stops=diminishing-returns|max-iterations|budget
+  e-builder-tests: builder -> tests 
+  e-tests-fail: tests -> builder fail ev=["test output"]
+  e-tests-plan-check: tests -> plan-check pass
+  e-plan-check-fail: plan-check -> builder fail ev=["PLAN.md"]
+  e-plan-check-pass: plan-check -> done pass
+
+== patterns/retrospective-rewrite.grooph.json
+  checks: tests  critics:   stops: done:success  gates: 
+  loop grind[builder,tests] back=e-tests-fail mode=grind bar=n stops=max-iterations>retro|budget>retro
+  e-builder-tests: builder -> tests 
+  e-tests-fail: tests -> builder fail ev=["test output"]
+  e-tests-retro: tests -> retro pass ev=["the run's notes","PROGRESS.md"]
+
+== patterns/taste-polish.grooph.json
+  checks: capture-check  critics: critic  stops: done:success  gates: 
+  loop polish[owner,capture-check,critic] back=e-capture-check-fail,e-critic-fail mode=judgment bar=y stops=bar-passed|diminishing-returns|human|max-iterations|budget
+  e-owner-capture-check: owner -> capture-check 
+  e-capture-check-fail: capture-check -> owner fail ev=["capture check output"]
+  e-capture-check-critic: capture-check -> critic pass ev=["captures/ of the current revision","references/pricing-reference.png"]
+
+== patterns/tournament-then-judge.grooph.json
+  checks: filter  critics: judge  stops: done:success  gates: 
+  e-candidate-a-filter: candidate-a -> filter 
+  e-candidate-b-filter: candidate-b -> filter 
+  e-candidate-c-filter: candidate-c -> filter 
+  e-filter-judge: filter -> judge pass ev=["the finalists' folders","filter output"]
+
+== fixtures/valid/audit-then-fix.grooph.json
+  checks: tests  critics: audit  stops: done:success  gates: 
+  e-fix-tests: fix -> tests 
+  e-tests-done: tests -> done pass
+
+== fixtures/valid/fix-until-green.grooph.json
+  checks: suite  critics:   stops: green:success  gates: 
+  loop fix-cycle[fixer,suite] back=e-suite-fail mode=grind bar=n stops=max-iterations|budget
+  e-fix-suite: fixer -> suite 
+  e-suite-fail: suite -> fixer fail ev=["test output"]
+  e-suite-pass: suite -> green pass
+
+== fixtures/valid/glyph-vocabulary.grooph.json
+  checks: tests  critics: critic  stops: done:success, halt:halt  gates: gate
+  loop grind[build,tests] back=e-tests-fail mode=- bar=n stops=max-iterations|budget
+  loop review[build,tests,critic] back=e-critic-fail,e-critic-evidence mode=- bar=y stops=bar-passed|max-iterations|budget
+  e-build-tests: build -> tests 
+  e-tests-fail: tests -> build fail
+  e-tests-critic: tests -> critic pass
+
+== fixtures/valid/irreversible-after-a-stop-gated.grooph.json
+  checks: suite  critics:   stops: landed:success  gates: land-gate
+  loop fix-cycle[fixer,suite] back=e-suite-fail mode=grind bar=n stops=max-iterations>land-gate|budget
+  e-fix-suite: fixer -> suite 
+  e-suite-fail: suite -> fixer fail ev=["test output"]
+  e-suite-pass: suite -> land-gate pass
+
+== fixtures/valid/pinned-and-skilled.grooph.json
+  checks: suite  critics:   stops: green:success  gates: 
+  loop fix-cycle[fixer,suite] back=e-suite-fail mode=grind bar=n stops=max-iterations|budget
+  e-fix-suite: fixer -> suite 
+  e-suite-fail: suite -> fixer fail ev=["test output"]
+  e-suite-pass: suite -> green pass
+
+== fixtures/valid/skilled-fixer.grooph.json
+  checks: suite  critics:   stops: green:success  gates: 
+  loop fix-cycle[fixer,suite] back=e-suite-fail mode=grind bar=n stops=max-iterations|budget
+  e-fix-suite: fixer -> suite 
+  e-suite-fail: suite -> fixer fail ev=["test output"]
+  e-suite-pass: suite -> green pass
+
+== fixtures/valid/wrap-up-after-the-cap.grooph.json
+  checks: suite  critics:   stops: green:success, handed-over:halt  gates: 
+  loop fix-cycle[fixer,suite] back=e-suite-fail mode=grind bar=n stops=max-iterations>wrap|budget
+  e-fix-suite: fixer -> suite 
+  e-suite-fail: suite -> fixer fail ev=["test output"]
+  e-suite-pass: suite -> green pass

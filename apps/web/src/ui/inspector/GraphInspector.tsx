@@ -6,6 +6,7 @@ import {
   setGraphName,
   setPositions,
   setTarget,
+  targetTitle,
   type Adaptation,
 } from "@grooph/core";
 import { useState, type ReactNode } from "react";
@@ -30,7 +31,7 @@ export function GraphInspector({ autoFocusName, renameWarning }: { autoFocusName
   const editor = useEditor();
   const doc = useDoc(editor.store);
   const harness = doc.target?.harness;
-  const known = harness === undefined || KNOWN_TARGETS.includes(harness) || harness === "codex";
+  const known = harness === undefined || KNOWN_TARGETS.includes(harness);
   const [other, setOther] = useState(!known);
   const { unplaced } = resolvePositions(doc);
 
@@ -56,11 +57,10 @@ export function GraphInspector({ autoFocusName, renameWarning }: { autoFocusName
         value={other ? OTHER : (harness ?? "")}
         options={[
           { value: "", label: "(choose)" },
-          { value: "claude-code", label: "Claude Code" },
-          { value: "codex", label: "Codex (no compiler yet)" },
+          ...KNOWN_TARGETS.map((target) => ({ value: target, label: targetTitle(target) ?? target })),
           { value: OTHER, label: "other…" },
         ]}
-        hint="Export compiles for this harness. Claude Code is the one compile target today."
+        hint="Export compiles a package for the selected harness."
         onChange={(v) => {
           setOther(v === OTHER);
           if (v !== OTHER) editor.store.update((d) => setTarget(d, v === "" ? undefined : v));

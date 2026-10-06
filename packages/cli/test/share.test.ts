@@ -120,22 +120,37 @@ test("share a proposal set: files inlined, shapes computed, the comparison print
 
 test("share refuses what cannot be shared, and says why", async () => {
   await withScratch(async (dir) => {
-    const noGoal = JSON.parse(readFileSync(reviewLoopPath, "utf8")) as Graph;
-    delete noGoal.goal;
-    writeFileSync(join(dir, "no-goal.grooph.json"), JSON.stringify(noGoal));
+    // A plan, with no goal and no harness, is shared: a link asks for nothing that only a package needs
+    // (handoff 0100, amendment A-020). Until then this graph was refused, with E_NO_GOAL.
+    const plan = JSON.parse(readFileSync(reviewLoopPath, "utf8")) as Graph;
+    delete plan.goal;
+    delete plan.target;
+    writeFileSync(join(dir, "plan.grooph.json"), JSON.stringify(plan));
     let io = capture();
-    assert.equal(await grooph(["share", join(dir, "no-goal.grooph.json")], io), 1);
-    assert.match(text(io.stderr), /cannot share .*: fix these first\nerror {2}E_NO_GOAL/);
+    assert.equal(await grooph(["share", join(dir, "plan.grooph.json")], io), 0, text(io.stderr));
+    assert.ok(linkOf(io), "a plan gets its link");
+
+    // A graph that breaks a rule is still refused.
+    const dangling = JSON.parse(readFileSync(reviewLoopPath, "utf8")) as Graph;
+    dangling.edges[0]!.to = "nowhere";
+    writeFileSync(join(dir, "dangling.grooph.json"), JSON.stringify(dangling));
+    io = capture();
+    assert.equal(await grooph(["share", join(dir, "dangling.grooph.json")], io), 1);
+    assert.match(text(io.stderr), /cannot share .*: fix these first\nerror {2}E_DANGLING_REF/);
     assert.equal(linkOf(io), undefined, "no link");
 
-    // A candidate whose graph has errors.
+    // A candidate with no harness is a plan, and its set is shared. A candidate whose graph breaks a rule is not.
     cpSync(csvDir, join(dir, "set"), { recursive: true });
     const lean = JSON.parse(readFileSync(join(dir, "set", "lean.grooph.json"), "utf8")) as Graph;
     delete lean.target;
     writeFileSync(join(dir, "set", "lean.grooph.json"), JSON.stringify(lean));
     io = capture();
+    assert.equal(await grooph(["share", join(dir, "set", "csv-export.grooph-proposals.json")], io), 0, text(io.stderr));
+    lean.edges[0]!.to = "nowhere";
+    writeFileSync(join(dir, "set", "lean.grooph.json"), JSON.stringify(lean));
+    io = capture();
     assert.equal(await grooph(["share", join(dir, "set", "csv-export.grooph-proposals.json")], io), 1);
-    assert.match(text(io.stderr), /E_CANDIDATE_INVALID {2}candidate "lean" \(Lean\) has errors that block export: E_NO_TARGET/);
+    assert.match(text(io.stderr), /E_CANDIDATE_INVALID {2}candidate "lean" \(Lean\) has errors: E_DANGLING_REF/);
 
     // A file that is not there.
     rmSync(join(dir, "set", "lean.grooph.json"));

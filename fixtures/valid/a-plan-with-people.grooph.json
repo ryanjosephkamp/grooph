@@ -1,0 +1,176 @@
+{
+  "grooph": 0,
+  "id": "a-plan-with-people",
+  "name": "A plan with people in it",
+  "version": 1,
+  "goal": "Publish an article that says nothing its sources do not. Done when the editor passes the draft against the checklist and the author has published it.",
+  "description": "A plan, with no harness: an author drafts, an agent checks the facts, an editor judges, and the author publishes. Three of the four steps are a person's. It is the passing document for what amendment A-020 changes in four rules: a person who judges shares no context, a person's own irreversible step needs no gate before it, a person is on no model, and a person needs no capability to leave something behind.",
+  "nodes": [
+    {
+      "id": "draft",
+      "kind": "agent",
+      "name": "Draft the article",
+      "by": "person",
+      "role": "builder",
+      "brief": "Write the article from the outline. On a later round, work through the editor's notes.",
+      "inputs": [
+        "OUTLINE.md",
+        "REVIEW.md (from round 1 on)"
+      ],
+      "outputs": [
+        "DRAFT.md"
+      ],
+      "owns": [
+        "DRAFT.md"
+      ]
+    },
+    {
+      "id": "fact-check",
+      "kind": "agent",
+      "name": "Check the facts",
+      "role": "researcher",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "For each claim in the draft, find its source and say whether the source supports it. Change nothing in the draft.",
+      "inputs": [
+        "DRAFT.md"
+      ],
+      "outputs": [
+        "FACTS.md: one line per claim, with its source"
+      ],
+      "allow": [
+        "read-files",
+        "web",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "review",
+      "kind": "agent",
+      "name": "Edit",
+      "by": "person",
+      "role": "critic",
+      "brief": "Judge the draft against the checklist, with the fact check beside it. Pass it or send it back with notes.",
+      "inputs": [
+        "DRAFT.md",
+        "FACTS.md",
+        "CHECKLIST.md"
+      ],
+      "outputs": [
+        "REVIEW.md: one line per checklist item and a verdict"
+      ]
+    },
+    {
+      "id": "publish",
+      "kind": "agent",
+      "name": "Publish",
+      "by": "person",
+      "role": "builder",
+      "brief": "Publish the article as the editor passed it.",
+      "outputs": [
+        "the published article's address"
+      ],
+      "irreversible": [
+        "publish"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-draft-fact-check",
+      "from": "draft",
+      "to": "fact-check",
+      "evidence": [
+        "DRAFT.md"
+      ]
+    },
+    {
+      "id": "e-draft-review",
+      "from": "draft",
+      "to": "review",
+      "isolation": "shared"
+    },
+    {
+      "id": "e-fact-check-review",
+      "from": "fact-check",
+      "to": "review",
+      "evidence": [
+        "DRAFT.md",
+        "FACTS.md"
+      ]
+    },
+    {
+      "id": "e-review-fail",
+      "from": "review",
+      "to": "draft",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-review-pass",
+      "from": "review",
+      "to": "publish",
+      "when": "pass"
+    },
+    {
+      "id": "e-publish-done",
+      "from": "publish",
+      "to": "done"
+    }
+  ],
+  "loops": [
+    {
+      "id": "edit",
+      "name": "Edit",
+      "members": [
+        "draft",
+        "fact-check",
+        "review"
+      ],
+      "back": [
+        "e-review-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "The checklist",
+        "inspects": [
+          {
+            "kind": "checklist",
+            "ref": "CHECKLIST.md"
+          },
+          {
+            "kind": "file",
+            "ref": "FACTS.md"
+          }
+        ],
+        "acceptance": "Every checklist item holds, and every claim in the draft has a source that supports it."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    }
+  ]
+}

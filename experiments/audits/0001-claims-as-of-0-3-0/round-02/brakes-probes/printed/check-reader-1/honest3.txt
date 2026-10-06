@@ -1,0 +1,56 @@
+
+# 1 a new check with its own edges, in front of tests (lint first)
+  adopted
+
+# 2 a step between the check and what its pass led to (pass -> changelog -> done)
+  REFUSED
+    - edge:e-tests-pass.to: changes "e-tests-pass", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+# 2b a second check behind the first (pass -> typecheck -pass-> done, fail -> builder)
+  REFUSED
+    - edge:e-tests-pass.to: changes "e-tests-pass", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+# 3 the edge INTO the check given evidence
+  adopted
+
+# 4 the check's name reworded
+  adopted
+
+# 5 the node the fail edge leads to renamed (name only)
+  adopted
+
+# 6 the loop given another member (a notes step after the builder, before tests)
+  adopted
+
+# 7 evidence added on the edge from a check to a critic
+  adopted
+
+# 8 more evidence on the fail edge to the builder (kept, one added)
+  REFUSED
+    - edge:e-tests-fail.evidence: changes "e-tests-fail", an edge that leaves the check "tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+# 9 a label on the pass edge
+  REFUSED
+    - edge:e-tests-pass.label: changes "e-tests-pass", an edge that leaves the check "tests" (label): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+# 10 retry on the fail edge
+  REFUSED
+    - edge:e-tests-fail.retry: changes "e-tests-fail", an edge that leaves the check "tests" (retry): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+# 11 a fixer step on the fail edge (fail -> triage -> builder), in the loop
+  REFUSED
+    - edge:e-tests-fail.to: changes "e-tests-fail", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    - loop:grind.back: the rounds that "e-tests-fail" starts would no longer be counted by any loop
+
+# 12 the success stop renamed by id (done -> finished), edges following
+  REFUSED
+    - edge:e-tests-pass.to: changes "e-tests-pass", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+# 13 a human gate put behind the pass (pass -> gate -> done)
+  REFUSED
+    - edge:e-tests-pass.to: changes "e-tests-pass", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+# 14 the check edge's id renamed, nothing else
+  REFUSED
+    - edge:e-tests-pass: removes "e-tests-pass", an edge that leaves the check "tests": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    - edge:e-tests-green: adds "e-tests-green", an edge that leaves the check "tests": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply

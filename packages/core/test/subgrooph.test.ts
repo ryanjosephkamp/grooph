@@ -579,7 +579,7 @@ test("a way around a gate is found however long it is, and a loop's back edge do
     Object.assign(t, structuredClone(smoke));
     t.edges.push({ id: "e-critic-done", from: "critic", to: "done", when: { verdict: "trivial" } });
   }, 3));
-  assert.deepEqual(refused(third), ['edge:e-review-critic-release: adds a way into "release" that does not pass a person; adds a way into "release" that does not pass "pass" from the critic "review-critic"']);
+  assert.deepEqual(refused(third), ['edge:e-review-critic-release: adds a way into "release" that does not pass a person; adds a way into "release" that does not pass "pass" from the critic "review-critic"; adds a way into "release" that does not pass the check "review-smoke"']);
 });
 
 test("behind two gates in a row, a way around the second is held though the first still stands", () => {
@@ -855,10 +855,33 @@ test("a brake that leads on is a brake: it is not raised, dropped or led elsewhe
     for (const loop of t.loops) Object.assign(loop, { members: loop.members.map(to), stops: loop.stops.filter((stop) => stop.kind !== "max-iterations") });
   }, 99, queue));
   assert.match(refused(renamed).join("\n"), /loop:q-queue\.stops: removes the round cap \(4\)/);
-  // The renaming applies; the cap stays.
-  assert.equal(renamed.doc.nodes.some((node) => node.id === "q-integrator"), true);
-  assert.deepEqual(loopOf(renamed.doc, "q-queue").stops, loopOf(queued, "q-queue").stops);
-  assert.deepEqual(errorsOf(written(renamed.doc)), []);
+  // The node renamed is a check, and a check under another id is a check removed (amendment A-019): held as well.
+  assert.match(refused(renamed).join("\n"), /node:q-integrate: removes a check/);
+  unchanged(queued, renamed.doc);
+  // A reason is said once on a line, also where it quotes a command that holds "; " (reasons are joined by that).
+  const quoted = refreshSubgrooph(queued, "q", newer((t) => {
+    const to = (id: string): string => (id === "integrate" ? "integrator" : id);
+    for (const node of t.nodes) {
+      if (node.kind === "check" && node.id === "integrate") node.check = { ...node.check, run: "git merge --no-ff; true" };
+      node.id = to(node.id);
+    }
+    for (const edge of t.edges) Object.assign(edge, { from: to(edge.from), to: to(edge.to) });
+    for (const loop of t.loops) Object.assign(loop, { members: loop.members.map(to) });
+  }, 99, queue));
+  const said = quoted.changes.find((change) => change.name === "node:q-integrate")!.loosens!;
+  assert.match(said, /removes a check, while a check the graph has not comes in \("q-integrator": runs "git merge --no-ff; true"/);
+  assert.equal(said.split("removes a check, while").length - 1, 1, said);
+  // Asked for by name, the renaming applies; the cap, which was not asked for, stays.
+  const asked = refreshSubgrooph(queued, "q", newer((t) => {
+    const to = (id: string): string => (id === "integrate" ? "integrator" : id);
+    for (const node of t.nodes) node.id = to(node.id);
+    for (const edge of t.edges) Object.assign(edge, { from: to(edge.from), to: to(edge.to) });
+    for (const loop of t.loops) Object.assign(loop, { members: loop.members.map(to), stops: loop.stops.filter((stop) => stop.kind !== "max-iterations") });
+  }, 99, queue), { allow: refusedNames(renamed).filter((name) => name !== "loop:q-queue.stops") });
+  assert.deepEqual(refusedNames(asked), ["loop:q-queue.stops"], refused(asked).join("\n"));
+  assert.equal(asked.doc.nodes.some((node) => node.id === "q-integrator"), true);
+  assert.deepEqual(loopOf(asked.doc, "q-queue").stops, loopOf(queued, "q-queue").stops);
+  assert.deepEqual(errorsOf(written(asked.doc)), []);
 });
 
 test("a step behind a person does not come back under another name in front of them", () => {

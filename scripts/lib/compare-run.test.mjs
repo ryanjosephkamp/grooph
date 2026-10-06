@@ -152,8 +152,8 @@ test("the tier map: every tier named, never Fable, pre-registered before a paid 
   assert.match(resolveTierMap({ registered, envText: "frontier=claude-opus-5-5,strong=claude-opus-5-5,fast=claude-sonnet-5-5", paid: true }).error, /differs from the pre-registered/);
   // Every tier, and never the models this study does not use.
   assert.match(resolveTierMap({ registered: { frontier: "claude-opus-5-5", strong: "claude-sonnet-5-5" }, envText: undefined, paid: true }).error, /fast missing/);
-  assert.match(resolveTierMap({ registered: null, envText: "frontier=fable,strong=opus,fast=sonnet", paid: false }).error, /never uses: frontier=fable/);
-  assert.match(resolveTierMap({ registered: { ...registered, frontier: "claude-fable-5-1" }, envText: undefined, paid: true }).error, /never uses/);
+  assert.match(resolveTierMap({ registered: null, envText: "frontier=fable,strong=opus,fast=sonnet", paid: false }).error, /does not use without the owner's authorization \(decision 0031\): frontier=fable/);
+  assert.match(resolveTierMap({ registered: { ...registered, frontier: "claude-fable-5-1" }, envText: undefined, paid: true }).error, /without the owner's authorization/);
   assert.match(resolveTierMap({ registered: null, envText: "frontier=opus;strong=sonnet", paid: false }).error, /GROOPH_MODELS/);
   // What a run reported, by the harness's count or by a transcript.
   assert.deepEqual(neverUsed({ "claude-opus-5-5": {}, "claude-sonnet-5-5": {} }, { lead: ["claude-opus-5-5"] }), []);
@@ -292,7 +292,7 @@ test("the ledger is read again before it is written: another writer's line and c
   }
 });
 
-test("a line that reported a model no run uses stops every new call until someone answers for it", () => {
+test("a line that reported a model this project's runs do not use without the owner's authorization (decision 0031) stops every new call until someone answers for it", () => {
   const ledger = fresh();
   const e = openRunEntry(ledger, { project: "p", arm: "B", replicate: 1, kind: "kickoff", maxBudget: 9 });
   settleEntry(e, { status: "ok", cost_usd: 1, never_used: ["claude-fable-5-1"] });
@@ -300,7 +300,7 @@ test("a line that reported a model no run uses stops every new call until someon
   for (const call of [{ arm: "C", replicate: 1, kind: "kickoff" }, { arm: "C", replicate: 1, kind: "iteration" }, { arm: "judge", replicate: null, kind: "kickoff" }]) {
     const d = gate(ledger, { project: "q", ...call });
     assert.equal(d.ok, false);
-    assert.match(d.reason, /reported a model no run uses/);
+    assert.match(d.reason, /reported a model this project's runs do not use without the owner's authorization \(decision 0031\)/);
   }
   e.never_acknowledged = { on: "2026-10-04", by: "driver: the record stands, flagged" };
   assert.equal(neverLines(ledger).length, 0);

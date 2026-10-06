@@ -22,6 +22,7 @@ A second comparison ran on 2026-10-04 and is in the repository. Its claims have 
 
 - **That a round cap or a budget holds a run that would otherwise go on.** None is on record as firing: not in the 33 package runs at 0.3.0, and, by its own handback, not in the 24 runs of the second comparison. The first comparison's one run that was cut off was a prompt run inside the same caps the graph has, ended by the runner's dollar ceiling.
 - **That grooph enforces anything while a session runs.** The validator checks a document. The package instructs a session. At 0.3.0, adopting a run's working copy showed a person what changed and refused nothing. Since 2026-10-05 the `grooph adopt` command does not write a working copy that loosens a brake its comparison sees, until the change is asked for by name: a check at one door, after a run and not during it, not made by the web app's button, and not yet read by a second harness.
+  - *Note, 2026-10-05, added the afternoon this was signed:* the clause "not made by the web app's button" was already untrue when the decision was signed. Since pull request #117, merged twelve minutes before, the web app's Adopt button makes the same comparison: it saves nothing when a brake is loosened, and offers no way to say yes. The text above is left as signed.
 - **That the package and a prompt are equal in quality.** Three of the four test suites were saturated and replicates were two or three.
 - **What a correction or a brake is worth.**
 
@@ -34,6 +35,7 @@ A second comparison ran on 2026-10-04 and is in the repository. Its claims have 
    - "No loop turned in 27 runs": one correction cycle did turn, in a prompt run.
    - "The only run in study one that went past its bounds was a prompt arm running to the dollar ceiling": that run was inside the graph's caps, and the ceiling was the runner's.
    - "Back edges fired in six templates once tasks carried held-out evidence": six records show a returning edge; two of them are a critic's correction on held-out evidence.
+   - *Note, 2026-10-05, added after this was signed, at the driver's request:* "Budget and iteration stops, which it cannot loosen, bound that" (decision 0008): the lead is told not to loosen them; no record shows one binding.
 5. **Every public claim is listed** in [`docs/claims.md`](../claims.md), with where it is made, its evidence, and where its audit stands.
 6. **What `grooph adopt` refuses is described where the command is documented, and is claimed nowhere as shown** until a second harness has read the comparison it rests on (`packages/core/src/brakes.ts`). By its author's account, five readers in turn have each found a loosened graph that comparison let through; each is closed, and the list of what a brake is has not been shown complete. At this date the comparison does not hold a check's command or where its verdicts lead; amendment A-019 (2026-10-05) makes them brakes, and the code follows it.
 

@@ -33,3 +33,5 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0027 | [An address that draws on the canvas may load 280 KB, and the budget is compared to the byte](0027-the-canvas-budget.md) |
 | 0028 | [With the templates out of the first load, two limits come down to hold the gain](0028-the-limits-come-down.md) |
 | 0029 | [What grooph is shown to do, as of the first audit](0029-what-is-shown-as-of-the-first-audit.md) |
+| 0030 | [A package is one harness's, and the document names which](0030-a-package-is-one-harnesss.md) |
+| 0031 | [Which models this project's own work uses, and why that is nobody else's rule](0031-whose-models-the-rule-is-about.md) |

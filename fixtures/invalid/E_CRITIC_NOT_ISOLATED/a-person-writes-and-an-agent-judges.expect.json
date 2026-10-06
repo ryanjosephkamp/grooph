@@ -1,0 +1,7 @@
+{
+  "issues": [
+    "E_PERSON_STEP_NOT_COMPILED",
+    "E_CRITIC_NOT_ISOLATED"
+  ],
+  "note": "An agent that judges a person's work is held to isolation as any critic is: the edge from the writer lists no evidence (amendment A-020). Invalid fixtures are validated as an export would, so the person's step is reported too."
+}

@@ -1,0 +1,38 @@
+
+=== P6 the loop is split in two with the same stops and bar, one back edge each
+applied: []
+held:    [
+  'loop:review-review.back [the rounds that "review-e-merge-gate-reject" starts would be counted by "review-approval", not against the stops of "review-review"; there would be a way round the nodes of "review-review" that its stops do not count]',
+  'loop:review-approval [the rounds that "review-e-merge-gate-reject" starts would be counted by "review-approval", not against the stops of "review-review"; a round between "review-merge-gate" and "review-builder", which the loop "review-review" bounds, would be counted by "review-approval" and not against its stops]'
+]
+schema: ok | errors before: [] after: []
+brakesLost: [] | loops: [{"id":"review-review","back":["review-e-critic-fail","review-e-merge-gate-reject"],"stops":[{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]}]
+
+=== P6c a third loop also counts nothing new but repeats: back edge listed in a second loop with a looser cap
+applied: [ 'loop:review-again' ]
+held:    []
+schema: ok | errors before: [] after: []
+brakesLost: [] | loops: [{"id":"review-review","back":["review-e-critic-fail","review-e-merge-gate-reject"],"stops":[{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]},{"id":"review-again","back":["review-e-merge-gate-reject"],"stops":[{"kind":"max-iterations","n":100}]}]
+
+two subgroophs: policies: ["review-p-critic-isolation:critic-isolation:graph","review-p-no-self-grading:no-self-grading:graph"] errors: []
+
+=== T1 two subgroophs: refresh the SECOND with a version that drops both policies
+applied: []
+held:    []
+schema: ok | errors before: [] after: []
+brakesLost: [] | loops: [{"id":"review-review","back":["review-e-critic-fail","review-e-merge-gate-reject"],"stops":[{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]},{"id":"second-review","back":["second-e-critic-fail","second-e-merge-gate-reject"],"stops":[{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]}]
+
+=== T2 two subgroophs: refresh the FIRST with a version that drops both policies
+applied: []
+held:    [
+  'policy:review-p-critic-isolation [removes critic isolation]',
+  'policy:review-p-no-self-grading [lets a node grade its own work]'
+]
+schema: ok | errors before: [] after: []
+brakesLost: [] | loops: [{"id":"review-review","back":["review-e-critic-fail","review-e-merge-gate-reject"],"stops":[{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]},{"id":"second-review","back":["second-e-critic-fail","second-e-merge-gate-reject"],"stops":[{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]}]
+
+=== T3 two subgroophs: refresh the SECOND with a version that narrows isolation to its own loop
+applied: [ 'policy:second-p-critic-isolation' ]
+held:    []
+schema: ok | errors before: [] after: []
+brakesLost: [] | loops: [{"id":"review-review","back":["review-e-critic-fail","review-e-merge-gate-reject"],"stops":[{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]},{"id":"second-review","back":["second-e-critic-fail","second-e-merge-gate-reject"],"stops":[{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]}]

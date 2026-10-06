@@ -1,0 +1,108 @@
+
+### A1 judge added to build's members + bar + bar-passed(no then)  [debate-then-build]
+  changes: loop:build.stops, loop:build.bar, loop:build.members
+  refused: 
+    - loop:build.stops: adds a stop on "bar passed" to the loop "build", which the check "tests" judges with no critic: a way out that does not pass the check
+    - loop:build.bar: gives the loop "build", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:build.bar: removes the loop's bar
+    + tightens loop:build.members: the loop "build" would no longer bound "judge", which is still in the graph
+
+### A1b same, without adding the judge (control: should be held)  [debate-then-build]
+  changes: loop:build.stops, loop:build.bar
+  refused: 
+    - loop:build.stops: adds a stop on "bar passed" to the loop "build", which the check "tests" judges with no critic: a way out that does not pass the check
+    - loop:build.bar: gives the loop "build", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:build.bar: removes the loop's bar
+
+### A1c judge added to members only  [debate-then-build]
+  changes: loop:build.members
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:build.members: the loop "build" would no longer bound "judge", which is still in the graph
+
+### A2 judge added to grind's members + bar + bar-passed  [fresh-grind-rare-judge]
+  changes: loop:grind.stops, loop:grind.bar, loop:grind.members
+  refused: 
+    - loop:grind.stops: adds a stop on "bar passed" to the loop "grind", which the check "tests" judges with no critic: a way out that does not pass the check
+    - loop:grind.bar: gives the loop "grind", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:grind.bar: removes the loop's bar
+    + tightens loop:grind.members: the loop "grind" would no longer bound "judge", which is still in the graph
+
+### A3 critic added to grind + bar + bar-passed  [glyph-vocabulary]
+  changes: loop:grind.stops, loop:grind.bar, loop:grind.members
+  refused: 
+    - loop:grind.stops: adds a stop on "bar passed" to the loop "grind", which the check "tests" judges with no critic: a way out that does not pass the check
+    - loop:grind.bar: gives the loop "grind", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:grind.bar: removes the loop's bar
+    + tightens loop:grind.members: the loop "grind" would no longer bound "critic", which is still in the graph
+
+### A4 new loop, same back edge, with the judge among members  [debate-then-build]
+  changes: loop:build-2
+  refused: 
+    - loop:build-2: gives the new loop "build-2", around the check "tests", a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check; adds a stop on "bar passed" to the new loop "build-2", around the check "tests": a way out that does not pass the check
+
+### B1 retro made critic, evidence on pass edge replaced  [retrospective-rewrite]
+  changes: edge:e-tests-retro.evidence, node:retro.role
+  refused: 
+    - edge:e-tests-retro.evidence: changes "e-tests-retro", an edge that leaves the check "tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    + tightens edge:e-tests-retro.evidence: the critic would no longer be handed "a one-line summary" by "tests"
+    + tightens node:retro.role: a critic is given another role
+
+### B1b evidence replaced only (control)  [retrospective-rewrite]
+  changes: edge:e-tests-retro.evidence
+  refused: 
+    - edge:e-tests-retro.evidence: changes "e-tests-retro", an edge that leaves the check "tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+### B2 builder made critic, fail evidence replaced  [grind-loop]
+  changes: edge:e-tests-fail.evidence, node:builder.role
+  refused: 
+    - edge:e-tests-fail.evidence: changes "e-tests-fail", an edge that leaves the check "tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    + tightens edge:e-tests-fail.evidence: the critic would no longer be handed "nothing much" by "tests"
+    + tightens node:builder.role: a critic is given another role
+
+### D1 new cap leads to halt stop, halt stop leads to success  [wrap-up-after-the-cap]
+  changes: edge:e-ho-green
+  refused: 
+    - edge:e-ho-green: a run could end in success from "wrap" by a way that does not pass a person; adds a way into "green" that does not pass the check "suite"
+
+### E1 edge into check removed  [grind-loop]
+  NOT VALID: invalid: E_LOOP_BACK_EDGE
+
+### E2 edge into check conditional  [grind-loop]
+  changes: edge:e-builder-tests.when
+  refused: NONE   <<<<<< THROUGH
+
+### F1 mode judgment + bar on critic loop->grind  [metric-sandwich]
+  changes: loop:sandwich.mode
+  refused: NONE   <<<<<< THROUGH
+
+### F2 grind loop mode judgment (needs bar)  [grind-loop]
+  changes: loop:grind.bar, loop:grind.mode
+  refused: 
+    - loop:grind.bar: gives the loop "grind", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:grind.bar: removes the loop's bar
+
+### H1 diminishing-returns then done  [grind-loop]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+
+### H2 human stop then done  [grind-loop]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+    + tightens loop:grind.stops: removes the stop where a person is asked
+
+### H3 cap now leads on to done  [grind-loop]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: the round cap (5) would no longer halt the run; a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+
+### H4 bar-passed then:done made explicit on a loop with check+critic (honest?)  [metric-sandwich]
+  changes: loop:sandwich.stops
+  refused: 
+    - loop:sandwich.stops: a stop of the loop would lead on to "done", a way that does not pass the check "checks"
+
+### H5 evidence-invalid then done  [grind-loop]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"

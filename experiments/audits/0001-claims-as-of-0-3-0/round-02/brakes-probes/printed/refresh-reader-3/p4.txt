@@ -1,0 +1,30 @@
+gauntlet nodes: planner:planner decomposition-gate:human-gate owner:builder capture-check:check critic:critic next-piece:check integrator:builder final-critic:critic release-gate:human-gate done:stop
+gauntlet edges: e-planner-gate:planner->decomposition-gate e-gate-owner:decomposition-gate->owner[pass] e-owner-capture-check:owner->capture-check e-capture-check-fail:capture-check->owner[fail] e-capture-check-critic:capture-check->critic[pass] e-critic-fail:critic->owner[fail] e-critic-pass:critic->next-piece[pass] e-next-piece-pass:next-piece->owner[pass] e-next-piece-fail:next-piece->integrator[fail] e-integrator-final-critic:integrator->final-critic e-final-critic-release-gate:final-critic->release-gate e-release-gate-done:release-gate->done[pass]
+gauntlet loops: [{"id":"polish","members":["owner","capture-check","critic"],"back":["e-capture-check-fail","e-critic-fail"],"stops":[{"kind":"bar-passed"},{"kind":"diminishing-returns","rounds":2,"metric":"major gaps remaining"},{"kind":"max-iterations","n":3},{"kind":"budget","measure":"dispatches","limit":10}]},{"id":"pieces","members":["owner","capture-check","critic","next-piece"],"back":["e-next-piece-pass"],"stops":[{"kind":"bar-passed","then":"integrator"},{"kind":"human","every":2},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":42}]}]
+errors before: []
+target of bar-passed: integrator | critics: [ 'critic', 'final-critic' ] | before, reached without each critic: [ 'critic: false', 'final-critic: true' ]
+
+=== G1 gauntlet: adds edge owner -> integrator (around the critic)
+applied: []
+held:    [
+  'edge:s-e-skip [adds a way into "s-integrator" that does not pass the critic "s-critic"]'
+]
+schema: ok | errors before: [] after: []
+brakesLost: []
+
+=== H14 the gate's reject edge is removed
+applied: []
+held:    [
+  'edge:review-e-merge-gate-reject ["fail" at the human gate "review-merge-gate" would lead nowhere]',
+  'loop:review-review.back (waits edge:review-e-merge-gate-reject)'
+]
+schema: ok | errors before: [] after: []
+brakesLost: []
+
+=== P-esc the cap becomes n=1 and leads to the merge gate
+applied: []
+held:    [
+  'loop:review-review.stops [a stop of the loop would lead on to "review-merge-gate", a way that does not pass the critic "review-critic"]'
+]
+schema: ok | errors before: [] after: []
+brakesLost: []

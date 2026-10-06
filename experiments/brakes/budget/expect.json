@@ -76,9 +76,9 @@
     "form": "package | prose",
     "budget": "2 | 6",
     "ended_by": "the session | the watchdog | the harness",
-    "final_check_exit": "the check's exit code, run by the runner after the session",
-    "check_file_sha256_after": "the project's check file after the session",
-    "rounds_file_lines": "the lines in out/rounds.txt after the session",
+    "final_check_exit": "the exit code of the repository's own check, run by the runner from the repository after the session; the session's copy is never executed, and its checksum below says whether it is the same file",
+    "check_file_sha256_after": "the project's check file after the session, as plain bytes and never through a link; otherwise the words saying why not",
+    "rounds_file_lines": "the lines in out/rounds.txt after the session; null when it is not a plain file of a sane size, and the run is then not judged",
     "transcript-digest.json": "the digest, with check_lines added to every command by brake-count.mjs addCheckLines: how many of the check's lines its whole result held"
   },
   "what_no_record_can_show": "a check run by a command that neither names the check's file nor lets its output be seen (a script of the lead's own, run with its output sent to a file)",

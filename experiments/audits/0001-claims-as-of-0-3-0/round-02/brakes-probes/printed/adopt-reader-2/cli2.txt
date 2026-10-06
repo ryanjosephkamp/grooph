@@ -1,0 +1,61 @@
+== 1. the husk through the command (source: fixtures/valid/wrap-up-after-the-cap, adaptation fixed)
+  dry exit 0; --write exit 1; written false
+      | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow node:fixer
+      |   node:fixer              removes "fixer", which the loop "fix-cycle" bounded, while "fixer2", "suite2" would come in on a round it does not count: it may be the same step under another name
+      |   loop:fix-cycle.members  removes "fixer", which the loop "fix-cycle" bounded, while "fixer2", "suite2" would come in on a round it does not count: it may be the same step under another name
+      | grooph: not written: the working copy loosens a brake the graph has (node:fixer, loop:fix-cycle.members, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+  lines naming a brake: loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow node:fixer
+
+== 2. --into naming the source by other spellings (harmless working copy; the source must never be written)
+  absolute: exit 1; source unchanged
+      | grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-absolute/.grooph/plan-review-release/graph.grooph.json), which adopt never write
+  relative: exit 1; source unchanged
+      | grooph: --into names the source this run started from (.grooph/plan-review-release/graph.grooph.json), which adopt never writes; name another file
+  with ..: exit 1; source unchanged
+      | grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-with-/.grooph/plan-review-release/graph.grooph.json), which adopt never writes; 
+  relative from the run dir: exit 1; source unchanged
+      | grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-relative-from-the-run-dir/.grooph/plan-review-release/graph.grooph.json)
+  symlink to the source: exit 1; source unchanged
+      | grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-symlink-to-the-source/next.grooph.json), which adopt never writes; name another 
+  symlinked directory: exit 1; source unchanged
+      | grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-symlinked-directory/alias/graph.grooph.json), which adopt never writes; name ano
+  hard link to the source: exit 1; source unchanged
+      | grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-hard-link-to-the-source/hard.grooph.json), which adopt never writes; name anothe
+  another letter case (case-insensitive disk): exit 1; source unchanged
+      | grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-another-letter-case-case-insensitive-disk-/.GROOPH/plan-review-release/graph.gro
+  another letter case in the file name: exit 1; source unchanged
+      | grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-another-letter-case-in-the-file-name/.grooph/plan-review-release/Graph.grooph.js
+
+== 3. --into naming the run's working copy by other spellings
+  wc absolute: exit 1; working copy unchanged
+      | grooph: --into names the run's working copy (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-wc-absolute/.grooph/plan-review-release/runs/r1/graph.grooph.json), which adopt never writ
+  wc relative: exit 1; working copy unchanged
+      | grooph: --into names the run's working copy (.grooph/plan-review-release/runs/r1/graph.grooph.json), which adopt never writes; name another file
+  wc symlink: exit 1; working copy unchanged
+      | grooph: --into names the run's working copy (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-wc-symlink/next.grooph.json), which adopt never writes; name another file
+  wc another letter case: exit 1; working copy unchanged
+      | grooph: --into names the run's working copy (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-wc-another-letter-case/.grooph/plan-review-release/RUNS/r1/graph.grooph.json), which adopt
+
+== 4. the same with a LOOSENED working copy and no --allow (nothing may be written anywhere)
+  loosened, symlink to the source: exit 1; source unchanged
+      | grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-loosened-symlink-to-the-source/next.grooph.json), which adopt never writes; name
+  loosened, wc symlink: exit 1; working copy unchanged
+      | grooph: --into names the run's working copy (<tmp>/grooph-brakes-probes/adopt-reader-2/cli2/into-loosened-wc-symlink/next.grooph.json), which adopt never writes; name another file
+
+== 5. headings when refused: one change loosens (cap 40), one tightens (budget 5), one does both? (acceptance reworded)
+  exit 1; .grooph before [plan-review-release] after [plan-review-release]
+      | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.bar
+      |   loop:review-review.bar     changes the bar's acceptance
+      |   loop:review-review.stops   raises the round cap from 4 to 40
+      | tightens a brake:
+      |   node:release.irreversible  undoing it: removes the irreversible marker "publish"
+      | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.bar, loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+  with --allow loop:review-review.stops only: exit 1
+      | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.bar, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+  with both allows: exit 0; written true
+      | loosens a brake, and is adopted because it was asked for:
+      |   loop:review-review.bar     changes the bar's acceptance   (asked for by name)
+      |   loop:review-review.stops   raises the round cap from 4 to 40   (asked for by name)
+      | tightens a brake, and is adopted with the rest:
+      |   node:release.irreversible  undoing it: removes the irreversible marker "publish"
+      | wrote <tmp>/grooph-brakes-probes/adopt-reader-2/cli2/headings/.grooph/graphs/plan-review-release.grooph.json (version 2); the source <tmp>/grooph-brakes-probes/adop

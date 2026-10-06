@@ -23,7 +23,7 @@ Check
   canonicalize print or rewrite a document in canonical form
 
 Compile
-  export       write the prompt package for a harness (claude-code)
+  export       write the prompt package for a harness (claude-code, codex)
   adopt        take a run's working copy as the graph's next version
 
 See
@@ -132,10 +132,12 @@ nodes of the one document. Nothing is fetched or inlined when a package is compi
   update   What a newer version of its template would change in each subgrooph (or in the ones
            named), then the graph with those changes. A change that removes or loosens a brake
            (a human gate, an approval, an irreversible marker, a budget or a round cap, a bar's
-           acceptance, critic isolation) is listed first and NOT applied unless you ask for it by
-           its name with --allow. The brakes are compared on the whole graph as it would be
-           written, so one cannot be shed under a new id or in two changes: what a run could reach
-           only by a gate, an approval or a critic's verdict, it may not reach without it afterwards.
+           acceptance, critic isolation, a check) is listed first and NOT applied unless you ask
+           for it by its name with --allow. The brakes are compared on the whole graph as it would
+           be written, so one cannot be shed under a new id or in two changes: what a run could
+           reach only by a gate, an approval, a critic's verdict or a check's, it may not reach
+           without it afterwards. Any change to what a check runs or what counts as its pass is
+           held: a program cannot tell a stricter command from a looser one.
            A change says every reason it is held for. Tightening applies with the rest. The shape moves as a whole: while a change to the
            nodes, edges or loop members is held back, the others wait for it. A node you added
            inside the box under another id is yours, and stays. Dry run unless --write.
@@ -243,21 +245,29 @@ Example
 
 ## `grooph export`
 
-Write the prompt package for a harness (claude-code)
+Write the prompt package for a harness (claude-code, codex)
 
 ```text
 grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...]
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
-Refuses, with the reasons, when the document has errors. Targets: claude-code.
+Refuses, with the reasons, when the document has errors. Targets: claude-code, codex.
+A package is one harness's files: --target is the harness the document names (target.harness),
+and a document that names another is refused (E_NO_TARGET) until it names this one:
+  echo '[{"op":"setTarget","harness":"codex"}]' | grooph apply flaky.grooph.json --ops - --write
+  grooph export flaky.grooph.json --target codex --into <a project that does not hold its claude-code package>
+Two packages of one graph in one folder are a mixed package: export does not yet notice the other's files.
 
   --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
                                 A tier not named keeps the target's own; a pin on a node still wins.
                                 GROOPH_MODELS in the environment says the same for every export
-                                on a machine; the flag wins over it. The graph does not change.
+                                for claude-code on a machine, and GROOPH_MODELS_CODEX for every
+                                export for codex: a model's name is one harness's, so neither is
+                                read for the other target. The flag wins. The graph does not change.
 
-The target's own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet. Two of them are one model, so a critic
-on one over a builder on the other is the same model: the export says so when a graph has agents on both.
+The targets' own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet; for codex: frontier → gpt-6.1-sol, strong → gpt-6-luna, fast → gpt-6-luna.
+In each, two of them are one model, so a critic on one over a builder on the other is the same model:
+the export says so when a graph has agents on both.
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .
@@ -283,7 +293,8 @@ write. Nothing is written without --write; the source the package placed is neve
 
 A run may tighten a brake and never loosen one: a human gate, an approval, an irreversible
 marker, a round cap, a budget, the stop where a person is asked, a bar's acceptance, critic
-isolation, the adaptation level. The working copy is compared with the source on the whole
+isolation, a check (what it runs, what counts as a pass, where its verdicts lead), the
+adaptation level. The working copy is compared with the source on the whole
 graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
 with its reasons, and --write is refused until each is asked for with --allow; one that
 tightens is adopted with the rest, and said. A way round a loop that a person newly opens

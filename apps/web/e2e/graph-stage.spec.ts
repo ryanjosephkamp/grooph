@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { parseGraphText, resolvePositions, type Graph } from "@grooph/core";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { canvasIsQuiet, closeSheet, importDocument, linkFor, node, repoRoot, reviewLoop, runBundle, sheet, viewIsStill } from "./support.js";
 import { landed, namedStill, noteMoves, slowest } from "./support-moves.js";
@@ -1208,6 +1208,50 @@ test("on a phone the sheet that went down for a kind comes up again when the kin
   expect(await page.locator(".s3").evaluate((el) => (el as HTMLElement).style.getPropertyValue("--s3-tall"))).toBe("");
   const [has, shown] = await page.locator(".s3-frame canvas").evaluate((el) => [(el as HTMLCanvasElement).height, Math.round(el.getBoundingClientRect().height) * devicePixelRatio]);
   expect(has).toBe(shown);
+});
+
+test("a person's step says whose it is on its card in Panes: Person, its role, no tier and no effort, in the color a person's decision has; an agent's card is as it was", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await importDocument(page, "a-plan-with-people.grooph.json", readFileSync(join(repoRoot, "fixtures/valid/a-plan-with-people.grooph.json"), "utf8"));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  await open(page);
+  const person = page.getByRole("button", { name: "Person Edit" });
+  await expect(person).toHaveText("EditPerson · critic");
+  await expect(page.getByRole("button", { name: "Person Draft the article" })).toHaveText("Draft the articlePerson · builder");
+  await expect(page.getByRole("button", { name: "Agent Check the facts" })).toHaveText("Check the factsresearcher · strong · high");
+  // Its edge is the color of a human gate's, not an agent's.
+  const edge = (card: Locator) => card.evaluate((el) => getComputedStyle(el).borderLeftColor);
+  const gate = await page.evaluate(() => {
+    const probe = document.body.appendChild(Object.assign(document.createElement("i"), { style: "color: var(--kind-human-gate)" }));
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  });
+  expect(await edge(person)).toBe(gate);
+  expect(await edge(page.getByRole("button", { name: "Agent Check the facts" }))).not.toBe(gate);
+  // And it opens its node as any card does.
+  await person.click();
+  await expect(sheet(page).getByLabel("Name", { exact: true })).toHaveValue("Edit");
+});
+
+test("a person's step says whose it is in the spiral too, on a phone, where a card is otherwise its name alone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "spiral"));
+  await importDocument(page, "a-plan-with-people.grooph.json", readFileSync(join(repoRoot, "fixtures/valid/a-plan-with-people.grooph.json"), "utf8"));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  await view(page, "3D").click();
+  await expect(page.locator('.s3[data-kind="spiral"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  // Every card is its name alone here, but a person's keeps its line: the word and the role.
+  await expect(page.locator(".s3-card:not(.is-small)")).toHaveCount(0);
+  const person = page.getByRole("button", { name: "Person Edit" });
+  await expect(person.locator("span")).toBeVisible();
+  await expect(person.locator("span")).toHaveText("Person · critic");
+  await expect(page.getByRole("button", { name: "Agent Check the facts" }).locator("span")).toBeHidden();
+  // And the taller card is still clear of the others.
+  expect(await overlaps(page)).toEqual([]);
 });
 
 test("a browser that gives no drawing surface: the switch is still there, the page says why and shows what it showed, and the visit does not remember the kind that never drew", async ({ page }) => {
