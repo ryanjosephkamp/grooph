@@ -100,6 +100,8 @@ One call, `claude-opus-5-5`, no tools, eight candidates under random letters ([`
 
 **The design, in all three of its forms, ended above no design: 70 of 70 against 52 of 70 in both replicates**, a range wholly above the other, for about four times D's cost in B and C ($1.03 to $1.09 against $0.26) and five to six times in A. The 18 cases are five open points every first pass resolved against the suite. That is the reviewer's held-out evidence reaching the builder, which is what the design is for; it is the same in the package and in the prose.
 
+> *Note, 2026-10-06:* "ended above no design" means scored higher on the author's held-out suite or reference checks. The blind judges of the two code projects, given only the visible task, ranked the task-alone outputs higher, and the comparison did not separate the effect of the structure from the extra evidence a reviewer held (audit 0001, round two, finding F3; the owner's answer on the review desk, q60). The write-up above is left as written.
+
 ## What this comparison cannot show
 
 Beyond what the pre-registration says: the 18 cases between D and the rest are cases no builder could know without the suite, so the difference shows that a reviewer who holds such cases moves the builder to them in one round, not that the reviewed code is better by any measure the builder was given; the blind judge, who was given only that, preferred D's. Whether a critic on another tier sees more than one on the builder's tier is not tested here: the critic's finding was the suite's output, which any critic that runs it reports, and `review-gate-2`, whose critic is on the builder's tier, turned its loop the same way.
