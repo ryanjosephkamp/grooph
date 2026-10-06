@@ -88,6 +88,7 @@ const nodeHead = <K extends string>(kind: K) =>
 const agentNode = obj(
   {
     ...nodeHead("agent"),
+    by: opt(enumOf<"agent" | "person">("agent", "person")),
     role: anyOf([role, obj({ custom: str() })], { describe: "role name or { custom }" }),
     model: opt(obj({ tier, pin: opt(rec(modelName, { keyName: "harness id" })) })),
     effort: opt(effort),

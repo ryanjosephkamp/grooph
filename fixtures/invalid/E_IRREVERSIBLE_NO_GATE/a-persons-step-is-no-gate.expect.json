@@ -1,0 +1,7 @@
+{
+  "issues": [
+    "E_PERSON_STEP_NOT_COMPILED",
+    "E_IRREVERSIBLE_NO_GATE"
+  ],
+  "note": "A person's step before an agent's irreversible step is not a decision about it and does not stand in for a gate (amendment A-020). Invalid fixtures are validated as an export would, so the person's step is reported too."
+}

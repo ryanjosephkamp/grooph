@@ -1,6 +1,6 @@
 # Things to keep: the picture, the outline, the offline page
 
-Three projections of a document, for reading and sending rather than editing. Each is made by core from a graph (`.grooph.json`) or an operation map (`.grooph-map.json`), the same way in the CLI and in the app, and none round-trips: edits happen in the document.
+Three projections of a document, for reading and sending rather than editing (and a fourth made of them, [a plan](#a-plan)). Each is made by core from a graph (`.grooph.json`) or an operation map (`.grooph-map.json`), the same way in the CLI and in the app, and none round-trips: edits happen in the document.
 
 | | What it is | From the CLI | In the app |
 |---|---|---|---|
@@ -14,7 +14,7 @@ The read-only viewers (a link, a template, an operation map) have the same Keep 
 
 400 units wide, so at a phone's width one unit is about one pixel and the smallest text is about 10 px. A graph is one column in the order work reaches each node:
 
-- a card per node: its kind, its name, and one line (an agent's role, tier and effort; a gate's answers; a check's command);
+- a card per node: its kind, its name, and one line (an agent's role, tier and effort; a gate's answers; a check's command). A person's step (`graph-ir.md` §1) says "Person" where an agent's says "Agent", in the color a person's decision has, and its line is its role alone;
 - an arrow to the very next card, with its condition in a pill;
 - every other forward edge in the left margin, and every loop's back edge in the right, dashed in the loop's color, each on its own track so no line crosses a word;
 - nodes of one rank in a tinted band, marked "side by side";
@@ -73,13 +73,52 @@ It costs an address that draws on the canvas the few lines that ask for the swit
 One file. Its content security policy is `default-src 'none'` with inline style and script only, so the page cannot ask the network for anything: that it opens with no connection is a property of the file. It holds:
 
 - the picture (it follows the device's color scheme; a button switches it);
-- the validator's list, as `grooph validate --for-export` prints it (a map's own rules for a map);
+- the validator's list, as `grooph validate` prints it (a map's own rules for a map). What only a package asks for, a harness and a goal, is not on it: [a plan](#a-plan) lists that;
 - the outline; tapping a card in the picture scrolls to its section;
 - the document, in canonical form. **Save document** writes it back out as `<id>.grooph.json` (or `.grooph-map.json`), byte for byte what went in, ready to import into the app.
 
 A document with rule errors still makes a page, with the errors listed. One that does not match its schema cannot be drawn, and the command says why. Text from the document is escaped everywhere it is shown, and the embedded JSON cannot close its own script element.
 
 It is a page to read, not the app: nothing in it edits.
+
+## A plan
+
+A graph can be kept as a plan: something for people to read and follow, whether or not a coding harness could run it. A research study one person does most of, a pipeline that is all people, or a graph that is half written are all plans, and none of them needs a harness named in it.
+
+`planBundle(doc)` in core (`packages/core/src/plan.ts`) gives the files of one, for any document that reads as a graph:
+
+| File | What it is |
+|---|---|
+| `PLAN.md` | The plan to read. First grooph's own account: whether a harness could run it; the goal on one line; the picture; **who does what**, a table of every step with whose it is (an agent's, a person's, a command's, the lead's; a person's is a human gate or a step marked `by: "person"`), what it does or asks and what it leaves behind, and where else a person is asked (an edge that needs their approval, a loop that stops for them); and **"To fix before a harness can run this"**. Then, under "In full", the goal, the description and every step as the outline has them |
+| `<id>.svg` | The picture, as `grooph image` draws it |
+| `<id>.grooph.json` | The document, in canonical form: the one to edit |
+
+**Nothing is refused.** A document with no target, no goal, a harness name grooph has no profile for, a loop with no stop or an edge that leads nowhere still gets its plan. Each such finding is in `PLAN.md` under "To fix before a harness can run this", with its code, as `grooph validate --for-export` would list it: first what stops a package from being written, then the warnings a package would carry. Where nothing is in error the plan says a harness could run it as it is. Only a document that does not match its schema gets no plan, because nothing can draw it.
+
+**A plan is not a package.** It has no lead's brief, no agent files and no kickoff, and nothing in it can be handed to a harness. A package for a harness is still written by `grooph export`, and only for a document with nothing in error (`graph-ir.md` §3). The plan says which of the two a document is ready for.
+
+`PLAN.md` is Markdown, and a document's own words may be Markdown too. So everything above "In full" is grooph's own account, with the document's words in it only as single lines with the marks of Markdown and HTML escaped (a name, a goal, a table cell, the place a finding names): a description that holds a heading "To fix before a harness can run this" and the word "Nothing" is printed below the real one, not in its place, and a line of HTML cannot write a section either. A check's command is shown in the table only where it is one line as written and holds nothing that could end its code (a backtick, a bar, an angle bracket, a backslash); otherwise the table says "runs a command, given in full below", because a command of several lines made one line would be another command. Two things are left as they are: a bare address in a name may be made a link by a renderer, and its text is the address; and below "In full" the document's words are as written, Markdown and HTML among them, as `grooph outline` has always printed them, so a plan from someone else is best read as text or where HTML in Markdown is not run. A reader got both through the first version: through an unknown key named `id`, which is where a finding says it is, and through one line of HTML in a goal.
+
+**Where the plan is not whole, it says so.** A document that lacks only what a package asks for (a harness, a goal) is whole as a plan. One that breaks a rule of its own may not be: with two nodes under one id the outline can show only one of them. The plan's second paragraph then says how many of the things to fix are rules a graph itself is held to, and that parts of what follows may be missing or drawn wrong.
+
+The same document gives the same bytes: there is no date in a plan and nothing of the machine that made it.
+
+**Nothing that only draws or shares a document asks for a harness.** Five places in core used to validate for export whatever they were for, and each now asks only what a graph is asked:
+
+| Where | What it did | What it does |
+|---|---|---|
+| Making a link (`grooph share`, `grooph embed`, the app's share) | Refused a graph with no goal or no harness: "cannot share … fix these first" | Shares a plan. A graph that breaks a rule (an edge to nowhere, a cycle with no stop) is still refused |
+| Opening a graph's link, and a run's | Handed the viewer `E_NO_TARGET` and `E_NO_GOAL` as errors | A shared plan arrives with the graph's own findings and no others |
+| The offline page | Listed them among its issues | Says "No issues." for a plan |
+| A proposal set | A candidate with no goal or no harness made the whole set invalid (`E_CANDIDATE_INVALID`) | A candidate may be a plan; one that breaks a rule still makes the set invalid |
+
+What only a package asks for is four rules: a harness, a goal, that the document is not still a template, and that no `{{slot}}` is left unfilled. So a template, a fragment and a document with a slot unfilled are shared and opened like any other, with nothing said of them by these places.
+
+**Adoption is as it was**, and still validates for export: a run is of a package, so its working copy came from a graph a harness could run, and one that has since lost its goal or its harness, gained a `template` block or an unfilled slot is refused as the next version. A plan has no run, so adoption never meets one.
+
+A harness grooph has no compiler for is said once, where a package is asked for (`grooph export`, `grooph validate --for-export`): "grooph has no compiler for the harness "x", so no package can be written for it; the document is a plan as it is".
+
+In core so far. The command that writes the three files and the app's button for it come with the lanes that own those.
 
 ## The app itself, offline
 
@@ -88,7 +127,7 @@ The other half (stage 8, slice 0030). The app at https://ryanjosephkamp.github.i
 - The page is fetched from the network whenever there is one, so a new version is picked up on the next visit; the cached copy is for when there is none.
 - Only grooph's own files are cached. `grooph watch`'s live endpoints are never cached, and nothing is sent anywhere.
 - A share link opened for the first time with no network still opens: the document rides in the link, and the app that reads it is on the device.
-- The app is six pieces, and an address loads the ones it shows: a small entry, the app (front page, library, template list), the screens that draw on the canvas, the compiler (fetched when a person exports), the embed, and an operation map's other views (fetched when a map is drawn, since slice 0080). Decision 0021, which set this out, counts five and names two doors into core; the map's views are the sixth piece and the third door. The page names every piece, so the service worker holds them all from the first visit: the embed's own script and styles among them since slice 0088, so the front page's recorded run plays with no network whether or not it was ever watched with one. Since then two more pieces of the same kind: the box a subgrooph is drawn as (slice 0085), and a graph's switch with its reading in three dimensions (slice 0092), fetched once a canvas is up; the scene itself is the map's piece, fetched when 3D is chosen. A piece that could not be fetched is asked for again the next time it is needed, and in a way every engine honors (`apps/web/src/piece.ts`): a browser left to itself does not ask twice for a script that failed.
+- The app is six pieces, and an address loads the ones it shows: a small entry, the app (front page, library, template list), the screens that draw on the canvas, the compiler (fetched when a person exports), the embed, and an operation map's other views (fetched when a map is drawn, since slice 0080). Decision 0021, which set this out, counts five and names two doors into core; the map's views are the sixth piece and the third door. The page names every piece, so the service worker holds them all from the first visit: the embed's own script and styles among them since slice 0088, so the front page's recorded run plays with no network whether or not it was ever watched with one. Since then two more pieces of the same kind: the box a subgrooph is drawn as (slice 0085), and a graph's switch with its reading in three dimensions (slice 0092), fetched once a canvas is up; the scene itself is the map's piece, fetched when 3D is chosen. And the offline page's maker (slice 0093): fetched when "Offline page" is pressed under Keep a copy, where every address carried it before; a press that cannot fetch it says so in the panel and downloads nothing. A piece that could not be fetched is asked for again the next time it is needed, and in a way every engine honors (`apps/web/src/piece.ts`): a browser left to itself does not ask twice for a script that failed.
 - What each kind of address may weigh is in `scripts/perf-budget.json`, and `scripts/perf-budget.mjs --check` compares to the byte. An address that draws on the canvas may load 262 KB compressed, and the app's first load 164: the owner brought both lines down on 2026-10-05 (from 280 and 180) once the built-in templates had left the first load, so that the room won could not be spent again unasked (decision 0028). A template's own address, which still fetches the templates, has a line of its own at 280. These are hard lines, and what is new still goes behind a door of its own.
 
 Tested in Chromium with the network switched off (`apps/web/e2e/offline.spec.ts`). Not tried: installing on a real phone, and Safari.

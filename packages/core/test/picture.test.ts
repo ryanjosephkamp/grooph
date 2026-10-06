@@ -11,7 +11,7 @@ import { test } from "node:test";
 
 import { canonicalize } from "../src/canonicalize.js";
 import { canonicalizeMap, parseMapText } from "../src/map.js";
-import { offlinePage } from "../src/offline.js";
+import { offlinePage } from "../src/index.js";
 import { mapOutline, outline, outlineMarkdown } from "../src/outline.js";
 import { parseGraphText } from "../src/parse.js";
 import { picture } from "../src/picture/graph-picture.js";

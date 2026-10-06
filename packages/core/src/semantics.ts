@@ -4,6 +4,7 @@
  */
 
 import type { GraphIndex } from "./graph-index.js";
+import { hasProfile } from "./targets/names.js";
 import type { Adaptation, AgentNode, Bar, Edge, EdgeWhen, Graph, Id, Loop, Node, Policy, Role, Stop } from "./types.js";
 
 /** graph-ir §1: critics are `critic`, `judge`, `red-team`. */
@@ -15,6 +16,13 @@ export const roleName = (node: AgentNode): string =>
   typeof node.role === "string" ? node.role : node.role.custom;
 
 export const isCustomRole = (node: AgentNode): boolean => typeof node.role !== "string";
+
+/** Whose step an agent node is (amendment A-020): an agent's unless it says a person's. */
+export const stepBy = (node: AgentNode): "agent" | "person" => (node.by === "person" ? "person" : "agent");
+/** A step a person does: an agent node that says so. A human gate is a person's decision, and is not this. */
+export const isPersonStep = (node: Node | undefined): boolean => node?.kind === "agent" && node.by === "person";
+/** The word a view puts on an agent node's card, by whose step it is. */
+export const STEP_BY_LABEL = { agent: "Agent", person: "Person" } as const;
 
 export const isCriticFamily = (node: Node): boolean =>
   node.kind === "agent" && !isCustomRole(node) && CRITIC_ROLES.includes(node.role as Role);
@@ -88,12 +96,28 @@ export function describeStop(stop: Stop): string {
  * Defaults: `bar-passed` follows the loop's pass exit edges; every other stop
  * halts the run and reports to the human.
  */
-export function stopAction(stop: Stop): string {
+export function stopAction(stop: Stop, plan = false): string {
   if (stop.then !== undefined) return `continue at node \`${stop.then}\``;
   return stop.kind === "bar-passed"
     ? "follow the loop's pass exit edges"
-    : "halt the run and report to the human";
+    : plan
+      ? "stop here and decide"
+      : "halt the run and report to the human";
 }
+
+/**
+ * A document nothing runs as it stands (amendment A-020): one of its steps is a person's, or it names no harness
+ * that grooph has a compiler for. A view says of such a document what a plan means (a stop is where the people
+ * following it stop and decide), and of any other what a run does.
+ *
+ * A template with no harness is not taken for a plan by that alone: its harness is chosen when it is filled in,
+ * and a fragment has its host's. A template is a plan where it has a person's step.
+ */
+export const isPlan = (doc: Graph): boolean => {
+  if ((doc.nodes ?? []).some(isPersonStep)) return true;
+  const harness = doc.target?.harness;
+  return doc.template === undefined && (typeof harness !== "string" || !hasProfile(harness));
+};
 
 /**
  * The nodes a loop's stops lead out to: where a stop continues (`then`), unless that is one of the loop's own

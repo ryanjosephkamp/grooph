@@ -12,7 +12,7 @@
  */
 
 import { indexGraph } from "./graph-index.js";
-import { describeStop, isCriticFamily, isWriterFamily, loopMode } from "./semantics.js";
+import { describeStop, isCriticFamily, isPersonStep, isWriterFamily, loopMode } from "./semantics.js";
 import type { Edge, Graph, Id, Loop, Node } from "./types.js";
 
 /** Mermaid ids are safest as letters, digits and underscores; a hyphen can read as an arrow. */
@@ -23,7 +23,8 @@ const label = (text: string): string => `"${text.replace(/"/g, "#quot;")}"`;
 
 /** The node with its shape: the glyph vocabulary in Mermaid's flowchart brackets. */
 function nodeLine(node: Node): string {
-  const name = label(node.name || node.id);
+  // A person's step keeps its role's shape and says whose it is in its label (amendment A-020).
+  const name = label(`${node.name || node.id}${isPersonStep(node) ? " (a person)" : ""}`);
   switch (node.kind) {
     case "agent":
       if (isCriticFamily(node)) return `${mid(node.id)}{${name}}`;
