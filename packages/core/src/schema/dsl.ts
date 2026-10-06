@@ -259,7 +259,7 @@ export function any(describe = "any JSON value"): Sch<unknown> {
       if (Array.isArray(value)) return value.map((v) => self.canon(v));
       if (isPlainObject(value)) {
         const out: Record<string, unknown> = {};
-        for (const key of Object.keys(value).sort()) out[key] = self.canon(value[key]);
+        for (const key of Object.keys(value).sort()) put(out, key, self.canon(value[key]));
         return out;
       }
       return value;
@@ -295,7 +295,7 @@ export function rec<T>(value: Sch<T>, options: { keyPattern?: RegExp; keyName?: 
     canon(v) {
       if (!isPlainObject(v)) return v;
       const out: Record<string, unknown> = {};
-      for (const key of Object.keys(v).sort()) out[key] = value.canon(v[key]);
+      for (const key of Object.keys(v).sort()) put(out, key, value.canon(v[key]));
       return out;
     },
     unknownKeys(v, path, out) {
@@ -303,6 +303,15 @@ export function rec<T>(value: Sch<T>, options: { keyPattern?: RegExp; keyName?: 
       for (const [key, entry] of Object.entries(v)) value.unknownKeys(entry, `${path}/${escapePointer(key)}`, out);
     },
   });
+}
+
+/**
+ * Sets a key as the object's own, whatever the key is. `out.__proto__ = value` would set the object's prototype
+ * and keep nothing; a document may hold that word as a key like any other, and it is kept as one.
+ */
+function put(out: Record<string, unknown>, key: string, value: unknown): void {
+  if (key === "__proto__") Object.defineProperty(out, key, { value, enumerable: true, writable: true, configurable: true });
+  else out[key] = value;
 }
 
 function escapePointer(key: string): string {
@@ -353,7 +362,7 @@ export function obj<F extends Fields>(fields: F, options: { name?: string; descr
       // graph-ir §7: unknown keys last, alphabetical.
       for (const key of Object.keys(value).sort()) {
         if (keys.includes(key) || value[key] === undefined) continue;
-        out[key] = unknownValue.canon(value[key]);
+        put(out, key, unknownValue.canon(value[key]));
       }
       return out;
     },
@@ -386,7 +395,7 @@ export function tagged<B extends Record<string, Sch<unknown>>>(
         return;
       }
       const key = value[tag];
-      if (typeof key !== "string" || !(key in branches)) {
+      if (typeof key !== "string" || !Object.hasOwn(branches, key)) {
         out.push({
           path: `${path}/${tag}`,
           message: `expected ${tag} to be one of ${tags.join(" | ")}, got ${JSON.stringify(key) ?? "nothing"}`,
@@ -406,13 +415,13 @@ export function tagged<B extends Record<string, Sch<unknown>>>(
     canon(value) {
       if (!isPlainObject(value)) return value;
       const key = value[tag];
-      if (typeof key === "string" && key in branches) return branches[key]!.canon(value);
+      if (typeof key === "string" && Object.hasOwn(branches, key)) return branches[key]!.canon(value);
       return unknownValue.canon(value);
     },
     unknownKeys(value, path, out) {
       if (!isPlainObject(value)) return;
       const key = value[tag];
-      if (typeof key === "string" && key in branches) branches[key]!.unknownKeys(value, path, out);
+      if (typeof key === "string" && Object.hasOwn(branches, key)) branches[key]!.unknownKeys(value, path, out);
     },
   });
 }
