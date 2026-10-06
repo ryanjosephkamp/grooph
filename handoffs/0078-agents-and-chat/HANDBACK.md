@@ -407,6 +407,55 @@ It ran the driver's reader's scripts again (none placed a looser graph as "compa
 
 **Known, not changed:** where another package's kept graph is gone or no longer lists the node, a shared agent file is not seen, and `--uncompared` then writes over it. A format character such as U+202E can reorder a line on screen; it cannot make one.
 
+## The last merge of main, step one: the Codex target and what adoption now holds
+
+`main` at `7c636bc` merged in, with #127 (the Codex target, decision 0030) and #142 (core's `unjudged` and `swapped`) on it. The version is still 0.3.0 in all 8 places: the bump, the release notes and Panes (#128) are the second step, on the driver's word.
+
+**Six files conflicted and were resolved by hand:**
+
+| File | What was kept |
+|---|---|
+| `packages/cli/src/commands/export.ts` | #127's `MODELS_ENV` and its comment, with this branch's `tiersSaid` (its `ways` now defaults to `--models, or ${MODELS_ENV[target]}`), the model stop naming the target's own variable, and the kickoff's header naming the harness by `getProfile(target).title` |
+| `packages/cli/src/commands/help.ts` | both sides' paragraphs in `EXPORT_HELP`: #127's on a package being one harness's files, both variables and both targets' own tiers; this branch's flags and its paragraphs on the brakes |
+| `docs/cli.md` | generated again from the help (`node scripts/cli-reference.mjs`), not merged by hand |
+| `apps/web/test/export.test.ts` | both tests: #127's "compiles a graph for its Codex harness" and this branch's on kept folders |
+| `packages/core/src/index.ts` | both exports, `keptFolder` and `getProfile` |
+| `plugins/grooph/skills/grooph-design/SKILL.md` | step 7 has #127's sentences on naming the harness and this branch's on `--allow` and `--uncompared`; line 32 is #135's words, untouched |
+
+**#127's seven things, each checked on the merged tree:**
+
+1. `MODELS_ENV` is the one place the two names are written. No path reads `GROOPH_MODELS` for codex or `GROOPH_MODELS_CODEX` for claude-code.
+2. The command reads it in `index.ts` as #127 left it. **The `grooph_export` tool reads the same variable for its target** (`MODELS_ENV[target]` in `mcp-author.ts`); before the merge it read `GROOPH_MODELS` for every target. A test in `third-pass.test.ts` sets each variable and exports for the other target through the tool.
+3. The line that says where the map came from names the variable of the target exported, in the command and in the tool's reply.
+4. The note's last words name that variable too.
+5. The help has #127's paragraphs whole; `cli-reference.mjs --check` passes.
+6. Both of #127's tests in `packages/cli/test/cli.test.ts` are there and pass, with **two assertions changed**: they asserted that no tier line is printed when no map is given, and on this branch the tier line is printed on every export (the driver's ruling on #71's same assertion). They now assert that the line names no variable as its source and ends "No tier map was given (--models, or GROOPH_MODELS_CODEX)". Both tests in `apps/web/test/export.test.ts` stay.
+7. `scripts/prove-codex.mjs` is unchanged: it exports once, into a fresh folder, and deletes both variables.
+
+**The mixed package.** #127's sentence stays where #127 says it (the help, and so `docs/cli.md`; the design skill's step 7). One thing is new with this merge and is said beside it: the export reads the harness the kept graph names, and over this graph's package for another harness it writes nothing and waits for `--uncompared` (a state of its own, `other-harness`, at both doors). `docs/targets/codex.md` said that export "exits 0"; it no longer does, so that sentence and the one after it were changed to what the command does. **That page is the Codex lane's: say if it should be worded another way.** Where only the other harness's own files are left, with `.grooph/<id>/` gone, the export still does not notice them, and it never removes them.
+
+**Core's `unjudged` and `swapped` (#142).** `unjudged` is a string on a change (what undoing it would do) and `swapped` is on the result. Adopt's two sentences are now one constant, `NOT_JUDGED` in `adopt.ts`, which adopt prints and which the export command and the tool import: the three cannot drift, and a test holds the export's line equal to it. A change is listed under both "tightens" and "not judged" when it has a second reason, by adopt's own filters. Two tests through the command: a check removed while another comes in, and a gate's new answer.
+
+**Words.** Adopt's and sub's help say "a loop's round cap and budget", and adopt's has the one sentence on what the comparison does not see, pointing at `docs/runs.md`, "What adoption does not hold". "A check" is among what is held, in the help and the tool's description. `docs/runs.md`'s export line, `docs/claims.md` row C45 and `docs/agents.md` no longer say that export compares nothing; C45 says it as described where the commands are documented, not shown. The A-019 row has the dated note for the fourth door, in the words the driver approved, after the house lane's sentences.
+
+**One core test changed.** `packages/core/test/compile.test.ts` put hidden characters in a skill's name to see them written as one line in a header; the schema on `main` now refuses such a name, so the skills were taken out of that test and the rest of it stands.
+
+**The driver's reader's scripts, run again on the merged build.** Its temp folder with the base graphs was gone, so the bases were rebuilt from the two templates with the fields its cases change put back (`constraints`, `adaptation: "propose"`, two more stops, four more policies, `owns`, `deny`, an edge's `retry` and `concurrency`); the cases themselves are its own, unchanged. `a3.sh` (ids and collisions) behaves as before: a graph under a new id is a second package and is said so; an odd id is refused by the schema; the agent-file collision writes nothing.
+
+Of `see.sh`'s 56 cases, the five the driver asked about:
+
+| Change | On the merged build |
+|---|---|
+| A node's effort lowered | still silent |
+| A critic's inputs emptied, its outputs changed | still silent |
+| Evidence removed from an edge that does not lead into a critic | still silent |
+| The goal's "Done when" reworded | still silent |
+| A gate's answer led to a new step | silent when the new step carries no irreversible mark. When it does, the step is named under "not judged" and the export goes on, exit 0 |
+
+Held, with nothing written until asked by name: all eight of its cases on a check (its command, its pass condition, its kind, its removal, a way round it, its fail edge opened, the check made an agent, a way to the stop that skips it), a gate's answer renamed, the adaptation level raised or its field removed, critic isolation or no-self-grading removed, an evidence item reworded on the edge into a critic, and the budget's measure changed. Named and not held: a gate's new answer (not judged), evidence added into a critic and a tighter adaptation level (tightens). Still silent besides the five: the graph's own `constraints`, an edge's retry and concurrency, an agent's allow and deny lists, a critic's brief and model, `owns`, a gate's prompt and name, the diminishing-returns, evidence-invalid and bar-passed stops, a bar's inspects, a loop's mode, and the concurrency-cap, evidence-required, owner-per-artifact and custom policies. `docs/runs.md` is where that list belongs, and it is the house lane's section.
+
+**Checks on the merged tree, locally:** clean build of all three packages; core 540, CLI 222, web 124 tests; the goldens for both targets by export and diff; every generator's `--check`; site pages; outside addresses; American English; pictures; `first-run.sh`; `pack-check.sh` (grooph-0.3.0.tgz, 857 KB, 86 files); `kit-check.sh` (grooph-chat.zip 274 KB, grooph.mcpb 271 KB); `test-install-local.sh`; the version check (0.3.0 in all 8 places). The budget, locally: first load 160.54 of 164, canvas 258.13 of 262, a template's address 279.18 of 280, embed 127.85 of 132.
+
 ## For the 0.4.0 notes
 
 Three paragraphs, in the order a person meets them. The second covers the upgrade for both doors.
