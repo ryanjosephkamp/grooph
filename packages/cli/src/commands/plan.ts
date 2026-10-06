@@ -13,7 +13,7 @@
 import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
-import { isMapLike, parseGraphText, planBundle, planSteps, validate, type Graph, type Issue } from "@grooph/core";
+import { isMapLike, isPlan, parseGraphText, planBundle, planSteps, validate, type Graph, type Issue } from "@grooph/core";
 
 import { isKeptGraph, keptGraphRefusal, readText } from "../io.js";
 import { shellWord } from "./export.js";
@@ -145,20 +145,27 @@ export function ownAndPackage(doc: Graph): { own: Issue[]; forPackage: Issue[] }
   return { own, forPackage: validate(doc, { forExport: true }).filter((issue) => !seen.has(key(issue))) };
 }
 
-/** What a plan lacks by being a plan, and nothing else: a harness, and the goal a lead's brief is built from. */
-const A_PLAN_LACKS: readonly string[] = ["E_NO_TARGET", "E_NO_GOAL"];
+/**
+ * What stands between a plan and a package by its being a plan, and nothing else: no harness grooph compiles for,
+ * no goal for a lead's brief to be built from, and a step that is a person's (amendment A-020).
+ */
+export const A_PLAN_LACKS: readonly string[] = ["E_NO_TARGET", "E_NO_GOAL", "E_PERSON_STEP_NOT_COMPILED"];
 
 /**
- * A graph that names no harness is a plan as it stands. For such a graph, what only a package asks for is sorted:
- * `needs` are the codes a plan lacks by being one, said once as what a package would need; `rest` is everything
- * else a package asks (a slot left unfilled, a template block), which is as much a fault of a plan and is said in
- * full. A graph that names a harness is no plan: `needs` is empty and every finding is in `rest`.
+ * A plan, by core's `isPlan`: a graph with a person's step, or one that names no harness grooph has a compiler for.
+ * For such a graph, what only a package asks for is sorted: `needs` are the codes of what a plan lacks by being
+ * one, said once as what is in the way of a package; `rest` is everything else a package asks (a slot left
+ * unfilled), which is as much a fault of a plan and is said in full. Any other graph is no plan: `needs` is empty
+ * and every finding is in `rest`.
  */
 export function asAPlan(doc: Graph, forPackage: readonly Issue[]): { needs: string[]; rest: Issue[] } {
-  if (doc.target?.harness !== undefined) return { needs: [], rest: [...forPackage] };
+  if (!isPlan(doc)) return { needs: [], rest: [...forPackage] };
   const lacks = (issue: Issue): boolean => issue.severity === "error" && A_PLAN_LACKS.includes(issue.code);
   return { needs: [...new Set(forPackage.filter(lacks).map((issue) => issue.code))], rest: forPackage.filter((issue) => !lacks(issue)) };
 }
+
+/** Said of a plan wherever a graph is summed up in a line: what it is, and what is in the way of a package, by code. */
+export const planLine = (needs: readonly string[]): string => `a plan as it stands; in the way of a package for a harness: ${needs.join(", ")}`;
 
 /** Whether a plan is whole, in the plan's own words: what core writes in PLAN.md's second paragraph. */
 export function wholeness(doc: Graph, errors: number, own: number): string {

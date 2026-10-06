@@ -1,10 +1,11 @@
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import { byHandLines, hasErrors, isMapLike, isProposalSetLike, mapShape, mapShapeLine, parseGraphText, parseMapText, validate, validateMap } from "@grooph/core";
+import { byHandLines, hasErrors, isMapLike, isPlan, isProposalSetLike, mapShape, mapShapeLine, parseGraphText, parseMapText, validate, validateMap } from "@grooph/core";
 
 import { readText } from "../io.js";
 import { printIssues, printNext, type Output } from "../print.js";
+import { A_PLAN_LACKS } from "./plan.js";
 
 export type ValidateFlags = { forExport?: boolean; json?: boolean };
 
@@ -62,7 +63,10 @@ export function validateCommand(io: Output, file: string, flags: ValidateFlags =
     io.out(JSON.stringify({ file, ok: !hasErrors(issues), issues }, null, 2));
   } else {
     printIssues(io, issues, file);
-    if (hasErrors(issues)) printNext(io, `fix what is listed (docs/rules.md explains each code), then grooph validate ${flags.forExport === true ? "--for-export " : ""}${file}`);
+    const errors = issues.filter((issue) => issue.severity === "error");
+    // A plan asked whether a package could be made of it: what it lacks by being a plan is nothing to repair in one.
+    if (parsed.doc && isPlan(parsed.doc) && errors.length > 0 && errors.every((issue) => A_PLAN_LACKS.includes(issue.code))) printNext(io, `this is a plan as it stands, and none of that is a fault of one: grooph plan ${file}`);
+    else if (hasErrors(issues)) printNext(io, `fix what is listed (docs/rules.md explains each code), then grooph validate ${flags.forExport === true ? "--for-export " : ""}${file}`);
     else if (flags.forExport === true) printNext(io, `grooph export ${file} --target <harness> --into .`);
     else printNext(io, `grooph validate --for-export ${file}`);
   }

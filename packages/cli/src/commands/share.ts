@@ -30,7 +30,7 @@ import {
 
 import { writeText } from "../io.js";
 import { plural, type Output } from "../print.js";
-import { asAPlan, ownAndPackage } from "./plan.js";
+import { asAPlan, ownAndPackage, planLine } from "./plan.js";
 import { isRunDir, readRun } from "../run-io.js";
 import { LoadError, deflateRaw, loadShareable, shown, type Loaded, type OpenUrl } from "../share-io.js";
 
@@ -181,16 +181,13 @@ function printMap(io: Output, map: OperationMap): void {
   for (const issue of validateMap(map)) io.out(`  ${formatIssue(issue)}`);
 }
 
-/** What a package would ask of a plan, said as that and not as an error of the graph. */
-const planNote = (needs: readonly string[]): string => `a plan as it stands: it names no harness, and a package would need ${needs.join(", ")}`;
-
 function printGraph(io: Output, graph: Graph): void {
   const { own, forPackage } = ownAndPackage(graph);
   const { needs, rest } = asAPlan(graph, forPackage);
   io.out(`${graph.id} · ${graph.name}`);
   io.out(`  ${shapeLine(estimateShape(graph))}`);
   for (const w of [...own, ...rest]) io.out(`  ${formatIssue(w)}`);
-  if (needs.length > 0) io.out(`  ${planNote(needs)} (grooph plan exports it as it is)`);
+  if (needs.length > 0) io.out(`  ${planLine(needs)} (grooph plan exports it as it is)`);
 }
 
 function printSet(io: Output, set: ProposalSet): void {
@@ -203,7 +200,7 @@ function printSet(io: Output, set: ProposalSet): void {
     const warnings = [...own, ...rest];
     const notes = [
       set.recommendation?.candidate === c.id ? "recommended" : "",
-      needs.length > 0 ? planNote(needs) : "",
+      needs.length > 0 ? planLine(needs) : "",
       warnings.length > 0 ? `${plural(warnings.length, "warning")}: ${[...new Set(warnings.map((w) => w.code))].join(", ")}` : "",
     ].filter(Boolean);
     io.out(`  ${c.label.padEnd(label)}  ${c.id.padEnd(id)}  ${shapeLine(c.shape!)}${notes.length > 0 ? `  (${notes.join("; ")})` : ""}`);

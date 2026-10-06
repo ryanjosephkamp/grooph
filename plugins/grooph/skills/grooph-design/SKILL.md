@@ -1,6 +1,6 @@
 ---
 name: grooph-design
-description: Design the multi-agent workflow for a project as grooph loop graphs. Proposes one to three validated candidate graphs (from saved templates, modified templates, or from scratch), shares a comparison link the user can open on a phone, and on their pick places the prompt package for this harness. Use when the user asks for a grooph graph, a loop graph, an agent workflow or team for a project, names a grooph template, or asks to bootstrap a project with grooph.
+description: Design the multi-agent workflow for a project as grooph loop graphs. Proposes one to three validated candidate graphs (from saved templates, modified templates, or from scratch), shares a comparison link the user can open on a phone, and on their pick places the prompt package for this harness. Use when the user asks for a grooph graph, a loop graph, an agent workflow or team for a project, names a grooph template, asks to bootstrap a project with grooph, or asks for a plan or workflow they will carry out themselves, with or without AI help at some steps.
 argument-hint: "[project description, constraints, template names, how many options]"
 ---
 
@@ -44,3 +44,16 @@ These decide whether a graph is good. Apply them before reaching for any templat
 8. **Stop before the run.** Starting the graph spends the user's money. Give the kickoff and wait for their word.
 
 Done when the user holds a link that opens the comparison, or, after a pick, when the package is placed, validated, and the kickoff is in front of them with nothing started.
+
+## A plan a person follows
+
+A person may ask for a plan or a workflow they will carry out themselves, or with AI helping at some steps, and not for a team of agents to run. The steps above hold, with these differences.
+
+- **It is the same document.** A step a person does is an agent node that says `"by": "person"`: `{"op":"updateNode","id":"<node>","set":{"by":"person"}}`, or in the `set` of `addNode`. Give it a role, a brief written to that person (purpose, limits, what to leave behind), inputs and outputs, and no model, effort, skills or capabilities: those are an agent's. The lead is never a person's, and a plan needs no lead. Loops, bars, stops and gates hold for a person's step as for an agent's; a loop's stop is where the people following it stop and decide. Leave the harness off unless one is meant to run it.
+- **Ask how much AI help they want**, if they have not said: none; an assistant at some steps, and for what (gathering, drafting, checking); or as much as the work allows. It counts among your three questions.
+- **Propose several, differing in the degree of AI help and not only in shape**: for example one done by hand, one where an assistant drafts and checks and the person decides, one that is mostly an agent's with the person at the gates. Mark each step as theirs or an agent's by what they asked for, and say why in the candidate's rationale. A step is theirs when it turns on their judgment, their access, the people they know or their name on the result, or when they said they want to do it. A step is an agent's where the work is gathering, drafting, transforming, or checking against something written down, and they asked for help there. When you cannot tell, the step is theirs.
+- **Check it as a plan**: `grooph validate <file>`, without `--for-export`. A missing harness and a person's step (`E_PERSON_STEP_NOT_COMPILED`) are what a package asks, and no fault of a plan. Write the goal all the same: the plan prints it.
+- **On their pick, export the plan.** `grooph pick` as in step 7, then `grooph plan <that file> --into plans/<graph-id>` (with the tools, `grooph_export_plan`): a folder they can see, with no part that begins with a dot. Tell them where `PLAN.md` is. The copy of the graph beside it is the one to edit from then on, and after a change the plan is made again from that copy: `grooph plan plans/<graph-id>/<graph-id>.grooph.json --into plans/<graph-id>`. Where the command stops at a file that is not the plan's, `--force` is the person's word, not yours.
+- **Say plainly what it is.** A graph with a person's step is a plan: grooph draws it and checks it and does not yet compile it for a harness, so `grooph export` writes no package and nothing runs it. The steps marked as an agent's are for the person to hand to an assistant themselves, with the step's brief as what to ask. If they later want a harness to run the whole of it, each of their steps becomes an agent's or a gate, on their word.
+
+Done, for a plan, when the person holds the link that compares the candidates, or, after a pick, `PLAN.md` with its picture and its document, and knows that nothing runs it.

@@ -292,7 +292,7 @@ test("a shared plan is not told that it lacks a harness as an error, and a templ
     const shared = await grooph(["share", put(join(dir, "p.grooph.json"), planOnly)]);
     assert.equal(shared.code, 0, shared.err);
     assert.ok(!/^\s*error\b/m.test(shared.out), shared.out);
-    assert.match(shared.out, /^ {2}a plan as it stands: it names no harness, and a package would need E_NO_TARGET, E_NO_GOAL \(grooph plan exports it as it is\)$/m);
+    assert.match(shared.out, /^ {2}a plan as it stands; in the way of a package for a harness: E_NO_TARGET, E_NO_GOAL \(grooph plan exports it as it is\)$/m);
     const whole = await grooph(["share", put(join(dir, "g.grooph.json"), graph)]);
     assert.ok(!whole.out.includes("a plan as it stands"), whole.out);
     // A graph that names a harness is no plan: a slot left unfilled in it is printed in full, as it was.
@@ -302,7 +302,7 @@ test("a shared plan is not told that it lacks a harness as an error, and a templ
     // And in a plan too, since a plan with a blank in it is not finished either.
     const planSlotted = await grooph(["share", put(join(dir, "ps.grooph.json"), { ...planOnly, goal: "Do {{the-thing}}." })]);
     assert.match(planSlotted.out, /^ {2}error {2}E_UNFILLED_SLOT /m, planSlotted.out);
-    assert.match(planSlotted.out, /a package would need E_NO_TARGET \(grooph plan exports it as it is\)$/m, planSlotted.out);
+    assert.match(planSlotted.out, /in the way of a package for a harness: E_NO_TARGET \(grooph plan exports it as it is\)$/m, planSlotted.out);
 
     // A template with no harness in it makes a plan: the next step is the plan, not the check for a package.
     const templates = join(dir, ".grooph", "templates");
@@ -413,7 +413,7 @@ test("the tool grooph_export_plan returns the plan's files for any graph that re
     const shared = await call(ctx, "grooph_share", { graph: planOnly });
     assert.equal(shared.isError, undefined, textOf(shared));
     assert.ok(!/^error /m.test(textOf(shared)), textOf(shared));
-    assert.match(textOf(shared), /^note: a plan as it stands: it names no harness, and a package would need E_NO_TARGET, E_NO_GOAL\. grooph_export_plan writes the plan as it is\.$/m);
+    assert.match(textOf(shared), /^note: a plan as it stands; in the way of a package for a harness: E_NO_TARGET, E_NO_GOAL\. grooph_export_plan writes the plan as it is\.$/m);
   });
   await withProject(
     async (ctx, project) => {
@@ -428,4 +428,111 @@ test("the tool grooph_export_plan returns the plan's files for any graph that re
     },
     { chat: true },
   );
+});
+
+// ─── a step that is a person's (amendment A-020) ───────────────────────────
+
+/** The review loop with its builder made a person's step, and nothing an agent has left on it. */
+const BY_PERSON = [{ op: "updateNode", id: "builder", set: { by: "person", model: null, effort: null, allow: null } }];
+const personStep = { ...graph, nodes: graph.nodes.map((node) => (node.id === "builder" ? (({ model: _m, effort: _e, allow: _a, ...rest }) => ({ ...rest, by: "person" }))(node as unknown as Record<string, unknown>) : node)) } as unknown as Graph;
+
+test("a step is made a person's with the apply tool, and a graph with one is a plan at every tool: checked, shared and written as a plan, and never a package", async () => {
+  await withProject(async (ctx, project) => {
+    const listed = (await handle({ jsonrpc: "2.0", id: 1, method: "tools/list" }, ctx)) as { result: { tools: { name: string; description: string }[] } };
+    const says = listed.result.tools.find((tool) => tool.name === "grooph_apply")!.description;
+    for (const piece of ['"by" says whose step it is', '{"op":"updateNode","id":"<node>","set":{"by":"person"}}', "A person's step is given no model, effort, skills or capabilities"]) assert.ok(says.includes(piece), piece);
+
+    // Made a person's and nothing else changed: the fields that are an agent's are named, with how to take them off.
+    const marked = await call(ctx, "grooph_apply", { graph, ops: [{ op: "updateNode", id: "builder", set: { by: "person" } }] });
+    assert.equal(marked.isError, undefined, textOf(marked));
+    assert.match(textOf(marked), /^warning W_PERSON_FIELDS_NOT_READ /m);
+    assert.match(textOf(marked), /^fix {2}W_PERSON_FIELDS_NOT_READ {2}A person's step is given no model, effort, skills or capabilities: /m);
+    // With them taken off in the same patch, nothing is said of the step: a graph may hold one.
+    const clean = await call(ctx, "grooph_apply", { graph, ops: BY_PERSON });
+    assert.equal(clean.isError, undefined, textOf(clean));
+    assert.ok(!textOf(clean).includes("W_PERSON_FIELDS_NOT_READ") && !/^error /m.test(textOf(clean)), textOf(clean));
+    const made = clean.structuredContent!["graph"] as Graph;
+    assert.equal((made.nodes.find((node) => node.id === "builder") as { by?: string }).by, "person");
+    // A new step is a person's from the start; null makes one an agent's again.
+    const added = await call(ctx, "grooph_apply", { graph, ops: [{ op: "addNode", kind: "agent", name: "Read the sources", set: { by: "person", role: "builder", brief: "Read them and take notes.", outputs: ["notes.md"] } }] });
+    assert.equal(((added.structuredContent!["graph"] as Graph).nodes.at(-1) as { by?: string }).by, "person", textOf(added));
+    const back = await call(ctx, "grooph_apply", { graph: made, ops: [{ op: "updateNode", id: "builder", set: { by: null } }] });
+    assert.equal((((back.structuredContent!["graph"] as Graph).nodes.find((node) => node.id === "builder")) as { by?: string }).by, undefined);
+    // What is not a whose: refused by the schema, graph unchanged. On a gate the key means nothing, and that is said.
+    const robot = await call(ctx, "grooph_apply", { graph, ops: [{ op: "updateNode", id: "builder", set: { by: "robot" } }] });
+    assert.equal(robot.isError, true);
+    assert.match(textOf(robot), /E_SCHEMA/);
+    assert.match(textOf(await call(ctx, "grooph_apply", { graph, ops: [{ op: "updateNode", id: "merge-gate", set: { by: "person" } }] })), /^warning W_UNKNOWN_KEY /m);
+    // The lead is the harness's own session.
+    const lead = await call(ctx, "grooph_apply", { graph, ops: [{ op: "updateNode", id: "builder", set: { by: "person", role: "lead", model: null, effort: null, allow: null } }] });
+    assert.match(textOf(lead), /^error E_PERSON_LEAD /m);
+    assert.match(textOf(lead), /^fix {2}E_PERSON_LEAD {2}The lead is the harness's own session, and no person can be it\. /m);
+
+    // Checked as for a package, the step is named once, with words that call it no fault of a plan, and the tool's
+    // own next line points at the plan and leaves whose step it is to the person.
+    const checked = await call(ctx, "grooph_validate", { graph: made });
+    assert.match(textOf(checked), /^error E_PERSON_STEP_NOT_COMPILED /m);
+    assert.match(textOf(checked), /^fix {2}E_PERSON_STEP_NOT_COMPILED {2}.*In a plan this is nothing to repair: grooph_export_plan .* Whose step it is is the person's decision, not yours\.$/m);
+    assert.match(textOf(checked).split(LF).at(-1)!, /^next: this graph has a step that is a person's, so it is a plan and no package is made of it: grooph_export_plan .* writes it for people to follow, and grooph_share gives its link\. Make a step an agent's only when the person says a harness is to run it$/);
+    assert.equal((await call(ctx, "grooph_validate", { graph: made, forExport: false })).structuredContent!["ok"], true);
+
+    // No package, by either way of asking, and nothing written; the plan is.
+    for (const args of [{ graph: made }, { graph: made, into: "." }, { graph: made, into: ".", replace: true }]) {
+      const refused = await call(ctx, "grooph_export", args);
+      assert.equal(refused.isError, true, JSON.stringify(Object.keys(args)));
+      assert.match(textOf(refused), /^error E_PERSON_STEP_NOT_COMPILED /m);
+      assert.ok(textOf(refused).split(LF).at(-1)!.includes("grooph_export_plan"), textOf(refused));
+    }
+    assert.deepEqual(readdirSync(project), []);
+    const plan = await call(ctx, "grooph_export_plan", { graph: made, into: "plans/review" });
+    assert.equal(plan.isError, undefined, textOf(plan));
+    assert.match(readFileSync(join(project, "plans", "review", "PLAN.md"), "utf8"), /^\| Builder \| a person \| /m);
+    assert.deepEqual(readdirSync(project), ["plans"]);
+    const shared = await call(ctx, "grooph_share", { graph: made });
+    assert.equal(shared.isError, undefined, textOf(shared));
+    assert.ok(!/^error /m.test(textOf(shared)), textOf(shared));
+    assert.match(textOf(shared), /^note: a plan as it stands; in the way of a package for a harness: E_PERSON_STEP_NOT_COMPILED\. grooph_export_plan writes the plan as it is\.$/m);
+  });
+});
+
+test("a graph with a person's step is a plan at the commands: picked, shared and planned as one, and export writes no package", async () => {
+  await withFolder(async (dir) => {
+    const file = put(join(dir, "g.grooph.json"), graph);
+    const applied = await grooph(["apply", file, "--ops", put(join(dir, "ops.json"), BY_PERSON), "--write"]);
+    assert.equal(applied.code, 0, applied.err);
+    assert.equal(readFileSync(file, "utf8"), canonicalize(personStep));
+
+    const exported = await grooph(["export", file, "--target", "claude-code", "--into", join(dir, "project")]);
+    assert.equal(exported.code, 1);
+    assert.match(exported.err, /^error {2}E_PERSON_STEP_NOT_COMPILED /m);
+    assert.equal(exported.err.split(LF).at(-1), PLAN_STILL(file));
+    assert.equal(existsSync(join(dir, "project")), false);
+
+    // At a terminal, the check for a package ends with the plan, not with "fix what is listed".
+    const checked = await grooph(["validate", "--for-export", file], undefined, true);
+    assert.equal(checked.code, 1);
+    assert.equal(checked.out.split(LF).at(-1), `next: this is a plan as it stands, and none of that is a fault of one: grooph plan ${file}`);
+    assert.equal((await grooph(["validate", file])).code, 0);
+
+    const shared = await grooph(["share", file]);
+    assert.ok(!/^\s*error\b/m.test(shared.out), shared.out);
+    assert.match(shared.out, /^ {2}a plan as it stands; in the way of a package for a harness: E_PERSON_STEP_NOT_COMPILED \(grooph plan exports it as it is\)$/m);
+
+    const planned = await grooph(["plan", file, "--into", join(dir, "the-plan")]);
+    assert.equal(planned.code, 0, planned.err);
+    assert.match(readFileSync(join(dir, "the-plan", "PLAN.md"), "utf8"), /^\| Builder \| a person \| /m);
+
+    // A candidate with a person's step names its harness all the same, and is picked as a plan.
+    const csvDir = join(repoRoot, "fixtures", "proposals", "valid", "csv-export");
+    for (const name of readdirSync(csvDir)) put(join(dir, "set", name), readFileSync(join(csvDir, name), "utf8"));
+    const lean = JSON.parse(readFileSync(join(dir, "set", "lean.grooph.json"), "utf8")) as Graph;
+    const agent = lean.nodes.find((node) => node.kind === "agent" && (node as { role?: unknown }).role !== "lead")!;
+    const theirs = { ...lean, nodes: lean.nodes.map((node) => (node.id === agent.id ? { id: node.id, kind: "agent", name: node.name, role: (node as { role: unknown }).role, brief: "Do it by hand.", outputs: ["the change"], by: "person" } : node)) };
+    put(join(dir, "set", "lean.grooph.json"), theirs);
+    const out = join(dir, "picked.grooph.json");
+    const picked = await grooph(["pick", join(dir, "set", "csv-export.grooph-proposals.json"), "lean", "--out", out]);
+    assert.equal(picked.code, 0, picked.err);
+    assert.match(picked.out, /^"Lean" is a plan as it stands; in the way of a package for a harness: E_PERSON_STEP_NOT_COMPILED\.$/m);
+    assert.match(picked.out, /^next: grooph plan .*picked\.grooph\.json$/m);
+  });
 });

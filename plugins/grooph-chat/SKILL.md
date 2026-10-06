@@ -1,6 +1,6 @@
 ---
 name: grooph-chat
-description: Design a multi-agent workflow as a grooph loop graph, check it, draw it and give a link that opens it on any device. Use when asked for a grooph, a loop graph or a team of agents.
+description: Design a workflow as a grooph loop graph, check it, draw it and give a link that opens it anywhere. Use when asked for a grooph, a loop graph, a team of agents, or a plan to follow.
 ---
 
 # grooph, from a chat
@@ -41,6 +41,16 @@ A graph is for work that needs a loop that turns (build, check, fix, check again
 8. **Stop there.** The link, the picture and the file are the whole delivery. Export a package (`export <file> --target claude-code --into <folder>`) only when they ask for one; starting a run is their decision, in their own harness.
 
 Done when the person holds the link, the picture and the file, knows in a sentence what the graph's brakes are, and nothing has been started.
+
+## When they want a plan to follow themselves
+
+A person may ask for a plan or a workflow they will carry out themselves, or with AI helping at some steps. It is the same document, and nothing compiles it.
+
+- A step a person does is an agent node with `"by": "person"`, set in an operation's `set` (`reference/agents.md`, "A person's step"): a role, a brief written to that person, inputs and outputs, and no model, effort, skills or capabilities. Leave the harness off.
+- Ask how much AI help they want if they have not said. Mark each step as theirs or an agent's by that, and say why: theirs when it turns on their judgment, their access or their name on the result, or when they want to do it; an agent's where the work is gathering, drafting, or checking against something written down. When you cannot tell, the step is theirs.
+- Check it with `validate <file>`, without `--for-export`: a missing harness and a person's step are what a package asks, and no fault of a plan.
+- Hand it over as in step 7, and add `plan <file> --into <id>-plan`, which writes `PLAN.md` (who does what, then every step in full), the picture and the document. Give them `PLAN.md`.
+- Say plainly that it is a plan: grooph draws and checks it and does not yet compile a graph with a person's step for a harness, so nothing runs it. The steps marked as an agent's are for them to hand to an assistant themselves.
 
 To offer a choice, make two or three graphs that differ in shape (a lean one, a rigorous one), write a proposal set, and `share` the set: the link opens them side by side. `share --help` prints the set's format.
 

@@ -16,6 +16,7 @@ import {
   extractTemplate,
   findSlots,
   hasErrors,
+  isPlan,
   indexGraph,
   insertFragment,
   instantiate,
@@ -273,8 +274,8 @@ export async function templateUse(io: Output, env: RegistryEnv, name: string, fl
   printIssues(info, checked.issues, out ?? checked.doc.id);
   if (out !== undefined) {
     info.out(`wrote ${out} (graph "${checked.doc.id}" from ${found.doc.id}@${found.doc.version}, ${found.source})`);
-    // A template that names no harness makes a plan: the check for a package would answer E_NO_TARGET, which is no fault of a plan.
-    info.out(checked.doc.target?.harness === undefined ? `next: grooph plan ${out}` : `next: grooph validate --for-export ${out}`);
+    // A graph with a person's step, or with no harness, is a plan: the check for a package would answer with what is no fault of one.
+    info.out(isPlan(checked.doc) ? `next: grooph plan ${out}` : `next: grooph validate --for-export ${out}`);
   }
   return hasErrors(checked.issues) ? 1 : 0;
 }

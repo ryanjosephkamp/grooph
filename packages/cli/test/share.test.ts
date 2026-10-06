@@ -253,7 +253,7 @@ test("pick refuses an unknown name, an ambiguous one, a graph with errors, and a
     io = capture();
     assert.equal(await grooph(["pick", join(dir, "set", "csv-export.grooph-proposals.json"), "lean", "--out", out], io), 0, text(io.stderr));
     assert.equal(text(io.stderr), "");
-    assert.match(text(io.stdout), /^"Lean" is a plan as it stands: it names no harness, so no package is written from it \(a package would need E_NO_TARGET, E_NO_GOAL\)\.$/m);
+    assert.match(text(io.stdout), /^"Lean" is a plan as it stands; in the way of a package for a harness: E_NO_TARGET, E_NO_GOAL\.$/m);
     assert.match(text(io.stdout), /^next: grooph plan .*picked\.grooph\.json$/m);
     assert.doesNotMatch(text(io.stdout), /grooph export/);
     rmSync(out);

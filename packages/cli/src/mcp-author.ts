@@ -78,7 +78,7 @@ import { explain } from "./commands/explain.js";
 import { renderPng } from "./commands/image.js";
 import { fixLines } from "./fixes.js";
 import type { McpContext } from "./mcp.js";
-import { asAPlan, hiddenPart, notThisPlans, ownAndPackage, planFindings, planPlaces, wholeness } from "./commands/plan.js";
+import { A_PLAN_LACKS, asAPlan, hiddenPart, notThisPlans, ownAndPackage, planFindings, planLine, planPlaces, wholeness } from "./commands/plan.js";
 import { isGroophPicture, isLink, nearestExisting, pathArg, putAll, shownIn, within, writeArg } from "./place.js";
 import { defaultRegistryEnv, scanFolder, scanLocal, type Found } from "./registry.js";
 import { ID, Refusal, counted, issueLine, issueLines, issuesBlock, q, refusalText, reply, word } from "./reply.js";
@@ -153,6 +153,12 @@ export const refusing =
  */
 export function nextAfter(issues: readonly IssueLike[], forExport: boolean, known = false): string {
   const by = known ? ' (pass its id as "graph"; the server remembers it)' : "";
+  // A graph with a person's step is a plan, and whose step it is is the person's to say: where that is all that
+  // stands in the way of a package, the next thing is the plan, not a repair.
+  const errors = issues.filter((issue) => issue.severity === "error");
+  if (errors.some((issue) => issue.code === "E_PERSON_STEP_NOT_COMPILED") && errors.every((issue) => A_PLAN_LACKS.includes(issue.code))) {
+    return `this graph has a step that is a person's, so it is a plan and no package is made of it: grooph_export_plan${by} writes it for people to follow, and grooph_share gives its link. Make a step an agent's only when the person says a harness is to run it`;
+  }
   if (hasErrors(issues)) return `fix what is listed with grooph_apply${by} (each "fix" line names the usual operation; ${AGENTS_PAGE} has them all), then grooph_validate`;
   if (!forExport) return `grooph_validate${by}, which adds the rules a package must pass (a goal, a target, no unfilled slot)`;
   return `grooph_share${by} for a link the person opens, grooph_picture to show it here, grooph_export for the package`;
@@ -655,7 +661,7 @@ export const AUTHOR_TOOLS: Tool[] = [
     name: "grooph_apply",
     title: "Change a graph with operations",
     description:
-      `Change a graph with a list of typed operations, in order: {"op": "<name>", …arguments}. All or nothing: the first operation that cannot apply stops the list and is named by its index, with why, and the graph comes back unchanged. Otherwise the changed graph comes back with its issues. A "set" argument is a patch: each key replaces that field, null removes it. Operations and their arguments: ${OP_NAMES.map((name) => `${name}(${OP_ARGS[name].join(", ")})`).join(" · ")}. ${AGENTS_PAGE} shows each by example. A graph may be built in steps, so rule errors do not stop the change; check with grooph_validate.`,
+      `Change a graph with a list of typed operations, in order: {"op": "<name>", …arguments}. All or nothing: the first operation that cannot apply stops the list and is named by its index, with why, and the graph comes back unchanged. Otherwise the changed graph comes back with its issues. A "set" argument is a patch: each key replaces that field, null removes it. On an agent node, "by" says whose step it is: {"op":"updateNode","id":"<node>","set":{"by":"person"}} makes it a person's, and null an agent's again. A person's step is given no model, effort, skills or capabilities (take them off with null in the same patch); a graph with one is a plan, which grooph_export_plan writes and no package is made of. Operations and their arguments: ${OP_NAMES.map((name) => `${name}(${OP_ARGS[name].join(", ")})`).join(" · ")}. ${AGENTS_PAGE} shows each by example. A graph may be built in steps, so rule errors do not stop the change; check with grooph_validate.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -800,7 +806,7 @@ export const AUTHOR_TOOLS: Tool[] = [
       const lines = [
         ...head,
         ...warnings.map(issueLine),
-        ...(needs.length > 0 ? [`note: a plan as it stands: it names no harness, and a package would need ${needs.join(", ")}. grooph_export_plan writes the plan as it is.`] : []),
+        ...(needs.length > 0 ? [`note: ${planLine(needs)}. grooph_export_plan writes the plan as it is.`] : []),
         `link (${link.length.toLocaleString("en")} characters): ${q(link)}`,
         ...(long ? [`warning: messengers often cut links over ${SHARE_LINK_WARN.toLocaleString("en")} characters. Shorten the briefs or drop a candidate; or give the person the document itself to paste into the app (Paste a document, on its first screen).`] : []),
         "embed: two lines of HTML that show the same picture in any web page are the next block of this reply, as they are.",

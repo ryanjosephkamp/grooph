@@ -183,9 +183,9 @@ grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
 Write the owner's chosen candidate out as an ordinary graph document. The candidate is
 named by its id or its label, ignoring case; a name that matches one candidate's id and
 another's label is refused as ambiguous. The graph is checked first and nothing is written
-while it has errors. A candidate that names no harness is a plan: the harness and the goal
-a package would need are no error of it, so it is picked like any other, and the command
-says so and that grooph plan exports it. An existing --out is replaced only with --force
+while it has errors. A candidate with a step that is a person's, or one that names no
+harness, is a plan: what only a package would ask of it is no error of it, so it is picked
+like any other, and the command says so and that grooph plan exports it. An existing --out is replaced only with --force
 (or when it already holds the same graph).
 ```
 
