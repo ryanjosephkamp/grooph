@@ -112,7 +112,7 @@ export function offlinePage(doc: Graph | OperationMap, options: OfflinePageOptio
       if (now) section.items.unshift({ label: options.at ? `At ${options.at.slice(0, 16).replace("T", " ")} UTC` : "When this page was made", text: mapLiveLine(now, options.at) });
     }
   }
-  const issues: IssueLike[] = map ? validateMap(map) : validate(graph!, { forExport: true });
+  const issues: IssueLike[] = map ? validateMap(map) : validate(graph!);
   const errors = issues.filter((i) => i.severity === "error").length;
   const text = map ? canonicalizeMap(map) : canonicalize(graph!);
   const name = doc.name || doc.id;
@@ -122,7 +122,7 @@ export function offlinePage(doc: Graph | OperationMap, options: OfflinePageOptio
     issues.length === 0
       ? map
         ? "No issues. Every handoff names its carrier."
-        : "No issues. The graph validates for export."
+        : "No issues."
       : `${errors} error${errors === 1 ? "" : "s"}, ${issues.length - errors} warning${issues.length - errors === 1 ? "" : "s"}.`;
 
   return [
