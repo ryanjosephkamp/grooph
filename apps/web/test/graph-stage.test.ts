@@ -451,7 +451,7 @@ describe("the spiral and its lid", () => {
   /** The nested run's graph, and notes written for it: `[node, outcome, round or none, verdict]`. */
   const [NEST] = runAt("run-nested");
   const notes = (list: [string, string, number?, string?][]): RunNote[] =>
-    list.map(([node, outcome, round, verdict], k) => ({ id: `n-${String(k + 1).padStart(4, "0")}`, run: "r", at: `node:${node}`, ended: `2026-09-19T13:${String(k).padStart(2, "0")}:00Z`, outcome, ...(round === undefined ? {} : { round }), ...(verdict ? { verdict } : {}) }) as RunNote);
+    list.map(([node, outcome, round, verdict], k) => ({ id: `n-${String(k + 1).padStart(4, "0")}`, run: "r", at: node.includes(":") ? node : `node:${node}`, ended: `2026-09-19T13:${String(k).padStart(2, "0")}:00Z`, outcome, ...(round === undefined ? {} : { round }), ...(verdict ? { verdict } : {}) }) as RunNote);
   const withStops = (doc: Graph, id: string, stops: unknown[]): Graph => ({ ...doc, loops: doc.loops.map((l) => (l.id === id ? ({ ...l, stops } as typeof l) : l)) });
 
   it("every brake of a loop is said, in the document's order, and the ones that count rounds are places on the way up", () => {
@@ -926,9 +926,37 @@ describe("the spiral and its lid", () => {
     expect(solid.t === "line" && turns(solid.pts[solid.pts.length - 1]![1])).toBe(2);
   });
 
+  it("a node in a loop inside another: each loop's round is worked out from the loop's own notes and the ways back the run took, whichever loop's number the lead wrote on the node's note", () => {
+    const where = (m: ReturnType<typeof modelAt>) => m.run!.dispatches.map((d) => `${d.node}@${d.loop}:${d.round}`);
+    // The nested fixture's lead wrote the inner loop's round on the builder's and the tests' notes.
+    const [nested, written] = runAt("run-nested");
+    const inner = ["builder@grind:0", "tests@grind:0", "builder@grind:1", "tests@grind:1", "judge@phases:0", "builder@grind:0", "tests@grind:0"];
+    expect(where(modelAt(nested, places(nested), written))).toEqual(inner);
+    // The same run with the outer loop's round written there, as the recorded Gauntlet and fresh-grind runs have
+    // it, and with none written: the same rounds.
+    const phase = [0, 0, 0, 0, 0, 1, 1];
+    let k = 0;
+    const outer = written.map((n) => (n.at === "node:builder" || n.at === "node:tests" ? ({ ...n, round: phase[k++] } as RunNote) : n));
+    expect(k).toBe(6);
+    expect(where(modelAt(nested, places(nested), outer))).toEqual(inner);
+    expect(where(modelAt(nested, places(nested), written.map(({ round: _round, ...n }) => (n.at.startsWith("node:") ? (n as RunNote) : ({ ...n, round: _round } as RunNote)))))).toEqual(inner);
+    // The recorded Gauntlet run: piece 2 is round 1 of Pieces and round 0 of Polish a piece, as its own loop notes
+    // say, though the owner's note there carries a 1; and the page's first sentence says so.
+    const dir = "experiments/patterns/gauntlet-decomposed/run/runs/20261004-224501";
+    const gauntlet = graph(join(dir, "graph.grooph.json"));
+    const ran = modelAt(gauntlet, places(gauntlet), parseRunNotes(readFileSync(join(root, dir, "notes.jsonl"), "utf8")).notes);
+    expect(where(ran)).toEqual(["planner@null:null", "owner@polish:0", "capture-check@polish:0", "critic@polish:0", "next-piece@pieces:0", "owner@polish:0", "capture-check@polish:0", "critic@polish:0", "next-piece@pieces:1"]);
+    expect(stepsOf(ran)[0]!.says).toMatch(/^The whole run: 9 dispatches, in round 0 of Polish a piece; rounds 0 and 1 of Pieces\./);
+    // A node in one loop keeps the round its note names.
+    const [sandwich] = [modelAt(RUN, places(RUN), NOTES)];
+    expect(where(sandwich)).toEqual(["builder@sandwich:0", "checks@sandwich:0", "critic@sandwich:0", "builder@sandwich:1", "checks@sandwich:1", "critic@sandwich:1"]);
+  });
+
   it("a loop with no cap is as tall as two rounds over the highest it was in, though it has since started afresh", () => {
     const open = withStops(NEST, "grind", []);
-    const m = modelAt(open, places(open), notes([["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 4], ["tests", "pass", 4], ["judge", "fail", 0, "next-phase"], ["builder", "pass", 0]]));
+    const m = modelAt(open, places(open), notes([["builder", "pass", 0], ["tests", "fail", 0], ["loop:grind", "fail", 3], ["builder", "pass", 4], ["tests", "pass", 4], ["judge", "fail", 0, "next-phase"], ["builder", "pass", 0]]));
+    // (The loop's own note says it was in round 3; its way back makes that 4. A number on a note at the builder
+    // would not: the builder is in two loops.)
     expect(m.run!.most).toMatchObject({ grind: 4 });
     expect(topOf(m, m.loops.find((l) => l.id === "grind")!)).toBe(7);
     const { prims } = spiral(m, at(m, 0));

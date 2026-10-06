@@ -177,14 +177,20 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       const own = note.proposal?.summary ?? note.amendment?.summary ?? note.text ?? "";
       const node = focus.kind === "node" ? doc.nodes.find((n) => n.id === focus.id) : undefined;
       const loop = node ? innermost(node.id) : focus.kind === "loop" ? focus.id : null;
+      // The round a note names is its loop's where it can be no other's: a loop's own note, or a note at a node
+      // that is in one loop. A node in a loop inside another is in a round of each, and the contract's one number
+      // does not say which: leads have written the outer loop's there (the recorded Gauntlet and fresh-grind runs)
+      // and the inner one's (the nested fixture). So for such a node each loop's round is worked out, as it is where
+      // a note names none, and the number on the note is not read.
+      const named = node && loops.filter((l) => l.members.includes(node.id)).length > 1 ? undefined : note.round;
       if (node) {
         // Each loop one of whose ways back was taken to get here, once.
         for (const turned of new Set(ways.into(node.id).flatMap((e) => (e.back ? [e.back] : [])))) {
-          if (turned !== loop || note.round === undefined) seen[turned] = (seen[turned] ?? 0) + 1;
+          if (turned !== loop || named === undefined) seen[turned] = (seen[turned] ?? 0) + 1;
           for (const inner of loops) if (under(loops, inner.id, turned)) seen[inner.id] = 0;
         }
       }
-      const round = loop ? (seen[loop] = note.round ?? seen[loop] ?? 0) : null;
+      const round = loop ? (seen[loop] = named ?? seen[loop] ?? 0) : null;
       if (node) ways.at(node.id, { round, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: note.outcome === "started" });
       // A loop's note that names the stop that fired: its ways back were not taken on what had been reported.
       if (focus.kind === "loop" && note.stop !== undefined) ways.stopped(focus.id, note.stop === "human");
