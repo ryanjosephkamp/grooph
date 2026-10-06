@@ -177,7 +177,21 @@ describe("a recorded run", () => {
     // Two: an inner loop's own note that names a higher round than its node's note just before it. Written the
     // outer way with no way back of the outer loop yet, Grind goes round twice and its nodes' notes all say 0.
     expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "fail", 0], ["loop:grind", "fail", 0], ["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 1]])))).toEqual(["builder@grind:0", "tests@grind:0", "builder@grind:1", "tests@grind:1"]);
-    // With neither sign the number is read as the inner loop's, as the contract's nearest reading has it: a run
+    // Three: a note at an inner loop's node right after that loop's own way back that names no higher a round than
+    // the loop's node before it. It is there before the loop's own note for that round, which comes after the
+    // round's dispatches: a record written the outer way that stops inside an inner loop's second round is drawn
+    // in round 1 there, as it will be once that note lands. The nested fixture, and Gauntlet's second polish.
+    const mid = skip([["builder", "pass", 0], ["tests", "fail", 0], ["loop:grind", "fail", 0], ["builder", "pass", 0], ["tests", "pass", 0]]);
+    expect(where(modelOf(nested, mid))).toEqual(["builder@grind:0", "tests@grind:0", "builder@grind:1", "tests@grind:1"]);
+    expect(where(modelOf(nested, mid.slice(0, 4)))).toEqual(["builder@grind:0", "tests@grind:0", "builder@grind:1"]);
+    expect(where(modelOf(GAUNTLET, skip([["owner", "pass", 0], ["capture-check", "pass", 0], ["critic", "fail", 0], ["loop:polish", "fail", 0], ["owner", "pass", 0], ["capture-check", "pass", 0]])))).toEqual(["owner@polish:0", "capture-check@polish:0", "critic@polish:0", "owner@polish:1", "capture-check@polish:1"]);
+    // Written the inner way the number goes up across the loop's own way back, which is no sign: it is read, here
+    // where the notes skip a round and working it out would say 1.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 1], ["tests", "pass", 2]]))).at(-1)).toBe("tests@grind:2");
+    // And a note right after the outer loop's way back is held to the first sign alone, though the inner loop's
+    // last way back was never taken (its cap fired, and no note says so): round 0 there is the inner loop's own.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 1], ["tests", "fail", 1], ["judge", "fail", 0], ["builder", "pass", 0], ["tests", "pass", 0]]))).slice(-2)).toEqual(["builder@grind:0", "tests@grind:0"]);
+    // With no sign the number is read as the inner loop's, as the contract's nearest reading has it: a run
     // written the outer way whose outer way back the notes do not show (the judge's verdict where the edge wants
     // an outcome) is drawn as its numbers say.
     expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0], ["judge", "pass", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 0]]))).slice(-2)).toEqual(["builder@grind:1", "tests@grind:1"]);
@@ -1426,23 +1440,49 @@ describe("rings", () => {
     expect(out).toHaveLength(19);
     const beside = out.find((v, n) => n > 0 && (out[n - 1]![2] - near[2]) * (v[2] - near[2]) <= 0)!;
     expect(Math.hypot(beside[0] - near[0], beside[2] - near[2])).toBeGreaterThanOrEqual(50);
-    // No node of a ring that stands on another is drawn over that ring's own foot: such a ring is turned a quarter
-    // of a station, and a node 64 up is seen over ground 55 farther back. On the templates and fixtures that have
-    // one (fresh grind's Tests was 5 from Grind's foot, and the judge's way back read as arriving there).
+    // No card of a ring that stands on another is drawn over that ring's own foot, as it is seen from where the view
+    // starts (turned half a radian, tipped 0.86): each of its nodes is seen above the foot, or 70 or more to its side
+    // (a card stands over its node, 75 to each side at most). And the turn is the one that does it best: the two
+    // of its nodes nearest the reader are seen as far to one side of the foot as to the other, at one height. On
+    // the templates and fixtures that have one (fresh grind's Tests was 5 from Grind's foot, and Gauntlet's Capture
+    // check right over Polish a piece's, with the outer loop's lines through the foot reading as arriving there),
+    // and on rings of one to six made up.
+    const [cy, sy, cp, sp] = [Math.cos(-0.5), Math.sin(-0.5), Math.cos(0.86), Math.sin(0.86)];
+    const seenAt = (p: readonly number[]): [number, number] => [p[0]! * cy + p[2]! * sy, (-p[0]! * sy + p[2]! * cy) * sp - p[1]! * cp];
+    const made = [1, 2, 3, 4, 5, 6].map((k) => {
+      const ids = Array.from({ length: k }, (_, i) => `i${i}`);
+      const edges = [{ id: "in", from: "o", to: "i0" }, ...ids.slice(1).map((id, i) => ({ id: `e${i}`, from: `i${i}`, to: id })), { id: "again", from: ids[k - 1]!, to: "i0", when: "fail" }, { id: "round", from: ids[k - 1]!, to: "o", when: "blocked" }];
+      return { ...base, nodes: ["o", ...ids].map(node), edges, loops: [loopOf("inner", ids, ["again"]), loopOf("outer", ["o", ...ids], ["round"])] } as unknown as Graph;
+    });
     let stood = 0;
-    for (const path of [...ALL, ...readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`)]) {
-      const doc = graph(path);
-      const g = modelAt(doc, places(doc));
-      const drawn = rings(g, whole);
-      const feet = drawn.prims.flatMap((p) => (p.t === "dot" && p.r === 4 ? [p.at] : []));
-      for (const n of g.nodes) {
-        const o = drawn.node(n.id);
-        if (!o[1]) continue;
-        for (const foot of feet) expect(Math.hypot(o[0] - foot[0], o[2] - 0.86 * o[1] - foot[2]), `${path} ${n.id}`).toBeGreaterThanOrEqual(28);
-        stood += 1;
+    for (const doc of [...[...ALL, ...readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`)].map(graph), ...made]) {
+      for (const narrowly of [false, true]) {
+        const g = modelAt(doc, places(doc), undefined, narrowly);
+        const drawn = rings(g, whole);
+        for (const loop of g.loops.filter((l) => l.inside)) {
+          const { c } = ringOf(drawn.prims, loop.id);
+          const foot = seenAt([c[0], c[1] - 64, c[2]]);
+          const from = loop.own.map((id) => seenAt(drawn.node(id))).map(([x, y]) => [x - foot[0], y - foot[1]] as const).sort((p, q) => q[1] - p[1]);
+          for (const [aside, below] of from) expect(below < 0 || Math.abs(aside) >= 70, `${doc.id} ${loop.id}: ${Math.round(aside)} aside, ${Math.round(below)} below`).toBe(true);
+          if (from.length > 1 && loop.own.length === loop.members.length) expect(Math.abs(from[0]![0] + from[1]![0]) + Math.abs(from[0]![1] - from[1]![1]), `${doc.id} ${loop.id}`).toBeLessThan(0.5);
+          // (A ring of one has its node at the far side as seen, straight over the foot and well above it.)
+          else if (from.length === 1) expect([Math.round(from[0]![0]), from[0]![1] < -60], `${doc.id} ${loop.id}`).toEqual([0, true]);
+          stood += from.length;
+        }
       }
     }
-    expect(stood).toBeGreaterThan(6);
+    expect(stood).toBe(2 * (2 + 2 + 3 + 21));
+    // The line on the ground runs straight away from the reader, which from where the view starts is drawn slanting
+    // across the frame. In a frame a phone's width the line leans the other way by as much: every node on the
+    // ground and the middle of every ring that lies on it is seen at one place across, one above the other.
+    for (const narrowly of [false, true]) {
+      const g = modelAt(GAUNTLET, places(GAUNTLET), undefined, narrowly);
+      const drawn = rings(g, whole);
+      const along = [...g.nodes.filter((n) => !n.loop).map((n) => drawn.node(n.id)), ...g.loops.filter((l) => !l.inside).map((l) => ringOf(drawn.prims, l.id).c)];
+      const across = along.map((p) => seenAt(p)[0]);
+      expect(along.length, String(narrowly)).toBe(7);
+      expect([Math.max(...along.map((p) => Math.abs(p[0]))) < 0.5, Math.max(...across) - Math.min(...across) < 0.5], String(narrowly)).toEqual([!narrowly, narrowly]);
+    }
     // A ring's first station that is a ring of its own has its first card 64 higher, which is drawn over ground
     // farther back: the node on the ground before it stands clear of that too. The glyph vocabulary's docs and Build.
     const glyphs = graph("fixtures/valid/glyph-vocabulary.grooph.json");
