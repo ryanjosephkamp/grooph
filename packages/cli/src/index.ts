@@ -16,7 +16,7 @@ import { oneLine } from "./reply.js";
 import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
-import { MODELS_ENV, exportCommand, parseModels } from "./commands/export.js";
+import { MODELS_ENV, PLAN_STILL, exportCommand, parseModels } from "./commands/export.js";
 import { explainCommand } from "./commands/explain.js";
 import { APPLY_HELP, CANONICALIZE_HELP, EXPLAIN_HELP, EXPORT_HELP, NEW_HELP, VALIDATE_HELP, nearestCommand, overview } from "./commands/help.js";
 import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
@@ -24,6 +24,7 @@ import { eventsCommand, hooksCommand, sessionsCommand, EVENTS_HELP, HOOKS_HELP, 
 import { imageCommand, outlineCommand, pageCommand, IMAGE_HELP, OUTLINE_HELP, PAGE_HELP } from "./commands/image.js";
 import { newCommand } from "./commands/new.js";
 import { pickCommand, PICK_HELP } from "./commands/pick.js";
+import { planCommand, PLAN_HELP } from "./commands/plan.js";
 import { runsBundleCommand, runsListCommand, runsShowCommand, RUNS_HELP } from "./commands/runs.js";
 import { shapeCommand, SHAPE_HELP } from "./commands/shape.js";
 import { embedCommand, EMBED_HELP } from "./commands/embed.js";
@@ -184,7 +185,10 @@ export async function run(
         if (tierMap && "error" in tierMap) return usageError(io, `${modelsFrom}: ${tierMap.error}`);
         if (target === undefined) return usageError(io, `export needs --target (${KNOWN_TARGETS.join(", ")})`);
         if (!KNOWN_TARGETS.includes(target)) {
-          return usageError(io, `unknown target "${target}"; known targets: ${KNOWN_TARGETS.join(", ")}`);
+          // A harness grooph has no compiler for: no package, and the document is a plan as it is.
+          const code = usageError(io, `unknown target "${target}"; known targets: ${KNOWN_TARGETS.join(", ")}`);
+          io.err(oneLine(PLAN_STILL(file)));
+          return code;
         }
         const into = values["into"];
         if (into === undefined || into === "") return usageError(io, "export needs --into <dir>, the project to write the package into");
@@ -314,6 +318,14 @@ export async function run(
         const out = values["out"];
         if (out === undefined) return usageError(io, "pick needs --out <graph file>, for example .grooph/graphs/<graph-id>.grooph.json");
         return pickCommand(io, file, name.join(" "), { out, force: values["force"] === true });
+      }
+
+      case "plan": {
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { into: { type: "string" }, force: { type: "boolean" } } });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "plan needs a file: grooph plan <graph> [--into <dir>]");
+        if (values["into"] === "") return usageError(io, "--into needs a folder to write the plan into");
+        return planCommand(io, file, { ...(values["into"] !== undefined ? { into: values["into"] } : {}), force: values["force"] === true });
       }
 
       case "runs": {
@@ -495,6 +507,7 @@ back as JSON, so no file has to exist; path reads a file and out writes one:
   grooph_shape          counts and brakes on one line
   grooph_share          a link the app opens on any device, and the embed line
   grooph_picture        the picture as SVG text, and a PNG when asked
+  grooph_export_plan    a plan for people to follow: PLAN.md, the picture, the document
   grooph_export         the prompt package's files, returned or written into the project
 
 For a session's lead, beside what the event hook sees (docs/subagents.md §7):
@@ -551,6 +564,7 @@ const COMMAND_HELP: Record<string, string> = {
   adopt: ADOPT_HELP,
   watch: WATCH_HELP,
   pick: PICK_HELP,
+  plan: PLAN_HELP,
   shape: SHAPE_HELP,
   glyph: GLYPH_HELP,
   mermaid: MERMAID_HELP,

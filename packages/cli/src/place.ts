@@ -4,7 +4,7 @@
  * placed whole or not at all.
  */
 
-import { existsSync, lstatSync, mkdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { Refusal, q } from "./reply.js";
@@ -184,4 +184,29 @@ export function putAll(place: Place, files: readonly { full: string; contents: s
       throw new Refusal(`Could not put ${q(shownIn(place, full))} in place (${why(err)}).${placed.length > 0 ? ` Already placed: ${placed.join(", ")}.` : " Nothing was placed."}`, "look at what is at that path, then call again");
     }
   }
+}
+
+/**
+ * Whether the file at `full` is a picture grooph drew: an SVG whose own first element has the class grooph gives a
+ * picture. The element's attributes are read one by one, so the mark is the attribute named `class` and no other:
+ * not `data-class`, not the word inside another attribute's value, a comment, or an <svg> inside another. A PNG
+ * carries no mark.
+ */
+export function isGroophPicture(full: string): boolean {
+  if (!/\.svg$/i.test(full)) return false;
+  let head: string;
+  try {
+    head = readFileSync(full, "utf8").slice(0, 4000);
+  } catch {
+    return false;
+  }
+  // White space is XML's own four characters: JavaScript's `\s` also takes a no-break space, which XML does not.
+  const open = /^\uFEFF?[ \t\r\n]*<svg(?=[ \t\r\n])/.exec(head);
+  if (!open) return false;
+  const attribute = /[ \t\r\n]+([^ \t\r\n=<>"'/]+)[ \t\r\n]*=[ \t\r\n]*(?:"([^"]*)"|'([^']*)')/y;
+  attribute.lastIndex = open[0].length;
+  for (let found = attribute.exec(head); found !== null; found = attribute.exec(head)) {
+    if (found[1] === "class") return (found[2] ?? found[3]) === "grooph-picture";
+  }
+  return false;
 }

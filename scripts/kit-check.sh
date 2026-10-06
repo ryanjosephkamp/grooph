@@ -78,7 +78,7 @@ const [init, list, use, share, written] = run.stdout.trim().split("\n").map((l) 
 need(init.result.serverInfo.version === version, "the server reports another version");
 const names = list.result.tools.map((t) => t.name);
 need(JSON.stringify(names) === JSON.stringify(m.tools.map((t) => t.name)), "the manifest's tools are not the server's");
-need(names.length === 10 && !names.includes("grooph_plan"), "the extension offers tools a chat should not have");
+need(names.length === 11 && !names.includes("grooph_plan"), "the extension offers tools a chat should not have");
 need(use.result.structuredContent.graph.id === "from-the-extension", "grooph_use_template returned no graph");
 need(/^https:\/\/ryanjosephkamp\.github\.io\/grooph\/#\/open\?d=/.test(share.result.structuredContent.link), "grooph_share, given the graph's id, returned no link");
 need(written.result.isError === true && /writes no file/.test(written.result.content[0].text), "the extension's server was willing to write a file");

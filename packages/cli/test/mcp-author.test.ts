@@ -445,7 +445,7 @@ test("in a chat (grooph mcp --chat) only the authoring tools are offered, and th
     async (ctx) => {
       const ask = async (message: unknown): Promise<{ result?: Record<string, unknown>; error?: { code: number; message: string } }> => (await handle(message, ctx)) as never;
       const tools = ((await ask({ jsonrpc: "2.0", id: 1, method: "tools/list" })).result!["tools"] as { name: string }[]).map((t) => t.name);
-      assert.deepEqual(tools, ["grooph_validate", "grooph_templates", "grooph_use_template", "grooph_new", "grooph_apply", "grooph_explain", "grooph_shape", "grooph_share", "grooph_picture", "grooph_export"]);
+      assert.deepEqual(tools, ["grooph_validate", "grooph_templates", "grooph_use_template", "grooph_new", "grooph_apply", "grooph_explain", "grooph_shape", "grooph_share", "grooph_picture", "grooph_export_plan", "grooph_export"]);
       const init = await ask({ jsonrpc: "2.0", id: 2, method: "initialize", params: { protocolVersion: "2025-06-18" } });
       assert.match(String(init.result!["instructions"]), /Here no tool writes a file/);
       assert.doesNotMatch(String(init.result!["instructions"]), /grooph_plan/);
@@ -919,7 +919,7 @@ test("second pass 4 and 5: a tool that can replace a file says so, and the pictu
   await withProject(async (ctx) => {
     const tools = ((await handle({ jsonrpc: "2.0", id: 1, method: "tools/list" }, ctx)) as { result: { tools: { name: string; inputSchema: { properties: Record<string, unknown> }; annotations: { readOnlyHint: boolean; destructiveHint?: boolean } }[] } }).result.tools;
     const replacing = tools.filter((t) => t.inputSchema.properties["replace"] !== undefined);
-    assert.deepEqual(replacing.map((t) => t.name), ["grooph_use_template", "grooph_new", "grooph_apply", "grooph_picture", "grooph_export"]);
+    assert.deepEqual(replacing.map((t) => t.name), ["grooph_use_template", "grooph_new", "grooph_apply", "grooph_picture", "grooph_export_plan", "grooph_export"]);
     for (const t of replacing) assert.deepEqual([t.annotations.readOnlyHint, t.annotations.destructiveHint], [false, true], t.name);
     // And every tool that takes out or into takes replace: none can replace without being asked to.
     for (const t of tools.filter((x) => x.inputSchema.properties["out"] !== undefined || x.inputSchema.properties["into"] !== undefined)) assert.ok(replacing.includes(t), t.name);

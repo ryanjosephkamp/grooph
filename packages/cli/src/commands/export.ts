@@ -408,6 +408,9 @@ const looksLikeMap = (text: string): boolean => {
  * that package keeps, as `grooph adopt` holds a run's working copy (`brakesAtExport`): a change that may remove or
  * loosen one is listed and nothing is written, until it is asked for with `--allow <name>`.
  */
+/** The last line of an export refused for what the graph lacks: a package is one thing, and a plan never waits on it. */
+export const PLAN_STILL = (file: string): string => `A plan needs none of this: grooph plan ${file} writes PLAN.md, the picture and the document as they are.`;
+
 export function exportCommand(raw: Output, file: string, given: ExportFlags): number {
   // Whatever this command says is one line a call, with no control character in it. It echoes a file's name, a
   // folder's, an argument, a document's keys and words: none of them can end a line and begin one of grooph's own, or
@@ -445,12 +448,14 @@ export function exportCommand(raw: Output, file: string, given: ExportFlags): nu
     if (!attempt.ok) {
       io.err(`grooph: cannot export ${file} for ${flags.target}: fix these first`);
       printIssues(io, attempt.issues, file);
+      io.err(PLAN_STILL(file));
       return 1;
     }
     compiled = attempt.result;
   } catch (err) {
     if (err instanceof CompileError) {
       printIssues(io, err.issues, file);
+      io.err(PLAN_STILL(file));
       return 1;
     }
     io.err(`grooph: cannot export ${file}: ${(err as Error).message}`);

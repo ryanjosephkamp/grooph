@@ -219,6 +219,7 @@ const ON_A_GRAPH: [string, Record<string, unknown>][] = [
   ["grooph_shape", {}],
   ["grooph_share", {}],
   ["grooph_picture", {}],
+  ["grooph_export_plan", {}],
   ["grooph_export", {}],
 ];
 /** Some payloads for a string, turning through all of them as the strings go by. */
@@ -228,7 +229,7 @@ const some = (n: number): string[] => Array.from({ length: n }, () => PAYLOADS[(
 // ─── the property ─────────────────────────────────────────────────────────
 
 test("every tool is offered in both modes, and the labels a line may open with are the tool's own list", () => {
-  assert.ok(toolNames().length >= 13 && toolNames({ chat: true }).length >= 10);
+  assert.ok(toolNames().length >= 14 && toolNames({ chat: true }).length >= 11);
   assert.ok(PAYLOADS.length > 100);
   // No label is a word a payload could not also be: that is the point of the test, not a weakness of it.
   assert.ok(LABELS.includes("note:") && LABELS.includes("wrote ") && LABELS.includes("refused:"));
@@ -294,7 +295,7 @@ test("a graph's free text: every payload in its name, its goal, a brief, a gate'
       for (const at of places) all = withLeaf(all, at, payload);
       for (const [tool, args] of ON_A_GRAPH) await call(ctx, tool, { graph: all, ...args }, `${mode}, every free text`);
       const one = withLeaf(graph, places[(turn += 1) % places.length]!, payload);
-      for (const tool of ["grooph_explain", "grooph_share", "grooph_export"]) await call(ctx, tool, { graph: one }, `${mode}, one free text`);
+      for (const tool of ["grooph_explain", "grooph_share", "grooph_export_plan", "grooph_export"]) await call(ctx, tool, { graph: one }, `${mode}, one free text`);
     }
   });
 });
@@ -397,7 +398,7 @@ test("every argument of every tool: each payload where a string goes, and where 
       await call(ctx, "grooph_apply", { graph, ops: [{ op: "renameId", from: "fixer", to: payload }], out: payload }, where);
       await call(ctx, "grooph_apply", { graph, ops: [{ op: "updateNode", id: payload, set: { brief: payload } }] }, where);
       await call(ctx, "grooph_apply", { graph, ops: [{ op: "setTarget", harness: "claude-code", [payload]: payload }] }, where);
-      for (const tool of ["grooph_validate", "grooph_explain", "grooph_shape", "grooph_share", "grooph_picture", "grooph_export", "grooph_apply"]) {
+      for (const tool of ["grooph_validate", "grooph_explain", "grooph_shape", "grooph_share", "grooph_picture", "grooph_export_plan", "grooph_export", "grooph_apply"]) {
         await call(ctx, tool, { graph: payload, ops: [{ op: "setTarget", harness: "claude-code" }] }, where);
         await call(ctx, tool, { path: payload, ops: [{ op: "setTarget", harness: "claude-code" }] }, where);
         await call(ctx, tool, { graph: JSON.stringify({ id: payload, candidates: [{ id: payload, graph: payload }] }), ops: [{ op: "setTarget", harness: "claude-code" }] }, where);
@@ -414,6 +415,7 @@ test("every argument of every tool: each payload where a string goes, and where 
       await call(ctx, "grooph_export", { graph, models: { [payload]: "opus" } }, where);
       await call(ctx, "grooph_export", { graph, models: payload }, where);
       await call(ctx, "grooph_export", { graph, into: payload }, where);
+      await call(ctx, "grooph_export_plan", { graph, into: payload }, where);
       await call(ctx, "grooph_export", { graph, into: ".", replace: payload }, where);
       if (mode === "a session") {
         await call(ctx, "grooph_plan", { title: payload, agents: [{ type: payload, purpose: payload, count: 2 }] }, where);

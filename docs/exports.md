@@ -118,7 +118,7 @@ What only a package asks for is four rules: a harness, a goal, that the document
 
 A harness grooph has no compiler for is said once, where a package is asked for (`grooph export`, `grooph validate --for-export`): "grooph has no compiler for the harness "x", so no package can be written for it; the document is a plan as it is".
 
-In core so far. The command that writes the three files and the app's button for it come with the lanes that own those.
+The command is `grooph plan <graph> [--into <dir>]`, which writes the three files into `<id>-plan` or the folder named, prints what a harness would need fixed first, and exits 0; the tool is `grooph_export_plan`, which returns them, or writes them with `into` (the name `grooph_plan` was already the lead's tool for declaring its subagents). A file already in the folder that is not the plan's is left alone until `--force` (the tool's `replace`): a `PLAN.md` grooph did not write for this graph, a picture grooph did not draw, or a copy of the graph that someone changed there and that is not the file given. `grooph pick` takes a candidate that is a plan, `grooph share` says what a package would need of it and calls nothing an error, and an export refused for what a graph lacks ends by naming the plan. The app's button for a plan comes with the lane that owns it.
 
 ## The app itself, offline
 

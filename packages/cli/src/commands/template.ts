@@ -273,7 +273,8 @@ export async function templateUse(io: Output, env: RegistryEnv, name: string, fl
   printIssues(info, checked.issues, out ?? checked.doc.id);
   if (out !== undefined) {
     info.out(`wrote ${out} (graph "${checked.doc.id}" from ${found.doc.id}@${found.doc.version}, ${found.source})`);
-    info.out(`next: grooph validate --for-export ${out}`);
+    // A template that names no harness makes a plan: the check for a package would answer E_NO_TARGET, which is no fault of a plan.
+    info.out(checked.doc.target?.harness === undefined ? `next: grooph plan ${out}` : `next: grooph validate --for-export ${out}`);
   }
   return hasErrors(checked.issues) ? 1 : 0;
 }

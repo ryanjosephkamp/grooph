@@ -76,14 +76,14 @@ mcp "--dir ." "$INIT" "$LIST" "$USE" > mcp.out
 node -e '
   const [init, list, use] = require("fs").readFileSync("mcp.out", "utf8").trim().split("\n").map((l) => JSON.parse(l));
   if (init.result.serverInfo.version !== process.argv[1]) throw new Error("the server reports version " + init.result.serverInfo.version);
-  if (list.result.tools.length !== 13) throw new Error("the server lists " + list.result.tools.length + " tools, not 13");
+  if (list.result.tools.length !== 14) throw new Error("the server lists " + list.result.tools.length + " tools, not 14");
   if (use.result.isError || use.result.structuredContent.graph.id !== "from-a-tool") throw new Error("grooph_use_template did not return the graph");
 ' "$VERSION" || fail "the MCP server in the package did not answer as it should"
 mcp "--chat" "$INIT" "$LIST" > chat.out
 node -e '
   const [, list] = require("fs").readFileSync("chat.out", "utf8").trim().split("\n").map((l) => JSON.parse(l));
   const names = list.result.tools.map((t) => t.name);
-  if (names.length !== 10 || names.includes("grooph_plan")) throw new Error("in a chat the server lists " + names.join(", "));
+  if (names.length !== 11 || names.includes("grooph_plan")) throw new Error("in a chat the server lists " + names.join(", "));
 ' || fail "grooph mcp --chat did not list the authoring tools only"
 
 # The app that watch serves is in the package: start it on a free port, ask for its first page, stop it.

@@ -27,6 +27,7 @@ Compile
   adopt        take a run's working copy as the graph's next version
 
 See
+  plan         a plan for people to follow: PLAN.md, the picture and the document
   image        a picture of a graph or map, SVG or PNG
   outline      the whole document as Markdown to read
   page         one offline HTML file with a viewer
@@ -179,11 +180,13 @@ Write one candidate of a proposal set out as a graph.
 ```text
 grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
 
-Write the owner's chosen candidate out as an ordinary graph document, ready for
-grooph export. The candidate is named by its id or its label, ignoring case; a name that
-matches one candidate's id and another's label is refused as ambiguous. The graph is
-validated for export first and nothing is written while it has errors. An existing --out
-is replaced only with --force (or when it already holds the same graph).
+Write the owner's chosen candidate out as an ordinary graph document. The candidate is
+named by its id or its label, ignoring case; a name that matches one candidate's id and
+another's label is refused as ambiguous. The graph is checked first and nothing is written
+while it breaks a rule of its own. A candidate that lacks only what a package asks for (a
+harness, a goal) is a plan: it is picked like any other, and the command says so and that
+grooph plan exports it. An existing --out is replaced only with --force (or when it already
+holds the same graph).
 ```
 
 ## `grooph validate`
@@ -364,6 +367,41 @@ source moved on after the run started, or the target already holds another versi
 then would undo someone's change. Re-export the new version to place it for the next run: the
 export holds it to the package's brakes again (grooph export --help), so the line adopt prints
 carries the same --allow names.
+```
+
+## `grooph plan`
+
+A plan for people to follow: PLAN.md, the picture and the document.
+
+```text
+grooph plan <graph> [--into <dir>] [--force]
+
+Write a plan of a graph: something for people to read and follow, whether or not a coding
+harness could run it. Three files:
+  PLAN.md             who does what, what has to be fixed before a harness can run it, then
+                      every step in full
+  <id>.svg            the picture, as grooph image draws it
+  <id>.grooph.json    the document in canonical form: the one to edit
+
+Any document that reads as a graph gets its plan: one with no harness named, no goal, or an
+error of its own. Each such finding is printed, and written into PLAN.md under "To fix before a
+harness can run this". The exit code is 0 when the files were written. Only a document that does
+not match the schema gets none, since nothing can draw it.
+
+A plan is not a package: it has no lead's brief, no agent files and no kickoff, and nothing in
+it is handed to a harness. grooph export writes a package, and only for a graph with no error.
+
+  --into <dir>   the folder to write into. Default: <id>-plan in the current folder.
+  --force        replace a file already there that is not this plan's: a PLAN.md grooph did not
+                 write for this graph, a picture grooph did not draw, or a copy of the graph
+                 that was changed after its plan was written and is not the file given.
+                 Without it such a file stops the command, and nothing is written.
+
+The graph a package keeps (.grooph/<id>/graph.grooph.json) is never written by this command.
+
+Examples
+  grooph plan study.grooph.json
+  grooph plan study.grooph.json --into docs/study-plan
 ```
 
 ## `grooph image`
@@ -697,6 +735,7 @@ back as JSON, so no file has to exist; path reads a file and out writes one:
   grooph_shape          counts and brakes on one line
   grooph_share          a link the app opens on any device, and the embed line
   grooph_picture        the picture as SVG text, and a PNG when asked
+  grooph_export_plan    a plan for people to follow: PLAN.md, the picture, the document
   grooph_export         the prompt package's files, returned or written into the project
 
 For a session's lead, beside what the event hook sees (docs/subagents.md §7):

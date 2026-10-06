@@ -44,6 +44,7 @@ export const LABELS = [
   "proposal set ", "candidate ", "map ", "run ", "by hand:", "document:", "link ", "embed:",
   "picture of ", "PNG:", "no PNG:",
   "package for ", "file ", "replaced ", "changed the model of ", "model of ", "loosens ", "brakes:", "tightens a brake", "not judged:", "change ", "kickoff:",
+  "plan of ", "to fix:",
   "Plan recorded:", "Noted", "sessions:", "session:", "agent:", "plan:",
 ] as const;
 const LABELED = new RegExp(`^ *(?:${LABELS.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`);

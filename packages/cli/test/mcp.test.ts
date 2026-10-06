@@ -57,7 +57,7 @@ test("the handshake: the protocol version the client asked for, tools as the onl
     const tools = (await ask(ctx, { jsonrpc: "2.0", id: 3, method: "tools/list" })).result!["tools"] as { name: string; title: string; description: string; inputSchema: { type: string }; annotations: { readOnlyHint: boolean; title: string } }[];
     assert.deepEqual(tools.map((t) => t.name), [
       "grooph_plan", "grooph_note", "grooph_running", "grooph_validate",
-      "grooph_templates", "grooph_use_template", "grooph_new", "grooph_apply", "grooph_explain", "grooph_shape", "grooph_share", "grooph_picture", "grooph_export",
+      "grooph_templates", "grooph_use_template", "grooph_new", "grooph_apply", "grooph_explain", "grooph_shape", "grooph_share", "grooph_picture", "grooph_export_plan", "grooph_export",
     ]);
     assert.deepEqual(toolNames(), tools.map((t) => t.name));
     for (const t of tools) {
@@ -184,11 +184,11 @@ test("started where nobody chose (the file system's root) the server answers and
   assert.equal(root.replies[1]!.result!["isError"], true);
   assert.match(textOf(root.replies[1]!), /^refused: grooph was not given a project folder \(it started in "\/"\), so it writes no file\./);
   assert.equal(existsSync("/grooph-test-never-written.grooph.json"), false);
-  assert.equal((root.replies[2]!.result!["tools"] as unknown[]).length, 13);
+  assert.equal((root.replies[2]!.result!["tools"] as unknown[]).length, 14);
 
   const chat = await session(["--chat"], "/", [list, written]);
   assert.deepEqual((chat.replies[0]!.result!["tools"] as { name: string }[]).map((t) => t.name).slice(0, 2), ["grooph_validate", "grooph_templates"]);
-  assert.equal((chat.replies[0]!.result!["tools"] as unknown[]).length, 10);
+  assert.equal((chat.replies[0]!.result!["tools"] as unknown[]).length, 11);
   assert.match(textOf(chat.replies[1]!), /takes no "out" here: this server was started for a chat, where it reads and writes no file/);
 
   // A harness's variable pointing at the home folder is where it started, not a choice: nothing is written there.

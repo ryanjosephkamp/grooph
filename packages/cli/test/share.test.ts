@@ -240,18 +240,30 @@ test("pick refuses an unknown name, an ambiguous one, a graph with errors, and a
     rmSync(out);
     assert.equal(existsSync(out), false);
 
-    // A candidate whose graph has errors is not written.
+    // A candidate that lacks only what a package asks for (a goal, a harness) is a plan, and is picked like any other:
+    // the command says so, names what a package would need, and points at the plan.
     mkdirSync(join(dir, "set"));
     for (const name of ["csv-export.grooph-proposals.json", "lean.grooph.json", "reviewed.grooph.json", "rigorous.grooph.json"]) {
       copyFileSync(join(csvDir, name), join(dir, "set", name));
     }
     const lean = JSON.parse(readFileSync(join(dir, "set", "lean.grooph.json"), "utf8")) as Graph;
-    lean.goal = " ";
-    writeFileSync(join(dir, "set", "lean.grooph.json"), JSON.stringify(lean));
+    const plan = { ...lean, goal: " " } as Graph;
+    delete (plan as { target?: unknown }).target;
+    writeFileSync(join(dir, "set", "lean.grooph.json"), JSON.stringify(plan));
+    io = capture();
+    assert.equal(await grooph(["pick", join(dir, "set", "csv-export.grooph-proposals.json"), "lean", "--out", out], io), 0, text(io.stderr));
+    assert.equal(text(io.stderr), "");
+    assert.match(text(io.stdout), /^"Lean" is a plan as it stands: a package for a harness would also need E_NO_TARGET, E_NO_GOAL\. As a plan for people to follow it lacks nothing\.$/m);
+    assert.match(text(io.stdout), /^next: grooph plan .*picked\.grooph\.json$/m);
+    assert.doesNotMatch(text(io.stdout), /grooph export/);
+    rmSync(out);
+
+    // A candidate whose graph breaks a rule of its own (an edge to nowhere) is not written.
+    const broken = { ...lean, edges: [...lean.edges, { id: "e-nowhere", from: lean.nodes[0]!.id, to: "nowhere" }] } as Graph;
+    writeFileSync(join(dir, "set", "lean.grooph.json"), JSON.stringify(broken));
     io = capture();
     assert.equal(await grooph(["pick", join(dir, "set", "csv-export.grooph-proposals.json"), "lean", "--out", out], io), 1);
-    assert.match(text(io.stderr), /cannot pick "Lean" \(lean\): its graph has errors/);
-    assert.match(text(io.stderr), /E_NO_GOAL/);
+    assert.match(text(io.stderr), /E_DANGLING_REF/);
     assert.equal(existsSync(out), false);
 
     // Something else at --out needs --force; the same graph does not.

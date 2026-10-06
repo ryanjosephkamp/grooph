@@ -35,6 +35,7 @@ Compile
   adopt        take a run's working copy as the graph's next version
 
 See
+  plan         a plan for people to follow: PLAN.md, the picture and the document
   image        a picture of a graph or map, SVG or PNG
   outline      the whole document as Markdown to read
   page         one offline HTML file with a viewer
@@ -58,7 +59,7 @@ First time? https://ryanjosephkamp.github.io/grooph/docs/quickstart/   grooph --
 /** Commands the overview lists, for the "did you mean" and the unknown-command check. */
 export const COMMANDS = [
   "new", "template", "sub", "apply", "pick", "validate", "explain", "shape", "canonicalize", "export", "adopt",
-  "image", "outline", "page", "glyph", "mermaid", "watch", "runs", "hooks", "sessions", "events", "mcp", "share", "embed",
+  "plan", "image", "outline", "page", "glyph", "mermaid", "watch", "runs", "hooks", "sessions", "events", "mcp", "share", "embed",
 ] as const;
 
 /** Edit distance with transposition counted as one edit. */

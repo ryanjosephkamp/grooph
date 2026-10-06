@@ -37,7 +37,7 @@ In [the app](https://ryanjosephkamp.github.io/grooph/), choose **Paste a documen
 
 ## Claude's desktop app
 
-The desktop app runs local MCP servers in ordinary chats, and grooph's server has a mode for that: `grooph mcp --chat` offers the ten authoring tools, takes a document only as an argument, and reads and writes no file of yours, so every document, picture and package comes back in the reply.
+The desktop app runs local MCP servers in ordinary chats, and grooph's server has a mode for that: `grooph mcp --chat` offers the eleven authoring tools, takes a document only as an argument, and reads and writes no file of yours, so every document, picture and package comes back in the reply.
 
 **With a config entry.** In the app's menu bar, Settings, then Developer, then Edit Config opens `claude_desktop_config.json` (`~/Library/Application Support/Claude/` on macOS, `%APPDATA%\Claude\` on Windows). Add the entry, save, and quit and reopen the app. [**[documented]**](https://modelcontextprotocol.io/docs/develop/connect-local-servers)
 
@@ -56,7 +56,7 @@ This needs Node 22 or later on the machine and grooph on npm. Until it is publis
 What is known about it:
 
 - The app asks for your approval before a tool runs. [**[documented]**](https://modelcontextprotocol.io/docs/develop/connect-local-servers)
-- A session with these ten tools and nothing else went from the request above to a validated graph and a link in six calls, naming the graph by its id once it was made. The server was the one inside `grooph.mcpb`, unpacked and started exactly as its manifest starts it; the client was Claude Code, not the desktop app. **[seen]**, run B.
+- A session with the ten of these tools the server had then, and nothing else, went from the request above to a validated graph and a link in six calls, naming the graph by its id once it was made. The server was the one inside `grooph.mcpb`, unpacked and started exactly as its manifest starts it; the client was Claude Code, not the desktop app. **[seen]**, run B.
 - The link from that session opened in the published app and showed the graph, read-only, with Save to this device. **[seen]**
 - The server answers when it is started in the file system's root, which is where a desktop app may start one. In chat mode it refuses a file path before looking at it, so a file that is there and one that is not answer the same. **[seen]**, the CLI's tests.
 - The desktop app itself, loading this entry or this extension, was **not tried**. Adding either changes the owner's app, and the config route needs the app restarted while it was in use. Whether the app shows a tool's picture to you, and whether it hands the model a tool's text or its data, are **[unknown]**; the server puts the same lines in both.
@@ -94,7 +94,7 @@ In Codex, OpenAI's coding harness, the local server works as it does in Claude C
 
 ## A hosted endpoint: designed, not built
 
-One thing would give ChatGPT, claude.ai in a browser and the phone apps the same ten tools at once: grooph's server reachable at a public address. claude.ai takes a custom connector on every plan, one of them on Free [**[documented]**](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp), and accepts one with no authentication. [**[documented]**](https://claude.com/docs/connectors/building/authentication)
+One thing would give ChatGPT, claude.ai in a browser and the phone apps the same eleven tools at once: grooph's server reachable at a public address. claude.ai takes a custom connector on every plan, one of them on Free [**[documented]**](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp), and accepts one with no authentication. [**[documented]**](https://claude.com/docs/connectors/building/authentication)
 
 The tools are close to ready for it. In chat mode a tool takes a document only as an argument and refuses a file path, so it reads nothing of the person's and writes nothing; the one thing it reads is the template library grooph ships. There is no account, and nothing is kept between calls except the convenience of naming a graph by its id, which a stateless endpoint would simply not offer. In chat mode every tool is marked read-only.
 
