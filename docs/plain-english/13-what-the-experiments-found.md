@@ -51,7 +51,7 @@ It took four templates (`grind-loop`, `review-gate`, `red-team-loop`, `spec-then
 
 Each arm was run two or three times. That made 27 runs. The whole study cost $60.62: $56.62 for the runs and about $4 for the judge. The results were scored by a script against **held-out** test cases, meaning tests the builder was told not to read, and also ranked by a judge: a separate AI session that was not told which arm was which.
 
-Before any run, the write-up for each of the four tasks said what result would count as the graph winning and what would count as it losing. Writing that down in advance is called **pre-registration**. It stops anyone from deciding afterward that whatever happened was a success. The question each one set itself was whether the graph **earned its cost**: whether it did something better that was worth what it cost to run. Each write-up set its own conditions. For `review-gate`, for example, the losing condition was the plain prompt matching the graph's result every time for less money.
+Before any run, the write-up for each of the four tasks said what result would count as the graph winning and what would count as it losing. Writing that down in advance is called **pre-registration**. It does not stop anyone from reading a result generously afterward. It leaves the conditions on record, so that any later reading can be checked against them. The question each one set itself was whether the graph **earned its cost**: whether it did something better that was worth what it cost to run. Each write-up set its own conditions. For `review-gate`, for example, the losing condition was the plain prompt matching the graph's result every time for less money.
 
 ### What came out
 
@@ -86,7 +86,7 @@ So it is **not shown that a cap or a budget holds a run that would otherwise go 
 
 One run in the first comparison was cut off before it finished. It was a *prompt* run, it was still inside the same caps its graph has, and what stopped it was the experiment's own dollar ceiling, set outside the session. It tells us nothing about a graph's brakes.
 
-It does show that one limit with real force exists, and it is the harness's, not grooph's. Claude Code, started by a script, accepts a spending limit (`--max-budget-usd`). In the one recorded case it ended the session just past the limit: $9.02 against $9.00. If you need a hard limit on spending, that option has force and a graph's budget does not.
+It does show that one limit with real force exists, and it is the harness's, not grooph's. Claude Code, started by a script, accepts a spending limit (`--max-budget-usd`). In the one recorded case it ended the session just past the limit: $9.02 against $9.00. So the harness can end a session at a spending setting, and may overshoot it. If you need a limit on spending that something enforces, that option has force and a graph's budget does not.
 
 An experiment designed to produce exactly the missing record, a run that hits a small budget with work still to do, has been written down in advance, and the script that would start it is written. It has not been run: the runs cost money, and the script starts nothing until it is told to spend. It is in `experiments/brakes/budget/`.
 
@@ -100,7 +100,7 @@ The validator checks a document. The package instructs a session. While a sessio
 
 A second comparison was run on 4 October 2026. It added a fourth arm, the task given alone with no plan at all, and used tasks built so that a first attempt would fail. Its records are in the repository under `experiments/comparisons/`.
 
-**Its results are not repeated here.** They have been read by one AI system only, and the project's rule is that no page states them as shown until a second, independent one has read them. That reading is the next round of the audit in chapter 14. The rule is the same whichever way a result points, so do not read anything into the silence. If you want to see the records yourself, they are public, and its write-up says plainly what its author believes they show.
+**Its results are not repeated here.** The project's rule is that no page states them as shown until a second, independent AI system has read them. That reading was made in the audit's second round, and chapter 14 says what it found: the headline has to name what was measured. The sentence that came of it has not been put on any page of grooph's site, and this guide does not go ahead of that. The rule is the same whichever way a result points, so do not read anything into the silence. If you want to see the records yourself, they are public, and its write-up says plainly what its author believes they show.
 
 ## What is not known at all
 
