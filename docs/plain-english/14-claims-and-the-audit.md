@@ -10,7 +10,7 @@ For grooph, a **claim** is a sentence about what the tool does to the quality, c
 
 ## The claims page
 
-One page, [claims.md](../claims.md), lists every claim grooph made about itself when version 0.3.0 was published: on its front page, in its README, in its documentation, in its technical report and in a blog draft. There are 52. Each has a number (C1 to C52), the place it was made, the evidence for it, and a **reading**.
+One page, [claims.md](../claims.md), lists the claims the audit found that grooph made about itself when version 0.3.0 was published: on its front page, in its README, in its documentation, in its technical report and in a blog draft. There are 52. (The list was made by reading those pages. Nothing proves that no sentence was missed.) Each has a number (C1 to C52), the place it was made, the evidence for it, and a **reading**.
 
 A reading is one of three.
 
@@ -59,24 +59,37 @@ A few things were deliberately left as they were, and the claims page lists them
 
 The audit's second round was sent on 5 October 2026 and came back the next day. Codex read the corrected sentences from round one, the second comparison of chapter 13, the adoption check of chapter 7, the experiment built to show a budget at work, and five chapters of this guide. It returned 16 findings, and the audit lane agreed with all 16.
 
-- **The adoption check is real and incomplete.** Codex found that two limits on one loop can be swapped so that a run goes on where it should have halted, and the check does not notice. A fresh reader of the audit lane's own answer then found a second way, a new limit of another kind that sends the run on, which grooph printed as a tightening. Both were still true in version 0.4.0 and were repaired in version 0.4.1. Chapter 7 says how, and what the repair costs.
-- **The second comparison's headline had to name what it measured.** Its designs scored higher than the task done alone on tests the author wrote and kept hidden. Two blind judges, shown only the task and the results, preferred the task-alone results in the two code projects. Both facts belong in the sentence, and it has not been put on any page of the site.
+- **The adoption check is real and incomplete.** Codex found that two limits on one loop can be swapped so that a run goes on where it should have halted, and the check does not notice. A fresh reader of the audit lane's own answer then found a second way, a new limit of another kind that sends the run on, which grooph printed as a tightening. Both were still true in version 0.4.0. Both are repaired in the project's main copy since 6 October 2026, and the repair is meant for version 0.4.1, which had not been released when this was written. Chapter 7 says how, and what the repair costs.
+- **The second comparison's headline had to name what it measured.** Its designs scored higher than the task done alone on tests the author wrote and kept hidden. Two blind judges, shown only the task and the results, preferred the task-alone results in the two code projects. Both facts belong in the sentence. The owner then chose its words, and since 6 October 2026 it is on the project's questions page. Chapter 13 gives it word for word.
 - **The counter of the budget experiment can miscount in both directions**, so no result of that experiment can be trusted until it is repaired. The experiment has not been run.
 - **The rest was wording**, some of it in this guide: a worker's "empty context", "nothing in grooph watches", and the account of one failed record were each corrected.
 
-The audit lane was itself wrong twice in its first answer, and the fresh reader caught both. That is in the record too.
+The audit lane was itself wrong three times in that round. Twice in its first answer, where the fresh reader caught both. And once in its first scan of the ready-made templates, which reported nothing open because it had tested nothing: the check was refusing every template for being a template, and the scan counted each refusal as a brake held. That is in the record too. A fourth error from that round came out in the third: a note the audit lane wrote for the release said that no ready-made template was open to either fault, and one was.
 
-## What has not been audited yet
+## The third round
 
-- **Nine of this guide's fourteen chapters.** Codex read chapters 1, 5, 7, 13 and 14.
-- **The check `grooph export` makes**, which is newer than the copy Codex read.
-- **The repair to the adoption check**, made the day the second round came back.
+The third round was sent on 6 October 2026 and came back the same night. Codex read this whole guide (the start page, all fourteen chapters and the glossary), the repair to the adoption check, and the check `grooph export` makes. It read them in the project's main copy at commit `c1ff8f7`: a build that calls itself version 0.4.0 and holds the repairs meant for version 0.4.1. It found no new way past the check. It returned 19 findings, all of them about what is said: in this guide, in the project's pages, and in one line the program prints. The audit lane agreed with all 19. By the owner's decision the guide was corrected chapter by chapter and the gaps already listed were kept as listed. So what became of the 19 is three different things.
+
+- **Corrected.** Fourteen findings were about this guide's words: its start page, twelve of its chapters and its glossary. Each was corrected in the guide, in Codex's words or closer to the program. Most of the other five were about the project's reference pages and release notes, which now say what the repair costs an honest change, what the export check compares with, and that one ready-made template was open to one of the two faults in version 0.4.0, where a note of the audit lane's had said that none was. One was about a line the check printed, which said "on round 3" where the project's rule counts the third pass. That line is corrected in the project's main copy, for version 0.4.1, with a test that holds every such line to the rule's count.
+- **Kept, and listed.** The ways around a limit that the check still lets through are not repaired. Chapter 7 names four of them and the project's reference has the full list. The instructions a lead is given still say that stops are checked "before every round", and do not carry the rule's sentence about which trip a cap applies after. Changing them changes what a session is handed, so that waits. And one comparison, of a graph with forty loops of forty stops each, took fourteen to twenty seconds over the four times it was run, and printed twelve million characters of reasons each time. That is recorded as a measurement of one case. Nothing bounds it yet.
+- **Left with the owner.** Whether a new road around a limit, where nothing else was checking, should be refused at all. The owner has been asked and, as of 6 October 2026, has not answered.
+
+Codex also said what it could not check, and that stays unchecked. No released version 0.4.1 existed to read. No agent session, real hook event or live site was exercised. And its search for a way past the repair had limits, so finding none is not a proof that there is none.
+
+## What has not been audited
+
+- **The corrections themselves.** Codex read the guide as it stood before them. The corrections were read by another of the project's AI sessions, not by Codex again.
+- **A released version 0.4.1.** What was read calls itself 0.4.0.
+- **The change to that printed line**, which was made after Codex's reading: its new wording, and a narrower rule for when that sentence is the one printed. Its author reports that what the check refuses is unchanged.
+- **The counter of the budget experiment**, which is not repaired. The experiment has still not been run.
+
+A reading by a second AI system is not a review by a person, and it is not a guarantee.
 
 ## Why this matters to you
 
 Two reasons.
 
-**First, it tells you how to read everything else grooph says.** For every such statement made as of version 0.3.0, there is a numbered row on the claims page saying what the evidence supports. If you ever find a sentence that says more than its row, the row is right. A row is the project's reading at a date. Check it against its evidence and the version, as the audit does.
+**First, it tells you how to read everything else grooph says.** For each of the 52 statements the audit found as of version 0.3.0, there is a numbered row on the claims page saying what the evidence supports. If you ever find a sentence that says more than its row, the row is right. A row is the project's reading at a date. Check it against its evidence and the version, as the audit does.
 
 **Second, it is the tool's own idea turned on itself.** grooph is built on the belief that work should be checked by someone who did not do it, against something that can be looked at, with a record kept. The audit is that belief applied to the project's own claims: a second reader, the evidence in the open, every round on file. Whether that belief makes agent work better is, as chapter 13 said, not yet shown. It is at least practiced.
 

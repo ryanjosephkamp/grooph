@@ -130,7 +130,7 @@ The new graph remembers where it came from: `review-gate@1` means version 1 of t
 
 ## Plans: templates for work people do
 
-So far every step of a graph has been an agent's. Since version 0.4.0 a step can be marked as **a person's**, and grooph has a second, narrower use of the word plan: a **plan for people** is a graph meant for people to read and follow, whether or not a harness could run it. It is the same kind of document, drawn and checked the same way. In the file, a person's step says `"by": "person"`.
+So far every work step in our example has been an agent's. Since version 0.4.0 a step can be marked as **a person's**, and grooph has a second, narrower use of the word plan: a **plan for people** is a graph meant for people to read and follow, whether or not a harness could run it. It is the same kind of document, drawn and checked the same way. In the file, a person's step says `"by": "person"`.
 
 Four templates for such work come with grooph, listed under "Plans" at the foot of `grooph template list`, as above: a literature review, a research study, a small team's handoffs and a solo project. You start from one the same way:
 

@@ -107,7 +107,7 @@ A map describes; it does not instruct. Nothing reads a map at run time.
 - **What starts with a person waits on that person.** A handoff from a person moves only when they do it, whatever carries it from there: typing into a session, marking a page, pasting a prompt. These are listed with the hand-carried ones (§3).
 - **A session that wakes itself is a handoff to itself.** A `scheduled-message` from a session to the same session is its own check-in; the picture marks that session's card with the schedule.
 - **A family is one node.** `count` says how many; the handoffs to and from it are to and from each member.
-- **A map is a snapshot.** `asOf` dates it. A map that is out of date is wrong, not harmful: nothing depends on it.
+- **A map is a snapshot.** `asOf` dates it. Nothing in grooph acts on a map, so one that is out of date reroutes no work by itself. It can still mislead a person who reads it.
 
 ## 3. Validation rules
 

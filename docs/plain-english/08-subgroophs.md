@@ -62,7 +62,7 @@ A subgrooph is a way of *labeling* nodes. It is not a second file and it is not 
 
 - The nodes are ordinary nodes of the one document. The lead runs them as it runs any others.
 - Every rule of the validator applies to them as written.
-- Compiling fetches nothing. The same document always gives the same package.
+- Compiling fetches nothing: no template is looked up. With the same target, the same version of grooph and the same choice of models (chapter 5's `tiers` line), the same document gives the same package.
 - The graph still has one lead and is still one session.
 
 To list a graph's units:
@@ -93,7 +93,7 @@ ship.grooph.json is up to date
 
 Nothing to do here, since the template has not changed. When it has, the command lists each difference by name and applies them, with one exception that you have met already. **A change that removes or loosens a brake is listed first and is not applied unless you ask for it by name.** It is the same check, and the same `--allow`, as adopting a run in chapter 7. A newer template that quietly dropped the human gate would not take the gate out of your graph.
 
-Everything chapter 7 said about that check applies here too. It sees the brakes it knows how to compare, the list has not been shown complete, and it has not yet been audited.
+Everything chapter 7 said about that check applies here too. It sees the brakes it knows how to compare, and the list has not been shown complete. A second AI system has read the check twice, the second time with its repair, in a build that calls itself version 0.4.0 (chapters 7 and 14). In the refresh it tried, the change that was held stayed back, the other changes were applied, and the command ended without an error. So read what a refresh lists, and not only how it ends.
 
 Two smaller rules are worth knowing:
 
