@@ -26,7 +26,7 @@ Our example file is `rounding.grooph.json`. It is 185 lines. Here are its pieces
 - `id` is a short name with no spaces. Files and folders made from this graph are named after it.
 - `version` is the version of *this graph*. It goes up when a changed copy is taken as the next one ([chapter 7](07-adopting-a-run.md)).
 - `goal` is one or two sentences saying what the run is for and when it is done. (The two sentences here run together with no period between "tests" and "Done". The job we typed in had no period, and grooph used our words exactly as given.)
-- `target` says which harness the instructions should be written for. Today that is `claude-code`.
+- `target` says which harness the instructions should be written for. This guide's example uses `claude-code`. The other target grooph names is `codex`.
 - `lineage` records where the graph came from: version 1 of the ready-made graph called `review-gate` (chapter 4).
 
 ## Nodes: the boxes
@@ -144,12 +144,12 @@ A **loop** is written down as an object of its own. It is not left for a reader 
 - **`bar`** is the standard the critic judges against. It must name something that can be looked at (`inspects`): a file, a web address, a number, a checklist, an answer key (a statement of the right result, written by an earlier step), or an **artifact**, which is anything the run produces, such as the tests' output. Its **acceptance** is the reachable "good enough to stop". A bar may also have an **aspiration**, a direction to aim in that may never be reached. Only the acceptance can stop a loop.
 - **`stops`** are the rules for ending the loop. They are what the lead is told to check. There are six kinds:
 
-| Stop | The lead is told to end the loop when |
+| Stop | The lead is told that it applies when |
 |---|---|
 | `bar-passed` | the acceptance is met |
 | `max-iterations` | the loop has gone around `n` times (the **round cap**) |
 | `budget` | a limit is reached, counted in dispatches, minutes, dollars, turns or tokens |
-| `human` | a person is asked, once or every so many rounds |
+| `human` | a person is to be asked, once or after every so many trips. The run pauses for the answer, and may go on from it |
 | `diminishing-returns` | several rounds in a row have improved nothing |
 | `evidence-invalid` | several rounds in a row could not read their evidence |
 
@@ -175,7 +175,7 @@ Two more things follow.
 - **A person's "no" at the gate uses a round.** It sends the work back to the builder along one of the loop's two back edges, and the next trip is the next round.
 - **On that four-trip count, the budget of 10 cannot be reached before the cap.** Even if the critic had to be sent twice on every trip, that is 9 dispatches after three trips, and the cap is the limit that applies after the fourth. The budget here is a second line behind the cap. Budgets earn their keep in other graphs: where one loop sits inside another, the inner loop's round count starts again each time, and the outer budget is the limit that keeps counting across all of it.
 
-One soft edge remains. The instructions say "max iterations: 4" and leave the counting to the lead. A lead that read it as "four *returns*" would allow a fifth trip, and there the budget of 10 is the next limit the lead is told to keep. In one recorded run the lead wrote its check down as "max-iterations 0<4" before the first trip, which is the four-trip reading. In another, a lead made five trips under a cap of 5 and wrote "4 rounds of max 5", which is the other reading. No cap is on record as firing (chapter 13), so there is no record of either reading being applied.
+The count is written down. grooph's rule for a graph says a cap of n applies at the end of the nth trip, which is round n − 1, since the first trip is round 0. The instructions a lead is given say "max iterations: 4" and leave the counting to the lead, and a lead may miscount. In one recorded run the lead wrote its check down as "max-iterations 0<4" before the first trip. In another, a lead made five trips under a cap of 5 and wrote "4 rounds of max 5": five trips, the last of them round 4, which is the same count. No cap is on record as firing (chapter 13), so no record shows a lead stopped by one.
 
 ## Policies: rules that apply everywhere
 
@@ -196,7 +196,7 @@ A graph may carry one more setting, `adaptation`, with three values:
 - **`propose`**. The lead changes nothing and writes down what it would change.
 - **`fixed`**. The lead follows the graph exactly, and stops to ask when it cannot.
 
-At every level the lead is given one rule: **tighten a brake if you must, and never loosen one.** It may lower a round cap. It is told not to raise one, remove a gate, or weaken what counts as passing. That is an instruction, like the rest of the fourth row of chapter 1's table. Chapter 7 explains the one check that is made on it, afterward.
+At every level the lead is told **never to loosen a brake**: not to raise a round cap, remove a gate, or weaken what counts as passing. Only an `adaptive` lead, the one that may change its copy at all, may tighten one, such as lowering a round cap. That is an instruction, like the rest of the fourth row of chapter 1's table. Chapter 7 explains the one check that is made on it, afterward.
 
 ## What the document does not say
 
