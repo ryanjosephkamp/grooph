@@ -29,7 +29,7 @@ In order, from the lead brief:
 
 ## What a run leaves behind
 
-Everything a run writes goes in one folder, the **run folder**:
+A run's own records go in one folder, the **run folder**. The work itself, the code and the reports, is written at the paths in the project that the graph names, not here. The folder:
 
 ```text
 .grooph/<graph-id>/runs/<run-id>/
