@@ -352,6 +352,29 @@ test("a line names a pass as graph-ir §2 counts them: a cap of n fires at the e
   assert.ok(said > 0);
 });
 
+test('a size of one is said in the singular in the lines that compare sizes too: "1 dispatch", not "1 dispatches"', () => {
+  // (Audit 0001, round three: Codex's own probe printed "removes the budget (1 dispatches)". The lines that name a
+  // stop said "1 dispatch" already; the older ones, which give a size and its measure, now count the same way.)
+  const budget = (limit: number, then?: string, measure = "dispatches"): Stop => ({ kind: "budget", measure, limit, ...(then ? { then } : {}) }) as Stop;
+  const cases: [Stop[], Stop[], string][] = [
+    [[budget(1), cap(3)], [cap(3)], "removes the budget (1 dispatch)"],
+    [[budget(2), cap(3)], [cap(3)], "removes the budget (2 dispatches)"],
+    [[budget(1, undefined, "turns"), cap(3)], [cap(3)], "removes the budget (1 turn)"],
+    [[budget(1, undefined, "tokens"), cap(3)], [cap(3)], "removes the budget (1 token)"],
+    [[budget(1, undefined, "usd"), cap(3)], [cap(3)], "removes the budget (1 usd)"],
+    [[budget(0.5, undefined, "minutes")], [budget(1, undefined, "minutes")], "raises the budget from 0.5 to 1 minute"],
+    [[budget(1)], [budget(1, "done")], "the budget (1 dispatch) would no longer halt the run"],
+    [[budget(0.25, "done", "minutes"), budget(0.5, undefined, "minutes")], [budget(0.25, "done", "minutes"), budget(1, undefined, "minutes")], "the budget that halts the run would rise from 0.5 to 1 minute"],
+    [[budget(2), budget(3, "done")], [budget(2), budget(1, "done")], 'the budget of 1 dispatch that leads on to "done" would fire before the one of 2 dispatches that halts the run'],
+    [[budget(1), budget(3, "done")], [budget(1), budget(1, "done")], 'the budget of 1 dispatch that leads on to "done" would fire as soon as the one of 1 dispatch that halts the run'],
+  ];
+  for (const [was, now, line] of cases) {
+    const said = refused(adopt(plain(was), plain(now))).join("; ");
+    assert.equal(said.split("; ")[0], `loop:list.stops: ${line}`, line);
+    assert.doesNotMatch(said, /\b1 (dispatches|minutes|turns|tokens)\b/, line);
+  }
+});
+
 test('"bar passed" in a loop no critic judges is a stop that leads on, with a `then` or with none', () => {
   const bar = { name: "List done", inspects: [{ kind: "file", ref: "LEFT.md" }], acceptance: "LEFT.md is empty." };
   const withBar = (doc: Graph): Graph => {

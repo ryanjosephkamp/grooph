@@ -92,6 +92,12 @@ export const isBrakeStop = (stop: Stop): boolean => stop.kind === "max-iteration
  */
 type Brake = { name: string; unit: string; any?: number; halt?: number; lead?: number; leads: Set<Id> };
 
+/** A number of something, as a line says it: "1 dispatch", "2 dispatches". */
+const ONE: Record<string, string> = { dispatches: "dispatch", minutes: "minute", turns: "turn", tokens: "token", rounds: "round" };
+const count = (n: number, many: string): string => `${n} ${n === 1 ? (ONE[many] ?? many) : many}`;
+/** A brake's size with what it counts, where it names that: a budget's measure. A round cap is a number alone. */
+const sized = (n: number, unit: string): string => (unit === "" ? `${n}` : count(n, unit));
+
 /** Whether a stop of this document halts the run or asks a person: it names no `then`, or one that is a human gate or a stop that halts. */
 function haltsIn(doc: Graph): (stop: Stop) => boolean {
   const nodes = new Map(doc.nodes.map((node) => [node.id, node]));
@@ -112,7 +118,7 @@ function brakesOf(doc: Graph, loops: readonly Loop[]): Map<string, Brake> {
         stop.kind === "max-iterations"
           ? ["cap", "the round cap", "", stop.n]
           : stop.kind === "budget"
-            ? [`budget ${stop.measure}`, "the budget", ` ${stop.measure}`, stop.limit]
+            ? [`budget ${stop.measure}`, "the budget", stop.measure, stop.limit]
             : stop.kind === "human"
               ? ["human", "the stop where a person is asked", "", stop.every ?? 1]
               : [undefined, "", "", 0];
@@ -137,14 +143,14 @@ function looser(was: Map<string, Brake>, now: Map<string, Brake>): string[] {
   for (const [key, brake] of was) {
     const next = now.get(key);
     const asked = key === "human";
-    if (next?.any === undefined) said.push(asked ? "removes the stop where a person is asked" : `removes ${brake.name} (${brake.any}${brake.unit})`);
-    else if (next.any > brake.any!) said.push(asked ? `a person would be asked every ${next.any} rounds, not every ${brake.any}` : `raises ${brake.name} from ${brake.any} to ${next.any}${brake.unit}`);
-    else if (brake.halt !== undefined && next.halt === undefined) said.push(`${brake.name} (${brake.halt}${brake.unit}) would no longer halt the run`);
-    else if (brake.halt !== undefined && next.halt! > brake.halt) said.push(`${brake.name} that halts the run would rise from ${brake.halt} to ${next.halt}${brake.unit}`);
+    if (next?.any === undefined) said.push(asked ? "removes the stop where a person is asked" : `removes ${brake.name} (${sized(brake.any!, brake.unit)})`);
+    else if (next.any > brake.any!) said.push(asked ? `a person would be asked every ${next.any} rounds, not every ${brake.any}` : `raises ${brake.name} from ${brake.any} to ${sized(next.any, brake.unit)}`);
+    else if (brake.halt !== undefined && next.halt === undefined) said.push(`${brake.name} (${sized(brake.halt, brake.unit)}) would no longer halt the run`);
+    else if (brake.halt !== undefined && next.halt! > brake.halt) said.push(`${brake.name} that halts the run would rise from ${brake.halt} to ${sized(next.halt!, brake.unit)}`);
     // One that leads on, set to fire no later than the one that halts: which of the two a run obeys is then the
     // lead's reading ("the first that fires wins", and at the same count the first in the list is the first).
     else if (brake.halt !== undefined && !first(brake) && first(next)) {
-      said.push(`${asked ? "a stop that asks a person" : brake.name} of ${next.lead}${brake.unit} that leads on to ${quote([...next.leads])} would fire ${next.lead! < next.halt! ? "before" : "as soon as"} the one of ${next.halt}${brake.unit} that halts the run`);
+      said.push(`${asked ? "a stop that asks a person" : brake.name} of ${sized(next.lead!, brake.unit)} that leads on to ${quote([...next.leads])} would fire ${next.lead! < next.halt! ? "before" : "as soon as"} the one of ${sized(next.halt!, brake.unit)} that halts the run`);
     }
     // A brake that leads on first: where it leads is what it does.
     else if (first(next)) {
@@ -157,8 +163,6 @@ function looser(was: Map<string, Brake>, now: Map<string, Brake>): string[] {
 
 /** A stop in the words of a line a person reads. */
 function stopName(stop: Stop): string {
-  const ONE: Record<string, string> = { dispatches: "dispatch", minutes: "minute", turns: "turn", tokens: "token", rounds: "round" };
-  const count = (n: number, many: string): string => `${n} ${n === 1 ? (ONE[many] ?? many) : many}`;
   switch (stop.kind) {
     case "max-iterations":
       return `the round cap of ${stop.n}`;
@@ -991,7 +995,7 @@ export function roundsLeftToAPerson(before: Graph, after: Graph): string[] {
     const opened = [...waysRoundUncounted(after, bounded, every).ways].filter(([name, way]) => way.person && !persons.has(name) && !free.ways.has(name));
     if (opened.length === 0) continue;
     const by = [...new Set(opened.map(([, way]) => (way.edge === undefined ? `the stop where a person is asked, which continues at "${way.to}"` : gates.has(way.from) ? `"${way.when}" at the human gate "${way.from}" (${way.edge})` : `the approval asked on "${way.edge}"`)))];
-    const counts = [...brakesOf(after, [kept])].filter(([key]) => key !== "human").map(([, brake]) => `${brake.name} (${brake.halt ?? brake.any}${brake.unit})`);
+    const counts = [...brakesOf(after, [kept])].filter(([key]) => key !== "human").map(([, brake]) => `${brake.name} (${sized(brake.halt ?? brake.any!, brake.unit)})`);
     notes.push(
       `the loop "${loop.id}": ${counts.length > 0 ? counts.join(" and ") : "its stops"} would count the rounds between two of a person's decisions, and no longer the whole run. A way round its nodes that they do not count is opened each time by ${by.join(", and by ")}`,
     );
