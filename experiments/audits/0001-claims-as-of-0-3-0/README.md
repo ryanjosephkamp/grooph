@@ -22,6 +22,7 @@ The first audit under decision 0024. Its subject is everything grooph says about
 | [`round-02/notes/`](round-02/notes/) | Codex's working notes and the small receipts its findings cite: its two probes with what they printed, among others. Its scratch folders, its 110 outputs of the eight readers' scripts and its file-hash lists (about 10 MB) are left in the exchange folder |
 | [`round-02/RECONCILE.md`](round-02/RECONCILE.md) | The lane's answer to each finding, what it ran again at the snapshot and at 0.4.0, seventeen numbered corrections word for word, and six decisions for the owner. Corrected by a fresh reader before it was final |
 | [`round-02/lane-notes/reconcile/`](round-02/lane-notes/reconcile/) | What the lane's five probes of the reconciliation printed, each at the snapshot and at 0.4.0; the registry's entry for the published 0.4.0; and, in `fresh-reader/`, the report of the one fresh reader of the reconciliation's judgments, with its own probes |
+| [`round-03/HANDOFF.md`](round-03/HANDOFF.md) | A draft of what the lane will ask Codex to read in a short third round: the whole beginner's guide, the repair of the stops comparison, and the comparison as `grooph export` makes it. Not sent: it waits for the repair and round two's corrections to be on main, and for the snapshot to be cut |
 | [`designs/a-brake-that-binds.md`](designs/a-brake-that-binds.md) | The experiment both sides say is needed before "bound" can be claimed: designed, not run, passed to the driver |
 
 The public register of claims is [`docs/claims.md`](../../../docs/claims.md).
