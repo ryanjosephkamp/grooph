@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { canonicalize, decodeSharePayload, parseGraphText, parseRunBundleText, sharePayloadFrom, summarizeRun, type Graph, type LiveView, type RunBundle } from "@grooph/core";
 
 import { ENDPOINT, LIVE_ENDPOINT, findWebDist, startWatch, watchTarget } from "../src/commands/watch.js";
+import { NOT_JUDGED } from "../src/commands/adopt.js";
 import { run, type CliEnv } from "../src/index.js";
 import type { Output } from "../src/print.js";
 import { inflateRaw } from "../src/share-io.js";
@@ -453,10 +454,14 @@ test("adopt holds two limits swapped: the one that leads on, put ahead of the on
   }
 });
 
-test("adopt names a new stop that leads somewhere without calling it a tightening: a person asked, after whom the loop goes on; a budget that leads to a stop that halts", async () => {
-  for (const [stop, undoing] of [
-    [{ kind: "human", every: 2, then: "builder" }, "removes the stop where a person is asked"],
-    [{ kind: "budget", measure: "dispatches", limit: 60, then: "failed" }, "removes the budget \\(60 dispatches\\)"],
+test("adopt names a new stop the run goes on from without calling it a tightening; one that ends at a stop that halts is a tightening, however it is written", async () => {
+  const sentence = "not judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, where it is new, changed or put ahead, lets a person or a run do what it could not before. A change that brings one is named here and not called a tightening, whatever else it does:";
+  assert.equal(NOT_JUDGED.new, sentence);
+  for (const [stop, above, undoing] of [
+    // A person is asked, and the loop goes on from one of its own steps.
+    [{ kind: "human", every: 2, then: "builder" }, sentence, "removes the stop where a person is asked"],
+    // A budget whose `then` is a stop that halts ends the run there, as one with no `then` does.
+    [{ kind: "budget", measure: "dispatches", limit: 60, then: "failed" }, "tightens a brake, and is adopted with the rest:", "removes the budget (60 dispatches)"],
   ] as const) {
     const dir = project("slice-0007-sandwich");
     try {
@@ -471,9 +476,14 @@ test("adopt names a new stop that leads somewhere without calling it a tightenin
       amend(run, (working) => void stopsOf(working).push(stop));
       const io = capture();
       assert.equal(await grooph(["adopt", run, "--write"], io), 0, text(io.stderr));
-      const out = text(io.stdout);
-      assert.doesNotMatch(out, /tightens a brake/);
-      assert.match(out, new RegExp(`\\nnot judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, new or put ahead, lets a person or a run do what it could not before\\. It is named here and not called a tightening:\\n {2}loop:sandwich\\.stops +undoing it: ${undoing}`));
+      const lines = text(io.stdout).split("\n");
+      const at = lines.indexOf(above);
+      assert.ok(at >= 0, text(io.stdout));
+      assert.match(lines[at + 1]!, /^ {2}loop:sandwich\.stops +undoing it: /);
+      assert.ok(lines[at + 1]!.endsWith(`undoing it: ${undoing}`), lines[at + 1]);
+      // One or the other, never both.
+      assert.equal(lines.includes(sentence), above === sentence);
+      assert.equal(lines.some((line) => line.startsWith("tightens a brake")), above !== sentence);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -524,7 +534,7 @@ test("adopt names a new step marked irreversible, and an answer a gate did not g
     assert.equal(await grooph(["adopt", run, "--write"], io), 0, text(io.stdout) + text(io.stderr));
     const out = text(io.stdout);
     assert.match(out, /\ntightens a brake, and is adopted with the rest:\n(?: {2}[^\n]*\n)*? {2}node:release-gate +undoing it: removes a human gate/);
-    assert.match(out, /\nnot judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, new or put ahead, lets a person or a run do what it could not before\. It is named here and not called a tightening:\n {2}node:ship +undoing it: removes a node marked irreversible \(publishes the package to npm\)/);
+    assert.match(out, /\nnot judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, where it is new, changed or put ahead, lets a person or a run do what it could not before\. A change that brings one is named here and not called a tightening, whatever else it does:\n {2}node:ship +undoing it: removes a node marked irreversible \(publishes the package to npm\)/);
     assert.doesNotMatch(out, /tightens a brake[^\n]*\n(?: {2}[^\n]*\n)* {2}node:ship /);
     assert.doesNotMatch(out, /loosens a brake/);
   } finally {

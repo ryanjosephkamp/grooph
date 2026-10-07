@@ -65,8 +65,8 @@ export type Loss = {
    * Read the other way round, as what undoing a change would lose, this speaks of something the change brings in
    * that lets a run or a person do what it could not before: an answer a gate did not give, a step marked
    * irreversible that the graph did not have. Undoing it would take that away, and it tightens nothing. So too
-   * every line laid at a loop's stops where the change brings in a stop that leads on, or puts one ahead
-   * (`leadsBroughtIn`): whatever else the change does to those stops, it is not called a tightening.
+   * every line laid at a loop's stops where the change brings in a stop that leads on, changes one or puts one
+   * ahead (`leadsBroughtIn`): whatever else the change does to those stops, it is not called a tightening.
    */
   gain?: true;
 };
@@ -199,7 +199,9 @@ const leadsOnIn = (halts: (stop: Stop) => boolean, judged: boolean) => (stop: St
  * - `cap`: a round cap of n is due on pass n and on every pass after it, and on none before;
  * - `person`: a stop where a person is asked every n rounds. Asked every round, it is due on every pass. Otherwise it
  *   is due on no pass before the nth, and from there it is taken to be due or not on any pass: that it comes round
- *   every nth pass exactly is not reckoned with, which is the careful side;
+ *   every nth pass exactly is not reckoned with, which is the careful side. Two things of it are: a person asked
+ *   every 2 rounds is asked on every pass on which one asked every 4 is, and so for every number that divides
+ *   another; and the asking a stop is said to come before, or to take away, is one on pass n, 2n or 3n;
  * - `counted`: the rest. A budget (`lasting`) is due once what it measures has reached its limit and stays due. What a
  *   pass spends is not known, so it may come due on any pass, or on none; of two budgets of one measure the smaller is
  *   due whenever the larger is. A stop on diminishing returns or on invalid evidence over n rounds is not due before
@@ -237,6 +239,8 @@ type Tried = {
   over: number;
   /** the place of the first stop where a person is asked every n rounds, by n */
   person: Map<number, number>;
+  /** the place of the first stop where a person is asked every m rounds, for an m that divides n: that person is asked on every pass one asked every n is */
+  divides(every: number): number;
   /** by place: the smallest size among the stops ahead of it that count the same thing (`Timing.key`) */
   least(key: string): number[];
 };
@@ -273,7 +277,17 @@ function tried(stops: readonly Stop[]): Tried {
     }
     return sizes;
   };
-  return { timing, always, capAhead, over, person, least };
+  const dividing = new Map<number, number>();
+  const divides = (every: number): number => {
+    let place = dividing.get(every);
+    if (place === undefined) {
+      place = Infinity;
+      for (const [other, at] of person) if (every % other === 0) place = Math.min(place, at);
+      dividing.set(every, place);
+    }
+    return place;
+  };
+  return { timing, always, capAhead, over, person, divides, least };
 }
 
 /**
@@ -309,7 +323,16 @@ function tried(stops: readonly Stop[]): Tried {
  *   come due, a stop that counts what the leading one counts and is no larger) needs a person ahead of it who is
  *   asked on that pass, and who is not one the second version needs unasked there.
  */
-type Wins = { at: number; lead: Stop; halt: Stop; before: boolean };
+type Wins = {
+  /** the place of the stop that leads on, in the second version's list, and of the stop it would come before, in the first's */
+  at: number;
+  from: number;
+  lead: Stop;
+  halt: Stop;
+  before: boolean;
+  /** where it is before a person's stop: whether that person has been asked by then, on an earlier pass, and has said go on */
+  again?: boolean;
+};
 
 function leadsOnFirst(was: readonly Stop[], held: (stop: Stop) => boolean, now: readonly Stop[], leadsOn: (stop: Stop) => boolean): Wins[] {
   const [source, copy] = [tried(was), tried(now)];
@@ -321,13 +344,13 @@ function leadsOnFirst(was: readonly Stop[], held: (stop: Stop) => boolean, now: 
     // The passes on which the second version can obey this stop.
     const [first, last] = [mine.from, Math.min(copy.over, copy.capAhead[j]! - 1)];
     if (first > last || (mine.sort === "counted" && !(copy.least(mine.key)[j]! > mine.size))) return;
-    // The people of the first version who can be asked on that pass: not those ahead of this stop in the second,
-    // who are not asked there. By place, the soonest of them ahead of it.
+    // The people of the first version who can be asked on that pass: not one who is asked whenever a person ahead of
+    // this stop in the second version is, since those are not asked there. By place, the soonest of them ahead of it.
     const asked: number[] = [];
     let soonest = Infinity;
     for (const theirs of source.timing) {
       asked.push(soonest);
-      if (theirs.sort === "person" && !(copy.person.get(theirs.every)! < j)) soonest = Math.min(soonest, theirs.every);
+      if (theirs.sort === "person" && !(copy.divides(theirs.every) < j)) soonest = Math.min(soonest, theirs.every);
     }
     // The first pass on which the second version can lead on while the first goes on: a stop of the first that is
     // due then, with this one or by a cap come due, has a person ahead of it who is asked on that pass.
@@ -337,29 +360,37 @@ function leadsOnFirst(was: readonly Stop[], held: (stop: Stop) => boolean, now: 
       if (due >= 0) early = Math.max(early, asked[due]!);
     }
     for (const cap of caps) if (cap.from <= early && early < asked[cap.at]!) early = asked[cap.at]!;
-    let same: Stop | undefined;
+    let same: number | undefined;
     for (const [i, halt] of was.entries()) {
       const theirs = source.timing[i]!;
-      if (!held(halt) || source.always[i] || (theirs.sort === "person" && source.person.get(theirs.every)! < i)) continue;
+      // (A person is not the one asked where another, asked whenever they are, stands ahead of them.)
+      if (!held(halt) || source.always[i] || (theirs.sort === "person" && source.divides(theirs.every) < i)) continue;
       // The passes on which the first version can obey that stop.
       const [from, until] = [theirs.sort === "person" ? theirs.every : theirs.from, Math.min(source.over, source.capAhead[i]! - 1)];
       if (from > until || (theirs.sort === "counted" && !(source.least(theirs.key)[i]! > theirs.size))) continue;
       // What a budget has reached it has reached on every later pass: one ahead of the stop the first version
       // obeys, and no larger than the one that leads on, would be due there.
       if (mine.sort === "counted" && mine.lasting && !(source.least(mine.key)[i]! > mine.size)) continue;
-      if (early <= last && Math.max(from, early + 1) <= until && Number.isFinite(early)) {
-        found.push({ at: j, lead, halt, before: true });
+      // On one pass: a person the first version asks there is not one the second needs unasked (nor one asked
+      // whenever such a person is); and neither stop has ahead of it, in the other version, one that is due
+      // whenever it is.
+      // (The stop the first version obeys, where it is a person's, is obeyed on a pass that is its number of
+      // rounds, twice it, three times it: that much of a person's stop is reckoned with exactly.)
+      const asks = (low: number, high: number): boolean => low <= high && (theirs.sort !== "person" || Math.ceil(low / theirs.every) * theirs.every <= high);
+      const together =
+        asks(Math.max(first, from), Math.min(last, until)) &&
+        !(theirs.sort === "person" && copy.divides(theirs.every) < j) &&
+        !(mine.sort === "counted" && !(source.least(mine.key)[i]! > mine.size)) &&
+        !(theirs.sort === "counted" && !(copy.least(theirs.key)[j]! > theirs.size));
+      if (Number.isFinite(early) && early <= last && asks(Math.max(from, early + 1), until)) {
+        // (Of a person it is said as the asking it takes away on that very pass, where it can.)
+        if (theirs.sort === "person" && together) found.push({ at: j, from: i, lead, halt, before: false });
+        else found.push({ at: j, from: i, lead, halt, before: true, ...(theirs.sort === "person" ? { again: early >= theirs.every } : {}) });
         return;
       }
-      if (same !== undefined || Math.max(first, from) > Math.min(last, until)) continue;
-      // On one pass: a person the first version asks there is not one the second needs unasked; and neither stop
-      // has ahead of it, in the other version, one that is due whenever it is.
-      if (theirs.sort === "person" && theirs.every > 1 && copy.person.get(theirs.every)! < j) continue;
-      if (mine.sort === "counted" && !(source.least(mine.key)[i]! > mine.size)) continue;
-      if (theirs.sort === "counted" && !(copy.least(theirs.key)[j]! > theirs.size)) continue;
-      same = halt;
+      if (together) same ??= i;
     }
-    if (same) found.push({ at: j, lead, halt: same, before: false });
+    if (same !== undefined) found.push({ at: j, from: same, lead, halt: was[same]!, before: false });
   });
   return found;
 }
@@ -444,7 +475,7 @@ function loopLosses(before: Graph, after: Graph): { losses: Loss[]; fired: Loss[
     const kept = loopNow.get(loop.id);
     if (!kept) losses.push({ why: "removes a loop with its stops and its bar", at: [`loop:${loop.id}`] });
     // What the loop's stops lead on to: a change there can undo a stop as surely as a change to the stop.
-    const targets = loop.stops.flatMap((stop) => (stop.then === undefined ? [] : [`node:${stop.then}.kind`, `node:${stop.then}.outcome`, `node:${stop.then}`]));
+    const targets = [...new Set(loop.stops.flatMap((stop) => (stop.then === undefined ? [] : [`node:${stop.then}.kind`, `node:${stop.then}.outcome`, `node:${stop.then}`])))];
     const was = brakesOf(before, [loop]);
     // The loop under its own id, stop for stop: whatever became of the edges that started its rounds.
     if (kept) {
@@ -459,28 +490,55 @@ function loopLosses(before: Graph, after: Graph): { losses: Loss[]; fired: Loss[
       /** Whether a critic the loop had among its members is a critic among them still. */
       const judged = (now: Loop, old: Loop | undefined): boolean => now.members.some((member) => (old?.members.includes(member) ?? false) && critics.has(member));
       const halting = (halt: Stop): string => (halt.kind === "human" ? stopName(halt) : `${stopName(halt)} that halts the run`);
-      for (const { at: place, lead, halt, before: sooner } of leadsOnFirst(loop.stops, held, kept.stops, leadsOnIn(haltsNow, judged(kept, loop)))) {
+      // Each list by the text of its stops, once: where the loop had a stop, where it would have it last, and the
+      // stops it had that are gone, by kind. (Looked up for each line below; a loop may hold hundreds of stops.)
+      const text = (stop: Stop): string => JSON.stringify(stop);
+      const [hadAt, keptAt] = [new Map<string, number>(), new Map<string, number>()];
+      loop.stops.forEach((stop, at) => void (hadAt.has(text(stop)) || hadAt.set(text(stop), at)));
+      kept.stops.forEach((stop, at) => void keptAt.set(text(stop), at));
+      const gone = new Map<string, Stop[]>();
+      for (const stop of loop.stops) if (!keptAt.has(text(stop))) (gone.get(stopKind(stop)) ?? gone.set(stopKind(stop), []).get(stopKind(stop))!).push(stop);
+      // A person's stop of the loop's that is gone, and one that comes in beside it and continues at the same
+      // place: the same stop, asked every other number of rounds.
+      const asksNow = kept.stops.filter((stop): stop is Extract<Stop, { kind: "human" }> => stop.kind === "human" && !hadAt.has(text(stop)));
+      const where = [`loop:${loop.id}.stops`, ...targets];
+      for (const { at: place, from, lead, halt, before: sooner, again } of leadsOnFirst(loop.stops, held, kept.stops, leadsOnIn(haltsNow, judged(kept, loop)))) {
         const name = stopName(lead);
         const leading = lead.then === undefined ? `${name}, which follows the loop's pass edges,` : `${name} that leads on to "${lead.then}"`;
-        const where = sooner ? `before ${halting(halt)}` : `on the same pass as ${halting(halt)}, where it would be the one obeyed`;
+        // Which of the source's stops it would come before, and how. Of a person's stop: the asking it takes away
+        // on that very pass; or that it fires before anybody has been asked; or between two askings, after the
+        // person has said go on (a stop where a person is asked ends nothing).
+        const fires = !sooner
+          ? `on the same pass as ${halting(halt)}, where it would be the one obeyed`
+          : halt.kind !== "human"
+            ? `before ${halting(halt)}`
+            : again
+              ? `between two askings of ${stopName(halt)}, after the person has said go on`
+              : `before ${stopName(halt)} first asks`;
         // What became of it, since where a stop stands in the list was as true before a number was lowered. The
         // loop had it as it is, behind the stop it would now come before, or with something beside it changed; or
         // had one of its kind that is gone, set to another number, or leading elsewhere or nowhere; or had none.
-        const stood = loop.stops.findIndex((stop) => same(stop, lead));
-        const gone = loop.stops.filter((stop) => stopKind(stop) === stopKind(lead) && !kept.stops.some((other) => same(other, stop)));
-        const sized = gone.find((stop) => stop.then === lead.then && stopSize(stop) !== stopSize(lead));
-        const led = lead.then === undefined ? undefined : gone.find((stop) => stopSize(stop) === stopSize(lead) && stop.then !== lead.then);
+        const stood = hadAt.get(text(lead));
+        const kin = gone.get(stopKind(lead)) ?? [];
+        const sized = kin.find((stop) => stop.then === lead.then && stopSize(stop) !== stopSize(lead));
+        const led = lead.then === undefined ? undefined : kin.find((stop) => stopSize(stop) === stopSize(lead) && stop.then !== lead.then);
+        // The stop is as it was and a person is asked on other rounds than they were: that is what changed, and on
+        // the first round they were asked on, nobody would be.
+        const every = halt.kind === "human" ? (halt.every ?? 1) : 1;
+        const asks = stood !== undefined && halt.kind === "human" && !keptAt.has(text(halt)) ? asksNow.find((stop) => stop.then === halt.then && every % (stop.every ?? 1) !== 0) : undefined;
         const why =
-          stood >= 0
-            ? !sooner && stood > loop.stops.indexOf(halt) && kept.stops.slice(place + 1).some((stop) => same(stop, halt))
-              ? `${leading} would be moved ahead of ${halting(halt)}, and could fire on the same pass`
-              : `${leading} could fire ${where}, as it could not before`
+          stood !== undefined
+            ? asks
+              ? `a person would be asked every ${asks.every ?? 1} rounds where it was every ${every}: on round ${every} nobody would be asked, and ${leading} could fire on a round where a person was`
+              : !sooner && stood > from && (keptAt.get(text(halt)) ?? -1) > place
+                ? `${leading} would be moved ahead of ${halting(halt)}, and could fire on the same pass`
+                : `${leading} could fire ${fires}, as it could not before`
             : sized
-              ? `${leading} would go from ${stopSize(sized)} to ${stopSize(lead)}, and could fire ${where}`
+              ? `${leading} would go from ${stopSize(sized)} to ${stopSize(lead)}, and could fire ${fires}`
               : led
-                ? `${name} would lead on to "${lead.then}"${led.then === undefined ? "" : `, not to "${led.then}"`}${haltsWas(led) ? ", where it halted the run" : ""}${led === halt ? "" : `, and could fire ${where}`}`
-                : `${leading} would come into the loop, and could fire ${where}`;
-        fired.push({ why, at: [`loop:${loop.id}.stops`, ...targets] });
+                ? `${name} would lead on to "${lead.then}"${led.then === undefined ? "" : `, not to "${led.then}"`}${haltsWas(led) ? ", where it halted the run" : ""}${led === halt ? "" : `, and could fire ${fires}`}`
+                : `${leading} would come into the loop, and could fire ${fires}`;
+        fired.push({ why, at: where });
       }
       // The same of another loop that comes to count one of this loop's rounds (a second loop put on its back edge),
       // or that counted one and gains such a stop. How the stops of two loops fall on one pass is written nowhere,
@@ -490,11 +548,13 @@ function loopLosses(before: Graph, after: Graph): { losses: Loss[]; fired: Loss[
         const shares = (one: Loop | undefined): boolean => one?.back.some((id) => loop.back.includes(id) || kept.back.includes(id)) ?? false;
         if (other.id === loop.id || !shares(other)) continue;
         const old = loopWas.get(other.id);
-        const had = shares(old) ? old!.stops : [];
-        // (A loop that is new is judged by a critic where one of this loop's own is among its members: its bar is
-        // then that critic's verdict, as this loop's is.)
-        for (const lead of other.stops.filter(leadsOnIn(haltsNow, judged(other, old ?? loop)))) {
-          if (had.some((stop) => same(stop, lead))) continue;
+        const had = new Set(shares(old) ? old!.stops.map(text) : []);
+        // "Bar passed" in a loop that is new: with no `then` the run follows the pass edges, which the verdict of
+        // this loop's own critic takes already where that critic is among the new loop's members. With a `then` it
+        // leads where the new loop says, on a bar of the new loop's own, and is a stop like the others.
+        const leads = (stop: Stop): boolean => leadsOnIn(haltsNow, judged(other, stop.then === undefined ? (old ?? loop) : old))(stop);
+        for (const lead of other.stops) {
+          if (!leads(lead) || had.has(text(lead))) continue;
           const leading = `${stopName(lead)} among its stops, which ${lead.then === undefined ? "follows that loop's pass edges" : `leads on to "${lead.then}"`},`;
           fired.push({ why: `the loop "${other.id}" would count rounds that "${loop.id}" counts, and ${leading} could fire before ${halting(halt!)}`, at: old ? [`loop:${other.id}.stops`, `loop:${other.id}.back`] : [`loop:${other.id}`] });
         }
@@ -1020,24 +1080,30 @@ function onlyTightens(before: Graph, after: Graph): Set<string> {
 
 /**
  * The loops, by the name of their stops, in which the first of two versions has a stop that leads on which the
- * second has not, or has behind a stop that it stands ahead of here. A stop that leads on is one with a `then`,
- * wherever that leads (a step, a human gate, a stop that halts, on from a person who was asked), and a stop on "bar
- * passed". Read with the first version as what a change would write: the change adds or promotes such a stop.
+ * second has not (new, or set to another number or another place), or has behind a stop that it stands ahead of
+ * here. A stop that leads on is one whose `then` is a node the run goes on from: a step, a human gate, on from a
+ * person who was asked; and a stop on "bar passed". One whose `then` is a stop that halts ends the run there, as
+ * one with no `then` does: it is a stop that halts, however it is written. Read with the first version as what a
+ * change would write: the change brings in a stop that leads on, changes one or puts one ahead.
  */
 function leadsBroughtIn(before: Graph, after: Graph): Set<string> {
   const names = new Set<string>();
-  const leads = (stop: Stop): boolean => stop.then !== undefined || stop.kind === "bar-passed";
+  const ends = new Set(before.nodes.filter((node) => node.kind === "stop" && node.outcome === "halt").map((node) => node.id));
+  const leads = (stop: Stop): boolean => stop.kind === "bar-passed" || (stop.then !== undefined && !ends.has(stop.then));
   for (const loop of before.loops) {
     const other = after.loops.find((one) => one.id === loop.id);
     if (!other) continue;
-    const stood = new Map<string, number>();
-    other.stops.forEach((stop, at) => void (stood.has(JSON.stringify(stop)) || stood.set(JSON.stringify(stop), at)));
+    // Where each stop stands in the other version: the first of a text with the first of that text, the second with
+    // the second (a loop may hold the same stop twice).
+    const places = new Map<string, number[]>();
+    other.stops.forEach((stop, at) => void (places.get(JSON.stringify(stop)) ?? places.set(JSON.stringify(stop), []).get(JSON.stringify(stop))!).push(at));
+    const stood = loop.stops.map((stop) => places.get(JSON.stringify(stop))?.shift());
     // From the end of the list: the earliest place, in the other version, of a stop that stands behind this one here.
     let behind = Infinity;
     let brought = false;
-    for (const stop of [...loop.stops].reverse()) {
-      const was = stood.get(JSON.stringify(stop));
-      brought ||= leads(stop) && (was === undefined || was > behind);
+    for (let at = loop.stops.length - 1; at >= 0; at -= 1) {
+      const was = stood[at];
+      brought ||= leads(loop.stops[at]!) && (was === undefined || was > behind);
       if (was !== undefined) behind = Math.min(behind, was);
     }
     if (brought) names.add(`loop:${loop.id}.stops`);

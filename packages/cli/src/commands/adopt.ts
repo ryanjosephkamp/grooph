@@ -64,7 +64,7 @@ const sameFile = (a: string, b: string): boolean => {
  */
 export const NOT_JUDGED = {
   swapped: "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:",
-  new: "not judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, new or put ahead, lets a person or a run do what it could not before. It is named here and not called a tightening:",
+  new: "not judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, where it is new, changed or put ahead, lets a person or a run do what it could not before. A change that brings one is named here and not called a tightening, whatever else it does:",
 } as const;
 
 /** `grooph adopt <run dir> [--into <graph file>] [--allow <change> ...] [--write]` (docs/runs.md §3). */
