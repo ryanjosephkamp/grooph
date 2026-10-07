@@ -1,0 +1,34 @@
+grooph 0.4.0 at c1ff8f7fd6a7
+patterns/contradiction-seeker · hunt: NOT REFUSED: human then builder; human then critic
+patterns/debate-then-build · debate: NOT REFUSED: human then planner-b; human then judge
+patterns/debate-then-build · build: NOT REFUSED: human then planner-a; human then planner-b; human then judge; human then plan-gate; human then builder; human then tests
+patterns/dual-bar · review: NOT REFUSED: human then builder; human then critic
+patterns/fresh-grind-rare-judge · grind: NOT REFUSED: human then builder; human then tests
+patterns/fresh-grind-rare-judge · phases: NOT REFUSED: human then builder; human then tests
+patterns/gauntlet-decomposed · polish: NOT REFUSED: human then planner; human then decomposition-gate; human then owner; human then capture-check
+patterns/gauntlet-decomposed · pieces: NOT REFUSED: human then decomposition-gate
+patterns/grind-loop · grind: NOT REFUSED: human then builder; human then tests
+patterns/heterogeneous-critic · review: NOT REFUSED: human then builder; human then critic
+patterns/merge-queue · queue: NOT REFUSED: human then integrate
+patterns/metric-sandwich · sandwich: NOT REFUSED: human then builder; human then checks
+patterns/ownership-not-swarm · integrate: NOT REFUSED: human then planner; human then owner-a; human then owner-b; human then worker; human then integrator; human then tests
+patterns/ralph-loop · ralph: NOT REFUSED: human then builder; human then tests
+patterns/red-team-loop · attack: NOT REFUSED: human then builder; human then red-team
+patterns/retrospective-rewrite · grind: no halting limit
+patterns/review-gate · review: NOT REFUSED: human then builder; human then critic
+patterns/spec-then-loop · build: NOT REFUSED: human then planner; human then spec-gate; human then builder; human then critic
+patterns/specialist-critic-bank · review: every new leading-on stop ahead of its first halting limit is refused
+patterns/taste-polish · polish: every new leading-on stop ahead of its first halting limit is refused
+plans/literature-review · search: NOT REFUSED: max-iterations then choose; budget:dispatches then choose; budget:minutes then choose; budget:usd then choose; budget:turns then choose; budget:tokens then choose; diminishing-returns then choose; evidence-invalid then choose; human then frame; human then find; human then choose
+plans/literature-review · notes: NOT REFUSED: human then frame; human then find; human then choose; human then read; human then skeptic
+plans/research-study · design-loop: NOT REFUSED: human then question; human then design; human then design-critic
+plans/research-study · analysis-loop: NOT REFUSED: human then question; human then design; human then design-critic; human then lock; human then preregister; human then collect; human then analyze; human then analysis-critic
+plans/solo-project · review-loop: NOT REFUSED: human then plan; human then make; human then review
+plans/team-handoffs · review-loop: NOT REFUSED: human then request; human then do; human then review
+
+24 documents, 26 loops. Loops that hold a halting limit ahead of one that leads on: 0.
+New leading-on stops tried: 1306 (8 more did not validate). Not refused: 77.
+    69  asks a person and goes on
+     8  leads to a human gate
+     0  leads where a stop of the loop already led
+     0  OTHER (a new stop that leads on with nobody asked, to a place no stop of the loop led)
