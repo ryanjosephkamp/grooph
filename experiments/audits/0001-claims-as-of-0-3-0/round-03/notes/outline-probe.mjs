@@ -1,0 +1,17 @@
+import {readdirSync,rmSync,mkdirSync,readFileSync} from 'node:fs';
+import {join,resolve} from 'node:path';
+import assert from 'node:assert/strict';
+const root=resolve(process.argv[2]), scratch=resolve(process.argv[3]);
+assert.equal(readdirSync(scratch).length,0);rmSync(scratch,{recursive:true});mkdirSync(scratch);
+const core=await import(join(root,'packages/core/dist/src/index.js'));
+const {outline}=await import(join(root,'packages/core/dist/src/outline.js'));
+const a=JSON.parse(readFileSync(process.argv[4]));
+a.loops[0].bar={name:'Review',inspects:[{kind:'file',ref:'CHECK.md'}],acceptance:'Every item holds.',answerKeyFrom:'worker'};
+const b=structuredClone(a);b.loops[0].bar.answerKeyFrom='sorter';
+for(const g of [a,b])assert.deepEqual(core.validate(g,{forExport:true}).filter(i=>i.severity==='error'),[]);
+assert.deepEqual(outline(a),outline(b));
+const ca=core.tryCompile(a,'claude-code'),cb=core.tryCompile(b,'claude-code');
+assert.equal(ca.ok,true);assert.equal(cb.ok,true);assert.notDeepEqual(ca.result.files,cb.result.files);
+console.log('Both valid graphs: changing bar.answerKeyFrom worker to sorter leaves the outline identical.');
+console.log('Compilation does distinguish the changed answer-key source.');
+console.log('Loop section:',JSON.stringify(outline(a).find(x=>x.id==='list')));

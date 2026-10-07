@@ -1,0 +1,18 @@
+
+### 12-command-line-and-app.md:17 DIFFERS (exit 0)
+  $ grooph --help
+  --- the guide
+  +++ now
+  @@ -1 +1 @@
+  -grooph 0.4.1: author, check and compile multi-agent loop graphs. It never runs them.
+  +grooph 0.4.0: author, check and compile multi-agent loop graphs. It never runs them.
+
+### README.md:69 DIFFERS (exit 0)
+  $ grooph --version
+  --- the guide
+  +++ now
+  @@ -1 +1 @@
+  -0.4.1
+  +0.4.0
+
+44 commands run; 2 whose output differs from what the guide shows

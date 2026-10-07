@@ -1,0 +1,13 @@
+node <exchange>/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/p3/perf3.mjs <this worktree, built, at 65d435b0a4da> shared 10 20 40
+shared, 10: 26 ms, 10 refused, reasons of 186384 characters
+shared, 20: 499 ms, 20 refused, reasons of 1518004 characters
+shared, 40: 19685 ms, 40 refused, reasons of 12248844 characters
+
+The same command, run about an hour earlier in the same session on the same build, printed:
+shared, 10: 24 ms, 10 refused, reasons of 186384 characters
+shared, 20: 438 ms, 20 refused, reasons of 1518004 characters
+shared, 40: 14195 ms, 40 refused, reasons of 12248844 characters
+
+The second harness's run (round-03/notes/reader-perf-shared.log): 24 ms, 462 ms, 14864 ms, the same three character counts.
+The driver's reader's (sources/driver-reader/REPORT-3-third-head-2cc780bc.md, item 6): "14 s and writes 12 MB of reasons".
+So the reasons are the same to the character each time, and the time for the largest was between 14 and 20 seconds over four runs.

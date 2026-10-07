@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/outline-probe.mjs",
+    "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+    "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/outline-7whthzk1",
+    "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/own-probe-a15a0kp1/1/project/.grooph/own/graph.grooph.json"
+  ],
+  "exit": 0,
+  "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/outline-7whthzk1"
+}

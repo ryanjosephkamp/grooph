@@ -1,0 +1,21 @@
+grooph at 156afa247917
+
+A round cap of 1 that halts; the copy puts "ask a person every 100 rounds" ahead of it, naming no place it leads.
+  not refused
+  listed as loop:list.stops, with the words for a tightening (undoing it: removes the stop where a person is asked)
+  by §2 the cap halts the run at the end of pass 1; a person asked every 100 is asked at the end of pass 100, 200, ...; so in this loop a person is asked on no pass.
+
+A round cap of 100 that halts; the copy puts "ask a person every 100 rounds" ahead of it, naming no place it leads.
+  not refused
+  listed as loop:list.stops, with the words for a tightening (undoing it: removes the stop where a person is asked)
+  by §2 the cap halts the run at the end of pass 100; a person asked every 100 is asked at the end of pass 100, 200, ...; so in this loop a person is asked first at the end of pass 100, where their stop stands ahead of the cap.
+
+A round cap of 1 that halts; the copy puts "ask a person every 100 rounds" ahead of it, leading on to "done".
+  not refused
+  listed as loop:list.stops, as not judged (undoing it: removes the stop where a person is asked)
+  by §2 the cap halts the run at the end of pass 1; a person asked every 100 is asked at the end of pass 100, 200, ...; so in this loop a person is asked on no pass.
+
+A round cap of 100 that halts; the copy puts "ask a person every 100 rounds" ahead of it, leading on to "done".
+  not refused
+  listed as loop:list.stops, as not judged (undoing it: removes the stop where a person is asked)
+  by §2 the cap halts the run at the end of pass 100; a person asked every 100 is asked at the end of pass 100, 200, ...; so in this loop a person is asked first at the end of pass 100, where their stop stands ahead of the cap.
