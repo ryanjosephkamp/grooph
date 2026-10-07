@@ -64,7 +64,7 @@ The audit's second round was sent on 5 October 2026 and came back the next day. 
 - **The counter of the budget experiment can miscount in both directions**, so no result of that experiment can be trusted until it is repaired. The experiment has not been run.
 - **The rest was wording**, some of it in this guide: a worker's "empty context", "nothing in grooph watches", and the account of one failed record were each corrected.
 
-The audit lane was itself wrong three times in that round. Twice in its first answer, where the fresh reader caught both. And once in its first scan of the ready-made templates, which reported nothing open because it had tested nothing: the check was refusing every template for being a template, and the scan counted each refusal as a brake held. That is in the record too.
+The audit lane was itself wrong three times in that round. Twice in its first answer, where the fresh reader caught both. And once in its first scan of the ready-made templates, which reported nothing open because it had tested nothing: the check was refusing every template for being a template, and the scan counted each refusal as a brake held. That is in the record too. A fourth error from that round came out in the third: a note the audit lane wrote for the release said that no ready-made template was open to either fault, and one was.
 
 ## The third round
 
