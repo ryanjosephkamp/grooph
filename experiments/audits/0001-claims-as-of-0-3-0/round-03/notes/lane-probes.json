@@ -1,0 +1,145 @@
+[
+  {
+    "name": "guide",
+    "exit": 1,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/guide-e4vymb69",
+    "command": [
+      "python3",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/experiments/audits/0001-claims-as-of-0-3-0/tools/guide-commands.py",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/guide-e4vymb69"
+    ],
+    "tail": [
+      "  @@ -1 +1 @@",
+      "  -0.4.1",
+      "  +0.4.0",
+      "",
+      "44 commands run; 2 whose output differs from what the guide shows"
+    ]
+  },
+  {
+    "name": "stop-order",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/stop-order-y72kulk7",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/experiments/audits/0001-claims-as-of-0-3-0/tools/stop-order-probe.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/stop-order-y72kulk7"
+    ],
+    "tail": [
+      "    | **Stops, evaluated in this order before every round; the first that fires wins:**",
+      "    | | 1 | budget: 2 dispatches | halt the run and report to the human |",
+      "    | | 2 | budget: 2 dispatches | continue at node `done` |",
+      "    | > One full round of this loop costs **2 dispatches**: `builder`, `tests`. The budget of 2 covers 1 full round. A node dispatched twice in one round (\u00a75, invalid evidence) counts twice.",
+      "    | {\"id\":\"n-0012\",\"run\":\"20260917-093002\",\"at\":\"loop:work\",\"ended\":\"2026-09-17T09:51:10Z\",\"outcome\":\"halt\",\"round\":3,\"stop\":\"budget\",\"text\":\"budget: 2 dispatches fired at round 3\"}"
+    ]
+  },
+  {
+    "name": "stop-added",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/stop-added-kbph77nb",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/experiments/audits/0001-claims-as-of-0-3-0/tools/stop-added-ahead-probe.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/stop-added-kbph77nb"
+    ],
+    "tail": [
+      "  the comparison lists loop:list.stops",
+      "  it refuses: loop:list.stops, because the stop on diminishing returns over 1 round that leads on to \"done\" would come into the loop, and could fire before the budget of 2 dispatches that halts the run",
+      "  grooph adopt --write, no --allow: exit 1; wrote nothing",
+      "  grooph export --into, the working copy over the source's package, no --allow: exit 1",
+      "    | grooph: 1 change in /Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/stop-added-kbph77nb/6/working.grooph.json may remove or loosen a brake of the graph the pa"
+    ]
+  },
+  {
+    "name": "built-in-stops",
+    "exit": 0,
+    "scratch": null,
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/experiments/audits/0001-claims-as-of-0-3-0/tools/stops-in-built-ins-probe.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03"
+    ],
+    "tail": [
+      "New leading-on stops tried: 1306 (8 more did not validate). Not refused: 77.",
+      "    69  asks a person and goes on",
+      "     8  leads to a human gate",
+      "     0  leads where a stop of the loop already led",
+      "     0  OTHER (a new stop that leads on with nobody asked, to a place no stop of the loop led)"
+    ]
+  },
+  {
+    "name": "variants",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/variants-0vnczs0t",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/experiments/audits/0001-claims-as-of-0-3-0/round-02/lane-notes/reconcile/fresh-reader/variants.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/variants-0vnczs0t"
+    ],
+    "tail": [
+      "  validate working: ok",
+      "  changes: loop:work.stops",
+      "  refused: loop:work.stops: the budget of 2 dispatches that leads on to \"done\" would be moved ahead of the budget of 2 dispatches that halts the run, and could fire on the same pass",
+      "  grooph adopt --write, no --allow: exit 1; wrote nothing",
+      "  grooph export source: exit 0; working over it, no --allow: exit 1"
+    ]
+  },
+  {
+    "name": "variants2",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/variants2-ltvv3186",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/experiments/audits/0001-claims-as-of-0-3-0/round-02/lane-notes/reconcile/fresh-reader/variants2.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/variants2-ltvv3186"
+    ],
+    "tail": [
+      "  source : review: bar-passed  HALT | max-iterations 1 HALT | budget:dispatches 2 HALT",
+      "  working: review: bar-passed  HALT | max-iterations 1 then done | max-iterations 1 HALT | budget:dispatches 2 HALT",
+      "  validate source: ERRORS E_JUDGMENT_LOOP_NO_BAR (warnings: W_HOMOGENEOUS_CRITICS)",
+      "  validate working: ERRORS E_JUDGMENT_LOOP_NO_BAR (warnings: W_HOMOGENEOUS_CRITICS)",
+      "  adoptWorkingCopy refused: {\"ok\":false,\"message\":\"The working copy has an error that blocks export, so it cannot become version 2 of c. Discard it, or fix the working copy and adopt again. First: error  E_JUDGMENT_LOOP_NO_BAR  judgment loop \\\"review\\\" has a bar with nothing inspectable; give it at least one file, url, metric,"
+    ]
+  },
+  {
+    "name": "variants3",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/variants3-36e6ms9f",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/experiments/audits/0001-claims-as-of-0-3-0/round-02/lane-notes/reconcile/fresh-reader/variants3.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/variants3-36e6ms9f"
+    ],
+    "tail": [
+      "  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)",
+      "  changes: loop:review.stops",
+      "  refused: NOTHING",
+      "  grooph adopt --write, no --allow: exit 0; WROTE the copy",
+      "  grooph export source: exit 0; working over it, no --allow: exit 0 \u00b7 brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"
+    ]
+  },
+  {
+    "name": "variants4",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/variants4-mgrojbuk",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/experiments/audits/0001-claims-as-of-0-3-0/round-02/lane-notes/reconcile/fresh-reader/variants4.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/variants4-mgrojbuk"
+    ],
+    "tail": [
+      "  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)",
+      "  changes: loop:list.stops",
+      "  refused: loop:list.stops: the round cap of 1 that leads on to \"done\" would come into the loop, and could fire before the budget of 2 dispatches that halts the run",
+      "  grooph adopt --write, no --allow: exit 1; wrote nothing",
+      "  grooph export source: exit 0; working over it, no --allow: exit 1"
+    ]
+  }
+]

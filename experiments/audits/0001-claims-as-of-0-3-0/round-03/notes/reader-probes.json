@@ -1,0 +1,218 @@
+[
+  {
+    "name": "survey",
+    "exit": 0,
+    "scratch": null,
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/survey.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03"
+    ],
+    "tail": [
+      "plans/team-handoffs  loop review-loop [judgment, bar]",
+      "    members: do:builder(person), review:critic*(person), sign-off:human-gate",
+      "    stops  : bar-passed | max-iterations 3"
+    ]
+  },
+  {
+    "name": "honest-builtins",
+    "exit": 0,
+    "scratch": null,
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/honest.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03"
+    ],
+    "tail": [
+      "a cap that LEADS ON, lowered to one: 1 of 2",
+      "    patterns/debate-then-build \u00b7 debate: [bar-passed | max-iterations 2 then judge | budget:dispatches 8] -> [bar-passed | max-iterations 1 then judge | budget:dispatches 8]",
+      "        loop:debate.stops: the round cap of 1 that leads on to \"judge\" would go from 2 to 1, and could fire on the same pass as the budget of 8 dispatches that halts the run, where it would be the one obeyed"
+    ]
+  },
+  {
+    "name": "honest-random",
+    "exit": 0,
+    "scratch": null,
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/honest-random.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "1",
+      "4000"
+    ],
+    "tail": [
+      "          loop:loop.stops: the stop on diminishing returns over 2 rounds that leads on to \"done\" would go from 3 to 2, and could fire on the same pass as the round cap of 4 that halts the run, where it would be the one obeyed",
+      "      e.g. plain: [evidence-invalid 2 then wrap | max-iterations 3 then failed] -> [evidence-invalid 1 then wrap | max-iterations 3 then failed]",
+      "          loop:loop.stops: the stop on evidence invalid for 1 round that leads on to \"wrap\" would go from 2 to 1, and could fire before the round cap of 3 that halts the run"
+    ]
+  },
+  {
+    "name": "every-lowered",
+    "exit": 0,
+    "scratch": null,
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/p2/every-lowered.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "1",
+      "6000"
+    ],
+    "tail": [
+      "          a person would be asked every 2 rounds where it was every 5: on round 5 nobody would be asked, and the round cap of 6 that leads on to \"done\" could fire on a round where a person was",
+      "      [human 3 | max-iterations 8 then done] -> every 2",
+      "          a person would be asked every 2 rounds where it was every 3: on round 3 nobody would be asked, and the round cap of 8 that leads on to \"done\" could fire on a round where a person was"
+    ]
+  },
+  {
+    "name": "cases-a",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-a-_elreinx",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/cases-a.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-a-_elreinx"
+    ],
+    "tail": [
+      "  grooph export: the source first, exit 0; the working copy over it, no --allow: exit 0; the package's kept graph CHANGED",
+      "    | loop:list.stops  undoing it: removes the stop where a person is asked",
+      "    | brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"
+    ]
+  },
+  {
+    "name": "cases-b",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-b-187fclkg",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/cases-b.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-b-187fclkg"
+    ],
+    "tail": [
+      "    | tightens a brake, and is placed with the rest:",
+      "    | loop:list.stops  undoing it: removes the stop where a person is asked",
+      "    | brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"
+    ]
+  },
+  {
+    "name": "cases-p",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-p-8a0ta4i8",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/cases-p.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-p-8a0ta4i8"
+    ],
+    "tail": [
+      "  grooph export: the source first, exit 0; the working copy over it, no --allow: exit 1; the package's kept graph is unchanged",
+      "    | grooph: 1 change in /Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-p-8a0ta4i8/4/working.grooph.json may remove or loosen a brake of the graph the package in /Users/noir/Documents/grooph-exchange/codex/0001-claim",
+      "    | loop:list.stops  the round cap of 2 that leads on to \"done\" would come into the loop, and could fire before the budget of 9 dispatches that halts the run"
+    ]
+  },
+  {
+    "name": "cases-sub",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-sub-h6w4aizs",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/cases-sub.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-sub-h6w4aizs"
+    ],
+    "tail": [
+      "    |     loop:q-list.stops  loop \"q-list\": stops changes from [{\"kind\":\"budget\",\"measure\":\"dispatches\",\"limit\":4}] to [{\"kind\":\"human\",\"then\":\"q-done\"},{\"kind\":\"budget\",\"measu\u2026",
+      "    | host.grooph.json: no issues",
+      "    | wrote host.grooph.json"
+    ]
+  },
+  {
+    "name": "cases-more",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-more-tnnszh65",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/p2/cases-more.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-more-tnnszh65"
+    ],
+    "tail": [
+      "  grooph export: the source first, exit 0; the working copy over it, no --allow: exit 1; the package's kept graph is unchanged",
+      "    | grooph: 1 change in /Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-more-tnnszh65/10/working.grooph.json may remove or loosen a brake of the graph the package in /Users/noir/Documents/grooph-exchange/codex/0001-c",
+      "    | loop:again.stops  the round cap of 3 that leads on to \"done\" would come into the loop, and could fire between two askings of the stop where a person is asked every 2 rounds, after the person has said go on"
+    ]
+  },
+  {
+    "name": "cases-two-loops",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-two-loops-vex97az9",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/p2/cases-two-loops.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/cases-two-loops-vex97az9"
+    ],
+    "tail": [
+      "    | tightens a brake, and is placed with the rest:",
+      "    | loop:list.stops  undoing it: the stop on \"bar passed\", which follows the loop's pass edges, would be moved ahead of the round cap of 2 that halts the run, and could fire on the same pass",
+      "    | brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"
+    ]
+  },
+  {
+    "name": "label-cli3",
+    "exit": 0,
+    "scratch": "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/label-cli3-twhbk59r",
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/p3/label-cli3.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/notes/probes/label-cli3-twhbk59r",
+      "1",
+      "40"
+    ],
+    "tail": [
+      "   8  brings in a stop that leads on (bar passed, or a then to a step, a gate, or on from a person) \u00b7 adopt: not judged",
+      "   8  brings in a stop that leads on (bar passed, or a then to a step, a gate, or on from a person) \u00b7 export: no word",
+      "   8  brings in a stop that leads on (bar passed, or a then to a step, a gate, or on from a person) \u00b7 export: not judged"
+    ]
+  },
+  {
+    "name": "model-fuzz",
+    "exit": 0,
+    "scratch": null,
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/fuzz-stops.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "172",
+      "3000",
+      "all",
+      "both"
+    ],
+    "tail": [
+      "     21  D  printed as a tightening, adopted, no new or changed stop halts or asks, order changed: nothing new, only the order",
+      "     32  not valid, copy: E_STOP_NOT_INSPECTABLE",
+      "     51  not valid, source: E_STOP_NOT_INSPECTABLE"
+    ]
+  },
+  {
+    "name": "perf-shared",
+    "exit": 0,
+    "scratch": null,
+    "command": [
+      "node",
+      "/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/driver-reader/p3/perf3.mjs",
+      "/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03",
+      "shared",
+      "10",
+      "20",
+      "40"
+    ],
+    "tail": [
+      "shared, 10: 24 ms, 10 refused, reasons of 186384 characters",
+      "shared, 20: 462 ms, 20 refused, reasons of 1518004 characters",
+      "shared, 40: 14864 ms, 40 refused, reasons of 12248844 characters"
+    ]
+  }
+]
