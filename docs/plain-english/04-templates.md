@@ -25,7 +25,14 @@ built-in (<grooph>/packages/cli/dist/patterns/)
   review-gate               graph     medium · medium · standard
       Work, then a separate reviewer, then iterate or pass: the change needs a second pair of eyes against a checklist that already exists.
 …
-20 templates. Read one: grooph template show <name>. Start from one: grooph template use <name> --name "<graph name>".
+
+Plans (<grooph>/packages/cli/dist/plans/)
+  For work people do: each step is marked as a person's or an agent's, and grooph plan writes one out to follow.
+  literature-review         graph
+      You want to know what is published on a question, you mean to read the papers yourself, and you want help finding them and a second reader for your notes.
+…
+
+20 templates, and 4 plans apart from them. Read one: grooph template show <name>. Start from one: grooph template use <name> --name "<graph name>".
 ```
 
 Each entry has a name, a kind, three rough words, and one sentence on when to reach for it.
@@ -120,6 +127,43 @@ next: grooph validate --for-export rounding.grooph.json
 ```
 
 The new graph remembers where it came from: `review-gate@1` means version 1 of that template. Many commands end with a `next:` line that suggests what to run after them.
+
+## Plans: templates for work people do
+
+So far every work step in our example has been an agent's. Since version 0.4.0 a step can be marked as **a person's**, and grooph has a second, narrower use of the word plan: a **plan for people** is a graph meant for people to read and follow, whether or not a harness could run it. It is the same kind of document, drawn and checked the same way. In the file, a person's step says `"by": "person"`.
+
+Four templates for such work come with grooph, listed under "Plans" at the foot of `grooph template list`, as above: a literature review, a research study, a small team's handoffs and a solo project. You start from one the same way:
+
+```bash
+grooph template use solo-project --set project="A one-page website for my woodworking." --set where="its own web address" --out site.grooph.json
+```
+
+```text
+site.grooph.json: no issues
+wrote site.grooph.json (graph "solo-project" from solo-project@1, built-in)
+next: grooph plan site.grooph.json
+```
+
+The `next:` line is different this time. It suggests `grooph plan`, which writes the plan out as a folder to read or hand to someone:
+
+```bash
+grooph plan site.grooph.json --into site-plan
+```
+
+```text
+wrote 3 files into ./site-plan
+  PLAN.md
+  solo-project.svg
+  solo-project.grooph.json
+As a plan for people to read and follow, this is whole.
+To run it in a coding harness, 2 things are to be fixed first, as PLAN.md lists them:
+  E_NO_TARGET  export needs a target harness; set target.harness  [at: solo-project]
+  E_PERSON_STEP_NOT_COMPILED  "plan", "make", "review", "publish" are people's steps, and grooph cannot yet hand a step to a person inside a harness, so no package is written; the plan exports as it is (PLAN.md, the picture, the file); make each an agent's if the graph is to run  [at: plan, make, review, publish]
+```
+
+Three files: `PLAN.md`, which has a table of who does what and then every step in full; the picture; and the graph document itself. The last two lines are not a failure. They say what stands between this plan and a package for a harness: it names no harness, and four of its steps are a person's. **grooph does not compile a graph that has a person's step.** It cannot yet hand a step to a person in the middle of a run, so it writes no package, and says so. A plan for people is followed by people.
+
+None of the four plan templates has a recorded run, since there is nothing to run. Chapter 13's findings are about the twenty templates that agents run, and say nothing about these.
 
 ## Where templates live
 

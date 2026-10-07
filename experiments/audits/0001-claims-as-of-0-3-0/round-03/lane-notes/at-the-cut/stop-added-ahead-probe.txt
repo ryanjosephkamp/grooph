@@ -1,0 +1,65 @@
+grooph 0.4.0 at c1ff8f7fd6a7
+
+#### A check stands before where the new stop leads
+
+== 1. a leading-on budget of the same size, added ahead
+  source : budget dispatches 2 halts
+  working: budget dispatches 2 then done  |  budget dispatches 2 halts
+  the working copy validates for export: yes
+  the comparison lists loop:work.stops
+  it refuses: loop:work.stops, because the budget of 2 dispatches that leads on to "done" would fire as soon as the one of 2 dispatches that halts the run; the budget of 2 dispatches that leads on to "done" would come into the loop, and could fire on the same pass as the budget of 2 dispatches that
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export --into, the working copy over the source's package, no --allow: exit 1
+    | grooph: 1 change in <scratch>/stop-added/1/working.grooph
+
+== 2. a leading-on cap of one round (a kind the loop did not have), added ahead
+  source : budget dispatches 2 halts
+  working: max-iterations 1 then done  |  budget dispatches 2 halts
+  the working copy validates for export: yes
+  the comparison lists loop:work.stops
+  it refuses: loop:work.stops, because the round cap of 1 that leads on to "done" would come into the loop, and could fire before the budget of 2 dispatches that halts the run; a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export --into, the working copy over the source's package, no --allow: exit 1
+    | grooph: 1 change in <scratch>/stop-added/2/working.grooph
+
+#### No check and no critic stands before where the new stop leads
+
+== 3. a leading-on budget of the same kind and size, added ahead (control)
+  source : budget dispatches 2 halts
+  working: budget dispatches 2 then done  |  budget dispatches 2 halts
+  the working copy validates for export: yes
+  the comparison lists loop:list.stops
+  it refuses: loop:list.stops, because the budget of 2 dispatches that leads on to "done" would fire as soon as the one of 2 dispatches that halts the run; the budget of 2 dispatches that leads on to "done" would come into the loop, and could fire on the same pass as the budget of 2 dispatches that
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export --into, the working copy over the source's package, no --allow: exit 1
+    | grooph: 1 change in <scratch>/stop-added/3/working.grooph
+
+== 4. a leading-on cap of one round (a kind the loop did not have), added AHEAD
+  source : budget dispatches 2 halts
+  working: max-iterations 1 then done  |  budget dispatches 2 halts
+  the working copy validates for export: yes
+  the comparison lists loop:list.stops
+  it refuses: loop:list.stops, because the round cap of 1 that leads on to "done" would come into the loop, and could fire before the budget of 2 dispatches that halts the run
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export --into, the working copy over the source's package, no --allow: exit 1
+    | grooph: 1 change in <scratch>/stop-added/4/working.grooph
+
+== 5. the same cap, added BEHIND
+  source : budget dispatches 2 halts
+  working: budget dispatches 2 halts  |  max-iterations 1 then done
+  the working copy validates for export: yes
+  the comparison lists loop:list.stops
+  it refuses: loop:list.stops, because the round cap of 1 that leads on to "done" would come into the loop, and could fire before the budget of 2 dispatches that halts the run
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export --into, the working copy over the source's package, no --allow: exit 1
+    | grooph: 1 change in <scratch>/stop-added/5/working.grooph
+
+== 6. a leading-on diminishing-returns stop (another kind it did not have), added ahead
+  source : budget dispatches 2 halts
+  working: diminishing-returns 1 then done  |  budget dispatches 2 halts
+  the working copy validates for export: yes
+  the comparison lists loop:list.stops
+  it refuses: loop:list.stops, because the stop on diminishing returns over 1 round that leads on to "done" would come into the loop, and could fire before the budget of 2 dispatches that halts the run
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export --into, the working copy over the source's package, no --allow: exit 1
+    | grooph: 1 change in <scratch>/stop-added/6/working.grooph

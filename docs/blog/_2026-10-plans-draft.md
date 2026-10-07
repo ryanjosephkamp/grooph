@@ -83,7 +83,7 @@ For a plan a person follows, grooph is a file, a check and a picture. No such pl
 
 For graphs that agents run, the project has twenty built-in templates (the four plans are not among them). Its agreed summary of what is shown, word for word:
 
-> Each of the twenty templates has a recorded run: eighteen pass the project's checks and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it.
+> The latest kept run of each of the twenty templates is counted: eighteen pass the project's checks of selected parts and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it.
 
 ("Published red" means published as failures. A session is one run of a harness. A round cap and a budget are written limits on a loop's rounds and spending. The package is the set of instructions grooph writes for a harness.)
 

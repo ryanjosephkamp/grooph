@@ -2,7 +2,7 @@
 
 [Start page](README.md) · previous: [templates](04-templates.md) · next: [a run](06-a-run.md)
 
-A graph document is a plan. An agent cannot run a plan written as JSON any more than a builder can pour concrete from a blueprint's file format. Something has to turn the plan into instructions in the form the harness expects.
+A graph document is a plan. A harness has its own form for instructions: agent files, a skill, a prompt to start from. Compiling writes the plan out in that form.
 
 That step is called **compiling**, and the command is `grooph export`. What it writes is the **package**: a small set of text files that tell a harness, in its own terms, how to run this graph.
 
@@ -58,19 +58,24 @@ wrote 7 files into .
   .grooph/add-a-rounding-helper/LEAD.md
   .grooph/add-a-rounding-helper/MAPPING.md
   .grooph/add-a-rounding-helper/graph.grooph.json
+tiers in this package: frontier → opus (the target's own), strong → sonnet (the target's own), fast → sonnet (the target's own). No tier map was given (--models, or GROOPH_MODELS). A pin on a node still wins.
 
 1 warning, carried into the lead brief:
   warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin may catch different mistakes  [at: builder, critic]
 
-Kickoff — paste this into a Claude Code session opened in .:
+Kickoff — paste this into a Claude Code session opened in .. It runs from the next line to the line before the last line of this output, which is grooph's own:
 
 Run the grooph graph `add-a-rounding-helper` (Add a rounding helper) in this project. You are the lead.
 
 Read `.grooph/add-a-rounding-helper/LEAD.md` first and follow it. It is the brief for this run; this prompt is only the trigger.
 …
+
+brakes: nothing in place to compare with. No package of this graph's id was there
 ```
 
 Seven files. If the graph had an error, `export` would refuse and list the reasons, and write nothing.
+
+Two lines of that output are grooph's own remarks. The line beginning `tiers` says which model each tier name means in this package. The last line, beginning `brakes:`, says whether an earlier package of this graph was in the folder to compare with. This is the first export into the folder, so there was none. Chapter 7 says what is compared when there is one.
 
 Two practical notes. Folders whose names begin with a dot, like `.claude` and `.grooph`, are hidden by default on many computers, so you may have to ask your file browser to show them. And "a Claude Code session opened in ." means: Claude Code, which you install and sign in to separately by its own instructions, started in this same folder.
 
@@ -78,7 +83,7 @@ Two practical notes. Folders whose names begin with a dot, like `.claude` and `.
 
 | File | What it is |
 |---|---|
-| `.grooph/add-a-rounding-helper/graph.grooph.json` | A copy of the graph document. Of these seven, the only one grooph itself reads again later |
+| `.grooph/add-a-rounding-helper/graph.grooph.json` | A copy of the graph document, and what a later export or adoption compares with (chapter 7). When you export over this package again, grooph also rereads `LEAD.md` and `MAPPING.md`, to check that they are what this graph compiles to, and the head of each agent file, to see whether a model would change |
 | `.grooph/add-a-rounding-helper/LEAD.md` | The **lead brief**: the instructions for the main session. The most important file |
 | `.grooph/add-a-rounding-helper/KICKOFF.md` | The short message that starts a run, for pasting |
 | `.claude/skills/add-a-rounding-helper/SKILL.md` | The same start, as a **skill**: a set of instructions Claude Code can load by name. Typing `/add-a-rounding-helper` there starts or resumes a run |

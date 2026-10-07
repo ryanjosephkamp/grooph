@@ -141,6 +141,11 @@
       "title": "Project",
       "entries": [
         {
+          "source": "docs/faq.md",
+          "slug": "faq",
+          "summary": "Is it a runtime, does it call a model, how it differs from an agent framework, which harnesses, where graphs live."
+        },
+        {
           "source": "docs/releases.md",
           "slug": "releases",
           "summary": "Each version, its date and what changed for a person using it."

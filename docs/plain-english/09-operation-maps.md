@@ -6,7 +6,7 @@ Everything so far has been about **one session**: a lead and the subagents it st
 
 Some work is bigger than one session. One session plans, another builds on a different computer, a third reviews under a different account, and a person carries things between them. A graph cannot describe that, and grooph does not pretend it can. There is a second kind of document for it: the **operation map**.
 
-The difference to remember: **a graph is compiled into instructions. A map is only drawn and checked.** No agent reads a map, and a map instructs nobody. It is a picture of how an operation is arranged, so that the people in it can see the arrangement and its weak points.
+The difference to remember: **a graph is compiled into instructions. A map is only drawn and checked.** grooph does not run a map: it writes no instructions from one and starts no agent from one. (Nothing stops a person from showing a map to an agent, as to anyone.) It is a picture of how an operation is arranged, so that the people in it can see the arrangement and its weak points.
 
 If you work with one agent session on one computer, you may never need a map. It is here so that the guide is complete, and because the difference between "one session" and "several" is worth understanding.
 
@@ -16,7 +16,7 @@ A map's file name ends in `.grooph-map.json`. It has four kinds of thing.
 
 | Thing | What it is |
 |---|---|
-| **Lane** | One computer under one account with the harness's provider. Sessions in the same lane can reach each other directly |
+| **Lane** | One computer under one account with the harness's provider. grooph's map rules take it that sessions in the same lane can reach each other directly |
 | **Session** | One harness session, or several alike drawn as one with a count. What happens inside it is a graph's business |
 | **Person** | Someone the sessions work with |
 | **Handoff** | Work passing from one session or person to another, in one direction, by a named carrier |
@@ -52,7 +52,7 @@ A map has a few rules of its own, in the same style as a graph's:
 | Code | In plain words |
 |---|---|
 | `E_HANDOFF_NO_CARRIER` | A handoff does not say what carries it. "Somehow" is not a carrier |
-| `W_CARRIER_CANNOT_CROSS` | The carrier cannot get from one end to the other: a session message between two different accounts, for instance |
+| `W_CARRIER_CANNOT_CROSS` | By what the map itself declares, the carrier is of a kind that stays inside one harness or one account, and the two ends are not in the same one: a session message between two different accounts, for instance. The rule reads the map. It does not try the delivery |
 | `W_NOTIFY_NOT_PERSON` | A notification is addressed to a session. Notifications reach people |
 | `W_SESSION_ISLAND` | A session or a person that nothing reaches and that reaches nothing |
 | `W_NO_RETURN` | A session receives work and hands nothing on |
@@ -73,11 +73,11 @@ It is refused by name. There is no package for a map and nothing to run.
 ## What a map is good for
 
 - **Seeing where a person is the carrier.** Those are the slow places.
-- **Seeing a carrier that cannot work.** A message cannot cross from one account to another.
+- **Seeing a carrier that should not be counted on.** By grooph's map rules a session message stays inside one account. That is a rule about what the map declares, not a test of whether a message arrives.
 - **Explaining an operation to someone new**, in one picture.
 
 A map can also be drawn with its lanes side by side on a wide screen, as a sequence with one row per handoff, and, in the app only, in three dimensions with a slider that steps through the handoffs in order. Chapter 10 covers the views. Combined with the recordings of chapter 11, a *person looking at* a map can also see which of its sessions are at work right now.
 
-A map is a snapshot of one day. A map that is out of date is simply wrong, and harmless, because nothing depends on it.
+A map is a snapshot of one day. grooph does nothing with a map but draw and check it, so a map that is out of date sends no work anywhere by itself. It can still mislead the people who read it.
 
 The reference for this chapter is [operation-map.md](../operation-map.md).

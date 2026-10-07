@@ -31,8 +31,8 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Coding agent** | A language model connected to a project folder, able to read and change files and run commands | 1 |
 | **Harness** | The program that connects a model to the folder and runs the agent. Claude Code and Codex are harnesses. grooph is not one | 1 |
 | **Session** | One conversation with a coding agent | 1 |
-| **Context** | Everything a session has read and written so far. It is all the session knows | 1 |
-| **Subagent** | A helper session that another session starts for one job, with its own empty context | 1 |
+| **Context** | The conversation so far and the instructions a session was given, as much of them as fits. It is what the session has to work from | 1 |
+| **Subagent** | A helper session that another session starts for one job, with a context of its own. A fresh one, the kind this guide's example uses, does not hold the first session's conversation | 1 |
 | **Dispatch** | Starting a subagent. When a budget counts dispatches, running a check counts as one too | 1, 2 |
 | **Lead** | The harness's main session, which runs the graph: it dispatches, follows edges, counts rounds and stops for people | 1, 5 |
 
@@ -52,7 +52,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Brief** | What a worker may and may not do, and what it must leave behind | 2 |
 | **Capability** | A plain name for something a worker may do, such as `read-files` or `run-tests` | 2 |
 | **Evidence** | What the next worker is allowed to look at. A critic is told to judge the evidence, not the builder's reasoning | 2 |
-| **Isolation** | Whether the next worker starts with an empty context (`fresh`) or carries on with what it knows (`shared`) | 2 |
+| **Isolation** | Whether the next worker starts without the earlier conversation (`fresh`) or carries on with what it knows (`shared`) | 2 |
 | **Human gate** | A step where the run stops and asks a person | 1, 2 |
 | **Approval** | A mark on an edge: a person must say yes before the run goes that way | 1, 2 |
 | **Check** | A step that runs a command and passes or fails, with no judgment | 2 |
@@ -77,9 +77,9 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Verdict** | How a check or a critic ends: pass, fail, or a named result | 2, 5 |
 | **Bar** | The named standard a critic judges against. It must point at something that can be inspected. An adjective is not a bar | 2 |
 | **Acceptance / aspiration** | The reachable "good enough to stop" / a direction to aim in. Only acceptance can stop a loop | 2 |
-| **Stop** | A rule for ending a loop, which the lead is told to check: bar passed, round cap, budget, a person, diminishing returns, or unreadable evidence | 2 |
-| **Round cap** | The most times a loop may go around (the `max-iterations` stop) | 1, 2 |
-| **Budget** | The most a loop may spend, counted in dispatches, minutes, dollars, turns or tokens | 1, 2 |
+| **Stop** | A rule the lead is told to check at the end of each trip around a loop: bar passed, round cap, budget, a person, diminishing returns, or unreadable evidence. Five of the six end the loop. A person's stop pauses the run for an answer, and the run may go on from it | 2 |
+| **Round cap** | The most times a loop may go around (the `max-iterations` stop). A written limit that the lead is told to keep. Nothing in grooph counts the trips | 1, 2 |
+| **Budget** | The most a loop may spend, counted in dispatches, minutes, dollars, turns or tokens. A written limit that the lead is told to keep. It does not cut a run off | 1, 2 |
 | **Brake** | Anything in a graph whose job is to stop a run, make it wait for a person, or keep a reviewer independent: gates, approvals, irreversible markers, round caps and budgets, a bar's acceptance, critic isolation, the adaptation level, and checks. For the most part a brake is a written instruction to the lead, not a lock | 1, 7 |
 | **Adaptation** | How far a run may change its own copy of the graph: adaptive, propose or fixed | 2, 7 |
 
@@ -90,6 +90,8 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Validator** | The checker that reads a document and reports known mistakes | 3 |
 | **Error / warning** | A mistake that blocks compiling (`E_…`) / one that is reported and carried along (`W_…`) | 3 |
 | **Template** | A graph document with blanks to fill | 4 |
+| **Plan for people** | A graph meant for people to read and follow, whether or not a harness could run it. `grooph plan` writes one out | 4 |
+| **Person's step** | A step marked as a person's and not an agent's (`"by": "person"`). grooph does not compile a graph that has one | 4 |
 | **Slot** | A blank in a template, written `{{like-this}}` | 4 |
 | **Fragment** | A template that is only a few nodes, meant to go inside another graph | 4 |
 | **Pattern** | A built-in template. The twenty together are the pattern library | 4 |
@@ -105,7 +107,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | Term | Meaning | Chapter |
 |---|---|---|
 | **Run** | One time a session follows a package | 6 |
-| **Run folder** | Where a run writes everything: its progress page, its notes and its working copy | 6 |
+| **Run folder** | Where a run keeps its own record: its progress page, its notes and its working copy. The work itself is written at the paths the graph names | 6 |
 | **Run note** | One structured line a run appends: what happened, where, when and how it came out. Never applied to the graph silently | 6 |
 | **Working copy** | The run's own copy of the graph. A run is told to change this copy and no other | 6, 7 |
 | **Source** | The graph a run started from | 7 |

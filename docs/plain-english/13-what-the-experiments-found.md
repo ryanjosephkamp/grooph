@@ -6,7 +6,7 @@ It is easy to build a tool and say it helps. This chapter is about what grooph h
 
 The findings here are the ones on two of the project's own pages: its [list of claims](../claims.md), and the [decision](../decisions/0029-what-is-shown-as-of-the-first-audit.md) that sums the list up. Figures not on them come from the ledgers and write-ups under `experiments/`, and the last section is the author's summary. The project's agreed summary, word for word, is this:
 
-> Each of the twenty templates has a recorded run: eighteen pass the project's checks and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it.
+> The latest kept run of each of the twenty templates is counted: eighteen pass the project's checks of selected parts and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it.
 
 The rest of the chapter explains each part of it.
 
@@ -16,7 +16,7 @@ grooph has run two kinds, and they ask different questions.
 
 | | Asks | How |
 |---|---|---|
-| **Proving runs** | Does a package drive a session the way the graph was drawn? | Run each template once on a small task and keep the whole record |
+| **Proving runs** | Does a package drive a session the way the graph was drawn? | Run each template once on a small task and keep the record: the harness's output, the run folder and the cost |
 | **Paired comparisons** | Does a graph produce better work than a prompt that says the same things? | Give the same task to a graph and to a plain prompt and compare the results |
 
 Both kinds keep their evidence in the repository, under `experiments/`. One rule covers all of it: **a record is never edited afterward**, and a result that looks bad is published as it is.
@@ -27,7 +27,7 @@ Each of the twenty templates has one counted run, on a small task, with nobody w
 
 Then a script, the **proving check**, looks at each record and asks a few fixed questions. Did the agents the graph names run as their own subagents? Did the run end where the graph said it would? Are the notes whole? It reads the lead's own notes for some of these and the harness's own log for others. It looks at selected parts of a record. It is not a full reconstruction of the run, and it does not judge whether the work was good.
 
-**Eighteen of the twenty records pass. Two do not.** The two are `gauntlet-decomposed` and `ralph-loop`. In one, a step that should have been its own subagent never ran as one. In the other, a builder read evidence it had been told was not its to read. Both records are kept exactly as they ran, marked as failures, with the reasons. That is what "published red" means.
+**Eighteen of the twenty records pass. Two do not.** The two are `gauntlet-decomposed` and `ralph-loop`. `gauntlet-decomposed` halted where its plan told it to ask a person, before its last three steps. Its check fails all the same: several things it looks for assume those steps ran, and the record of one change the run made to its plan does not replay. In the other, a builder read evidence it had been told was not its to read. Both records are kept exactly as they ran, marked as failures, with the reasons. That is what "published red" means.
 
 What these twenty records show:
 
@@ -51,7 +51,7 @@ It took four templates (`grind-loop`, `review-gate`, `red-team-loop`, `spec-then
 
 Each arm was run two or three times. That made 27 runs. The whole study cost $60.62: $56.62 for the runs and about $4 for the judge. The results were scored by a script against **held-out** test cases, meaning tests the builder was told not to read, and also ranked by a judge: a separate AI session that was not told which arm was which.
 
-Before any run, the write-up for each of the four tasks said what result would count as the graph winning and what would count as it losing. Writing that down in advance is called **pre-registration**. It stops anyone from deciding afterward that whatever happened was a success. The question each one set itself was whether the graph **earned its cost**: whether it did something better that was worth what it cost to run. Each write-up set its own conditions. For `review-gate`, for example, the losing condition was the plain prompt matching the graph's result every time for less money.
+Before any run, the write-up for each of the four tasks said what result would count as the graph winning and what would count as it losing. Writing that down in advance is called **pre-registration**. It does not stop anyone from reading a result generously afterward. It leaves the conditions on record, so that any later reading can be checked against them. The question each one set itself was whether the graph **earned its cost**: whether it did something better that was worth what it cost to run. Each write-up set its own conditions. For `review-gate`, for example, the losing condition was the plain prompt matching the graph's result every time for less money.
 
 ### What came out
 
@@ -86,7 +86,7 @@ So it is **not shown that a cap or a budget holds a run that would otherwise go 
 
 One run in the first comparison was cut off before it finished. It was a *prompt* run, it was still inside the same caps its graph has, and what stopped it was the experiment's own dollar ceiling, set outside the session. It tells us nothing about a graph's brakes.
 
-It does show that one limit with real force exists, and it is the harness's, not grooph's. Claude Code, started by a script, accepts a spending limit (`--max-budget-usd`). In the one recorded case it ended the session just past the limit: $9.02 against $9.00. If you need a hard limit on spending, that option has force and a graph's budget does not.
+It does show that one limit with real force exists, and it is the harness's, not grooph's. Claude Code, started by a script, accepts a spending limit (`--max-budget-usd`). In the one recorded case it ended the session just past the limit: $9.02 against $9.00. So the harness can end a session at a spending setting, and may overshoot it. If you need a limit on spending that something enforces, that option has force and a graph's budget does not.
 
 An experiment designed to produce exactly the missing record, a run that hits a small budget with work still to do, has been written down in advance, and the script that would start it is written. It has not been run: the runs cost money, and the script starts nothing until it is told to spend. It is in `experiments/brakes/budget/`.
 
@@ -94,13 +94,19 @@ An experiment designed to produce exactly the missing record, a run that hits a 
 
 Chapter 1's table said this, and it belongs in the list of what is not shown.
 
-The validator checks a document. The package instructs a session. While a session is running, nothing in grooph watches it or can stop it. What force there is during a run is the harness's: each subagent's tool list and empty starting context, and a spending limit if you set one. The checks of grooph's that refuse anything afterward are made when a changed plan is taken up: adopting a run, in the command or in the app, and refreshing a subgrooph (chapters 7 and 8). They are new, narrow, and not yet audited, and `grooph export` makes no such check.
+The validator checks a document. The package instructs a session. While a session is running, grooph can show what it records (the hook's events and the lead's notes, in the live view) and can stop nothing. What force there is during a run is the harness's: each subagent's tool list and, for a fresh worker, a start without the lead's conversation, and a spending limit if you set one. The checks of grooph's that refuse anything afterward are made when a changed plan is taken up: adopting a run, in the command or in the app, and refreshing a subgrooph (chapters 7 and 8). They are new and narrow. A second AI system has read the one adoption makes and found it real and incomplete (chapters 7 and 14). Since version 0.4.0 `grooph export` makes the same check over a package already in place.
 
 ## The second comparison
 
 A second comparison was run on 4 October 2026. It added a fourth arm, the task given alone with no plan at all, and used tasks built so that a first attempt would fail. Its records are in the repository under `experiments/comparisons/`.
 
-**Its results are not repeated here.** They have been read by one AI system only, and the project's rule is that no page states them as shown until a second, independent one has read them. That reading is the next round of the audit in chapter 14. The rule is the same whichever way a result points, so do not read anything into the silence. If you want to see the records yourself, they are public, and its write-up says plainly what its author believes they show.
+**Its result is given here in the project's one sentence, and in no other words.** The project's rule is that no page states such a result until a second, independent AI system has read it. That reading was made in the audit's second round, and chapter 14 says what it found: the headline had to name what was measured. The owner then chose the words. Since 6 October 2026 they are on the project's [questions page](../faq.md), under "Does it make the agents' work better?":
+
+> On three small tasks designed to need feedback, the package and both prose review arms scored higher than the task-only arm on the author's hidden suites or reference checks, in both replicates. The package and prose arms matched on those scores, and the package cost more than single-session prose. The code-project judges, given only the visible task, ranked task-only outputs higher. This did not isolate the effect of structure from the extra evidence.
+
+Its terms, in this chapter's. "The package" is arm A, the graph. The "prose review arms" are B and C, the same design written out as a prompt and run in one session (B, the "single-session prose") or given again to fresh ones (C). "Task-only" is the new fourth arm. The "hidden suites or reference checks" are tests and checks the author wrote and kept from the builders. A "replicate" is one of the two runs of each arm. The "code-project judges" are two AI sessions that ranked the results of the two code projects without being told which arm made which.
+
+This guide adds nothing to that sentence. The rule is the same whichever way a result points. If you want to see the records yourself, they are public, and the write-up says what its author believes they show.
 
 ## What is not known at all
 

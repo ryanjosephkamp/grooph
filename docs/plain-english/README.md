@@ -8,7 +8,7 @@ You do not need to install anything or type anything to read it. The commands ar
 
 grooph is a tool for **writing down a plan for a team of AI agents** before they start, **checking that plan** for a few known mistakes, and **turning it into instructions** an agent can follow.
 
-It does not run the agents. Another program does that. grooph's work ends when the instructions are written, and begins again when the agents are finished and you want to see what they did.
+It does not run the agents. Another program does that. grooph's work on the plan ends when the instructions are written. While the agents work it can show you what they record, and afterward what they did. It controls none of it.
 
 Before you read on, here is the honest state of the evidence, in plain words:
 
@@ -30,7 +30,7 @@ One small example is carried through: a plan called **"Add a rounding helper"**.
 | 1 | [Starting from nothing](01-starting-from-nothing.md) | What a coding agent, a subagent, a loop, a loop graph and a brake are; what grooph is; and what has real force |
 | 2 | [The graph document](02-the-graph-document.md) | What is written in a plan, piece by piece |
 | 3 | [The validator](03-the-validator.md) | What grooph refuses, and what each refusal protects against |
-| 4 | [Templates](04-templates.md) | The twenty ready-made plans, and how to start from one |
+| 4 | [Templates](04-templates.md) | The twenty ready-made plans, how to start from one, and four more for work that people do |
 | 5 | [The package](05-the-package.md) | The instruction files grooph writes, one by one |
 | 6 | [A run](06-a-run.md) | What happens when an agent follows those instructions, and what it leaves behind |
 | 7 | [Adopting a run](07-adopting-a-run.md) | How a run's changes to its own plan are taken or refused |
@@ -46,10 +46,10 @@ One small example is carried through: a plan called **"Add a rounding helper"**.
 ## About this guide
 
 - **It is not on grooph's website.** The website is built from a list of pages (`scripts/site/pages.json`), and this guide is not on that list. It is kept with the project's other files.
-- **It has not been audited.** The project's rule is that a statement about what grooph does to the quality, cost, speed or safety of work is read by a second, independent AI system before it is published ([chapter 14](14-claims-and-the-audit.md)). This guide has not been through that. It must go through it before any part of it is published.
-- **It claims nothing new about what grooph achieves.** The findings it reports are the ones on two of the project's own pages, in simpler words: its [list of claims](../claims.md) and the [decision](../decisions/0029-what-is-shown-as-of-the-first-audit.md) that sums that list up. Figures that are not on those pages come from the ledgers and write-ups kept under `experiments/`. Where the honest answer is "this is not shown", it says so.
-- **Every `grooph` command in it was run**, in an empty test folder, on 5 October 2026, and the output under each is what was printed. Where the output held a long folder path from the author's computer, the path is shortened to `<grooph>`. Where output is cut for length, a line reading `…` says so. The one exception is the install commands at the foot of this page, which come from the project's [quickstart](../quickstart.md): the author's computer already had grooph installed that way.
-- **Which grooph.** The copy used was the project's newest on that day. It calls itself version 0.3.0, and it also contains changes made after 0.3.0 was first released. One of them, the check described in chapter 7, was added that same day and extended that evening. Every command was run again after each change to the tool that day. Two printed something different, the outline in chapter 10 and the irreversible example in chapter 3, and each is shown as it prints now.
+- **A second AI system has read it. No person has checked it line by line.** The project's rule is that a statement about what grooph does to the quality, cost, speed or safety of work is read by a second, independent AI system before it is published ([chapter 14](14-claims-and-the-audit.md)). In the third round of the project's audit, on 6 October 2026, that system read this whole guide: this page, all fourteen chapters and the glossary, at commit `c1ff8f7`. It had findings on this page, on twelve of the chapters and on the glossary, and each was corrected in the guide, chapter by chapter. Not everything it found about grooph was repaired: some limits of the check in chapter 7 are kept and listed, and one question is with the owner. Chapter 14 says which is which. The corrections were read by another of the project's AI sessions, not by the second system again. None of this is a review by a person, and none of it is a guarantee.
+- **It claims nothing new about what grooph achieves.** The findings it reports are the ones on two of the project's own pages, in simpler words: its [list of claims](../claims.md) and the [decision](../decisions/0029-what-is-shown-as-of-the-first-audit.md) that sums that list up. The result of the second comparison is given only in the sentence the project's [questions page](../faq.md) carries, word for word (chapter 13). Figures that are not on those pages come from the ledgers and write-ups kept under `experiments/`. Where the honest answer is "this is not shown", it says so.
+- **Every `grooph` command in it was run, but for two things named below**, in an empty test folder, on 5 October 2026 and again on 6 October, and the output under each is what was printed, with two lines excepted (the next item says which). Where the output held a long folder path from the author's computer, the path is shortened to `<grooph>`. Where output is cut for length, a line reading `…` says so. Two things were not run. The install commands at the foot of this page come from the project's [quickstart](../quickstart.md): the author's computer already had grooph installed that way. And the `/grooph-design` line in chapter 12 would start an agent session. A check that runs all the commands again accepts part of an output as a match, so where the guide shows an excerpt, the check shows that those lines were printed in that order and no more.
+- **Which grooph.** The project's main copy on 6 October 2026, at commit `c1ff8f7`. That build calls itself version 0.4.0 and holds the repairs meant for version 0.4.1, which had not been released. The guide was first written against version 0.3.0 with that day's changes; every command in it was run again against this copy, and those whose output had changed are shown as they print now. **Two lines are not what it printed.** Where a command prints the version, `grooph --help` in chapter 12 and `grooph --version` below, the guide shows 0.4.1, which is what the release is expected to print, and says so beside each.
 - **Who wrote it.** An AI session: the same one that carried out the audit described in chapter 14, at the owner's request. Two fresh AI readers, told that they knew nothing and could read only the guide, read drafts and reported where they got lost and what they came away believing. The guide was revised after each. No person has yet checked it line by line.
 - **No agent was started to run the examples.** Starting one costs money, and a guide should not do that on your behalf. So chapters 6 and 7, which are about a run, do not run the rounding example. They read real records the project keeps, of ready-made plans run on very similar jobs.
 
@@ -71,5 +71,7 @@ grooph --version
 ```
 
 ```text
-0.3.0
+0.4.1
 ```
+
+(Shown as the release is expected to print it. The build the guide was checked against printed `0.4.0`.)

@@ -26,7 +26,7 @@ The usual answers are a runtime library the agents are written in, or a hosted c
 
 ## 2. The graph document
 
-One JSON file ([`docs/graph-ir.md`](../graph-ir.md)), small enough for a model to read and rewrite in one pass.
+One JSON file ([`docs/graph-ir.md`](../graph-ir.md)), designed to be small: the validator warns above 24,000 characters in canonical form, not counting layout.
 
 | Part | What it is |
 |---|---|
@@ -47,7 +47,7 @@ The rules encode a small number of ideas:
 
 | Idea | Example of what is refused |
 |---|---|
-| Every loop names a stop | A loop with no stop; a taste loop with no bar. A loop with no cap draws a warning |
+| Every loop names a stop | A loop with no stop; a taste loop with no bar. A loop with no budget draws a warning when it has no cap, or a cap above five rounds |
 | A critic must be able to disagree | Where the graph asks for isolation, a critic that shares the builder's context; a bar that names nothing the critic can inspect |
 | One owner per artifact | Two agents that may write the same file |
 | A person before a step marked irreversible | A node marked as a merge, a publish or a payment with no human gate before it |
@@ -71,7 +71,7 @@ Briefs state purpose, limits and outputs, not procedure. The run writes notes to
 
 ### 5.1 Proving runs
 
-Each of the twenty templates has one kept headless run on a small task ([`experiments/patterns/`](../../experiments/patterns/README.md)). Each task and its expected checks were committed before its run; the second batch also wrote down a design bet, and the last four a probability that a first pass would fail. Each record holds the run id, the rounds, which stop fired, how the run ended, the cost as the harness reported it, and a `--check` that re-asserts selected parts of the outcome from the lead's notes and the harness's transcripts. The proving ledger stood at $57.51 over 31 invocations at version 0.3.0, 30 of which reached a model; with two templates run again since, it stands at $62.68 over 35. Records that came back red are published red, with the reason.
+Each of the twenty templates has one kept headless run on a small task ([`experiments/patterns/`](../../experiments/patterns/README.md)); it is the latest kept run of each that is counted. Seven earlier runs are kept beside them; six of those fail their check. Each task and its expected checks were committed before its run; the second batch also wrote down a design bet, and the last four a probability that a first pass would fail. Each record holds the run id, the rounds, which stop fired, how the run ended, the cost as the harness reported it, and a `--check` that re-asserts selected parts of the outcome from the lead's notes and the harness's transcripts. The proving ledger stood at $57.51 over 31 invocations at version 0.3.0, 30 of which reached a model; with two templates run again since, it stands at $62.68 over 35. Records that came back red are published red, with the reason.
 
 What the records show: in 18 of 20, named agents ran as their own subagents and the run ended as its graph says; the lead recorded checking its stops in order, and no run reached a point where the order mattered. Every kept record with a gate has a halt note at it. Two templates record a critic sending work back on reference evidence the builder was instructed not to read; a third records a held-out test doing so, and failed that reading rule; a fourth repairs an integration failure with nothing held out. Two other returning edges are the loop moving on to its next phase or piece. These show mechanisms, not what they are worth.
 

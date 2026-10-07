@@ -1,0 +1,7 @@
+$ node scripts/lib/prove-summary.mjs | tail -1     # on main at 65d435b0a4da, before pull request #177
+20 records, $41.09 in all.
+
+$ the recorded costs, added and then rounded (experiments/patterns/<id>/run/result.json, cost_usd)
+20 records; added as recorded: 41.116289, which rounds to $41.12; each rounded to the cent first and then added: $41.09
+
+With pull request #177's commit 8f82ffa8 the script prints: 20 records, $41.12 in all.

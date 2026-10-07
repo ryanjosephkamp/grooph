@@ -32,8 +32,9 @@ export type AdoptionChange = {
    * removes a check while a check the graph has not comes in (`swapped` on the result): it may be one check under
    * two ids, and then a bar or a budget built round it under its new id would read as a brake gained. And, in any
    * copy, a change that brings in an answer a gate did not give or a step marked irreversible that the graph did
-   * not have: undoing it would take an answer or a mark away, and it lets a run or a person do what it could not
-   * before. The change is still named; only the label is withheld.
+   * not have, or that brings a stop that leads on into a loop's stops or puts one ahead there: undoing it would
+   * take an answer, a mark or a stop away, and it lets a run or a person do what it could not before. The change is
+   * still named; only the label is withheld.
    */
   unjudged?: string;
 };
@@ -143,7 +144,9 @@ export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: 
     // An answer a gate did not give, a step marked irreversible that the graph did not have: undoing either would
     // take an answer or a mark away, which is how it comes to be named here, and neither tightens anything the
     // graph had. A new answer may be a way to say no or a way on; a new irreversible step is a thing a run could
-    // not do before. A program cannot tell, so the change is named and not called a tightening.
+    // not do before. A program cannot tell, so the change is named and not called a tightening. So too a change to
+    // a loop's stops that brings in a stop that leads on, or puts one ahead, wherever it leads (a step, a human
+    // gate, on from a person who was asked): whatever else it does to those stops, undoing it is given no word.
     lay(undone.filter((loss) => loss.gain), "unjudged", false);
   }
   changes.sort((x, y) => Number(y.loosens !== undefined) - Number(x.loosens !== undefined));

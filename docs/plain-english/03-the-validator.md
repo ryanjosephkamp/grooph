@@ -7,7 +7,7 @@ The **validator** reads a graph document and looks for a fixed list of mistakes.
 - an **error**, whose code starts with `E_`. grooph will not write instructions for a graph with an error. (Writing the instructions is called compiling. Chapter 5.)
 - a **warning**, whose code starts with `W_`. A graph with a warning can still be compiled, and the warning is copied into the instructions so the lead sees it.
 
-Every rule has a fixed code, so a rule keeps its name forever and can be looked up. There are 30 rules for graphs: 18 errors and 12 warnings. (Three of the 30 were added on the evening of 5 October 2026, when a step could first be marked as a person's and not an agent's. This guide does not cover that. The project's [`plans/`](../../plans/README.md) folder does.)
+Every rule has a fixed code, so a rule keeps its name forever and can be looked up. There are 30 rules for graphs: 18 errors and 12 warnings. (Three of the 30 were added on the evening of 5 October 2026, when a step could first be marked as a person's and not an agent's. [Chapter 4](04-templates.md) says what that is for.)
 
 **One thing to hold on to.** The validator checks a *document*. It runs before any agent starts, and it knows nothing about what an agent later does. A graph that passes is a well-formed plan. It is not a promise about the run.
 
@@ -87,7 +87,7 @@ echo '[{"op":"updateNode","id":"builder","set":{"irreversible":["merge"]}}]' | g
 error  E_IRREVERSIBLE_NO_GATE  node "builder" performs irreversible actions (merge) and is where the run starts: only a loop's back edge ("e-critic-fail", "e-merge-gate-reject") leads to it, so no human decides before it runs the first time; put a human-gate node before it  [at: builder, e-critic-fail, e-merge-gate-reject]
 ```
 
-A step that is **marked** as doing something that cannot be undone must have a person in front of it on every way in. Here the builder is where the run starts, so nobody is asked before it runs the first time, and the message says so. The word "marked" matters: the validator reads the label. It cannot look at a brief and work out for itself that a step will publish something.
+An agent's step that is **marked** as doing something that cannot be undone must have a human decision in front of it on every way in. (Where the marked step is a person's own, that person decides it, and no gate is asked for. A person's ordinary work step earlier on the way is not that decision.) Here the builder is where the run starts, so nobody is asked before it runs the first time, and the message says so. The word "marked" matters: the validator reads the label. It cannot look at a brief and work out for itself that a step will publish something.
 
 This message is one day old. While this guide was being written, a marked step that the run starts at was not refused once every arrow coming back into it passed a person, even though the run began there with nobody asked. It was reported and fixed the same day.
 
@@ -114,13 +114,15 @@ None of these four commands changed the file.
 | `E_UNFILLED_SLOT` | A `{{blank}}` is still in the text | A worker told to run `{{test-command}}` |
 | `E_CRITIC_NOT_ISOLATED` | The graph carries the critic-isolation policy and an edge hands a critic the builder's context, or a writer hands a critic no evidence list | A reviewer who has already been talked round |
 | `E_OWNERSHIP_CONFLICT` | Two writers both own one file and nothing merges their work | Two workers overwriting each other |
-| `E_IRREVERSIBLE_NO_GATE` | A step marked irreversible has an arrow into it that no person stands on, or is where the run starts | Merging, publishing, spending or deleting with nobody asked |
+| `E_IRREVERSIBLE_NO_GATE` | An agent's step marked irreversible has an arrow into it with no human decision on it, or is where the run starts | Merging, publishing, spending or deleting with nobody asked |
+| `E_PERSON_LEAD` | The step with the role of lead is marked as a person's | The lead is the harness's own session, and no person can be it |
+| `E_PERSON_STEP_NOT_COMPILED` | Asked only for export: the graph has a step marked as a person's | A package that could not hand that step to a person. grooph cannot yet do that inside a harness, so it writes no package (chapter 4) |
 
 ### Warnings
 
 | Code | In plain words | Why it is worth knowing |
 |---|---|---|
-| `W_HOMOGENEOUS_CRITICS` | A critic is on the same model as the builder it judges | A different model may catch different mistakes |
+| `W_HOMOGENEOUS_CRITICS` | A critic is on the same model as the builder it judges, as far as the document's tiers and pins say | A different model may catch different mistakes |
 | `W_FANOUT_ON_COUPLED` | A node its author labeled `coupled` (tightly connected to others) is being handed to several workers at the same time | Workers changing connected things at once collide |
 | `W_LONG_LOOP_NO_BUDGET` | A loop has no budget, and also either has no round cap or has one above 5 | A loop that may run long with nothing counting the cost |
 | `W_ASPIRATION_AS_ACCEPTANCE` | The "direction to aim in" is being used as the stopping condition | A target that may never be reached cannot stop a loop |
@@ -128,6 +130,7 @@ None of these four commands changed the file.
 | `W_UNREACHABLE_NODE` | A node can never be reached | A step that will never run |
 | `W_NO_TERMINAL` | No stop node can be reached | A run that ends only by running out of arrows |
 | `W_OUTPUT_NOT_WRITABLE` | A worker must leave a file behind and is not allowed to write one | The lead ends up writing the file for it |
+| `W_PERSON_FIELDS_NOT_READ` | A person's step sets a model, an effort, skills or tool permissions | Settings that look as if they did something. They are an agent's, and are not read for a person |
 | `W_GROUP_OVERLAP` | A node sits in two groups, neither inside the other | A picture can draw it in only one box |
 | `W_UNKNOWN_KEY` | The file has a field grooph does not know | A typo in a field name, silently ignored |
 | `W_DOC_TOO_LARGE` | The document is over 24,000 characters | Past the project's design target for one rewrite; too long for a link |
