@@ -33,13 +33,13 @@ Two things about a harness matter for the rest of this guide:
 - **It costs money to run.** The model is used a little at a time and each use is charged for, by the company that provides it. The small recorded run in chapter 6 cost $1.36 and took about four minutes.
 - **It sends what the agent reads to that company's model.** That is how the agent works at all. What happens to it there is governed by the harness's own terms, not by grooph.
 
-One conversation with a coding agent is a **session**. A session has a **context**: everything the model has read and written so far in that conversation. Context is all the model knows, and there is only so much room in it. A session that has read a long discussion is influenced by that discussion.
+One conversation with a coding agent is a **session**. A session has a **context**: the conversation so far and the instructions it was given, as much of them as fits. It is what the model has to work from in that session, and there is only so much room in it, so a long session may keep only a summary of its early part. A session that has read a long discussion is influenced by that discussion.
 
 Each time you say something and the agent answers is a **turn**. Text is measured for billing in small pieces called **tokens**. Both words turn up later as ways to count how much a run has used.
 
 ## A subagent
 
-A session can start a helper. The helper is another session, begun for one job, with a context of its own: it does not get the first session's conversation, but it has its own standing instructions and can read the files it is allowed to. It does the job, reports back, and ends. That helper is a **subagent**, and starting one is a **dispatch**.
+A session can start a helper. The helper is another session, begun for one job, with a context of its own. A **fresh** helper, the kind this guide's example uses, does not get the first session's conversation; it has its own standing instructions and can read the files it is allowed to. (A harness may offer other kinds, which carry more over.) It does the job, reports back, and ends. That helper is a **subagent**, and starting one is a **dispatch**.
 
 Two things make subagents useful:
 
@@ -130,8 +130,8 @@ This is the most important table in the guide. Keep it in mind whenever a later 
 | **Before a run** | The validator's errors ([chapter 3](03-the-validator.md)) | grooph | Real. grooph will not write instructions for a plan that has an error |
 | **During a run** | Which tools each subagent has ([chapter 5](05-the-package.md)) | The harness | Real, with a gap. A subagent is not given tools left off its list. But the tool that runs commands can also change files |
 | **During a run** | A fresh subagent starting without the lead's conversation | The harness | Real for a fresh worker in Claude Code. It still has its own instructions and can read what it is allowed to; what it is handed is up to the lead |
-| **During a run** | **Everything else**: counting trips, stopping at a cap or a budget, stopping to ask a person, what a reviewer may read, never loosening a brake | The lead agent, reading its instructions | **An instruction.** Nothing in grooph watches a running session or can stop one |
-| **During a run** | A spending limit, if you set one | The harness, not grooph | Real. It cuts the session off. It is not part of a graph ([chapter 13](13-what-the-experiments-found.md)) |
+| **During a run** | **Everything else**: counting trips, stopping at a cap or a budget, stopping to ask a person, what a reviewer may read, never loosening a brake | The lead agent, reading its instructions | **An instruction.** grooph can watch what a run records (chapter 11). It cannot enforce these instructions or stop the session |
+| **During a run** | A spending limit, if you set one | The harness, not grooph | Real. It ends the session, and may overshoot a little: the one case on record ended at $9.02 against a setting of $9.00. It is not part of a graph ([chapter 13](13-what-the-experiments-found.md)) |
 | **After a run** | The check when a run's changed plan is taken up ([chapter 7](07-adopting-a-run.md)) | grooph | Real but narrow, new, and easy to get past on purpose |
 
 So for most of what this guide calls a brake, the fair description is: **a brake is a written instruction to the lead.** Afterward, the run's own notes are the evidence of whether it was followed. It is not a lock.
