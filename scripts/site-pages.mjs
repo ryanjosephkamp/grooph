@@ -8,7 +8,9 @@
  *                                              color variable that drifted from the app's, in any of its themes
  *
  * The documents are named in scripts/site/pages.json. One that is listed and missing is skipped with a line on standard
- * error; `docs/blog/*.md` and `docs/report/*.md` are taken as they appear. The Markdown renderer is scripts/site/markdown.mjs,
+ * error; `docs/blog/*.md` and `docs/report/*.md` are taken as they appear. A set of documents marked `"listed": false` (the
+ * chapters of the plain-English guide) is rendered as pages and has no cards on the index: its own start page, which is
+ * listed, is the way in. The Markdown renderer is scripts/site/markdown.mjs,
  * the look is scripts/site/style.css with the front page's own header and footer, the page around a document is scripts/site/layout.mjs. No dependency,
  * no network, and nothing about the app's own bundle: the pages are plain files beside it.
  *
@@ -65,6 +67,7 @@ function collect() {
         group.sections.push({
           id: entry.id,
           label: entry.label,
+          listed: entry.listed !== false,
           pages: names.map((name) => ({ source: `${dir}/${name}`, slug: `${entry.slugPrefix}${name.replace(/\.md$/i, "")}`, group: g.id, section: entry.id })),
         });
       } else if (existsSync(join(root, entry.source))) {
@@ -302,9 +305,11 @@ function build(out) {
   const card = (p) => `<li><a class="card" href="${p.slug}/"><strong>${escapeHtml(p.title)}</strong><span>${escapeHtml(p.summary)}</span></a></li>`;
   const sections = groups
     .map((g) => {
-      const parts = g.sections.map((s) => `${s.label ? `<h3 id="${s.id}">${escapeHtml(s.label)}</h3>\n` : ""}<ul class="cards">\n${s.pages.map(card).join("\n")}\n</ul>`);
-      return `<section class="group" aria-labelledby="group-${g.id}">\n<h2 id="group-${g.id}">${escapeHtml(g.title)}</h2>\n${parts.join("\n")}\n</section>`;
+      const parts = g.sections.filter((s) => s.listed !== false).map((s) => `${s.label ? `<h3 id="${s.id}">${escapeHtml(s.label)}</h3>\n` : ""}<ul class="cards">\n${s.pages.map(card).join("\n")}\n</ul>`);
+      // A group whose every set is unlisted has no heading either.
+      return parts.length === 0 ? "" : `<section class="group" aria-labelledby="group-${g.id}">\n<h2 id="group-${g.id}">${escapeHtml(g.title)}</h2>\n${parts.join("\n")}\n</section>`;
     })
+    .filter(Boolean)
     .join("\n");
   const index = shell({
     title: "Docs",

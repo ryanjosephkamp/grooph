@@ -11,6 +11,18 @@
       "title": "Start",
       "entries": [
         {
+          "source": "docs/plain-english/README.md",
+          "slug": "plain-english",
+          "summary": "A walkthrough of everything grooph is and does, for someone who has never used an AI coding tool: fourteen short chapters and a glossary, with nothing to install."
+        },
+        {
+          "glob": "docs/plain-english/*.md",
+          "slugPrefix": "plain-english/",
+          "id": "plain-english-chapters",
+          "label": "grooph in plain English",
+          "listed": false
+        },
+        {
           "source": "docs/quickstart.md",
           "slug": "quickstart",
           "summary": "Install grooph, then ask your agent for a graph or build one by hand."
