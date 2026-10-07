@@ -41,7 +41,7 @@ Every template has one recorded headless run on a small task, kept under `experi
 
 A passing check is not a claim that the template improves the work. As of study one, recorded runs stopped where their graphs said and left records; no round cap or budget is on record as firing; and no quality advantage over a prompt derived from the package was shown, on four small tasks ([what grooph claims, and on what evidence](claims.md)). A write-up says what happened in one run; it is not a benchmark, and whether the task's bet paid is in the write-up, not in the check.
 
-Of the twenty recorded runs eighteen passed their check and two did not (`gauntlet-decomposed` and `ralph-loop`); the twenty kept runs cost $41.12 (the whole proving ledger, which also counts the runs since replaced and a few probes, stands at $62.68).
+The latest kept run of each of the twenty templates is counted: eighteen passed their check and two did not (`gauntlet-decomposed` and `ralph-loop`); the twenty kept runs cost $41.12 (the whole proving ledger, which also counts the runs since replaced and a few probes, stands at $62.68). Seven earlier runs are kept beside them; six of those fail their check.
 
 **Prior art** names whose published work a shape or name comes from, and what was taken. It is not an endorsement by that author, and no template claims to beat a named product (decision 0010).
 

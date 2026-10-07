@@ -46,7 +46,7 @@ It is not an automation canvas with connectors, and it is not a hosted studio th
 
 ## Status
 
-Early, version 0.4.0. Each of the twenty templates has a recorded run: eighteen pass the project's checks and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it. [`docs/claims.md`](docs/claims.md) lists every claim, its evidence and its audit. [`docs/PROGRESS.md`](docs/PROGRESS.md) says where things stand, and [`docs/PLAN.md`](docs/PLAN.md) has the staged plan.
+Early, version 0.4.0. The latest kept run of each of the twenty templates is counted: eighteen pass the project's checks of selected parts and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it. Seven earlier runs are kept beside the twenty; six of those fail their check. [`docs/claims.md`](docs/claims.md) lists every claim, its evidence and its audit. [`docs/PROGRESS.md`](docs/PROGRESS.md) says where things stand, and [`docs/PLAN.md`](docs/PLAN.md) has the staged plan.
 
 ## Docs
 

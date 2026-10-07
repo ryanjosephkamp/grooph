@@ -166,6 +166,57 @@ test("a raised cap over a package in place is refused with its name and reason a
   });
 });
 
+test("two limits swapped, and a stop that leads on of a kind the loop did not have, are refused over a package in place (round two of the audit)", async () => {
+  // A worker and a sorter that says "more" or "finished": no check and no critic stands before the end.
+  const plain = (stops: unknown[]): unknown => ({
+    grooph: 0, id: "plain", name: "A loop with no check", version: 1, goal: "Work through a list.", target: { harness: "claude-code" },
+    nodes: [
+      { id: "worker", kind: "agent", name: "Worker", role: "builder", brief: "Do the next item.", outputs: ["out.txt"], allow: ["read-files", "edit-files"] },
+      { id: "sorter", kind: "agent", name: "Sorter", role: "planner", brief: "Say whether items remain.", outputs: ["LEFT.md"], allow: ["read-files", "write-outputs"] },
+      { id: "done", kind: "stop", name: "Done", outcome: "success" },
+    ],
+    edges: [{ id: "e-w-s", from: "worker", to: "sorter" }, { id: "e-more", from: "sorter", to: "worker", when: { verdict: "more" } }, { id: "e-fin", from: "sorter", to: "done", when: { verdict: "finished" } }],
+    loops: [{ id: "list", name: "List", members: ["worker", "sorter"], back: ["e-more"], mode: "grind", stops }],
+  });
+  const halts = { kind: "budget", measure: "dispatches", limit: 2 };
+  const leadsOn = { ...halts, then: "done" };
+  const cap = { kind: "max-iterations", n: 1, then: "done" };
+  const kept = (project: string): unknown[] => (JSON.parse(readFileSync(keptOf(project, "plain"), "utf8")) as Graph).loops[0]!.stops;
+  const cases: [string, unknown[], unknown[], RegExp][] = [
+    ["two budgets of one size, swapped", [halts, leadsOn], [leadsOn, halts], /^ {2}loop:list\.stops +the budget of 2 dispatches that leads on to "done" would be moved ahead of the budget of 2 dispatches that halts the run, and could fire on the same pass$/m],
+    ["a new cap of one round that leads on, ahead", [halts], [cap, halts], /^ {2}loop:list\.stops +the round cap of 1 that leads on to "done" would come into the loop, and could fire before the budget of 2 dispatches that halts the run$/m],
+    ["the same cap, behind", [halts], [halts, cap], /^ {2}loop:list\.stops +the round cap of 1 that leads on to "done" would come into the loop, and could fire before the budget of 2 dispatches that halts the run$/m],
+    ["a new stop on diminishing returns that leads on, ahead", [halts], [{ kind: "diminishing-returns", rounds: 1, then: "done" }, halts], /^ {2}loop:list\.stops +the stop on diminishing returns over 1 round that leads on to "done" would come into the loop, and could fire before the budget of 2 dispatches that halts the run$/m],
+  ];
+  for (const [what, was, now, why] of cases) {
+    await withProject(async (project, files) => {
+      assert.equal((await grooph(exportArgs(put(join(files, "source.grooph.json"), plain(was)), project))).code, 0, what);
+      const working = put(join(files, "working.grooph.json"), plain(now));
+      const before = tree(project);
+      const refused = await grooph(exportArgs(working, project));
+      assert.equal(refused.code, 1, what);
+      assert.equal(refused.out, "", what);
+      assert.match(refused.err, /^grooph: 1 change in .+working\.grooph\.json may remove or loosen a brake of the graph the package in .+ keeps, so nothing was written:$/m, what);
+      assert.match(refused.err, why, what);
+      assert.equal(tree(project), before, what);
+      // By its name it is placed, as any brake is; and it is not said to tighten one. (A new cap that leads on was
+      // printed as "tightens a brake: undoing it removes the round cap".)
+      const placed = await grooph(exportArgs(working, project, "--allow", "loop:list.stops"));
+      assert.equal(placed.code, 0, placed.err);
+      assert.ok(!placed.out.includes("tightens a brake"), placed.out);
+      assert.deepEqual(kept(project), now, what);
+    });
+  }
+  // The other way round, the limit that halts put first, is placed and said to tighten.
+  await withProject(async (project, files) => {
+    assert.equal((await grooph(exportArgs(put(join(files, "source.grooph.json"), plain([leadsOn, halts])), project))).code, 0);
+    const tighter = await grooph(exportArgs(put(join(files, "working.grooph.json"), plain([halts, leadsOn])), project));
+    assert.equal(tighter.code, 0, tighter.err);
+    assert.equal(last(tighter.out), NONE);
+    assert.ok(above(tighter.out).join(LF).match(/^tightens a brake, and is placed with the rest:\n {2}loop:list\.stops +undoing it: the budget of 2 dispatches that leads on to "done" would be moved ahead of the budget of 2 dispatches that halts the run, and could fire on the same pass$/m), tighter.out);
+  });
+});
+
 test("the folders that hold no package are the ones core keeps for something else", async () => {
   const core = await import("@grooph/core");
   const { NOT_A_PACKAGE } = await import("../src/io.js");

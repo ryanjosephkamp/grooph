@@ -124,7 +124,7 @@ None of these four has been tried in a recorded run, because there is nothing to
 Everything that counts, lists, bundles or tests the built-in templates reads `patterns/` by name: the patterns index and its generator, the field guide, the front page, the brake-values check, the command line's bundled copy and the app's template list. Nothing walks the repository for graph documents. So with these four in `plans/`:
 
 - the twenty built-in templates stay twenty, in every count and on every generated page;
-- the field guide's "Of the twenty recorded runs eighteen passed their check and two did not" still counts what it counted, the runs of the twenty built-in templates;
+- the field guide's "The latest kept run of each of the twenty templates is counted: eighteen passed their check and two did not" still counts what it counted, the runs of the twenty built-in templates;
 - `grooph template list` shows these under a heading of their own, **Plans**, apart from the twenty and outside their count, and with no cost, speed or rigor beside them. The app lists them apart from the twenty too, under their own heading "Plans" on its templates screen. No address's first load carries them: the button there, or a plan's own address, fetches them, and the app's worker holds them from its install, as it holds the app's other later pieces;
 - no generated file changes. The one check that had to learn of the folder is the spelling check, which now reads it.
 

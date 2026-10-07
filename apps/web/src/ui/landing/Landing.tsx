@@ -60,7 +60,7 @@ function useFront(): Front | null | undefined {
 }
 
 /** What the README says of the app, as the hero's short list. */
-const PROMISES = ["No account", "Works on a phone", "Opens offline after a first visit", "Graphs stay on your device"];
+const PROMISES = ["No account", "Built for a phone's screen", "Opens offline after a first visit", "Graphs stay on your device"];
 
 /** The poster of all twenty shapes, a file of the site beside the field guide (handoff 0060 copies it there). */
 const POSTER = `${DOCS}field-guide/poster.svg`;
@@ -132,17 +132,17 @@ export function Landing({ device }: { device?: ReactNode }) {
           <div className="site-wrap">
             <ul className="land-claims" aria-label="What grooph does">
               <li>
-                <strong>Every loop names its stop.</strong> The validator refuses a loop without one and warns when a loop has no cap. Where a graph asks
-                for it, it refuses a critic that shares the builder&rsquo;s context, and it refuses a step marked irreversible with no human gate before it.
+                <strong>Every loop names its stop.</strong> The validator refuses a loop without one, and warns when a loop has no budget and either no cap or a cap
+                above five rounds. Where a graph asks for it, it refuses a critic that shares the builder&rsquo;s context, and it refuses a step marked irreversible with no human gate before it.
               </li>
               <li>
                 <strong>The graph is the contract.</strong> The package tells the session to run it as drawn: named subagents, stops in order, a halt at
-                every human gate. grooph does not enforce it while it runs; eighteen of twenty recorded runs pass the checks of it, and two say why they do
-                not.
+                every human gate. grooph does not enforce it while it runs; eighteen of the twenty runs counted pass the checks of it, and two say why they
+                do not.
               </li>
               <li>
-                <strong>Every run is asked for a record.</strong> Notes, rounds and why it stopped, in a folder a monitor reads. A halted run goes on when a
-                person answers.
+                <strong>Every run is asked for a record.</strong> Notes, rounds and why it stopped, in a folder a monitor reads. To go on, a halted run is
+                resumed in the same session with the person&rsquo;s answer and its run id.
               </li>
             </ul>
           </div>
@@ -257,8 +257,8 @@ export function Landing({ device }: { device?: ReactNode }) {
               What is shown, <mark>and what is not</mark>
             </h2>
             <p>
-              In twenty recorded runs a session stopped where its graph said, at a passed bar or a human gate, and left a record; eighteen of the twenty
-              pass the project&rsquo;s checks. No round cap or budget is on record as firing. In a paired comparison on four small tasks the package showed
+              The latest kept run of each of the twenty templates is counted: in those a session stopped where its graph said, at a passed bar or a
+              human gate, and left a record; eighteen of the twenty pass the project&rsquo;s checks. No round cap or budget is on record as firing. In a paired comparison on four small tasks the package showed
               no quality advantage over a prompt derived from it. grooph runs no agent, calls no model and needs no hosted service.{" "}
               <a href={`${DOCS}claims/`}>Every claim and its evidence</a>.
             </p>
