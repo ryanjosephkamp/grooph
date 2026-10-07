@@ -8,7 +8,7 @@ All of the views in this chapter go in one direction only. You cannot edit a pic
 
 ## The picture
 
-You have seen three already, in chapters 1, 8 and 9. The **picture** is the whole document with its words on it, laid out as one column narrow enough to read on a phone without zooming.
+You have seen three already, in chapters 1, 8 and 9. The **picture** is an overview of the whole graph, with a line of each step's words on it, laid out as one column narrow enough to read on a phone without zooming.
 
 ```bash
 grooph image rounding.grooph.json --out rounding.png
@@ -81,7 +81,7 @@ adaptive: the lead may amend its working copy, visibly, and is told never to loo
 …
 ```
 
-This is the view to use when you want to *review* a graph: it hides nothing and needs no knowledge of JSON.
+This is the view to use when you want to *review* a graph: it gives every brief in full and the main details of the graph, and needs no knowledge of JSON. It is not every field of the document. Where a loop's bar takes an answer key from an earlier step, for one, the outline does not say which step. For a last check, read the document too.
 
 (Notice the last of those: the lead "is told" never to loosen a brake. As chapter 7 explained, during a run that rule is an instruction to the lead.)
 
@@ -97,7 +97,7 @@ grooph page rounding.grooph.json --out rounding.html
 wrote rounding.html (25 KB, one file, no network needed)
 ```
 
-You can send that one file to anyone. It opens in a browser with no internet connection, and it is built so that it cannot ask the network for anything. It is for reading. Nothing in it edits.
+You can send that one file to anyone. It can be read in a browser with no internet connection: the picture, the text and the document are inside the file, and the file carries a rule telling the browser to fetch nothing. (The program that makes these pages can put a link to the web app in one. `grooph page` as run here puts none. Where there is one, it opens a page on the network only if you choose it.) It is for reading. Nothing in it edits.
 
 ## The glyph
 
