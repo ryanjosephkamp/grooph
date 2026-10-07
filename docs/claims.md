@@ -33,7 +33,7 @@ A reading is one of three:
 
 Of the 52: 12 carried, 33 other words, 7 not carried.
 
-**What is not on this page yet.** A second paired comparison ran after 0.3.0 and is in the repository ([`experiments/comparisons/`](../experiments/comparisons/README.md)). Its claims have not been through an audit, and no page states them as shown. They are the subject of round 2.
+**What is not on this page.** The 52 rows are the claims made as of 0.3.0. A second paired comparison ran after 0.3.0 and is in the repository ([`experiments/comparisons/`](../experiments/comparisons/README.md)), so it has no row here. A second harness read its claims in the audit's second round ([the record](../experiments/audits/0001-claims-as-of-0-3-0/round-02/RECONCILE.md), finding F3). The sentence the owner then chose is on the [questions page](faq.md), under "Does it make the agents' work better?", with a dated note on [decision 0029](decisions/0029-what-is-shown-as-of-the-first-audit.md). No page states more of that comparison than that sentence.
 
 ## What grooph is shown to do
 

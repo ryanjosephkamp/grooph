@@ -100,7 +100,13 @@ The validator checks a document. The package instructs a session. While a sessio
 
 A second comparison was run on 4 October 2026. It added a fourth arm, the task given alone with no plan at all, and used tasks built so that a first attempt would fail. Its records are in the repository under `experiments/comparisons/`.
 
-**Its results are not repeated here.** The project's rule is that no page states them as shown until a second, independent AI system has read them. That reading was made in the audit's second round, and chapter 14 says what it found: the headline has to name what was measured. The sentence that came of it has not been put on any page of grooph's site, and this guide does not go ahead of that. The rule is the same whichever way a result points, so do not read anything into the silence. If you want to see the records yourself, they are public, and its write-up says plainly what its author believes they show.
+**Its result is given here in the project's one sentence, and in no other words.** The project's rule is that no page states such a result until a second, independent AI system has read it. That reading was made in the audit's second round, and chapter 14 says what it found: the headline had to name what was measured. The owner then chose the words. Since 6 October 2026 they are on the project's [questions page](../faq.md), under "Does it make the agents' work better?":
+
+> On three small tasks designed to need feedback, the package and both prose review arms scored higher than the task-only arm on the author's hidden suites or reference checks, in both replicates. The package and prose arms matched on those scores, and the package cost more than single-session prose. The code-project judges, given only the visible task, ranked task-only outputs higher. This did not isolate the effect of structure from the extra evidence.
+
+Its terms, in this chapter's. "The package" is arm A, the graph. The "prose review arms" are B and C, the same design written out as a prompt and run in one session (B, the "single-session prose") or given again to fresh ones (C). "Task-only" is the new fourth arm. The "hidden suites or reference checks" are tests and checks the author wrote and kept from the builders. A "replicate" is one of the two runs of each arm. The "code-project judges" are two AI sessions that ranked the results of the two code projects without being told which arm made which.
+
+This guide adds nothing to that sentence. The rule is the same whichever way a result points. If you want to see the records yourself, they are public, and the write-up says what its author believes they show.
 
 ## What is not known at all
 
