@@ -28,7 +28,7 @@ The first audit under decision 0024. Its subject is everything grooph says about
 | [`round-03/notes/`](round-03/notes/) | Codex's working notes and every receipt its findings cite, 42 files. Its probes' scratch folders (13 MB) and its two identical lists of file hashes are left in the exchange folder; `custody.json` here says what the lists show |
 | [`round-03/sources/driver-reader/`](round-03/sources/driver-reader/) | The three reports of the driver's fresh reader on the repair's three heads, which round three's figures lean on |
 | [`round-03/RECONCILE.md`](round-03/RECONCILE.md) | The lane's answer to each of the 19: agreed, with what was run again; which were corrected, which are retained and why, which is the owner's; what Codex could not check; two decisions for the owner. Not read by a reader of the lane's own |
-| [`round-03/lane-notes/reconcile/`](round-03/lane-notes/reconcile/) | What the lane ran for the reconciliation: the two new probes, the slow shape timed twice, the proving total added both ways, and the guide's 44 commands at the corrected guide's head |
+| [`round-03/lane-notes/reconcile/`](round-03/lane-notes/reconcile/) | What the lane ran for the reconciliation: the two new probes, the slow shape timed twice, the proving total added both ways, the guide's 44 commands at the corrected guide's head, and, in `at-pull-request-176/`, the audit's five stops probes run against the house lane's change to what the comparison says |
 | [`designs/a-brake-that-binds.md`](designs/a-brake-that-binds.md) | The experiment both sides say is needed before "bound" can be claimed: designed, not run, passed to the driver |
 
 The public register of claims is [`docs/claims.md`](../../../docs/claims.md).
@@ -88,8 +88,10 @@ Codex returned 19 findings on the night of 2026-10-06, on snapshot `c1ff8f7`, a 
 
 - **No new way past the comparison**, at `grooph adopt` or at `grooph export`, in a search Codex calls bounded. Both faults of round two are held in the cases it tried.
 - **All nineteen are about what is said**: fourteen in the beginner's guide (its start page, twelve chapters, its glossary), the rest in the reference pages and release notes, and one in a line the program prints.
-- **Corrected** in two pull requests the lane does not merge: the guide by chapter (#177) and the documents (#178). **Retained, not repaired**: the gaps the pages already list, the printed reason that says "round" for a pass, the compiled brief's "before every round", the slow shape's unbounded reasons. **The owner's**: whether a new road around a limit should be held (card q66, unanswered).
+- **Corrected** in two pull requests the lane does not merge: the guide by chapter (#177) and the documents (#178). **Retained, not repaired**: the gaps the pages already list, the compiled brief's "before every round", the slow shape's unbounded reasons. The printed reason that said "round" for a pass is corrected by the house lane (#176). **The owner's**: whether a new road around a limit should be held (card q66, unanswered).
 - The readings on the claims page do not change. C45 stays described, not shown.
+
+The driver's reading of the guide's pull request found one more thing: the guide said the second comparison's sentence was on no page of the site, and it had been on the questions page since that afternoon. That is corrected, and the guide now gives the sentence word for word.
 
 The lane was wrong again, and round three is where it shows: the release note saying no built-in template was open to either fault was written with the scan that showed seven stops on the debate. That makes four errors of the lane's in round two.
 

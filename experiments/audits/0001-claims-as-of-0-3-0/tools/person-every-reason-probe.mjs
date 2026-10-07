@@ -25,8 +25,9 @@ const check = core.checkAdoption(source, adopted.doc);
 for (const r of check.refused) console.log(`refused ${r.name}, and the reason printed:\n  ${r.loosens}`);
 if (check.refused.length === 0) { console.log("NOT REFUSED: the change this probe is about was adopted, which is not what round three found."); process.exit(1); }
 const said = check.refused.map((r) => String(r.loosens)).join(" ");
-console.log(/\bon round 3\b/.test(said) ? 'The reason says "on round 3".' : /\bpass 3\b|third pass/.test(said) ? "The reason names the pass." : 'The reason says neither "on round 3" nor the pass: read it.');
+const names = /\bon round 3\b/.test(said) ? "round" : /\bpass 3\b|third pass/.test(said) ? "pass" : "neither";
+console.log(names === "round" ? 'The reason says "on round 3".' : names === "pass" ? "The reason names the pass." : 'The reason says neither "on round 3" nor the pass: read it.');
 const asks = (n) => [1, 2, 3, 4, 5, 6].filter((pass) => pass % n === 0);
 console.log(`\nBy graph-ir §2, the source (every 3) asks at the end of pass ${asks(3).join(", ")}: that is round ${asks(3).map((p) => p - 1).join(", ")}, counting the first pass as round 0.`);
 console.log(`The copy (every 2) asks at the end of pass ${asks(2).join(", ")}: round ${asks(2).map((p) => p - 1).join(", ")}.`);
-console.log("So the asking the copy loses is the one after pass 3, which is round 2. \"On round 3\" names it by its pass.");
+console.log(`So the asking the copy loses is the one after pass 3, which is round 2. ${names === "round" ? '"On round 3" names it by its pass.' : names === "pass" ? "The reason counts as the rule does." : "Compare the reason with that."}`);

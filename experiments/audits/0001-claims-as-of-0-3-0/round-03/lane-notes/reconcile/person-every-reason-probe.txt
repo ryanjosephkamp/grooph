@@ -1,4 +1,4 @@
-grooph at 65d435b0a4da
+grooph at cd358010844b
 refused loop:list.stops, and the reason printed:
   a person would be asked every 2 rounds where it was every 3: on round 3 nobody would be asked, and the budget of 4 dispatches that leads on to "done" could fire on a round where a person was
 The reason says "on round 3".

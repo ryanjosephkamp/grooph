@@ -6,6 +6,8 @@ The owner carried the round out at about 22:30 ET on 2026-10-06 and Codex's prom
 
 Codex read snapshot `c1ff8f7fd6a7a90602e883970ae1cf7962575893`: `main` with the repair of the stops comparison in it, a build that calls itself 0.4.0. Version 0.4.1 did not exist to read, and still does not.
 
+**This file was changed once after its first head was reported**, on the driver's reading of the guide's pull request. What changed and why is in the last section, "After the driver's first reading"; the rows above it say what is true as of that.
+
 **No reader of the lane's own read this file or the corrections.** That is by the driver's word for this round: the driver reads each pull request, and Codex's table of what it would publish is the second reading. It is a limit worth stating, because on this audit a fresh reader has caught a real error of the lane's every time one was used. Four places where the lane corrected itself while writing are named under "Where the lane was wrong".
 
 **No download, no model session, no experiment.** Everything below was read, or run against the lane's own build of `main` at `65d435b0`, whose `packages/` are those of the snapshot.
@@ -20,8 +22,8 @@ That changes none of the readings on the claims page. C45 stays "other words": d
 
 **What became of the nineteen is three different things**, and the corrections are careful not to run them together:
 
-- **Corrected**, in two pull requests that the lane does not merge: the guide, by chapter (F6 to F19, pull request #177), and the reference pages and release notes (F1, F3, F4, F5 and one clause of F2, pull request #178).
-- **Retained, with its reason**: the gaps in the comparison that the pages already list (F1, F12); the line the comparison prints and the words of the compiled brief (F2); the slow shape's unbounded reasons (F3). None of these is repaired, and nothing says it is.
+- **Corrected**, in two pull requests that the lane does not merge: the guide, by chapter (F6 to F19, pull request #177), and the reference pages and release notes (F1, F3, F4, F5, pull request #178). The line the comparison prints (F2) is corrected by the house lane, in pull request #176.
+- **Retained, with its reason**: the gaps in the comparison that the pages already list (F1, F12); the words of the compiled brief (F2); the slow shape's unbounded reasons (F3). None of these is repaired, and nothing says it is.
 - **Left with the owner**: whether a new road to an end, around a limit where nothing else was checking, should be held at all (card q66, asked and not answered).
 
 ## What was run again
@@ -34,7 +36,7 @@ Each command settles one thing. The outputs are in [`lane-notes/reconcile/`](lan
 | F2 | [`tools/person-every-reason-probe.mjs`](../tools/person-every-reason-probe.mjs), written for this: a person asked every 3 rounds changed to every 2, with a budget that leads on behind | Refused by `loop:list.stops`, and the reason says "on round 3 nobody would be asked". By `docs/graph-ir.md` §2 the source asks at the end of passes 3 and 6, which are rounds 2 and 5. So the reason names a pass and calls it a round ([`person-every-reason-probe.txt`](lane-notes/reconcile/person-every-reason-probe.txt)) |
 | F3 | The driver's reader's `p3/perf3.mjs`, shape `shared`, sizes 10, 20 and 40, twice | 40 loops of 40 stops: 14,195 ms and then 19,685 ms, 40 refused, reasons of 12,248,844 characters both times. Codex's run: 14,864 ms, the same count ([`slow-shape.txt`](lane-notes/reconcile/slow-shape.txt)) |
 | F4 | Nothing new: the receipts kept from round two and from the cut | At 0.4.0, 84 of 1,306 new leading stops not refused, seven of them on `debate-then-build`'s debate loop, each printed as a tightening (`round-02/lane-notes/reconcile/stops-in-built-ins-probe.at-main.txt`, line 3). At the snapshot, 77, none on the debate (`lane-notes/at-the-cut/stops-in-built-ins-probe.txt`) |
-| F6 | [`tools/guide-commands.py`](../tools/guide-commands.py) over the corrected guide | 44 commands; 42 match; the 2 that differ are the two version lines, 0.4.1 shown and 0.4.0 printed, now labeled beside each ([`guide-commands.at-249cd07f.txt`](lane-notes/reconcile/guide-commands.at-249cd07f.txt), run at pull request #177's final head) |
+| F6 | [`tools/guide-commands.py`](../tools/guide-commands.py) over the corrected guide | 44 commands; 42 match; the 2 that differ are the two version lines, 0.4.1 shown and 0.4.0 printed, now labeled beside each ([`guide-commands.at-1885393c.txt`](lane-notes/reconcile/guide-commands.at-1885393c.txt), run at pull request #177's head `1885393c`) |
 | F9 | `docs/rules.md` against the guide's table | 30 rules, 18 errors and 12 warnings. The table had 27 rows and has 30 |
 | F15 | `grooph page` on a fixture, and the file read | No link out of it (the one address in the file is the SVG namespace's name), a content policy of `default-src 'none'`, and no link to the app: the page function takes a link as an option (`packages/core/src/offline.ts:152`) and the command does not pass one (`packages/cli/src/index.ts`, case `page`) |
 | F16 | `packages/cli/src/mcp.ts`, read | `grooph_plan` and `grooph_note` both go through `say`, which appends to `.grooph/events/said-<session>.jsonl`, a name grooph chooses |
@@ -47,7 +49,7 @@ Each command settles one thing. The outputs are in [`lane-notes/reconcile/`](lan
 | | Codex's finding, in a line | The lane | What became of it |
 |---|---|---|---|
 | **F1** | The repaired comparison still admits changes a reader would call loosenings: a road around a limit, a "bar passed" stop where a critic is retained, halting stops outside the protected list, a new person's stop with a large `every` | **Agree.** Each class was already on the page; what was wrong was the sentence "the person is the brake on it", which is true only on the passes where the stop fires | **Corrected** in words (#178: `runs.md`, release notes; #177: the guide's chapter 7). **Retained** as gaps: not repaired. **The first is the owner's** (q66) |
-| **F2** | A printed reason says "round 3" for the third pass; the compiled brief says stops are evaluated "before every round" and does not carry §2's sentence | **Agree.** Reproduced | One clause **corrected** in `runs.md` (#178). The printed reason and the brief's words are **retained: not the lane's** (below) |
+| **F2** | A printed reason says "round 3" for the third pass; the compiled brief says stops are evaluated "before every round" and does not carry §2's sentence | **Agree.** Reproduced | The printed reason is **corrected by the house lane** (#176), with the sentence of `runs.md` that counted to "the third"; the lane's own clause for that sentence, in #178, is withdrawn so that the two do not collide. The brief's words are **retained: not the lane's** (below) |
 | **F3** | The costs reproduce. The 58 held with no run are negatives from a finite model, not proven unnecessary refusals. One reader reading three heads is one reader. The slow shape is real | **Agree.** Slow shape reproduced | **Corrected** (#178): what the counts rest on, the 58 and the reader's 199 as bounded-model negatives, one reader, the slow shape as measured with no rate of growth. Bounding the reasons is **retained: code, after the pause** |
 | **F4** | The 0.4.0 note's "None of the built-in templates is open to either, as far as was tried" rests on a scan that tested nothing. C45's status tail is stale | **Agree that the sentence does not stand; one correction to why** (below). The sentence was the lane's (round two, correction 16) | **Corrected** (#178): a new dated note under 0.4.0, the old one left as written; C45's last column and three "not read by a second harness" sentences |
 | **F5** | Export compares with a local baseline that can be replaced; the flags are not a person-only lock | **Agree.** Disclosed already, and now said in one place | **Corrected** (#178) |
@@ -79,13 +81,13 @@ Each command settles one thing. The outputs are in [`lane-notes/reconcile/`](lan
 
 | What | Why it is retained | Whose |
 |---|---|---|
-| The printed reason "on round 3 nobody would be asked" (`packages/core/src/brakes.ts:532`), which should say pass | A string in core. `runs.md` quotes it as printed and is left quoting it | The house lane, now |
+| The printed reason "on round 3 nobody would be asked" (`packages/core/src/brakes.ts:532`), which should say pass | A string in core, so not the lane's. **Not retained after all**: the house lane corrects it in pull request #176, which merges ahead of these. At that head the reason reads "on pass 3 nobody would be asked" ([`at-pull-request-176/person-every-reason-probe.txt`](lane-notes/reconcile/at-pull-request-176/person-every-reason-probe.txt)) | The house lane, done in #176 |
 | The compiled brief's "before every round" (`lead.ts:294,320`, `kickoff.ts:58`) | A change to what a session is handed. It moves the golden packages, so it is a change to a package and waits for after the pause | The house lane, after the pause |
 | Bounding or deduplicating the reasons of the slow shape | Code. No model session is needed to measure it again: `perf3.mjs <built root> shared 10 20 40` | The house lane, after the pause |
 | The roads around a limit: a plain new edge to an end, a leading stop in an inner or an enclosing loop, a one-node loop with a cap of one | Listed on the page, named in the guide as not repaired. Whether to hold them is a question about the contract (amendment A-008 lets a lead add edges) | **The owner: card q66, asked, not answered.** Nothing here infers an answer |
 | "Bar passed" ahead of a limit that halts, where a critic is retained; a new person's stop; a halting stop on diminishing returns or invalid evidence | Listed as not held. No one has ruled that they should be | The owner, if he wants them held; no card is proposed |
 | The 0.4.0 release note's own sentences | A published note is clarified by a dated note under it, never edited | Done that way in #178 |
-| The second comparison's results | Not in this round. The guide still does not repeat them | Parked |
+| The second comparison's results | Not in this round. The guide gives the one sentence the questions page carries, word for word, and nothing more of them (last section) | Parked |
 | The budget experiment's counter | Not in this round. Not repaired; nothing has been run with it | Parked |
 
 ## What Codex could not check
@@ -107,7 +109,7 @@ Carried forward as Codex wrote it, because none of it has been settled since.
 - **Chapter 1's table** (F7). Round two found "nothing in grooph watches". The lane corrected the paragraph and left the table saying it.
 - **The guide's two version lines** (F6). Set by hand to 0.4.1 under a sentence saying every output is what was printed. The lane told the driver before the round and did not label them then.
 - **Chapter 14** (F18). "Wrong twice" where the handoff the lane wrote says three times.
-- **While writing this round's corrections**, four more, each caught before its head was reported: the new dated note first said the old sentence rested on the empty scan, which is Codex's account and not what round two's record shows (above); the slow shape written as "one measurement" of "about fifteen seconds" until a second run of the lane's own took 19.7; a first probe of F1's example that used the wrong field for a round cap, so that the comparison refused it for a missing cap, which the probe's own check caught; and chapter 14's first draft calling all nineteen findings "about wording and the notes kept", where one is about a line the program prints.
+- **While writing this round's corrections**, four more that the lane caught before reporting a head, and a fifth that it did not catch (last section): the new dated note first said the old sentence rested on the empty scan, which is Codex's account and not what round two's record shows (above); the slow shape written as "one measurement" of "about fifteen seconds" until a second run of the lane's own took 19.7; a first probe of F1's example that used the wrong field for a round cap, so that the comparison refused it for a missing cap, which the probe's own check caught; and chapter 14's first draft calling all nineteen findings "about wording and the notes kept", where one is about a line the program prints.
 
 ## The evidence, and what was left where it is
 
@@ -138,7 +140,7 @@ Round three found no new fault in the repair or in the check `grooph export` mak
 
 - **Let it rest at "read in three rounds, limits listed", and release 0.4.1 without a fourth (recommended).** A fourth round has a natural start later, and a short one: when the program next changes what the comparison holds or what a session is handed. That is an answer to q66 that changes the comparison, the brief's wording with its golden packages, or the counter's repair. Each would be read on its own.
 - **A short fourth round now, on the corrections only.** The same as the third choice of card 1. It would not touch the repair.
-- **A fourth round on the repair before 0.4.1.** The lane does not recommend it: Codex has read the repair, and nothing in it has changed since.
+- **A fourth round on the repair before 0.4.1.** The lane does not recommend it. Codex has read the repair. One thing in `brakes.ts` has changed since, and you should know it when choosing: pull request #176 changes what the comparison says (the line above, and which sentence is chosen in one case), and by its author's account nothing in what it holds. The lane's five probes print the same refusals at #176's head as at the snapshot (last section). Codex has not read #176; if you want every change to that file read by the second harness before a release, its diff is a short reading and belongs with the second choice above.
 
 Card q66 stays as it is, unanswered. Nothing in this round answers it or assumes an answer.
 
@@ -146,6 +148,27 @@ Card q66 stays as it is, unanswered. Nothing in this round answers it or assumes
 
 Not before 0.4.1, in the lane's view, for the reasons under card 2. Neither side holds a finding that blocks a claim grooph makes: the two that "block" (F1, F5) block claims that no page makes, a blanket "never loosen" and a person-only lock, and the pages now say plainly that neither is claimed.
 
-What would start one: a change to `packages/core/src/brakes.ts` or to the compiled brief; an answer to q66 that is built; the counter's repair; or the owner's wish to have the corrections read back.
+What would start one: a change to what `packages/core/src/brakes.ts` holds, or to the compiled brief; an answer to q66 that is built; the counter's repair; or the owner's wish to have the corrections read back.
 
 One thing needs no round and should not be forgotten: **at the release of 0.4.1, run `tools/guide-commands.py` against the released build.** Until then the guide's two version lines are labeled as expected, which is true, and after it they can be what was printed.
+
+## After the driver's first reading, 2026-10-07
+
+The driver read the guide's pull request at its first head and sent back two things that other work of 2026-10-06 had already made untrue. Both are corrected, each in its own commit on #177. This section says what changed in the three pull requests after their heads were first reported, so that nothing above reads as if it had always said so.
+
+**1 · The second comparison's sentence was on the site, and the guide said it was not.** Chapter 14 said of round two's sentence that "it has not been put on any page of the site", and in this round the lane wrote the same into chapter 13. It had been false since 18:02 ET on 2026-10-06, when the questions page was merged (pull request #54): `docs/faq.md` carries the sentence the owner chose on card q60, under "Does it make the agents' work better?". The lane had not looked. Corrected in #177 (`17920dc3`):
+
+- Chapter 13 gives that sentence as a quotation, checked to be in `docs/faq.md` word for word, with its terms said in the chapter's own, and adds nothing to it. Chapter 14 and the start page say where it stands.
+- `docs/claims.md`, the paragraph "What is not on this page yet", was stale the same way ("Its claims have not been through an audit … They are the subject of round 2"). It now says that round two read them, where the sentence is, and that no page states more of that comparison than that sentence. **No row is added to the table**: the 52 rows are the claims as of 0.3.0, and that count is quoted on several pages. Whether the sentence should have a row is put to the driver in #177's description, not done.
+
+**2 · The line that said "round" is corrected, by the house lane.** Pull request #176 changes the printed reason to "on pass 3 nobody would be asked", with a test that holds every such line to `graph-ir.md` §2's count, and merges ahead of these. So in chapter 14 the line moves from what is kept to what was corrected, said by version (in the main copy, for 0.4.1) because #176 was not merged when the sentence was written. What is kept is the compiled brief's "before every round", with its reason, and the slow case. The change to the line is newer than Codex's reading, and chapter 14 lists it among what has not been audited. Corrected in #177 (`1885393c`).
+
+**3 · What #176 does to the other two pull requests.**
+
+- It edits the same sentence of `docs/runs.md` that the lane's one clause for F2 edited in #178 ("at the end of the third pass"), and the two collide. A trial merge on the lane's machine, pushed nowhere: main with #176, then #177 and #179, is clean; #178 conflicts in `docs/runs.md`. With the lane's F2 commit reverted, it is clean, and the sentence reads as #176 wrote it. So that commit is withdrawn from #178 by a revert, which is what one commit for each finding was for.
+- It changes `packages/core/src/brakes.ts` after the snapshot Codex read. Its description says nothing changes in what is held, by what name or under what label, and that main's build and its own agree on that in 16,000 random pairs. **The lane did not run that comparison.** What the lane ran, at #176's head `156afa24`, built in a scratch worktree ([`lane-notes/reconcile/at-pull-request-176/`](lane-notes/reconcile/at-pull-request-176/)): the two swaps and the wider case refused at adoption and at export (3 and 3), all six added stops refused at adoption and at export (6 and 6), 77 of 1,306 not refused among the built-ins, 69 and 8 as before; the every-100 probe prints what it printed on main; and the reason probe prints "on pass 3 nobody would be asked … on a pass where a person was asked". Those are the same refusals as at the snapshot. Five probes are not the 16,000 pairs, and this is not a reading of #176 by a second harness. Card 2 says so.
+
+**4 · A fifth error of the lane's this round, and this one it did not catch.** The sentence in chapter 13 was written by copying chapter 14's, without opening the site's own pages. The driver caught it. It is the same fault as the release note of F4: a sentence about the state of the project's pages, written from memory of that state.
+
+**The heads, as they stand after this:** #177 `1885393cad2eef7cda6c2c495d2bbb7133420eee`, pushed at the driver's request. For #178 and for this pull request the lane holds one commit each on its own machine, and pushes neither until the driver says so, since both heads had been reported: on #178 the revert of the F2 clause; here, this section, the rows it corrects above, the probes' outputs at #176, and the reason probe's last line, which now follows what it found.
+
