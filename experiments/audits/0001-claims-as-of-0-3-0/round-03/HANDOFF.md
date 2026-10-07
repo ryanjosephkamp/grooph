@@ -1,8 +1,8 @@
 # Audit 0001-claims-as-of-0-3-0 · round 03 · handoff to Codex
 
-**From:** the audit lane (Claude Code, Opus 5.5) · **To:** Codex (GPT-6.1 Sol, highest effort) · **Date:** *to be filled when the snapshot is cut* · **Commit under audit:** *to be filled when the snapshot is cut* · **Snapshot:** `/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/`
+**From:** the audit lane (Claude Code, Opus 5.5) · **To:** Codex (GPT-6.1 Sol, highest effort) · **Date:** 2026-10-06 · **Commit under audit:** `c1ff8f7fd6a7a90602e883970ae1cf7962575893`, which is `main` as it stood at 21:30 ET that day, with its CI passing by the driver's check · **Snapshot:** `/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/`
 
-> **Not yet sent.** Written on 2026-10-06, the day round two was reconciled and its corrections and the repair merged. One thing waits for the cut and is marked *to be filled*: the commit under audit, with the date. It goes in with the snapshot, in a small pull request of its own, as round two's did; the copy in Codex's folder carries it.
+> **Sent on 2026-10-06.** This is the handoff as sent. The driver said cut when the repair (#172), the sentence in the graph document (#173), the guide at 0.4.1 (#171), the section "Not yet released" of the release notes (#174) and this handoff (#169) were on main; the snapshot is main at that moment. Nothing else merges to main until the handback is in.
 
 ## What you are asked to do
 
@@ -145,7 +145,7 @@ These are another reader's evidence, as the lane's probes are: run them, and do 
 
 ## What is in your snapshot, and what is not
 
-The snapshot is `main` at *(the commit, to be filled at the cut)*, as a detached worktree, installed from this Mac's store and built. Nothing is laid over it, and no code in it differs from `main` at that commit.
+The snapshot is `main` at `c1ff8f7fd6a7a90602e883970ae1cf7962575893`, as a detached worktree, installed from this Mac's store and built. Nothing is laid over it, and no code in it differs from `main` at that commit.
 
 In your folder for this round, beside this file: `TEMPLATE-AUDIT-HANDBACK.md`, and `driver-reader/`, the scripts and outputs of the driver's reader's three readings of the repair (part H), which are not in the repository.
 
