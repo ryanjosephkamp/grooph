@@ -271,6 +271,20 @@ test('"ask a person every n rounds", set to another n: asked on every round they
   assert.deepEqual(refused(every(4, 3)), ['loop:list.stops: a person would be asked every 3 rounds where it was every 4: on pass 4 nobody would be asked, and the budget of 4 dispatches that leads on to "done" could fire on a pass where a person was asked']);
   // Asked less often is held by its older line, and the new one beside it.
   assert.deepEqual(refused(every(2, 3, [cap(2, "done")])), ['loop:list.stops: a person would be asked every 3 rounds, not every 2; a person would be asked every 3 rounds where it was every 2: on pass 2 nobody would be asked, and the round cap of 2 that leads on to "done" could fire on a pass where a person was asked']);
+  // "Nobody would be asked" is said only where it is so. Two stops where a person is asked changed at once, and
+  // another of the copy asks on the pass the source asked on: ahead of the stop that leads on, or behind it, where it
+  // asks unless that stop fires. What is held is the same, and the line says what the stop could do and no more.
+  const [slow, stuck]: Stop[] = [{ kind: "diminishing-returns", rounds: 3 }, { kind: "diminishing-returns", rounds: 1, then: "done" }];
+  assert.deepEqual(refused(adopt(plain([slow!, person(6), person(), stuck!]), plain([slow!, person(4), person(2), stuck!]))), [
+    'loop:list.stops: a person would be asked every 2 rounds, not every 1; the stop on diminishing returns over 1 round that leads on to "done" could fire before the stop where a person is asked every 6 rounds first asks, as it could not before',
+  ]);
+  assert.deepEqual(refused(adopt(plain([person(6, "worker"), on]), plain([person(4, "worker"), on, person(3, "worker")]))), [
+    'loop:list.stops: the budget of 4 dispatches that leads on to "done" could fire on the same pass as the stop where a person is asked every 6 rounds, where it would be the one obeyed, as it could not before',
+  ]);
+  // A second new stop that does not ask on that pass either: it is so, and it is said.
+  assert.deepEqual(refused(adopt(plain([person(6), on]), plain([person(4), on, person(5)]))), [
+    'loop:list.stops: a person would be asked every 4 rounds where it was every 6: on pass 6 nobody would be asked, and the budget of 4 dispatches that leads on to "done" could fire on a pass where a person was asked',
+  ]);
   // With the stop that leads on ahead of the person's, nothing of it changes with their number.
   for (const [was, now] of [[3, 2], [4, 3], [5, 2]] as const) assert.deepEqual(refused(adopt(plain([cap(2, "done"), person(was)]), plain([cap(2, "done"), person(now)]))), [], `${was} to ${now}`);
 });
@@ -318,6 +332,24 @@ test("a line names a pass as graph-ir §2 counts them: a cap of n fires at the e
       }
     }
   }
+  // The same with a second stop where a person is asked in the copy, ahead of the cap or behind it: "on pass N
+  // nobody would be asked" is said only where no stop of the copy asks on pass N.
+  let said = 0;
+  for (let was = 2; was <= 6; was++) {
+    for (let first = 1; first <= 6; first++) {
+      for (let second = 1; second <= 6; second++) {
+        for (const n of [1, 3, 8]) {
+          for (const now of [[person(first), cap(n, "done"), person(second)], [person(first), person(second), cap(n, "done")]]) {
+            const got = refused(adopt(plain([person(was), cap(n, "done")]), plain(now)));
+            const pass = got.join().match(/on pass (\d+) nobody would be asked/)?.[1];
+            if (pass !== undefined) assert.ok(++said && [first, second].every((every) => Number(pass) % every !== 0), `${was} to ${first} and ${second}, cap ${n}: ${got.join()}`);
+            assert.doesNotMatch(got.join(), numbered);
+          }
+        }
+      }
+    }
+  }
+  assert.ok(said > 0);
 });
 
 test('"bar passed" in a loop no critic judges is a stop that leads on, with a `then` or with none', () => {

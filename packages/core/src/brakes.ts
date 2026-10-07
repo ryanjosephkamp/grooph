@@ -501,6 +501,8 @@ function loopLosses(before: Graph, after: Graph): { losses: Loss[]; fired: Loss[
       // A person's stop of the loop's that is gone, and one that comes in beside it and continues at the same
       // place: the same stop, asked every other number of rounds.
       const asksNow = kept.stops.filter((stop): stop is Extract<Stop, { kind: "human" }> => stop.kind === "human" && !hadAt.has(text(stop)));
+      /** Every number of rounds a person would be asked after, by any stop of the loop as it would be. */
+      const askedEvery = [...new Set(kept.stops.flatMap((stop) => (stop.kind === "human" ? [stop.every ?? 1] : [])))];
       const where = [`loop:${loop.id}.stops`, ...targets];
       for (const { at: place, from, lead, halt, before: sooner, again } of leadsOnFirst(loop.stops, held, kept.stops, leadsOnIn(haltsNow, judged(kept, loop)))) {
         const name = stopName(lead);
@@ -524,9 +526,11 @@ function loopLosses(before: Graph, after: Graph): { losses: Loss[]; fired: Loss[
         const led = lead.then === undefined ? undefined : kin.find((stop) => stopSize(stop) === stopSize(lead) && stop.then !== lead.then);
         // The stop is as it was and a person is asked on other passes than they were: that is what changed, and on
         // the first pass they were asked on, nobody would be. (A pass, counted from one, and not a numbered round:
-        // asked every 3 rounds is asked at the end of the third pass, which is round 2, `graph-ir.md` §2.)
+        // asked every 3 rounds is asked at the end of the third pass, which is round 2, `graph-ir.md` §2.) That is
+        // said only where it is so: where another stop of the loop where a person is asked would ask on that pass,
+        // two such stops having changed at once, somebody would be asked, and the line says what the stop could do.
         const every = halt.kind === "human" ? (halt.every ?? 1) : 1;
-        const asks = stood !== undefined && halt.kind === "human" && !keptAt.has(text(halt)) ? asksNow.find((stop) => stop.then === halt.then && every % (stop.every ?? 1) !== 0) : undefined;
+        const asks = stood !== undefined && halt.kind === "human" && !keptAt.has(text(halt)) && !askedEvery.some((n) => every % n === 0) ? asksNow.find((stop) => stop.then === halt.then) : undefined;
         const why =
           stood !== undefined
             ? asks
