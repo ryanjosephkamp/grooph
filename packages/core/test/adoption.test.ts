@@ -963,7 +963,7 @@ test("A-019, a check under another id: the removal's line shows the check that c
   assert.deepEqual(dressed.changes.filter((change) => change.tightens !== undefined).map((change) => change.name), []);
   assert.deepEqual(Object.fromEntries(dressed.changes.filter((change) => change.unjudged !== undefined).map((change) => [change.name, change.unjudged])), {
     "node:test-suite": "removes a check",
-    "loop:grind.stops": "removes the budget (1 dispatches)",
+    "loop:grind.stops": "removes the budget (1 dispatch)",
     "loop:grind.bar": "removes the loop's bar",
   });
 
