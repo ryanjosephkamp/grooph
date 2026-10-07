@@ -522,14 +522,15 @@ function loopLosses(before: Graph, after: Graph): { losses: Loss[]; fired: Loss[
         const kin = gone.get(stopKind(lead)) ?? [];
         const sized = kin.find((stop) => stop.then === lead.then && stopSize(stop) !== stopSize(lead));
         const led = lead.then === undefined ? undefined : kin.find((stop) => stopSize(stop) === stopSize(lead) && stop.then !== lead.then);
-        // The stop is as it was and a person is asked on other rounds than they were: that is what changed, and on
-        // the first round they were asked on, nobody would be.
+        // The stop is as it was and a person is asked on other passes than they were: that is what changed, and on
+        // the first pass they were asked on, nobody would be. (A pass, counted from one, and not a numbered round:
+        // asked every 3 rounds is asked at the end of the third pass, which is round 2, `graph-ir.md` §2.)
         const every = halt.kind === "human" ? (halt.every ?? 1) : 1;
         const asks = stood !== undefined && halt.kind === "human" && !keptAt.has(text(halt)) ? asksNow.find((stop) => stop.then === halt.then && every % (stop.every ?? 1) !== 0) : undefined;
         const why =
           stood !== undefined
             ? asks
-              ? `a person would be asked every ${asks.every ?? 1} rounds where it was every ${every}: on round ${every} nobody would be asked, and ${leading} could fire on a round where a person was`
+              ? `a person would be asked every ${asks.every ?? 1} rounds where it was every ${every}: on pass ${every} nobody would be asked, and ${leading} could fire on a pass where a person was asked`
               : !sooner && stood > from && (keptAt.get(text(halt)) ?? -1) > place
                 ? `${leading} would be moved ahead of ${halting(halt)}, and could fire on the same pass`
                 : `${leading} could fire ${fires}, as it could not before`
