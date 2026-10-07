@@ -58,19 +58,24 @@ wrote 7 files into .
   .grooph/add-a-rounding-helper/LEAD.md
   .grooph/add-a-rounding-helper/MAPPING.md
   .grooph/add-a-rounding-helper/graph.grooph.json
+tiers in this package: frontier → opus (the target's own), strong → sonnet (the target's own), fast → sonnet (the target's own). No tier map was given (--models, or GROOPH_MODELS). A pin on a node still wins.
 
 1 warning, carried into the lead brief:
   warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin may catch different mistakes  [at: builder, critic]
 
-Kickoff — paste this into a Claude Code session opened in .:
+Kickoff — paste this into a Claude Code session opened in .. It runs from the next line to the line before the last line of this output, which is grooph's own:
 
 Run the grooph graph `add-a-rounding-helper` (Add a rounding helper) in this project. You are the lead.
 
 Read `.grooph/add-a-rounding-helper/LEAD.md` first and follow it. It is the brief for this run; this prompt is only the trigger.
 …
+
+brakes: nothing in place to compare with. No package of this graph's id was there
 ```
 
 Seven files. If the graph had an error, `export` would refuse and list the reasons, and write nothing.
+
+Two lines of that output are grooph's own remarks. The line beginning `tiers` says which model each tier name means in this package. The last line, beginning `brakes:`, says whether an earlier package of this graph was in the folder to compare with. This is the first export into the folder, so there was none. Chapter 7 says what is compared when there is one.
 
 Two practical notes. Folders whose names begin with a dot, like `.claude` and `.grooph`, are hidden by default on many computers, so you may have to ask your file browser to show them. And "a Claude Code session opened in ." means: Claude Code, which you install and sign in to separately by its own instructions, started in this same folder.
 

@@ -55,13 +55,22 @@ The audit also turned up something that was not a wording problem. Checking the 
 
 A few things were deliberately left as they were, and the claims page lists them with the reason for each. The main one is the project's past write-ups and decisions, which are never edited. What they got wrong is written in a new decision instead, so the history stays readable.
 
+## The second round
+
+The audit's second round was sent on 5 October 2026 and came back the next day. Codex read the corrected sentences from round one, the second comparison of chapter 13, the adoption check of chapter 7, the experiment built to show a budget at work, and five chapters of this guide. It returned 16 findings, and the audit lane agreed with all 16.
+
+- **The adoption check is real and incomplete.** Codex found that two limits on one loop can be swapped so that a run goes on where it should have halted, and the check does not notice. A fresh reader of the audit lane's own answer then found a second way, a new limit of another kind that sends the run on, which grooph printed as a tightening. Both were still true in version 0.4.0 and were repaired in version 0.4.1. Chapter 7 says how, and what the repair costs.
+- **The second comparison's headline had to name what it measured.** Its designs scored higher than the task done alone on tests the author wrote and kept hidden. Two blind judges, shown only the task and the results, preferred the task-alone results in the two code projects. Both facts belong in the sentence, and it has not been put on any page of the site.
+- **The counter of the budget experiment can miscount in both directions**, so no result of that experiment can be trusted until it is repaired. The experiment has not been run.
+- **The rest was wording**, some of it in this guide: a worker's "empty context", "nothing in grooph watches", and the account of one failed record were each corrected.
+
+The audit lane was itself wrong twice in its first answer, and the fresh reader caught both. That is in the record too.
+
 ## What has not been audited yet
 
-- **The second comparison** of chapter 13.
-- **The adoption check** of chapter 7.
-- **This guide.**
-
-The first two are the subject of the audit's second round, which had not been sent when this was written. This guide is in that round only if it is in the project's main copy when the round is prepared.
+- **Nine of this guide's fourteen chapters.** Codex read chapters 1, 5, 7, 13 and 14.
+- **The check `grooph export` makes**, which is newer than the copy Codex read.
+- **The repair to the adoption check**, made the day the second round came back.
 
 ## Why this matters to you
 

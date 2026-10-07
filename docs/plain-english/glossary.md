@@ -90,6 +90,8 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Validator** | The checker that reads a document and reports known mistakes | 3 |
 | **Error / warning** | A mistake that blocks compiling (`E_…`) / one that is reported and carried along (`W_…`) | 3 |
 | **Template** | A graph document with blanks to fill | 4 |
+| **Plan for people** | A graph meant for people to read and follow, whether or not a harness could run it. `grooph plan` writes one out | 4 |
+| **Person's step** | A step marked as a person's and not an agent's (`"by": "person"`). grooph does not compile a graph that has one | 4 |
 | **Slot** | A blank in a template, written `{{like-this}}` | 4 |
 | **Fragment** | A template that is only a few nodes, meant to go inside another graph | 4 |
 | **Pattern** | A built-in template. The twenty together are the pattern library | 4 |
