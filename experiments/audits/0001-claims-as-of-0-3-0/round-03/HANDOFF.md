@@ -170,7 +170,7 @@ For the guide, a finding per sentence is too many. Group them by chapter, and sa
 ## The prompt for Codex
 
 ```text
-Round three of audit 0001, and a short one. You are the auditor, opened on
+Round three of audit 0001. You are the auditor, opened on
 /Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/. Read round-03/HANDOFF.md
 there and do what it asks, against the snapshot at
 /Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/.
@@ -183,7 +183,8 @@ counter, study two and anything paid are not in this round.
 Read as a skeptic and be fair. Attack the lane's readings and the driver's reader's as hard as the
 claims: run their probes and your own, and where a probe's good news is a refusal, say which rule
 refused. Change nothing in the snapshot or in the grooph repository; write only inside your own
-folder. Start no model session and no experiment.
+folder. Give each probe a new, empty scratch folder there: each deletes its scratch before it
+starts. Start no model session and no experiment.
 
 End with round-03/HANDBACK.md in the form of TEMPLATE-AUDIT-HANDBACK.md, the guide's findings
 grouped by chapter with a line for each chapter on whether it could go on the site once
