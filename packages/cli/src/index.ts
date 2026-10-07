@@ -45,7 +45,7 @@ import { LoadError, openUrl, type OpenUrl } from "./share-io.js";
  */
 export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv; /** where the command is run from, when not the process's own folder */ cwd?: string };
 
-export const VERSION = "0.4.0";
+export const VERSION = "0.4.1";
 
 export async function run(
   argv: string[],

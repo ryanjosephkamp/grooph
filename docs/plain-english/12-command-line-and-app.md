@@ -63,8 +63,6 @@ Share
 First time? https://ryanjosephkamp.github.io/grooph/docs/quickstart/   grooph --version prints the version.
 ```
 
-(The first line is shown as version 0.4.1 is expected to print it. The build this was run on printed `grooph 0.4.0`.)
-
 You have now met most of them. Grouped the way the list groups them:
 
 | Group | Commands | Chapter |

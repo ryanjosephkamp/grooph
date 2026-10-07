@@ -1,6 +1,6 @@
 {
   "name": "@grooph/cli",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "description": "grooph command line: create, edit (apply ops), validate, canonicalize and export graph documents.",
