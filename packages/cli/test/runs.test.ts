@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { canonicalize, decodeSharePayload, parseGraphText, parseRunBundleText, sharePayloadFrom, summarizeRun, type Graph, type LiveView, type RunBundle } from "@grooph/core";
 
 import { ENDPOINT, LIVE_ENDPOINT, findWebDist, startWatch, watchTarget } from "../src/commands/watch.js";
+import { NOT_JUDGED } from "../src/commands/adopt.js";
 import { run, type CliEnv } from "../src/index.js";
 import type { Output } from "../src/print.js";
 import { inflateRaw } from "../src/share-io.js";
@@ -421,6 +422,74 @@ test("adopt notes, without refusing, a loop whose cap would come to count the ro
   }
 });
 
+test("adopt holds two limits swapped: the one that leads on, put ahead of the one that halts (round two of the audit)", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    const target = join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json");
+    // The graph as the run started from it, with a budget of dispatches that leads on to the end behind its cap of
+    // five rounds and its budget of 80 turns, which both halt. A budget may come due on the pass the cap does.
+    const lead = { kind: "budget", measure: "dispatches", limit: 15, then: "done" } as const;
+    for (const file of [join(dir, ".grooph", "slice-0007-sandwich"), run]) amend(file, (doc) => void stopsOf(doc).push(lead));
+    // The run leaves it ahead of them: the first that fires wins, and at the same pass the first in the list is first.
+    amend(run, (working) => {
+      working.loops[0]!.stops = [stopsOf(working)[0]!, lead, ...stopsOf(working).slice(1, -1)];
+    });
+    const before = tree(dir);
+    const refused = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], refused), 1);
+    assert.match(text(refused.stderr), /not written: the working copy loosens a brake/);
+    assert.match(text(refused.stdout), /loop:sandwich\.stops +the budget of 15 dispatches that leads on to "done" would be moved ahead of the round cap of 5 that halts the run, and could fire on the same pass/);
+    assert.doesNotMatch(text(refused.stdout), /tightens a brake/);
+    assert.deepEqual(tree(dir), before);
+    assert.equal(existsSync(target), false);
+    // Asked for by name it is adopted; and nothing calls it a tightening.
+    const allowed = capture();
+    assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.stops"], allowed), 0);
+    assert.match(text(allowed.stdout), /would be moved ahead of the round cap of 5 that halts the run, and could fire on the same pass {3}\(asked for by name\)/);
+    assert.doesNotMatch(text(allowed.stdout), /tightens a brake/);
+    assert.deepEqual(stopsOf(readGraph(target)).map((stop) => stop.kind), ["bar-passed", "budget", "max-iterations", "budget"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("adopt names a new stop the run goes on from without calling it a tightening; one that ends at a stop that halts is a tightening, however it is written", async () => {
+  const sentence = "not judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, where it is new, changed or put ahead, lets a person or a run do what it could not before. A change that brings one is named here and not called a tightening, whatever else it does:";
+  assert.equal(NOT_JUDGED.new, sentence);
+  for (const [stop, above, undoing] of [
+    // A person is asked, and the loop goes on from one of its own steps.
+    [{ kind: "human", every: 2, then: "builder" }, sentence, "removes the stop where a person is asked"],
+    // A budget whose `then` is a stop that halts ends the run there, as one with no `then` does.
+    [{ kind: "budget", measure: "dispatches", limit: 60, then: "failed" }, "tightens a brake, and is adopted with the rest:", "removes the budget (60 dispatches)"],
+  ] as const) {
+    const dir = project("slice-0007-sandwich");
+    try {
+      const run = runDir(dir, "slice-0007-sandwich");
+      // (A stop that halts, to lead to: reached from the critic already, so that nothing is held for the way there.)
+      for (const file of [join(dir, ".grooph", "slice-0007-sandwich"), run]) {
+        amend(file, (doc) => {
+          doc.nodes.push({ id: "failed", kind: "stop", name: "Failed", outcome: "halt" });
+          doc.edges.push({ id: "e-critic-stuck", from: "critic", to: "failed", when: { verdict: "stuck" } });
+        });
+      }
+      amend(run, (working) => void stopsOf(working).push(stop));
+      const io = capture();
+      assert.equal(await grooph(["adopt", run, "--write"], io), 0, text(io.stderr));
+      const lines = text(io.stdout).split("\n");
+      const at = lines.indexOf(above);
+      assert.ok(at >= 0, text(io.stdout));
+      assert.match(lines[at + 1]!, /^ {2}loop:sandwich\.stops +undoing it: /);
+      assert.ok(lines[at + 1]!.endsWith(`undoing it: ${undoing}`), lines[at + 1]);
+      // One or the other, never both.
+      assert.equal(lines.includes(sentence), above === sentence);
+      assert.equal(lines.some((line) => line.startsWith("tightens a brake")), above !== sentence);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
 test("adopt takes a working copy that tightens a brake, and says which", async () => {
   const dir = project("slice-0007-sandwich");
   try {
@@ -465,7 +534,7 @@ test("adopt names a new step marked irreversible, and an answer a gate did not g
     assert.equal(await grooph(["adopt", run, "--write"], io), 0, text(io.stdout) + text(io.stderr));
     const out = text(io.stdout);
     assert.match(out, /\ntightens a brake, and is adopted with the rest:\n(?: {2}[^\n]*\n)*? {2}node:release-gate +undoing it: removes a human gate/);
-    assert.match(out, /\nnot judged: an answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before\. It is named here and not called a tightening:\n {2}node:ship +undoing it: removes a node marked irreversible \(publishes the package to npm\)/);
+    assert.match(out, /\nnot judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, where it is new, changed or put ahead, lets a person or a run do what it could not before\. A change that brings one is named here and not called a tightening, whatever else it does:\n {2}node:ship +undoing it: removes a node marked irreversible \(publishes the package to npm\)/);
     assert.doesNotMatch(out, /tightens a brake[^\n]*\n(?: {2}[^\n]*\n)* {2}node:ship /);
     assert.doesNotMatch(out, /loosens a brake/);
   } finally {
@@ -496,7 +565,8 @@ test("A-019: the audit lane's two check cases, and the two its reader got throug
     ["the loop given a bar and a stop on it", (w) => {
       w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
       w.loops[0]!.stops.unshift({ kind: "bar-passed", then: "done" });
-    }, ["loop:grind.stops", "loop:grind.bar"], /loop:grind\.stops +a stop of the loop would lead on to "done", a way that does not pass the check "tests"/],
+      // (Held twice over since stops are compared as a run fires them: no critic of the loop's gives that verdict.)
+    }, ["loop:grind.stops", "loop:grind.bar"], /loop:grind\.stops +the stop on "bar passed" that leads on to "done" would come into the loop, and could fire before the round cap of 5 that halts the run; a stop of the loop would lead on to "done", a way that does not pass the check "tests"/],
     // The driver's reader: the check under another id, with a bar put round it. One name is held, its line shows
     // the check that comes in, and the bar is listed by name as not judged, where it was printed as a tightening.
     ["the check under another id, with a bar given to its loop", (w) => {
