@@ -2,7 +2,7 @@
 
 **From:** the audit lane (Claude Code, Opus 5.5) · **To:** Codex (GPT-6.1 Sol, highest effort) · **Date:** *to be filled when the snapshot is cut* · **Commit under audit:** *to be filled when the snapshot is cut* · **Snapshot:** `/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/`
 
-> **Draft, not yet sent.** Written on 2026-10-06, the day round two was reconciled. Three things in it wait for the cut and are marked *to be filled*: the commit, the repair's pull request with what its author says of it, and the list of what is in the snapshot. Nothing else is meant to change. The round is sent when the driver says the repair and round two's corrections are on main.
+> **Not yet sent.** Written on 2026-10-06, the day round two was reconciled and its corrections and the repair merged. One thing waits for the cut and is marked *to be filled*: the commit under audit, with the date and the version it calls itself. The round is sent when the driver says cut.
 
 ## What you are asked to do
 
@@ -32,7 +32,7 @@ Three things, and it is a short round. As before: read as a skeptic, say where a
 
 **The lane was wrong three times in round two's reconciliation, and says so here because two of them are yours to check.** Its first draft said that a new stop put beside a halting one is always refused; a fresh reader showed a case where it is adopted and called a tightening. It said a printed line can only add to the counter's count; the same reader showed a real check run that is not counted. And its first scan of the built-in templates reported nothing open because adoption was refusing every template for being a template. The record of all three is in `round-02/RECONCILE.md` and `round-02/lane-notes/reconcile/fresh-reader/REPORT.md`.
 
-**grooph 0.4.0 was published on 2026-10-06** (tag `v0.4.0`). It holds plans, a step that is a person's, export's comparison and the Codex target. *To be filled at the cut: the version at the snapshot.*
+**grooph 0.4.0 was published on 2026-10-06** (tag `v0.4.0`). It holds plans, a step that is a person's, export's comparison and the Codex target. Version 0.4.1 is being prepared with the repair of part H. *To be filled at the cut: the version the snapshot calls itself.*
 
 ## Part G · The beginner's guide
 
@@ -69,31 +69,43 @@ It says of itself that it has not been audited and is not on the site. The words
 
 **What the repair was asked to do** (`round-02/RECONCILE.md`, correction 1): ask of a loop's stops what a run would do. For every stop that leads on in the copy, of any kind, old or new: can it fire no later than a stop that halted in the source, and does the copy put it ahead? If so it is a loosening by name. The label "tightens a brake" does not print on a stop that leads on.
 
-**The repair** is pull request #172, by the house lane. *What follows was drafted on 2026-10-06 from the driver's account of it at its second head, and is to be checked against `docs/runs.md` as merged when the snapshot is cut.*
+**The repair** is pull request #172, by the house lane, merged on 2026-10-06 as `9d001f05`. One sentence went into `docs/graph-ir.md` §2 beside it (#173): a cap of n fires at the end of the nth pass, and a person asked every N rounds at the end of the Nth, the 2Nth and the 3Nth. It went through three heads, each read by one fresh reader of the driver's. Its description is the author's own account, and `docs/runs.md`, "What adoption does not hold", first item, has the words of record: what follows is a guide to those two, not a replacement for them.
 
-A loop's stops are now compared as a run fires them.
+A loop's stops are now compared as a run fires them (`leadsOnFirst` in `packages/core/src/brakes.ts`, beside `looser`).
 
-**Held, by the name `loop:<id>.stops`:**
+**Protected, in the source:** a round cap or a budget that halts (it names no `then`, or one that is a human gate or a stop that halts), and every stop where a person is asked, with a `then` or with none, each time it would ask.
 
-- a stop that leads on, old or new and of any kind, that could fire no later than a source stop that halts, or than one where a person is asked (with a `then` or without), and would win;
-- "bar passed" put or added ahead, in a loop that no critic judges;
-- a second loop on the back edge with a cap that leads on.
+**Asked about, in the copy:** a stop that leads on with nobody asked: a cap, a budget, or a stop on diminishing returns or invalid evidence, whose `then` is a step or a stop that does not halt; and "bar passed", in a loop where no critic the loop had is still among its members.
 
-A person's stop in the copy excuses nothing that comes after it.
+**The question it asks:** is there a run in which the source would have halted or asked a person on some pass, and the copy leads on by that stop, on that pass or an earlier one? If so the change is held by the loop's name (`loop:<id>.stops`), whether the stop is new, moved, lowered or as it was.
 
-**The label.** "Tightens a brake" prints on no change that brings in or promotes a stop that leads on. Such a change is listed as not judged. *To be filled at the cut: the one sentence this changed in the command's output and in the app.*
+**Also held:** a stop that leads on, among the stops of a second loop put on the same back edge, which that loop did not hold before; and "bar passed" with a `then` in such a loop that is new, whoever is among its members.
 
-**What it costs,** by the counts of the driver's reader: lowering a limit that leads on, beside one that halts, is not a tightening and is often refused (a budget in 558 of 747 random lists of stops, a cap in 293 of 507, a count of rounds without progress in 371 of 486, an "ask a person every n" lowered in 100 of 1,185). Among the built-in templates, 575 honest edits were tried and one was held: `debate-then-build`'s cap lowered from 2 to 1.
+**A person's stop.** It ends nothing: the run is taken to go on from it as if the person had said so. So a person's stop in the copy excuses nothing that fires on a later pass. A person asked every n rounds is reckoned on the exact passes n, 2n and 3n. Lowered to a number that divides n, or to every round, it is a tightening; lowered to a number that does not divide n, it is held.
 
-**Still not held, by the driver's ruling, and yours to judge by name:**
+**What the comparison does not know it takes to be possible**: a budget may come due on any pass, since what a pass spends is not known.
 
-- "bar passed" in a loop that a critic judges;
-- what a run does after a person has answered;
+**The label.** "Tightens a brake" is said of no change to a loop's stops that brings in a stop that leads on, changes one, or puts one ahead of a stop it stood behind. Such a change is listed as not judged. A stop whose `then` is a stop that halts is a halting stop and keeps the word. The sentence this changed, in the command's output: "not judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, where it is new, changed or put ahead, lets a person or a run do what it could not before. A change that brings one is named here and not called a tightening, whatever else it does:". The app's run page carries the same sentence (`apps/web/src/ui/run/brakes.tsx`).
+
+**What it costs,** in `docs/runs.md`'s figures, from the driver's reader's script on 4,000 random lists of stops changed by one honest edit at a time: a limit that leads on, lowered by one, is held in 558 of 747 where it is a budget, 282 of 507 where it is a round cap, and 371 of 486 where it counts rounds without progress; "ask a person every n rounds", lowered by one, in 100 of 1,185. Among the built-in templates, of 575 honest edits to a loop's stops one is held: `debate-then-build`'s cap of two rounds, lowered to one.
+
+**Still not held, each said in `docs/runs.md`, and yours to judge by name:**
+
+- "bar passed" in a loop that a critic judges, moved ahead of a limit that halts, or new;
+- a new stop where a person is asked: named, not refused; and what a run does after a person has answered;
 - a halting stop on diminishing returns or on invalid evidence (neither is on amendment A-008's list of brakes);
 - a stop that leads on, where the loop has no stop that halts;
-- **and one class, put to the owner on the review desk (q66).** Where only a limit stands before an end, with no check, critic or gate, a new way to that end that is not a change to that loop's stops is adopted: a plain new edge from the worker to the end; a leading-on stop in an inner loop while the outer loop holds the limit; a new step with a one-node loop and a cap of 1 that leads on to the end. The driver's recommendation is to leave it for after the pause and say it plainly. *To be filled at the cut: the owner's answer.* Unless he answers otherwise, it is given to you as a known limit, and the question is whether the documents say it truly.
+- **and one class, put to the owner on the review desk (q66) and not answered when this was written: treat it as a known, named limit.** Where only a limit stands before an end, with no check, critic or gate, a new way to that end that is no change to that loop's stops is adopted: a plain new edge from a step of the loop straight to the end; a new stop that leads on in a loop inside the one that holds the limit, and in a loop around it (a loop's stops are asked only against its own, and against those of a second loop on the same back edge); a new step on the loop's round with a loop of one node of its own and a cap of one that leads on. The question for you is whether the documents say this truly, and whether a plain reader would call it a loosened brake.
 
-**The repair has been read twice by one fresh reader, the driver's.** Its scripts and what they printed are in your folder for this round, under `driver-reader/`. They are another reader's evidence, as the lane's probes are: run them, and do not take their counts on trust.
+**One slow shape is left,** by the driver's account: 40 loops of 40 stops each on one back edge takes about 14 seconds to compare.
+
+**The three readings, and who found what.** The reader's scripts and what they printed are in your folder for this round, under `driver-reader/`: the first reading's at its top, the second's in `p2/`, the third's in `p3/`. They are not in the repository. By the driver's account and the repair's own description:
+
+- *The first reading*, of the first head (`ab0df981`), found the rule holding for the two cases of F1, and three more ways beside it, which the second head closed: a person's stop, which had excused what came after it; "bar passed" put or added ahead in a loop no critic judges; and a second loop on the back edge with a cap that leads on.
+- *The second reading*, of the second head (`e9e5a108`), found six things, which the third head answered: a regression (a new second loop with a looser bar and "bar passed" with a `then`, held at the first head and adopted at the second); "ask a person every n" lowered to a divisor of n being refused when it tightens; the lines about a person's stop saying the wrong asking; the label; a sentence of `docs/runs.md` that said a nesting was held when it is not; and time, which was cubic in the number of stops.
+- *The third reading*, of the third head, found nothing let through and the documents matching the code.
+
+These are another reader's evidence, as the lane's probes are: run them, and do not take their counts on trust.
 
 **The question for you:** is anything a plain reader would call a loosened brake still adopted through a loop's stops? And do `docs/runs.md`, row C45 of `docs/claims.md` and the 0.4.1 release notes say exactly what is held and what is not?
 
@@ -133,7 +145,13 @@ A person's stop in the copy excuses nothing that comes after it.
 
 ## What is in your snapshot, and what is not
 
-*To be filled when the snapshot is cut:* the commit and what it holds, what is laid over it if anything, and what was left out.
+The snapshot is `main` at *(the commit, to be filled at the cut)*, as a detached worktree, installed from this Mac's store and built. Nothing is laid over it, and no code in it differs from `main` at that commit.
+
+In your folder for this round, beside this file: `TEMPLATE-AUDIT-HANDBACK.md`, and `driver-reader/`, the scripts and outputs of the driver's reader's three readings of the repair (part H), which are not in the repository.
+
+In the snapshot and worth knowing where: the guide in `docs/plain-english/`; the audit's record, with round two's reconciliation and the lane's probes, in `experiments/audits/0001-claims-as-of-0-3-0/`; the repair in `packages/core/src/brakes.ts` with its tests in `packages/core/test/stops-as-fired.test.ts`; export in `packages/cli/src/commands/export.ts`.
+
+Not in it, and not asked of you: the repair of the budget experiment's counter, which does not exist; any paid run; the site lane's pages for the guide (#166), which wait for this round.
 
 ## What to hand back
 
@@ -143,4 +161,23 @@ For the guide, a finding per sentence is too many. Group them by chapter, and sa
 
 ## The prompt for Codex
 
-*To be filled when the snapshot is cut.* It will name this file, in `/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-03/`, and the snapshot above.
+```text
+Round three of audit 0001, and a short one. You are the auditor, opened on
+/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/. Read round-03/HANDOFF.md
+there and do what it asks, against the snapshot at
+/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-03/.
+
+Three things only: the beginner's guide, all fourteen chapters and the glossary (part G); the
+repair of the stops comparison, with what it still leaves open (part H); and the comparison as
+grooph export makes it, which no second harness has read (part I). The budget experiment's
+counter, study two and anything paid are not in this round.
+
+Read as a skeptic and be fair. Attack the lane's readings and the driver's reader's as hard as the
+claims: run their probes and your own, and where a probe's good news is a refusal, say which rule
+refused. Change nothing in the snapshot or in the grooph repository; write only inside your own
+folder. Start no model session and no experiment.
+
+End with round-03/HANDBACK.md in the form of TEMPLATE-AUDIT-HANDBACK.md, the guide's findings
+grouped by chapter with a line for each chapter on whether it could go on the site once
+corrected, and a prompt to carry back.
+```
