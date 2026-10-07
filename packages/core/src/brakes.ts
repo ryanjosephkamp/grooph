@@ -1097,13 +1097,15 @@ function leadsBroughtIn(before: Graph, after: Graph): Set<string> {
     // the second (a loop may hold the same stop twice).
     const places = new Map<string, number[]>();
     other.stops.forEach((stop, at) => void (places.get(JSON.stringify(stop)) ?? places.set(JSON.stringify(stop), []).get(JSON.stringify(stop))!).push(at));
+    const known = new Set(places.keys());
     const stood = loop.stops.map((stop) => places.get(JSON.stringify(stop))?.shift());
     // From the end of the list: the earliest place, in the other version, of a stop that stands behind this one here.
+    // (A stop written a second time, where the other version has it once, is the same stop again and nothing new.)
     let behind = Infinity;
     let brought = false;
     for (let at = loop.stops.length - 1; at >= 0; at -= 1) {
       const was = stood[at];
-      brought ||= leads(loop.stops[at]!) && (was === undefined || was > behind);
+      brought ||= leads(loop.stops[at]!) && (was === undefined ? !known.has(JSON.stringify(loop.stops[at])) : was > behind);
       if (was !== undefined) behind = Math.min(behind, was);
     }
     if (brought) names.add(`loop:${loop.id}.stops`);

@@ -343,8 +343,10 @@ test('"tightens a brake" is said of no change that brings in a stop that leads o
   assert.deepEqual(words([H], [cap(1, "gate"), H]), [[], [], ["loop:list.stops: removes the round cap (1)"]]);
   assert.deepEqual(words([cap(4, "gate"), leadsOn], [cap(3, "gate"), leadsOn]).map((list) => list.length), [0, 0, 1]);
   assert.deepEqual(words([leadsOn, cap(4, "gate")], [cap(4, "gate"), leadsOn]).map((list) => list.length), [0, 0, 1]);
-  // (Where the loop holds the same stop twice, a stop put in between them puts nothing ahead.)
+  // (Where the loop holds the same stop twice, a stop put in between them puts nothing ahead. And a stop that leads
+  // on, written a second time behind itself, is the same stop again: a cap that halts beside it is still a tightening.)
   assert.deepEqual(words([cap(3), cap(1), leadsOn, cap(1)], [cap(3), { kind: "budget", measure: "minutes", limit: 3 }, cap(1), leadsOn, cap(1)])[2], []);
+  assert.deepEqual(words([leadsOn, H], [leadsOn, leadsOn, cap(2), H]), [[], ["loop:list.stops: removes the round cap (2)"], []]);
   // Beside a stop that halts, in one change: the change is one name, and it brings in a stop that leads on.
   assert.deepEqual(words([H], [cap(1), cap(2, "gate"), H])[1], []);
   // Held, and adopted by name: still nothing calls it a tightening.
