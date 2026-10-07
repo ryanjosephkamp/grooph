@@ -83,7 +83,7 @@ Two practical notes. Folders whose names begin with a dot, like `.claude` and `.
 
 | File | What it is |
 |---|---|
-| `.grooph/add-a-rounding-helper/graph.grooph.json` | A copy of the graph document. Of these seven, the only one grooph itself reads again later |
+| `.grooph/add-a-rounding-helper/graph.grooph.json` | A copy of the graph document, and what a later export or adoption compares with (chapter 7). When you export over this package again, grooph also rereads `LEAD.md` and `MAPPING.md`, to check that they are what this graph compiles to, and the head of each agent file, to see whether a model would change |
 | `.grooph/add-a-rounding-helper/LEAD.md` | The **lead brief**: the instructions for the main session. The most important file |
 | `.grooph/add-a-rounding-helper/KICKOFF.md` | The short message that starts a run, for pasting |
 | `.claude/skills/add-a-rounding-helper/SKILL.md` | The same start, as a **skill**: a set of instructions Claude Code can load by name. Typing `/add-a-rounding-helper` there starts or resumes a run |
