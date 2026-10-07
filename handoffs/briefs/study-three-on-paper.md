@@ -99,7 +99,7 @@ I had drafted two tasks of my own that hid an unreachable item from the builder.
 
 ## 5. Roles or information
 
-**Why.** In both comparisons the reviewer held evidence the builder had not seen. So a design ended above the task alone, and nobody can say whether the roles did it or the information did (audit 0001, finding F12). Two arms on study two's own three tasks can say, with the same suites as the scorer.
+**Why.** In both comparisons the reviewer held evidence the builder had not seen. So a design ended above the task alone on the held-out suites, and nobody can say whether the roles did it or the information did (audit 0001, finding F12). Two arms on study two's own three tasks can say, with the same suites as the scorer.
 
 - **Information without roles (arm E):** the task alone, as arm D, with the held-out material named to the one session.
 - **Roles without information (arm F):** arm B's prose with the held-out material removed and never named. A reviewer in a fresh context, holding nothing the builder lacks.

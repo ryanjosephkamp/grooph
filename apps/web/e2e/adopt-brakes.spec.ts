@@ -337,6 +337,14 @@ const CASES: [string, () => Graph, (working: Graph) => void][] = [
   }), (w) => void ((w.nodes.find((n) => n.id === "gave-up") as { outcome: string }).outcome = "success")],
   // The export door's reader: an answer a gate did not give, and a step marked irreversible behind the gate's yes,
   // were printed as tightenings. They are named and not called that; an approval asked beside them still is.
+  // Round two of the audit: a loop's stops as a run fires them. A limit that leads on, behind the cap and the budget
+  // that halt, put ahead of them; and the same swap the other way, which tightens.
+  ["two limits swapped: the one that leads on put ahead of the ones that halt", () => valid(SUB, (doc) => void review(doc).stops.push({ kind: "budget", measure: "minutes", limit: 30, then: "release" })), (w) => {
+    review(w).stops = [review(w).stops[0]!, review(w).stops[3]!, review(w).stops[1]!, review(w).stops[2]!];
+  }],
+  ["two limits swapped the other way: the ones that halt put first", () => valid(SUB, (doc) => void review(doc).stops.splice(1, 0, { kind: "budget", measure: "minutes", limit: 30, then: "release" })), (w) => {
+    review(w).stops = [review(w).stops[0]!, review(w).stops[2]!, review(w).stops[3]!, review(w).stops[1]!];
+  }],
   ["a new answer at a gate and a new irreversible step behind its yes, with an approval newly asked", () => valid(SUB), (w) => {
     (w.nodes.find((n) => n.id === "review-merge-gate") as Extract<Node, { kind: "human-gate" }>).options!.push("skip");
     w.nodes.push({ ...agent("ship"), irreversible: ["publishes the package to npm"] } as Node);

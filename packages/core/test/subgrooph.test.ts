@@ -487,7 +487,7 @@ const stopsOf = (t: Graph, loop = 0): Loop["stops"] => t.loops[loop]!.stops;
 test("a stop made to lead on is a brake loosened: a cap that no longer halts, a pass that skips the gate", () => {
   const cases: [string, (t: Graph) => void, RegExp][] = [
     // A stop that leads on halts nothing: the cap is no cap. And where it leads is a way past the gate.
-    ["the round cap leads on", (t) => void (stopsOf(t)[1] = { kind: "max-iterations", n: 4, then: "done" }), /^loop:review-review\.stops: the round cap \(4\) would no longer halt the run; a stop of the loop would lead on to "release", a way that does not pass a person/],
+    ["the round cap leads on", (t) => void (stopsOf(t)[1] = { kind: "max-iterations", n: 4, then: "done" }), /^loop:review-review\.stops: the round cap \(4\) would no longer halt the run; the round cap of 4 would lead on to "release", where it halted the run; a stop of the loop would lead on to "release", a way that does not pass a person/],
     ["the budget leads on", (t) => void (stopsOf(t)[2] = { kind: "budget", measure: "dispatches", limit: 10, then: "done" }), /the budget \(10 dispatches\) would no longer halt the run/],
     ["the cap restarts the loop, with a looser one behind it", (t) => void (t.loops[0]!.stops = [{ kind: "bar-passed" }, { kind: "max-iterations", n: 4, then: "builder" }, { kind: "max-iterations", n: 400 }, { kind: "budget", measure: "dispatches", limit: 10 }]), /the round cap that halts the run would rise from 4 to 400/],
     ["the bar, once passed, skips the gate", (t) => void (stopsOf(t)[0] = { kind: "bar-passed", then: "done" }), /a stop of the loop would lead on to "release", a way that does not pass a person/],
@@ -1125,7 +1125,7 @@ test("an honest update is not held: a new stop that leads on, a check put in, a 
   // A second cap, lower, that leads back while the first still halts, is not among them: which of the two a run
   // obeys at the second round is the lead's reading, so it is held and said.
   assert.deepEqual(refused(refreshSubgrooph(placed(), "review", newer((t) => void stopsOf(t).push({ kind: "max-iterations", n: 2, then: "builder" })))), [
-    'loop:review-review.stops: the round cap of 2 that leads on to "review-builder" would fire before the one of 4 that halts the run; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count',
+    'loop:review-review.stops: the round cap of 2 that leads on to "review-builder" would fire before the one of 4 that halts the run; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count; the round cap of 2 that leads on to "review-builder" would come into the loop, and could fire before the round cap of 4 that halts the run',
   ]);
   // The graph has the template's graph-wide policy under an id of its own as well: the same version changes nothing.
   const twice: Graph = { ...placed(), policies: [...placed().policies!, { id: "p-own-isolation", kind: "critic-isolation", scope: "graph" }] };

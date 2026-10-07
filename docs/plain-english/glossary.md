@@ -32,7 +32,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Harness** | The program that connects a model to the folder and runs the agent. Claude Code and Codex are harnesses. grooph is not one | 1 |
 | **Session** | One conversation with a coding agent | 1 |
 | **Context** | Everything a session has read and written so far. It is all the session knows | 1 |
-| **Subagent** | A helper session that another session starts for one job, with its own empty context | 1 |
+| **Subagent** | A helper session that another session starts for one job, with a context of its own, which does not hold the first session's conversation | 1 |
 | **Dispatch** | Starting a subagent. When a budget counts dispatches, running a check counts as one too | 1, 2 |
 | **Lead** | The harness's main session, which runs the graph: it dispatches, follows edges, counts rounds and stops for people | 1, 5 |
 
@@ -52,7 +52,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Brief** | What a worker may and may not do, and what it must leave behind | 2 |
 | **Capability** | A plain name for something a worker may do, such as `read-files` or `run-tests` | 2 |
 | **Evidence** | What the next worker is allowed to look at. A critic is told to judge the evidence, not the builder's reasoning | 2 |
-| **Isolation** | Whether the next worker starts with an empty context (`fresh`) or carries on with what it knows (`shared`) | 2 |
+| **Isolation** | Whether the next worker starts without the earlier conversation (`fresh`) or carries on with what it knows (`shared`) | 2 |
 | **Human gate** | A step where the run stops and asks a person | 1, 2 |
 | **Approval** | A mark on an edge: a person must say yes before the run goes that way | 1, 2 |
 | **Check** | A step that runs a command and passes or fails, with no judgment | 2 |
