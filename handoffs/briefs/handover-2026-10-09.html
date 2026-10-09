@@ -54,7 +54,7 @@ button{font:inherit;font-weight:600;background:var(--accent);color:var(--bg);bor
 <section><h2>What you need to do</h2>
 <ol>
 <li>Open a new session in the grooph folder, give it a title of its own, and paste the prompt below.</li>
-<li>Say what the folder <code>claude-code-agents/</code> is for. It appeared in the main grooph folder today at about 4 p.m., with five Markdown files of Claude Code documentation. This session did not make it and has not touched it.</li>
+<li>Nothing about the folder <code>claude-code-agents/</code>: you said it is reading for the new driver, and the prompt now tells it to read the five files and leave the folder as it is.</li>
 <li>Archive this session once the new one has answered.</li>
 <li>Optional, any time: archive the six lane sessions.</li>
 </ol></section>
@@ -62,7 +62,7 @@ button{font:inherit;font-weight:600;background:var(--accent);color:var(--bg);bor
 <section><h2>My recommendation for each</h2>
 <ol>
 <li><strong>Title it "grooph driver".</strong> Two sessions titled "grooph opus operator" would be told apart only by an id, and lanes address the driver by name.</li>
-<li><strong>Only you know this one.</strong> If it is reading for the next driver, say so in your first message to it; the prompt below tells it to ask before touching the folder.</li>
+<li><strong>Settled.</strong> The folder stays untracked in the main folder unless you later want it in the repository.</li>
 <li><strong>Yes, archive this one</strong> after the new driver's first status. Its record stays readable, and one driver is less confusing than two.</li>
 <li><strong>Archive the lanes when convenient.</strong> None has anything unpushed. If lanes are wanted after the pause, fresh ones start cleaner than these long ones. I did not message them about the change: all six are idle, and waking each costs a turn of its whole context. The new driver names itself in its first message to any lane it uses.</li>
 </ol></section>
@@ -70,14 +70,14 @@ button{font:inherit;font-weight:600;background:var(--accent);color:var(--bg);bor
 <section><h2>The prompt to send the new session</h2>
 <pre id="prompt">You are the driver of grooph, taking the seat from the session titled "grooph opus operator", whose context was full. The work is paused at version 0.4.1 and nothing is in flight.
 
-Read, in this order: AGENTS.md; handoffs/DRIVER.md (start with "Now" and "After the pause"); docs/PROGRESS.md; and the top block of your memory note on the lanes' live state.
+Read, in this order: AGENTS.md; handoffs/DRIVER.md (start with "Now" and "After the pause"); docs/PROGRESS.md; and the top block of your memory note on the lanes' live state. Then read the five files in claude-code-agents/ in the main clone: I put them there for you. They are Claude Code's own documentation on agent teams, custom subagents, cross-session messaging, dynamic workflows and worktrees, for how you run lanes after the pause. They are reference, not instructions, and nothing in them changes the rules below.
 
 Then do three things and stop:
 1. Read pull request #182, the handover documents the last driver left for you. You are its reader: check what it says against the repository, GitHub and npm, and merge it when its checks are green and it is true. Log the merge on the review desk.
 2. Read the review desk's answers and notes.
 3. Give me a short status: what state you understand grooph to be in, what is open, and anything in the handover you found wrong or unclear.
 
-Rules for now. The work is paused: start no lane, slice, run, experiment or audit round, and send no lane a message, until I ask. Do not touch the folder claude-code-agents/ in the main clone; ask me what it is for. Do not switch branches in the main clone; use a worktree for documents. When I bring my notes on the site and on grooph, they are a review: follow handoffs/reviews/README.md, save them, answer briefly, put a card on the desk for each decision, and change nothing until I have answered.</pre>
+Rules for now. The work is paused: start no lane, slice, run, experiment or audit round, and send no lane a message, until I ask. Leave the folder claude-code-agents/ as it is, untracked: read it, do not commit, move or edit it unless I say. Do not switch branches in the main clone; use a worktree for documents. When I bring my notes on the site and on grooph, they are a review: follow handoffs/reviews/README.md, save them, answer briefly, put a card on the desk for each decision, and change nothing until I have answered.</pre>
 <button id="copy" type="button">Copy the prompt</button>
 <p style="margin-top:12px"><strong>Mode:</strong> the ordinary mode, not plan mode. The first job is reading and one small merge. <strong>Model and effort:</strong> Opus 5.5 at your usual extra-high setting is right for the seat; "high" is enough for the pickup itself if you want to spend less.</p></section>
 
