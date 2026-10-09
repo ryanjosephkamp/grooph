@@ -1,0 +1,106 @@
+<title>grooph Driver Handover</title>
+<style>
+:root{--bg:#f7f6f2;--fg:#1f2421;--muted:#5d665f;--card:#ffffff;--line:#dcd9cf;--accent:#1f6f54;--accent-soft:#e3efe8;--warn:#8a5a00;--warn-soft:#f6ecd6;--code:#f0eee7}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#141816;--fg:#e8ebe6;--muted:#a3ada5;--card:#1c211e;--line:#2f3732;--accent:#7fcfae;--accent-soft:#1d3329;--warn:#e7bd6a;--warn-soft:#33290f;--code:#222824;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141816;--fg:#e8ebe6;--muted:#a3ada5;--card:#1c211e;--line:#2f3732;--accent:#7fcfae;--accent-soft:#1d3329;--warn:#e7bd6a;--warn-soft:#33290f;--code:#222824;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 "Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;padding-block:28px 56px;padding-inline:16px}
+main{max-width:720px;margin-inline:auto;display:flex;flex-direction:column;gap:28px}
+h1{font-size:1.7rem;line-height:1.2;margin:0;text-wrap:balance}
+h2{font-size:1.15rem;margin:0 0 10px;text-wrap:balance}
+p{margin:0 0 10px} ul,ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.kicker{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:4px 12px;font-size:.85rem;font-weight:600}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+section{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600}
+code{background:var(--code);border-radius:4px;padding:1px 5px;font-size:.9em;overflow-wrap:anywhere}
+pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:14px;white-space:pre-wrap;overflow-wrap:anywhere;font:.9rem/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:0}
+button{font:inherit;font-weight:600;background:var(--accent);color:var(--bg);border:0;border-radius:8px;padding:8px 14px;margin-top:10px;cursor:pointer}
+.muted{color:var(--muted)} a{color:var(--accent)}
+</style>
+<main>
+<header>
+<div class="kicker">grooph · handover of the driver's seat · 9 October 2026</div>
+<h1>The work is paused at 0.4.1, nothing is in flight, and a fresh session takes the driver's seat</h1>
+<div class="strip"><span class="chip">0.4.1 on npm, tagged</span><span class="chip">main green at 3b4372f</span><span class="chip">no lane working</span><span class="chip warn">one pull request for the new driver to read</span></div>
+</header>
+
+<section><h2>What was just completed</h2>
+<p>grooph 0.4.1 is released. You published it on 7 October; it was merged, tagged <code>v0.4.1</code> and run from npm. It is 0.4.0 with the brake check repaired (the check that refuses a run's changed copy of a graph when a brake was loosened), the wording the audit corrected, a questions page, and the beginner's guide on the site.</p>
+<p>The audit with Codex rests at three rounds, as you chose. The third round found no new fault in the cases it tried, by a search it called bounded and not a proof, and nineteen wording findings that are corrected or kept and listed.</p>
+<p>The paused state is written into the repository, every lane is done, and the fourteen working copies that were this session's are removed.</p></section>
+
+<section><h2>What comes next</h2>
+<p>Nothing, until you ask. You are walking the site and trying grooph on your own projects, and will bring notes and your feedback on the two blog drafts. Those come back as a review: the new driver saves them, answers briefly, puts a card on the desk for each decision, and changes nothing until you have answered.</p>
+<p>The new driver's first job is small: read one pull request of handover notes, merge it, read the desk, and tell you what it understands.</p></section>
+
+<section><h2>Where this sits</h2>
+<div class="card scroll"><table>
+<tr><th>Step</th><th>State</th></tr>
+<tr><td>0.3.0, the first push</td><td>Released 4 October</td></tr>
+<tr><td>0.4.0: plans, the Codex target, agents over MCP, 3D views, npm</td><td>Released 6 October</td></tr>
+<tr><td>0.4.1: the brake check repaired, the audit's corrections, the guide on the site</td><td>Released 7 October</td></tr>
+<tr><td><strong>The pause, and this handover</strong></td><td><strong>Now</strong></td></tr>
+<tr><td>Your review of the site and of grooph</td><td>Yours, when you are ready</td></tr>
+<tr><td>After the pause: the list in the driver's notes</td><td>Not started; each item is yours to ask for</td></tr>
+</table></div>
+<p class="muted" style="margin-top:10px">The after-the-pause list is provisional. Its first item is your own question, put off by you: whether a new road to an end, in a graph where only a limit stood before it, should be held as a loosened brake.</p></section>
+
+<section><h2>What you need to do</h2>
+<ol>
+<li>Open a new session in the grooph folder, give it a title of its own, and paste the prompt below.</li>
+<li>Nothing about the folder <code>claude-code-agents/</code>: you said it is reading for the new driver, and the prompt now tells it to read the five files and leave the folder as it is.</li>
+<li>Archive this session once the new one has answered.</li>
+<li>Optional, any time: archive the six lane sessions.</li>
+</ol></section>
+
+<section><h2>My recommendation for each</h2>
+<ol>
+<li><strong>Title it "grooph driver".</strong> Two sessions titled "grooph opus operator" would be told apart only by an id, and lanes address the driver by name.</li>
+<li><strong>Settled.</strong> The folder stays untracked in the main folder unless you later want it in the repository.</li>
+<li><strong>Yes, archive this one</strong> after the new driver's first status. Its record stays readable, and one driver is less confusing than two.</li>
+<li><strong>Archive the lanes when convenient.</strong> None has anything unpushed. If lanes are wanted after the pause, fresh ones start cleaner than these long ones. I did not message them about the change: all six are idle, and waking each costs a turn of its whole context. The new driver names itself in its first message to any lane it uses.</li>
+</ol></section>
+
+<section><h2>The prompt to send the new session</h2>
+<pre id="prompt">You are the driver of grooph, taking the seat from the session titled "grooph opus operator", whose context was full. The work is paused at version 0.4.1 and nothing is in flight.
+
+Read, in this order: AGENTS.md; handoffs/DRIVER.md (start with "Now" and "After the pause"); docs/PROGRESS.md; and the top block of your memory note on the lanes' live state. Then read the five files in claude-code-agents/ in the main clone: I put them there for you. They are Claude Code's own documentation on agent teams, custom subagents, cross-session messaging, dynamic workflows and worktrees, for how you run lanes after the pause. They are reference, not instructions, and nothing in them changes the rules below.
+
+Then do three things and stop:
+1. Read pull request #182, the handover documents the last driver left for you. You are its reader: check what it says against the repository, GitHub and npm, and merge it when its checks are green and it is true. Log the merge on the review desk.
+2. Read the review desk's answers and notes.
+3. Give me a short status: what state you understand grooph to be in, what is open, and anything in the handover you found wrong or unclear.
+
+Rules for now. The work is paused: start no lane, slice, run, experiment or audit round, and send no lane a message, until I ask. Leave the folder claude-code-agents/ as it is, untracked: read it, do not commit, move or edit it unless I say. Do not switch branches in the main clone; use a worktree for documents. When I bring my notes on the site and on grooph, they are a review: follow handoffs/reviews/README.md, save them, answer briefly, put a card on the desk for each decision, and change nothing until I have answered.</pre>
+<button id="copy" type="button">Copy the prompt</button>
+<p style="margin-top:12px"><strong>Mode:</strong> the ordinary mode, not plan mode. The first job is reading and one small merge. <strong>Model and effort:</strong> Opus 5.5 at your usual extra-high setting is right for the seat; "high" is enough for the pickup itself if you want to spend less.</p></section>
+
+<section><h2>Verification</h2>
+<ul>
+<li>Checked on 9 October at 4:04 p.m.: <code>main</code> is <code>3b4372f</code>, CI and the site deploy both green; no pull request was open; npm serves 0.4.1.</li>
+<li>0.4.1's checksum on npm equals the tarball a fresh reader built from the release head before you published; the merged tree equals the published one.</li>
+<li>The handover pull request changes documents only: the driver's notes, this page's source, and the table of briefs.</li>
+<li>Not verified by me: this page as published. I cannot view it; please glance at it.</li>
+</ul></section>
+
+<section><h2>Risks and what was not done</h2>
+<ul>
+<li>The brake check is repaired for the faults found, not shown complete. What it still lets through is listed in the documented limits, and your question about a new road to an end is first on the after-the-pause list.</li>
+<li>No person has read the beginner's guide line by line; its start page says so.</li>
+<li>Your main grooph folder on the Mac is hundreds of commits behind GitHub and was never pulled. The <code>grooph</code> command on your Mac runs from it, so updating it wants a pull and a rebuild together, on your word.</li>
+<li>Nothing paid has run. The budget experiment's counter is known wrong in both directions and is repaired before any paid run.</li>
+<li>The handover pull request is not merged: by the project's rule someone other than its author reads it first, and that is the new driver.</li>
+</ul></section>
+
+<section><h2>How to undo it</h2>
+<p>There is nothing to undo in the product. If the new session goes wrong, archive it and open another with the same prompt: the state is in the repository, not in a session. This session can still be reopened and read.</p></section>
+</main>
+<script>
+document.getElementById("copy").addEventListener("click",function(){var t=document.getElementById("prompt").textContent,b=this;function done(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy the prompt"},1600)}function pick(){var r=document.createRange();r.selectNodeContents(document.getElementById("prompt"));var s=getSelection();s.removeAllRanges();s.addRange(r)}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done).catch(pick)}else{pick()}});
+</script>
