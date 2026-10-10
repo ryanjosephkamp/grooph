@@ -52,7 +52,7 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 
 **In flight.**
 
-- The pull request from `docs/0032-grooph-draws-and-watches` (#183): the decision, the contract, amendment A-021, these pages, and the watching check's protocol and free checks (the one commit it shares with the slice's branch). It is a change to the contract, so it merges on his "approved" and not before; the decision's status line is changed to accepted, with his words, in the commit before the merge.
+- The pull request from `docs/0032-grooph-draws-and-watches` (#183): the decision, the contract, amendment A-021, these pages, and the watching check's protocol and free checks (the one commit it shares with the slice's branch). He approved it on the review desk on 2026-10-10 ("Fully approved."), and it was merged that morning with the decision's status line changed to accepted.
 - The branch `slice/0102-the-watching-check`: the protocol ([`experiments/watching/`](../experiments/watching/README.md)) and the free checks (run: 25 of 25 inputs silent, about 50 ms a call). Its runner is being built by a subagent and is not yet on the branch; the driver reads it before it opens the pull request. The twelve runs are started from a terminal by a person, after the clean profile's first call (at most $1.00, his to start, on his yes for it by name) is on record. The profile is signed in; nothing has ever been run from it.
 
 **His review of the site is put off** until the site has been changed for the new focus (card q50).

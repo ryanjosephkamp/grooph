@@ -1,6 +1,6 @@
 # 0032 · grooph draws and watches; it no longer directs
 
-**Date:** 2026-10-09 · **Status:** proposed (the owner's choices on the review desk, 2026-10-09, cards q72 and q75 to q78; accepted when he approves the pull request that carries this page) · **Deciders:** owner, driver · **Replaces:** point 5 of decision 0013
+**Date:** 2026-10-09 · **Status:** accepted (the owner, on the review desk: his choices of 2026-10-09 on cards q72 and q75 to q78, and on 2026-10-10, of the pull request that carried this page, "Approved", with the note "Fully approved.") · **Deciders:** owner, driver · **Replaces:** point 5 of decision 0013
 
 ## Context
 
