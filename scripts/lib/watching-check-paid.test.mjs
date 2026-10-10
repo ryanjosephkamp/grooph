@@ -308,7 +308,7 @@ test("the ledger as the repository keeps it: the protocol's cap and ceilings, re
   assert.ok(Array.isArray(kept.invocations));
   assert.deepEqual(Object.keys(kept.scoring_outside_the_sandbox), ["about", "decided_by", "on", "words"]);
   // This is the one line that has to change, on purpose and in the same commit, when the owner's decision is written down.
-  assert.equal(scoringDecided(kept).ok, false, "written on 2026-10-09 with no decision recorded");
+  assert.equal(scoringDecided(kept).ok, true, "the owner's decision of 2026-10-10 is recorded: yes");
   // A ledger that is not there, cannot be read, or states other limits than the protocol's is a refusal.
   const top = mkdtempSync(join(tmpdir(), "watching-ledger-"));
   try {
