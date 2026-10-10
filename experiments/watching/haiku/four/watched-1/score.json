@@ -1,0 +1,94 @@
+{
+  "scored_at": "2026-10-10T21:31:23.291Z",
+  "scorer": "scripts/lib/compare-score.mjs (scoreHeldOut): the project's unseen suite alone, from the repository's copy",
+  "ending": {
+    "kind": "clean",
+    "reason": "the session ended itself"
+  },
+  "packages": [
+    {
+      "package": "settingskit",
+      "folder": "settingskit",
+      "scored_from": "experiments/comparisons/review-gate-2/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/layer-cases.test.mjs",
+      "cases": 55,
+      "passed": 36,
+      "failed": 19,
+      "skipped": 0,
+      "rate": 0.655,
+      "failing": [
+        "undefined: undefined in over leaves base's value",
+        "undefined: undefined in over leaves base's object, copied",
+        "undefined: undefined deeper in over leaves base's value there",
+        "undefined: a key only over has, with undefined, does not appear",
+        "null prototype: a base with no prototype is accepted",
+        "null prototype: an over with no prototype is accepted",
+        "null prototype: the result is an ordinary object",
+        "null prototype: such objects are layered under a key like any plain object",
+        "null prototype: one that only a layer has, or that sits in an array, comes back ordinary and copied",
+        "dates: a Date from over is copied, and is still that date",
+        "dates: a Date only base has is copied",
+        "dates: a Date inside an array is copied",
+        "not plain data: a function in over throws a TypeError",
+        "not plain data: a Map in over throws a TypeError",
+        "not plain data: a Set in over throws a TypeError",
+        "not plain data: an instance of a class in over throws a TypeError",
+        "not plain data: a function inside an array throws a TypeError",
+        "not plain data: a function deep in base throws a TypeError",
+        "not plain data: an instance of a class deep in over throws a TypeError"
+      ],
+      "exit": 1
+    },
+    {
+      "package": "textwrap",
+      "folder": "textwrap",
+      "scored_from": "experiments/comparisons/spec-then-loop/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/wrap-invariants.test.mjs",
+      "cases": 88,
+      "passed": 88,
+      "failed": 0,
+      "skipped": 0,
+      "rate": 1,
+      "failing": [],
+      "exit": 0
+    },
+    {
+      "package": "csvline",
+      "folder": "csvline",
+      "scored_from": "experiments/comparisons/red-team-loop/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/csv-cases.test.mjs",
+      "cases": 73,
+      "passed": 68,
+      "failed": 5,
+      "skipped": 0,
+      "rate": 0.932,
+      "failing": [
+        "CsvError: \"\\\\\"a\\\\\"b\" (a character after a closing quote)",
+        "CsvError: \"\\\\\"a\\\\\" ,b\" (a space after a closing quote)",
+        "CsvError: \"\\\\\"a\\\\\"x,b\" (a letter after a closing quote)",
+        "CsvError: \"\\\\r\" (a text that is only CR)",
+        "CsvError: \"a\\\\r\" (a CR at the end is not a terminator)"
+      ],
+      "exit": 1
+    },
+    {
+      "package": "semver-mini",
+      "folder": "semver-mini",
+      "scored_from": "experiments/comparisons/grind-loop/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/semver-cases.test.mjs",
+      "cases": 62,
+      "passed": 61,
+      "failed": 1,
+      "skipped": 0,
+      "rate": 0.984,
+      "failing": [
+        "1.0.0-99999999999999999998 < 1.0.0-99999999999999999999: numeric identifiers beyond 2^53 still compare as numbers"
+      ],
+      "exit": 1
+    }
+  ]
+}

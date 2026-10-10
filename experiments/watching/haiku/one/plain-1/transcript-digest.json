@@ -1,0 +1,74 @@
+[
+  {
+    "who": "lead",
+    "transcript": "8a806158-73ac-4fda-9bf4-7bbbe86ffe7e.jsonl",
+    "models": [
+      "claude-haiku-4-5-20251001"
+    ],
+    "started": "2026-10-10T21:24:33.239Z",
+    "ended": "2026-10-10T21:25:30.348Z",
+    "assistant_messages": 31,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:24:36.726Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:24:37.052Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T21:24:40.199Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:24:43.025Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:24:43.344Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:24:43.571Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T21:25:00.316Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T21:25:09.461Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T21:25:11.132Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T21:25:18.116Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T21:25:21.338Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T21:25:23.332Z",
+        "refused": false
+      }
+    ]
+  }
+]
