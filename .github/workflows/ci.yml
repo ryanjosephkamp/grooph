@@ -120,6 +120,7 @@ jobs:
           node --test scripts/lib/brake-count.test.mjs scripts/lib/brake-run.test.mjs scripts/lib/compare-arms-ef.test.mjs scripts/lib/compare-profile.test.mjs scripts/lib/study-three-paid.test.mjs scripts/lib/watching-check-paid.test.mjs
           node scripts/lib/brake-run.mjs --check
           node scripts/lib/compare-arms-ef.mjs --check
+          node experiments/watching/tables.mjs --check
 
       # The Codex proving runner's own tests (slice 0076): what it reads of a kept record, the command it would start,
       # and that what Codex says and prints goes where git ignores it. No model session: nothing here starts Codex.
