@@ -35,3 +35,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0029 | [What grooph is shown to do, as of the first audit](0029-what-is-shown-as-of-the-first-audit.md) |
 | 0030 | [A package is one harness's, and the document names which](0030-a-package-is-one-harnesss.md) |
 | 0031 | [Which models this project's own work uses, and why that is nobody else's rule](0031-whose-models-the-rule-is-about.md) |
+| 0032 | [grooph draws and watches; it no longer directs](0032-grooph-draws-and-watches.md) |

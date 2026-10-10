@@ -2,6 +2,8 @@
 
 grooph is an authoring and compilation surface for multi-agent loop graphs. Humans and models edit one small **graph document**; a **validator** enforces loop hygiene; a **compiler** emits a **prompt package** for a coding harness (Claude Code first, Codex second). grooph never runs agents: the harness is the runtime.
 
+**A change of direction (decision 0032, 2026-10-09).** grooph is becoming a tool that draws workflows and watches them, and it no longer directs a session. Read [`docs/decisions/0032-grooph-draws-and-watches.md`](docs/decisions/0032-grooph-draws-and-watches.md) and [`spec/contract.md`](spec/contract.md) before anything below; where they disagree with this page, they win. What directs a session (`grooph export`, `grooph adopt`, brakes a run obeys, run folders, the proving and comparison runs) is moving to a lab and is not to be extended. This page is rewritten when the lab is made.
+
 ## Read first, in this order
 
 1. [`docs/PROGRESS.md`](docs/PROGRESS.md) — where the project is now, what is in flight, what waits on the owner.

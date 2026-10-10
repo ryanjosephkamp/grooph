@@ -1,6 +1,6 @@
 # 0013 · grooph's value as of study one, and the pivot if study two agrees
 
-**Date:** 2026-09-22 · **Status:** accepted · **Deciders:** owner, driver
+**Date:** 2026-09-22 · **Status:** accepted; point 5 replaced by decision 0032 · **Deciders:** owner, driver
 
 ## Context
 
