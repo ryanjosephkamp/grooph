@@ -5,22 +5,26 @@
  * `--go "<the driver's words>"`; `--dry-run` builds a run's folder, prints what would be started and what a paid run
  * would be refused for as things stand, takes the folder away again, and starts nothing.
  *
- *   node scripts/lib/watching-check-paid.mjs --status                         the ledger and the twelve runs
- *   node scripts/lib/watching-check-paid.mjs --dry-run                        the next run in the order
- *   node scripts/lib/watching-check-paid.mjs --dry-run --run four/invited-1   any one of the twelve
- *   node scripts/lib/watching-check-paid.mjs --dry-run --all                  every run still to come
- *   node scripts/lib/watching-check-paid.mjs --next --spend --go "<the driver's words>"    the next run, and only that one
- *   node scripts/lib/watching-check-paid.mjs --all --spend --go "<the driver's words>"     every run still to come, one at a time,
- *                                                                             stopping at the first refusal or failed run
- *   … --rerun <task>/<arm>-<n> --spend --go "<…>"    only a run the harness ended, once, the reason written beside it
- *   node scripts/lib/watching-check-paid.mjs --score <task>/<arm>-<n>         score a run whose scorer failed; no session, no spend
+ *   node scripts/lib/watching-check-paid.mjs --status                              the ledger and the thirty-six runs, block by block
+ *   node scripts/lib/watching-check-paid.mjs --dry-run                             the next run in the order
+ *   node scripts/lib/watching-check-paid.mjs --dry-run --block opus                the next run of one block
+ *   node scripts/lib/watching-check-paid.mjs --dry-run --run opus/four/invited-1   any one of the thirty-six
+ *   node scripts/lib/watching-check-paid.mjs --dry-run --all [--block <name>]      every run still to come, of the check or of one block
+ *   node scripts/lib/watching-check-paid.mjs --next --block <name> --spend --go "<the driver's words>"   the next run of that block, and only that one
+ *   node scripts/lib/watching-check-paid.mjs --all --block <name> --spend --go "<the driver's words>"    every run of that block still to come, one at a
+ *                                                                                  time, stopping at the first refusal or failed run
+ *   … --rerun <block>/<task>/<arm>-<n> --spend --go "<…>"    only a run the harness ended, once, the reason written beside it
+ *   node scripts/lib/watching-check-paid.mjs --score <block>/<task>/<arm>-<n>      score a run whose scorer failed; no session, no spend
  *   node scripts/lib/watching-check-paid.mjs --settle <n> --cost <usd|ceiling> --note "<what happened>"
- *                                                                             settle a ledger line a stopped runner left running; no session
+ *                                                                                  settle a ledger line a stopped runner left running; no session
  *
- * Twelve runs: two tasks (`one`, `four`), three arms (`plain`, `watched`, `invited`), twice. A session is started
- * from the comparison profile by the profile's own runner (scripts/lib/study-three-paid.mjs), so the gates, the
- * watchdog, the record and the scrub are that module's, and no run starts unless the profile's first call is on record
- * and says later runs may start.
+ * Thirty-six runs, in three blocks: `sonnet`, `opus`, `haiku`, each on one model for the session itself. A block is
+ * the same twelve: two tasks (`one`, `four`), three arms (`plain`, `watched`, `invited`), twice. A BLOCK IS STARTED BY
+ * NAME, by a person: a paid run says `--block`, and a block is refused while a block before it in the order still has
+ * a run with no record. A session is started from the comparison profile by the profile's own runner
+ * (scripts/lib/study-three-paid.mjs), so the gates, the watchdog, the record and the scrub are that module's, and no
+ * run starts unless the profile's first call is on record and says later runs may start. One thing of the profile's is
+ * taken off for this check, and only for it: the pin on the short name `haiku`, which is left to the harness.
  *
  * Every arm is measured the same way, from the harness's own files in the profile and never from grooph: the
  * session's transcript, each subagent's transcript and the file beside it, and the result the harness printed. What
@@ -43,7 +47,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { counted, saveLedger, settleEntry } from "./compare-ledger.mjs";
-import { commandFor, DEFAULT_HOME, layout, SERVER_FLAGS, SESSION_PATH } from "./compare-profile.mjs";
+import { commandFor, DEFAULT_HOME, layout, pinOf, PINS, SERVER_FLAGS, SESSION_PATH } from "./compare-profile.mjs";
 import { deriveD } from "./compare-prompt.mjs";
 import { scoreHeldOut, withExpected } from "./compare-score.mjs";
 import { scoringDecided } from "./roles-or-information-paid.mjs";
@@ -63,13 +67,34 @@ const SHIPPED_HOOK = join(root, "packages", "cli", "hooks", "grooph-event.mjs");
 export const SUBAGENTS_SENTENCE = "You may use subagents for any part of this if you judge that it helps. You do not have to.";
 /** The invitation, in the third arm only, after that sentence, to the letter. */
 export const INVITATION = "If you do use subagents, you may say what you intend with the `grooph_plan` tool, and leave a short note for whoever is watching with `grooph_note`. This is optional, and nothing here depends on it.";
-/** Every session: Claude Sonnet 5.5 at high effort. Which model a subagent runs on is left to the session. */
-export const LEAD = { model: "claude-sonnet-5-5", effort: "high" };
+/**
+ * The three blocks, in their order, and the session's own model in each, at high effort (the protocol, "Three
+ * models"). The twelve runs are made once in each block. `haiku` is asked for by its short name. Which model a
+ * subagent runs on is left to the session.
+ */
+export const BLOCKS = ["sonnet", "opus", "haiku"];
+export const LEAD = {
+  sonnet: { model: "claude-sonnet-5-5", effort: "high" },
+  opus: { model: "claude-opus-5-5", effort: "high" },
+  haiku: { model: "haiku", effort: "high" },
+};
+/**
+ * For this check, and only for it: the short names of a model whose pin the profile's environment is started without,
+ * so that each means what the harness makes it mean, as it does in anyone's ordinary session. The other three stay pinned.
+ */
+export const LEFT_TO_THE_HARNESS = ["haiku"];
 export const ARMS = ["plain", "watched", "invited"];
 export const REPLICATES = 2;
-/** The runner's watchdog for one run, which no session is told of, and where the whole check stops. */
-export const WATCHDOG = { one: { usd: 2, minutes: 15 }, four: { usd: 6, minutes: 40 } };
-export const STOPS_AT_USD = 45;
+/**
+ * The runner's watchdog for one run, which no session is told of, and where the whole check stops (the protocol,
+ * "Limits"). The minutes go by the task and are the same in every block; the dollars go by the block.
+ */
+export const WATCHDOG = {
+  sonnet: { one: { usd: 2, minutes: 25 }, four: { usd: 6, minutes: 60 } },
+  opus: { one: { usd: 5, minutes: 25 }, four: { usd: 15, minutes: 60 } },
+  haiku: { one: { usd: 1, minutes: 25 }, four: { usd: 3, minutes: 60 } },
+};
+export const STOPS_AT_USD = 140;
 
 /**
  * The two tasks, made of tasks the repository already holds, each package as its own project keeps it. `cases` is how
@@ -117,20 +142,45 @@ export class NotScored extends Error {}
 
 // ── the order ────────────────────────────────────────────────────────────
 
-/** The twelve, in the protocol's order: `one` plain, `four` plain, `one` watched, `four` watched, `one` invited, `four` invited; then the same six again. */
+/**
+ * The thirty-six: the twelve in the protocol's order (`one` plain, `four` plain, `one` watched, `four` watched, `one`
+ * invited, `four` invited; then the same six again), once for each block, the blocks in theirs. A run's name carries
+ * its block: `opus/four/invited-1`.
+ */
 export function order() {
   const runs = [];
-  for (let n = 1; n <= REPLICATES; n += 1) for (const arm of ARMS) for (const task of Object.keys(TASKS)) runs.push({ task, arm, replicate: n, name: `${task}/${arm}-${n}` });
+  for (const block of BLOCKS) for (let n = 1; n <= REPLICATES; n += 1) for (const arm of ARMS) for (const task of Object.keys(TASKS)) runs.push({ block, task, arm, replicate: n, name: `${block}/${task}/${arm}-${n}` });
   return runs;
 }
 
-const recordOf = (run, recordRoot) => join(recordRoot, run.task, `${run.arm}-${run.replicate}`);
+/** Where a run's record is kept: its block's folder, its task's under that, and its own under that. */
+export const recordOf = (run, recordRoot = HOME) => join(recordRoot, run.block, run.task, `${run.arm}-${run.replicate}`);
+
+/** A run has a record: its own, or its rerun's when its own was never written (the runner itself was stopped) and it was then run once more. */
+const recorded = (run, recordRoot) => existsSync(join(recordOf(run, recordRoot), "result.json")) || existsSync(join(`${recordOf(run, recordRoot)}-rerun`, "result.json"));
 
 /**
- * The first run of the order that has no record yet, or null when all are recorded. A run whose own record was never
- * written (the runner itself was stopped) and which was then run once more has a record: its rerun's.
+ * The first run of the order that has no record yet, or null when all are recorded: of the whole check, or of one
+ * block when one is named.
  */
-export const nextRun = (recordRoot = HOME) => order().find((run) => !existsSync(join(recordOf(run, recordRoot), "result.json")) && !existsSync(join(`${recordOf(run, recordRoot)}-rerun`, "result.json"))) ?? null;
+export const nextRun = (recordRoot = HOME, block = null) => order().find((run) => (block === null || run.block === block) && !recorded(run, recordRoot)) ?? null;
+
+/**
+ * What holds a block up, or null: the first block before it in the order that still has a run with no record, and
+ * which runs. A block is started by a person, and the driver reads its records before the next is started (the
+ * protocol, "Three models"), so no run of a block starts while one before it is short of a record. A run the harness
+ * ended has a record and holds nothing up, in a block as in the order: it waits for its one rerun.
+ */
+export function heldUpBy(block, recordRoot = HOME) {
+  for (const earlier of BLOCKS.slice(0, Math.max(0, BLOCKS.indexOf(block)))) {
+    const runs = order().filter((run) => run.block === earlier && !recorded(run, recordRoot)).map((run) => run.name);
+    if (runs.length > 0) return { block: earlier, runs, why: `the \`${block}\` block is not started while the \`${earlier}\` block, which comes before it, has ${runs.length === 1 ? "a run" : `${runs.length} runs`} with no record (${runs.join(", ")}): a block is started by a person, and the driver reads its records before the next is started (experiments/watching/README.md, "Three models")` };
+  }
+  return null;
+}
+
+/** What a paid run is refused with when it names no block, or one that is not a block of the check. */
+const SAY_WHICH_BLOCK = `say which block: ${BLOCKS.map((block) => `--block ${block}`).join(", ").replace(/, ([^,]+)$/, " or $1")}. A block is started by name, by a person, in that order (experiments/watching/README.md, "Three models")`;
 
 /**
  * Where one run stands, from its record: its own, or its one rerun when the harness ended its own or its own was
@@ -172,10 +222,11 @@ export function readLedger(path = LEDGER) {
   const wrong = [];
   if (!ledger || typeof ledger !== "object" || !Array.isArray(ledger.invocations)) wrong.push("it holds no list of invocations");
   if (ledger?.cap_usd !== STOPS_AT_USD) wrong.push(`its cap is ${JSON.stringify(ledger?.cap_usd)}, and the protocol's is ${STOPS_AT_USD}`);
-  for (const [task, limit] of Object.entries(WATCHDOG)) if (ledger?.watchdog?.[task]?.usd !== limit.usd || ledger?.watchdog?.[task]?.minutes !== limit.minutes) wrong.push(`its limits for a run of \`${task}\` are ${JSON.stringify(ledger?.watchdog?.[task] ?? null)}, and the protocol's are $${limit.usd.toFixed(2)} and ${limit.minutes} minutes`);
+  for (const [block, tasks] of Object.entries(WATCHDOG)) for (const [task, limit] of Object.entries(tasks)) if (ledger?.watchdog?.[block]?.[task]?.usd !== limit.usd || ledger?.watchdog?.[block]?.[task]?.minutes !== limit.minutes) wrong.push(`its limits for a run of \`${task}\` in the \`${block}\` block are ${JSON.stringify(ledger?.watchdog?.[block]?.[task] ?? null)}, and the protocol's are $${limit.usd.toFixed(2)} and ${limit.minutes} minutes`);
   // The two numbers the paid path itself reads from a ledger: the most one session may be given, and the least that must
   // be left. Either one wrong would start a session under another ceiling than the protocol's, or under none at all.
-  const [least, most] = [Math.min(...Object.values(WATCHDOG).map((limit) => limit.usd)), Math.max(...Object.values(WATCHDOG).map((limit) => limit.usd))];
+  const ceilings = Object.values(WATCHDOG).flatMap((tasks) => Object.values(tasks).map((limit) => limit.usd));
+  const [least, most] = [Math.min(...ceilings), Math.max(...ceilings)];
   if (ledger?.per_invocation_ceiling_usd !== most) wrong.push(`the most it gives one session is ${JSON.stringify(ledger?.per_invocation_ceiling_usd ?? null)}, and the protocol's largest ceiling is ${most}`);
   if (ledger?.refuse_below_usd !== least) wrong.push(`it refuses below ${JSON.stringify(ledger?.refuse_below_usd ?? null)}, and the protocol's smallest ceiling is ${least}`);
   // Every line has to count as an amount: its reported cost, or its ceiling while that is not known.
@@ -355,10 +406,21 @@ function checkout() {
   return { commit: asked("rev-parse", "HEAD") || null, files_changed_since_it: asked("status", "--porcelain").split("\n").filter(Boolean).length, grooph_version: version };
 }
 
+/**
+ * Which short names of a model were pinned for a session and which were left to the harness, read from the names of
+ * the variables it was started with: of the four the profile pins, the ones that were there and the ones that were not.
+ */
+export function shortNamesIn(environment) {
+  const there = (short) => (Array.isArray(environment) ? environment : []).includes(pinOf(short));
+  return { pinned: Object.fromEntries(Object.entries(PINS).filter(([short]) => there(short))), left_to_the_harness: Object.keys(PINS).filter((short) => !there(short)), read_from: "the names of the variables the session was started with" };
+}
+
 /** What a run was given beyond the task, for its record: names, and a checksum of the server's own instructions. */
-function givenOf(run, built) {
+function givenOf(run, built, call) {
   return {
     the_runners_checkout: checkout(),
+    the_sessions_model: { block: run.block, asked_for: LEAD[run.block].model, effort: LEAD[run.block].effort },
+    short_names_of_a_model: shortNamesIn(call.environment),
     the_prompt_ends_with: run.arm === "invited" ? [SUBAGENTS_SENTENCE, INVITATION] : [SUBAGENTS_SENTENCE],
     hook_installed: built.installed,
     closed_to_the_session: built.closed.map((path) => path.slice(built.cwd.length + 1)),
@@ -483,8 +545,9 @@ export function measure({ profile, sessionId, output = null, wallS = null }) {
   const each = subagents.map((transcript) => {
     const depth = depthOf(transcript);
     const asked = askedOf(transcript);
-    // The short name a session asked for and the model that answered are two things: the profile pins what each short
-    // name means (prove-pattern.mjs ALIAS_ENV), so `haiku` asked for is a full id answering. Both are kept.
+    // The short name a session asked for and the model that answered are two things: the profile pins what three short
+    // names mean (prove-pattern.mjs ALIAS_ENV) and this check leaves `haiku` to the harness, so a short name asked
+    // for is a full id answering either way. Both are kept.
     const inTheFile = typeof transcript.meta.model === "string" && transcript.meta.model !== "" ? transcript.meta.model : null;
     const inTheUse = startedBy.get(transcript.meta.toolUseId)?.use.input?.model;
     const askedModel = inTheFile !== null ? { model: inTheFile, from: "the file beside its transcript" } : typeof inTheUse === "string" && inTheUse !== "" ? { model: inTheUse, from: "the tool use that started it" } : { model: null, from: null };
@@ -520,6 +583,8 @@ export function measure({ profile, sessionId, output = null, wallS = null }) {
     the_sessions_transcript_found: lead !== null,
     session: {
       turns_as_the_harness_reports: Number.isInteger(output?.num_turns) ? output.num_turns : null,
+      // The session's own model as it answered, by its transcript: in the `haiku` block it was asked for by a short name.
+      models_that_answered: lead ? lead.models : [],
       messages: lead ? lead.messages.size : null,
       tool_calls: lead ? tally([...lead.uses.values()].map((use) => use.tool)) : {},
       tool_calls_with_its_subagents: tally(everyUse.map((use) => use.tool)),
@@ -708,19 +773,22 @@ export function withoutWhatDeniedCallsAsked(path) {
  * One run, start to record. Before the call, a refusal throws `NotStarted` and nothing was spent. After it, nothing
  * is thrown and nothing is removed. `measureWith` is the measures' own function, and is another only in a test.
  */
-export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, ledgerPath = LEDGER, recordRoot = HOME, profileCheck, gameOpen, firstCallGate = firstCallAllows(), grace, node, measureWith = measure }) {
+export async function runOne({ go, block = null, rerun = null, home = DEFAULT_HOME, claude, ledgerPath = LEDGER, recordRoot = HOME, profileCheck, gameOpen, firstCallGate = firstCallAllows(), grace, node, measureWith = measure }) {
+  // What was asked is looked at first: a block is started by name, and a run made once more is named whole, its block in its name.
+  if (rerun === null && !BLOCKS.includes(block)) throw new NotStarted(`${block === null ? "no block was named" : `${JSON.stringify(block)} is not a block of the watching check`}: ${SAY_WHICH_BLOCK}`);
+  if (rerun !== null && block !== null) throw new NotStarted(`--rerun names its run whole, its block in its name (${BLOCKS[0]}/one/plain-1): --block does not go with it`);
   if (!firstCallGate.ok) throw new NotStarted(firstCallGate.why);
   const ledger = readLedger(ledgerPath);
   // Before any folder is made: a run is scored by running what the session wrote, outside the sandbox. Without the
   // owner's recorded decision on that, the whole run is refused, not only its scoring.
   const scoring = scoringDecided(ledger, SCORING);
   if (!scoring.ok) throw new NotStarted(scoring.why);
-  let run = nextRun(recordRoot);
+  let run = rerun === null ? nextRun(recordRoot, block) : null;
   let recordDir = run ? recordOf(run, recordRoot) : null;
   let because = null;
   if (rerun !== null) {
     run = order().find((candidate) => candidate.name === rerun);
-    if (!run) throw new NotStarted(`${JSON.stringify(rerun)} is not a run of the watching check: --rerun names one, such as one/plain-1`);
+    if (!run) throw new NotStarted(`${JSON.stringify(rerun)} is not a run of the watching check: --rerun names one, such as ${BLOCKS[0]}/one/plain-1`);
     const first = recordOf(run, recordRoot);
     const kept = existsSync(join(first, "result.json")) ? JSON.parse(readFileSync(join(first, "result.json"), "utf8")) : null;
     // A run with a line on the ledger and no record at all: the runner itself was stopped after the session started
@@ -732,11 +800,14 @@ export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, le
     if (existsSync(join(recordDir, "result.json"))) throw new NotStarted(`${rerun} was already run once more`);
     because = kept ? (kept.why ?? "the harness ended it, and its record says no more") : `the runner was stopped before it recorded the run; its line on the ledger (${line.n}) says: ${line.note || "nothing"}`;
   }
-  if (!run) throw new NotStarted("every run of the watching check is recorded");
+  if (!run) throw new NotStarted(`every run of the \`${block}\` block is recorded`);
+  // A block waits for the blocks before it: nothing of it is started while one of them is short of a record.
+  const held = heldUpBy(run.block, recordRoot);
+  if (held) throw new NotStarted(held.why);
   // A line on the ledger and no record: the runner was stopped between the two. Nothing is started over it in passing.
   const already = rerun === null ? ledger.invocations.find((entry) => entry.run === `watching/${run.name}`) : null;
   if (already) throw new NotStarted(`${run.name} has a line on the ledger (${already.n}) and no record: the runner was stopped before it could write one. ${already.status === "running" ? `Settle that line first (--settle ${already.n} --cost <usd|ceiling> --note "<what happened>"), then` : "Then"} it may be run once more, as a failure outside the session: --rerun ${run.name}`);
-  const watchdog = WATCHDOG[run.task];
+  const watchdog = WATCHDOG[run.block][run.task];
   const has = room(ledger, watchdog.usd);
   if (!has.ok) throw new NotStarted(has.why);
   if (run.arm === "invited") {
@@ -746,7 +817,7 @@ export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, le
   const built = build({ run, home, node });
   let call;
   try {
-    call = await runSession({ home, cwd: built.cwd, prompt: built.prompt, ...LEAD, usd: watchdog.usd, minutes: watchdog.minutes, closed: built.closed, server: built.server, label: { project: `watching/${run.task}`, arm: run.arm, replicate: rerun ? `${run.replicate}-rerun` : run.replicate }, note: `the watching check: ${run.task}, ${run.arm}${rerun ? `; the one rerun of a run the harness ended (${because})` : ""}`, go, claude, ledgerPath, harnessDir: built.harnessDir, profileCheck, gameOpen, plan: { projects: ["watching"], stop_usd: ledger.cap_usd + 1e-6 }, grace });
+    call = await runSession({ home, cwd: built.cwd, prompt: built.prompt, ...LEAD[run.block], usd: watchdog.usd, minutes: watchdog.minutes, closed: built.closed, server: built.server, unpinned: LEFT_TO_THE_HARNESS, label: { project: `watching/${run.block}/${run.task}`, arm: run.arm, replicate: rerun ? `${run.replicate}-rerun` : run.replicate }, note: `the watching check: ${run.block}, ${run.task}, ${run.arm}${rerun ? `; the one rerun of a run the harness ended (${because})` : ""}`, go, claude, ledgerPath, harnessDir: built.harnessDir, profileCheck, gameOpen, plan: { projects: ["watching"], stop_usd: ledger.cap_usd + 1e-6 }, grace });
   } catch (error) {
     if (error instanceof NotStarted) {
       rmSync(built.work, { recursive: true, force: true });
@@ -766,7 +837,10 @@ export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, le
     }
   };
   // The session ran under the protocol's ceiling, or the record says it did not.
-  if (call.watchdog?.usd !== watchdog.usd) problems.push(`the session was given a ceiling of $${call.watchdog?.usd}, and the protocol's for a run of \`${run.task}\` is $${watchdog.usd.toFixed(2)}`);
+  if (call.watchdog?.usd !== watchdog.usd) problems.push(`the session was given a ceiling of $${call.watchdog?.usd}, and the protocol's for a run of \`${run.task}\` in the \`${run.block}\` block is $${watchdog.usd.toFixed(2)}`);
+  // And with the pin taken off the short names this check leaves to the harness, and off no other, or the record says it was not.
+  const left = shortNamesIn(call.environment).left_to_the_harness;
+  if (JSON.stringify(left) !== JSON.stringify(LEFT_TO_THE_HARNESS)) problems.push(`the session was started with ${left.length === 0 ? "every short name of a model pinned" : `${left.join(", ")} left to the harness`}, and this check leaves ${LEFT_TO_THE_HARNESS.join(", ")} to it and no other`);
   // The hook's own files, kept before the record is scrubbed: plain files of the session's folder, never through a link.
   const events = run.arm === "plain" ? null : realFolder(built.cwd, ".grooph", "events");
   if (events) {
@@ -793,27 +867,29 @@ export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, le
       copied.problems.push(`scoring: ${error.message}`);
     }
   }
-  const result = writeResult(recordDir, call, { run: run.name, task: run.task, arm: run.arm, replicate: run.replicate, rerun_of: rerun ? run.name : null, rerun_because: because, given: givenOf(run, built), measures: measured, the_hooks_file_beside_the_transcripts: beside, scored: scored !== null, scored_outside_the_sandbox_on: scoring.decision, transcripts: copied.transcripts, problems: copied.problems, kept_out_of_the_record: copied.kept_out_of_the_record, protocol: "experiments/watching/README.md" });
+  const result = writeResult(recordDir, call, { run: run.name, block: run.block, task: run.task, arm: run.arm, replicate: run.replicate, rerun_of: rerun ? run.name : null, rerun_because: because, given: givenOf(run, built, call), measures: measured, the_hooks_file_beside_the_transcripts: beside, scored: scored !== null, scored_outside_the_sandbox_on: scoring.decision, transcripts: copied.transcripts, problems: copied.problems, kept_out_of_the_record: copied.kept_out_of_the_record, protocol: "experiments/watching/README.md" });
   let kept = null;
   try {
     kept = setAside({ home, work: built.work, sessionId: call.session_id });
   } catch (error) {
     console.error(`the session's folder could not be moved aside (${error.message}); it is still at ${built.work}`);
   }
-  return { run, recordDir, result, score: scored, kept, tripwire: call.tripwire, next: nextRun(recordRoot) };
+  return { run, recordDir, result, score: scored, kept, tripwire: call.tripwire, next: nextRun(recordRoot, run.block) };
 }
 
 /** Whether the runs after this one wait for a person: the harness ended it, its record could not be kept whole, or its folder is still in the next one's way. */
 export const waitsForAPerson = (done) => (done.result.ended_by === "the harness" ? "the harness ended it" : (done.result.problems ?? []).length > 0 ? "its record has problems" : done.kept === null ? "its folder could not be moved aside" : null);
 
 /**
- * Every run still to come, one at a time, in the order. It stops at the first refusal, which is thrown as any
- * refusal is, and at the first run that waits for a person, which is said in what comes back. `each` is told of every
- * run as it is recorded, so that what was done before a refusal has been said by then.
+ * Every run of one block still to come, one at a time, in the order. It stops at the first refusal, which is thrown
+ * as any refusal is, and at the first run that waits for a person, which is said in what comes back. `each` is told of
+ * every run as it is recorded, so that what was done before a refusal has been said by then. It never goes on into the
+ * next block: that one is started by name.
  */
 export async function runAll({ each = () => {}, ...options }) {
+  if (!BLOCKS.includes(options.block)) throw new NotStarted(`${options.block == null ? "no block was named" : `${JSON.stringify(options.block)} is not a block of the watching check`}: ${SAY_WHICH_BLOCK}`);
   const done = [];
-  for (let next = nextRun(options.recordRoot); next; next = nextRun(options.recordRoot)) {
+  for (let next = nextRun(options.recordRoot, options.block); next; next = nextRun(options.recordRoot, options.block)) {
     const one = await runOne(options);
     done.push(one);
     each(one);
@@ -833,7 +909,7 @@ export function scoreKept({ name, ledger, home = DEFAULT_HOME, recordRoot = HOME
   if (!scoring.ok) throw new NotScored(scoring.why);
   const again = String(name).endsWith("-rerun");
   const run = order().find((candidate) => candidate.name === (again ? String(name).slice(0, -"-rerun".length) : name));
-  if (!run) throw new NotScored(`${JSON.stringify(name)} is not a run of the watching check: --score names one, such as one/plain-1 or one/plain-1-rerun`);
+  if (!run) throw new NotScored(`${JSON.stringify(name)} is not a run of the watching check: --score names one, such as ${BLOCKS[0]}/one/plain-1 or ${BLOCKS[0]}/one/plain-1-rerun`);
   const recordDir = `${recordOf(run, recordRoot)}${again ? "-rerun" : ""}`;
   if (!existsSync(join(recordDir, "result.json"))) throw new NotScored(`${name} has no record`);
   if (existsSync(join(recordDir, "score.json"))) throw new NotScored(`${name} is already scored`);
@@ -863,22 +939,27 @@ const quoted = (arg) => (/^[A-Za-z0-9_\/.,:=@%+-]+$/.test(arg) ? arg : `'${Strin
  * words, and the folder is taken away again. It starts nothing. What a paid run would be refused for as things stand
  * is asked of the same gates a paid run passes.
  */
-export function dryRun({ run, home = DEFAULT_HOME, ledgerPath = LEDGER, stand = asThingsStand, node }) {
+export function dryRun({ run, home = DEFAULT_HOME, ledgerPath = LEDGER, recordRoot = HOME, stand = asThingsStand, node }) {
   const ledger = readLedger(ledgerPath);
-  const watchdog = WATCHDOG[run.task];
+  const watchdog = WATCHDOG[run.block][run.task];
+  const lead = LEAD[run.block];
   const built = build({ run, home, node });
   try {
     const things = stand({ home, cwd: built.cwd });
     const refused = [...things.refused];
     const scoring = scoringDecided(ledger, SCORING);
     if (!scoring.ok) refused.push(scoring.why);
+    const held = heldUpBy(run.block, recordRoot);
+    if (held) refused.push(held.why);
     const has = room(ledger, watchdog.usd);
     if (!has.ok) refused.push(has.why);
     if (run.arm === "invited" && things.claude.startsWith("/")) {
       const missing = serverFlagsMissing(things.claude);
       if (missing.length > 0) refused.push(`the harness's help text names no ${missing.join(", ")}, which the invited arm's command passes`);
     }
-    const sample = commandFor({ home, claude: things.claude, cwd: built.cwd, prompt: built.prompt, ...LEAD, sessionId: "<a new id>", maxBudgetUsd: watchdog.usd, closed: built.closed, ...(built.server ?? {}) });
+    const sample = commandFor({ home, claude: things.claude, cwd: built.cwd, prompt: built.prompt, ...lead, sessionId: "<a new id>", maxBudgetUsd: watchdog.usd, closed: built.closed, unpinned: LEFT_TO_THE_HARNESS, ...(built.server ?? {}) });
+    // Read from the environment the command would be started with, as a record reads it from the one a session was.
+    const names = shortNamesIn(Object.keys(sample.env));
     const tracked = spawnSync("git", ["--git-dir", built.gitDir, "ls-tree", "-r", "--name-only", built.base], { encoding: "utf8" }).stdout.split("\n").filter(Boolean);
     const arm =
       run.arm === "plain"
@@ -888,9 +969,11 @@ export function dryRun({ run, home = DEFAULT_HOME, ledgerPath = LEDGER, stand = 
           }`;
     return [
       `${run.name}`,
+      `the block: ${run.block}: the session itself on ${lead.model}${Object.hasOwn(PINS, lead.model) ? ", asked for by its short name," : ""} at ${lead.effort} effort`,
       `the arm: ${arm}`,
       `the folder, in its one commit: ${tracked.length} files (${tracked.slice(0, 12).join(", ")}${tracked.length > 12 ? ", …" : ""})`,
       `would start, in ${built.cwd}:\n  ${sample.argv.map((arg) => (arg === built.prompt ? "<the prompt>" : quoted(arg))).join(" ")}`,
+      `short names of a model, in its environment: ${Object.entries(names.pinned).map(([short, model]) => `${short} pinned to ${model}`).join(", ") || "none pinned"}; left to the harness: ${names.left_to_the_harness.join(", ") || "none"}`,
       `the prompt, ${built.prompt.length} characters:\n${built.prompt.replace(/^/gm, "  | ")}`,
       `the watchdog: $${watchdog.usd.toFixed(2)} and ${watchdog.minutes} minutes; the ledger has counted $${has.spent.toFixed(2)} of $${ledger.cap_usd.toFixed(2)}`,
       refused.length === 0 ? "as things stand, a paid run would pass the gates before the ledger's" : `as things stand, a paid run would be refused:\n  - ${refused.join("\n  - ")}`,
@@ -901,7 +984,7 @@ export function dryRun({ run, home = DEFAULT_HOME, ledgerPath = LEDGER, stand = 
   }
 }
 
-/** The ledger and the twelve runs, in words. Starts nothing and builds nothing. */
+/** The ledger and the thirty-six runs, block by block, in words. Starts nothing and builds nothing. */
 export function status({ ledgerPath = LEDGER, recordRoot = HOME, firstCallGate } = {}) {
   const lines = [];
   let ledger = null;
@@ -909,7 +992,7 @@ export function status({ ledgerPath = LEDGER, recordRoot = HOME, firstCallGate }
     ledger = readLedger(ledgerPath);
     const has = room(ledger, 0);
     lines.push(`the ledger (${relativeToRoot(ledgerPath)}): $${has.spent.toFixed(2)} counted of $${ledger.cap_usd.toFixed(2)}, in ${ledger.invocations.length} line(s); a cost not yet settled counts at its ceiling`);
-    for (const entry of ledger.invocations) lines.push(`  ${String(entry.n).padStart(2)}  ${String(entry.run).padEnd(26)} ${String(entry.status).padEnd(8)} ${typeof entry.cost_usd === "number" ? `$${entry.cost_usd.toFixed(4)}` : `unknown (counted $${entry.max_budget_usd})`}`);
+    for (const entry of ledger.invocations) lines.push(`  ${String(entry.n).padStart(2)}  ${String(entry.run).padEnd(38)} ${String(entry.status).padEnd(8)} ${typeof entry.cost_usd === "number" ? `$${entry.cost_usd.toFixed(4)}` : `unknown (counted $${entry.max_budget_usd})`}`);
     const scoring = scoringDecided(ledger, SCORING);
     lines.push(scoring.ok ? `scoring outside the sandbox: decided by ${scoring.decision.decided_by} on ${scoring.decision.on}` : "scoring outside the sandbox: no decision of the owner's is recorded, so no run starts and none is scored");
   } catch (error) {
@@ -917,19 +1000,27 @@ export function status({ ledgerPath = LEDGER, recordRoot = HOME, firstCallGate }
   }
   if (firstCallGate) lines.push(firstCallGate.ok ? `the profile's first call: on record (${firstCallGate.record}), and says later runs may start` : `the profile's first call: ${firstCallGate.why}`);
   const runs = order().map((run) => ({ ...run, ...stateOf(run, recordRoot) }));
-  lines.push(`the twelve runs, in their order (${runs.filter((run) => run.state !== "not recorded").length} recorded):`);
-  for (const run of runs) lines.push(`  ${run.name.padEnd(16)} ${run.state}${run.ended_by ? `: ended by ${run.ended_by}` : ""}${run.from === "its rerun" ? " (its rerun)" : ""}${run.passed ? `; ${run.passed.join(" · ")}` : ""}${run.why ? ` (${run.why})` : ""}`);
+  const isRecorded = (run) => run.state !== "not recorded";
+  lines.push(`the thirty-six runs, in three blocks of twelve, in their order (${runs.filter(isRecorded).length} recorded):`);
+  for (const block of BLOCKS) {
+    const its = runs.filter((run) => run.block === block);
+    const held = heldUpBy(block, recordRoot);
+    const limits = Object.entries(WATCHDOG[block]).map(([task, limit]) => `a run of \`${task}\` stops at $${limit.usd.toFixed(2)} or ${limit.minutes} minutes`).join(", ");
+    lines.push(`the ${block} block, the session itself on ${LEAD[block].model} at ${LEAD[block].effort} effort (${its.filter(isRecorded).length} of ${its.length} recorded; ${limits})${held ? `; not started while the ${held.block} block has ${held.runs.length === 1 ? "a run" : `${held.runs.length} runs`} with no record` : ""}:`);
+    for (const run of its) lines.push(`  ${run.name.padEnd(22)} ${run.state}${run.ended_by ? `: ended by ${run.ended_by}` : ""}${run.from === "its rerun" ? " (its rerun)" : ""}${run.passed ? `; ${run.passed.join(" · ")}` : ""}${run.why ? ` (${run.why})` : ""}`);
+  }
+  // The first run of the whole order with no record: it is always of the first block that is short of one, so no block holds it up.
   const next = nextRun(recordRoot);
-  // The ceilings of the twelve add up to more than the cap, and that is meant: a run is not started unless the ledger
-  // has room for its ceiling, a settled run counted at its reported cost and an unsettled one at its ceiling.
-  const has = next && ledger ? room(ledger, WATCHDOG[next.task].usd) : null;
-  lines.push(`next: ${next ? `${next.name}, which may cost up to $${WATCHDOG[next.task].usd.toFixed(2)}${has ? (has.ok ? `; the ledger has room for it ($${has.left.toFixed(2)} left)` : `\nTHE LEDGER HAS NO ROOM FOR IT, and it would be refused: ${has.why}`) : ""}` : "none; every run is recorded"}`);
+  // The ceilings of the thirty-six add up to more than the cap, and that is meant: a run is not started unless the
+  // ledger has room for its ceiling, a settled run counted at its reported cost and an unsettled one at its ceiling.
+  const has = next && ledger ? room(ledger, WATCHDOG[next.block][next.task].usd) : null;
+  lines.push(`next: ${next ? `${next.name} (started with --block ${next.block}), which may cost up to $${WATCHDOG[next.block][next.task].usd.toFixed(2)}${has ? (has.ok ? `; the ledger has room for it ($${has.left.toFixed(2)} left)` : `\nTHE LEDGER HAS NO ROOM FOR IT, and it would be refused: ${has.why}`) : ""}` : "none; every run is recorded"}`);
   return lines.join("\n");
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const flags = process.argv.slice(2);
-  const KNOWN = { plain: ["--status", "--dry-run", "--next", "--all", "--spend"], valued: ["--go", "--run", "--rerun", "--score", "--settle", "--cost", "--note"] };
+  const KNOWN = { plain: ["--status", "--dry-run", "--next", "--all", "--spend"], valued: ["--go", "--block", "--run", "--rerun", "--score", "--settle", "--cost", "--note"] };
   const unknown = unknownFlags(flags, KNOWN);
   if (unknown.length > 0) {
     console.error(`${unknown.join(", ")}: not a flag of this script. Nothing was started.`);
@@ -938,9 +1029,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const valueOf = (flag) => (flags.includes(flag) ? flags[flags.indexOf(flag) + 1] : null);
   for (const flag of ["--run", "--rerun", "--score"]) {
     if (flags.includes(flag) && (!valueOf(flag) || valueOf(flag).startsWith("--"))) {
-      console.error(`${flag} names a run, such as one/plain-1. Nothing was started.`);
+      console.error(`${flag} names a run, such as ${BLOCKS[0]}/one/plain-1. Nothing was started.`);
       process.exit(64);
     }
+  }
+  if (flags.includes("--block") && !BLOCKS.includes(valueOf("--block"))) {
+    console.error(`--block names a block of the check: ${BLOCKS.join(", ")}. Nothing was started.`);
+    process.exit(64);
   }
   // One thing is asked for at a time. A flag that belongs to another thing is refused, never passed over: a dry run
   // of a scoring would otherwise be a scoring.
@@ -954,8 +1049,15 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (flags.includes("--status")) only("--status", ["--status"]);
   else if (flags.includes("--score")) only("--score", ["--score"]);
   else if (flags.includes("--settle")) only("--settle", ["--settle", "--cost", "--note"]);
-  else if (flags.includes("--dry-run")) only("--dry-run", ["--dry-run", "--next", "--all", "--run", "--spend", "--go"]);
-  else only("a paid run", ["--next", "--all", "--rerun", "--spend", "--go", "--run"]);
+  else if (flags.includes("--dry-run")) only("--dry-run", ["--dry-run", "--next", "--all", "--block", "--run", "--spend", "--go"]);
+  else only("a paid run", ["--next", "--all", "--block", "--rerun", "--spend", "--go", "--run"]);
+  // A run's name carries its block: a block is named only where no run is.
+  for (const flag of ["--run", "--rerun"]) {
+    if (flags.includes("--block") && flags.includes(flag)) {
+      console.error(`--block does not go with ${flag}: a run's name carries its block. Nothing was started.`);
+      process.exit(64);
+    }
+  }
   if (flags.includes("--status")) {
     console.log(status({ firstCallGate: firstCallAllows() }));
     process.exit(0);
@@ -984,10 +1086,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (flags.includes("--dry-run")) {
     try {
       const named = valueOf("--run");
-      const one = named ? order().find((run) => run.name === named) : nextRun();
-      if (named && !one) throw new NotStarted(`${JSON.stringify(named)} is not a run of the watching check: --run names one, such as four/invited-1`);
-      const runs = flags.includes("--all") ? order().filter((run) => stateOf(run).state === "not recorded") : one ? [one] : [];
-      if (runs.length === 0) console.log("every run of the watching check is recorded");
+      const block = valueOf("--block");
+      const one = named ? order().find((run) => run.name === named) : nextRun(HOME, block);
+      if (named && !one) throw new NotStarted(`${JSON.stringify(named)} is not a run of the watching check: --run names one, such as ${BLOCKS[1]}/four/invited-1`);
+      const runs = flags.includes("--all") ? order().filter((run) => (block === null || run.block === block) && stateOf(run).state === "not recorded") : one ? [one] : [];
+      if (runs.length === 0) console.log(block ? `every run of the \`${block}\` block is recorded` : "every run of the watching check is recorded");
       for (const run of runs) console.log(`${dryRun({ run })}\n`);
       process.exit(0);
     } catch (error) {
@@ -996,7 +1099,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     }
   }
   if (flags.includes("--run")) {
-    console.error("--run names a run for --dry-run only: a paid run is the next in the order (--next), every run still to come (--all), or the one rerun of a run the harness ended (--rerun). Nothing was started.");
+    console.error("--run names a run for --dry-run only: a paid run is the next of a block (--next --block <name>), every run of a block still to come (--all --block <name>), or the one rerun of a run the harness ended (--rerun). Nothing was started.");
     process.exit(64);
   }
   const allowed = spendFlags(flags);
@@ -1006,7 +1109,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   }
   const which = ["--next", "--all", "--rerun"].filter((flag) => flags.includes(flag));
   if (which.length !== 1) {
-    console.error(`say which: --next (the next run in the order), --all (every run still to come) or --rerun <task>/<arm>-<n>. ${which.length === 0 ? "None" : "More than one"} was given. Nothing was started.`);
+    console.error(`say which: --next (the next run of a block), --all (every run of a block still to come) or --rerun <block>/<task>/<arm>-<n>. ${which.length === 0 ? "None" : "More than one"} was given. Nothing was started.`);
+    process.exit(64);
+  }
+  // A block is started by name: neither the next run nor every run still to come is taken from a block nobody named.
+  const block = valueOf("--block");
+  if (which[0] !== "--rerun" && block === null) {
+    console.error(`${SAY_WHICH_BLOCK}. Nothing was started.`);
     process.exit(64);
   }
   const say = (done, again) => {
@@ -1018,17 +1127,18 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   };
   try {
     if (which[0] === "--all") {
-      const all = await runAll({ go: allowed.go, each: (done) => (say(done, false), console.log("")) });
+      const all = await runAll({ go: allowed.go, block, each: (done) => (say(done, false), console.log("")) });
       if (all.stopped) {
         console.log(`stopped after ${all.stopped.after}: ${all.stopped.why}. Nothing more is started until a person has looked.${all.stopped.by_the_harness ? ` If it failed for a reason outside the session, it may be run once more: --rerun ${all.stopped.after}` : ""}`);
         process.exit(2);
       }
-      console.log("every run of the watching check is recorded");
+      const after = BLOCKS[BLOCKS.indexOf(block) + 1];
+      console.log(`every run of the \`${block}\` block is recorded. ${after ? `The \`${after}\` block is not gone on into: it is started by name, once the driver has read these records` : "It is the last of the three"}`);
       process.exit(0);
     }
-    const done = await runOne({ go: allowed.go, rerun: valueOf("--rerun") });
+    const done = await runOne({ go: allowed.go, block, rerun: valueOf("--rerun") });
     say(done, flags.includes("--rerun"));
-    console.log(`next: ${done.next ? done.next.name : "none; every run is recorded"}`);
+    console.log(`next: ${done.next ? done.next.name : `none; every run of the \`${done.run.block}\` block is recorded`}`);
     process.exit(waitsForAPerson(done) ? 2 : 0);
   } catch (error) {
     console.error(error.message);

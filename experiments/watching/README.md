@@ -4,7 +4,7 @@ Does watching a session change what it does?
 
 The owner asked for one kind of test before grooph is changed from something that directs agents into something that watches and draws them (decision 0032): that what grooph adds does not get in the way of how a session would work anyway. This page is that test, written before anything is run. It uses what grooph 0.4.1 already ships and builds nothing new into the product.
 
-**Status: written, not run.** The free checks at the end have been run and need no model. No model session has been started.
+**Status: written, not run.** Changed once before any run, on 2026-10-10 (the last section). The free checks at the end have been run and need no model. No model session has been started.
 
 ## What is asked
 
@@ -35,7 +35,7 @@ The invitation, in the third arm only, after that sentence:
 
 The harness loads a server's tools on demand, through its own tool search, which by its documentation needs no permission. So the offer in the third arm is a real one in the mode these sessions run in, and each record counts the searches a session made and any call that was denied.
 
-Nothing else differs. Every session is headless (`claude -p`), on Claude Sonnet 5.5 at high effort, started from the clean profile of [`experiments/comparisons/profile/`](../comparisons/profile/README.md) by that profile's own runner, so that it loads nothing of the owner's account and can write nowhere but its own folder. Which model a subagent runs on is left to the session: it is one of the things watched. The profile pins what each short name means (`opus` and `fable` to Opus 5.5, `sonnet` to Sonnet 5.5, `haiku` to `claude-haiku-4-5-20251001`), so the name a session asked for and the model that answered are both kept.
+Nothing else differs. Every session is headless (`claude -p`), at high effort, on one of three models (below), started from the clean profile of [`experiments/comparisons/profile/`](../comparisons/profile/README.md) by that profile's own runner, so that it loads nothing of the owner's account and can write nowhere but its own folder. Which model a subagent runs on is left to the session: it is one of the things watched. The profile pins four short names of a model (`opus` and `fable` to Opus 5.5, `sonnet` to Sonnet 5.5, `haiku` to an older Haiku). A session of this check is started without the pin on `haiku`, so that name means what the harness makes it mean, as it does in anyone's ordinary session. The name a session asked for and the model that answered are both kept.
 
 ## Two tasks
 
@@ -45,6 +45,18 @@ Both are made of tasks this repository already holds, unchanged, each with a sui
 - **`four`**, a wide task: one repository holding four packages side by side, each a task as its own project keeps it: `settingskit` ([`review-gate-2`](../comparisons/review-gate-2/)), `textwrap` ([`spec-then-loop`](../comparisons/spec-then-loop/)), `csvline` ([`red-team-loop`](../comparisons/red-team-loop/)) and `semver-mini` ([`grind-loop`](../comparisons/grind-loop/)). The prompt gives the four tasks one after another, each worded by the comparison protocol's rule for a task alone ([`docs/comparisons.md`](../../docs/comparisons.md) §1), with its folder named. The four have nothing to do with each other, so handing them to subagents is an open choice and never a need.
 
 Two tasks, three arms, twice each: twelve runs, one at a time, in this order: `one` plain, `four` plain, `one` watched, `four` watched, `one` invited, `four` invited; then the same six again.
+
+## Three models
+
+The twelve are run three times over, as three blocks, each on one model for the session itself:
+
+| Block | The session's model | Why |
+|---|---|---|
+| `sonnet` | Claude Sonnet 5.5 (`claude-sonnet-5-5`) | The economical middle, and the check as first written. |
+| `opus` | Claude Opus 5.5 (`claude-opus-5-5`) | What the owner's own sessions run on, so where watching has most to stay out of the way. |
+| `haiku` | the harness's current Haiku, asked for by its short name | Where a nudge would show most, if one shows anywhere. |
+
+Thirty-six runs. The recorder hands a session nothing to read, so the watched arm should not depend on the model. The invitation, and what a session chooses to do with subagents, may. A block is started by a person and the driver reads its records before the next is started; the order is `sonnet`, `opus`, `haiku`. If the harness will not start a session on Haiku at high effort, the `haiku` block is not run, and this page says so in a dated note.
 
 ## What is measured, and from where
 
@@ -59,9 +71,9 @@ Every arm is measured the same way, **from the harness's own files in the clean 
 
 ## How it will be read
 
-All twelve rows are published in one table, with every run's record.
+Every row is published, one table for each block, with every run's record.
 
-- For any measure, **"no difference seen"** is said of two arms only when their values overlap on both tasks. Nowhere is "no effect" said. Twelve runs can show a large effect and cannot show a small one.
+- For any measure, **"no difference seen"** is said of two arms, within a block, only when their values overlap on both tasks. Nowhere is "no effect" said. Twelve runs of one model can show a large effect and cannot show a small one. The three blocks are set side by side and are not added together.
 - A difference is reported as seen, with both runs' values.
 - Agreement between the hook and the transcripts is given as counts.
 - What the invitation costs is the invited arm's turns, tokens and cost beside the watched arm's, as ranges.
@@ -70,8 +82,8 @@ What it cannot say: anything about another model, another harness, a session a p
 
 ## Limits
 
-- A run of `one` stops at $2.00 or 15 minutes. A run of `four` stops at $6.00 or 40 minutes. These are the runner's watchdog; no session is told of them.
-- The whole check stops at **$45.00** on a ledger of its own, `ledger.json` in this folder, which is made with the runner. A cost that is not yet settled counts at its ceiling. The twelve ceilings add up to $48.00, more than the cap, on purpose: a run is not started unless the ledger has room for its ceiling, so the check ends early if the runs cost far more than expected. The dollars are the list price the harness reports; on the owner's subscription they are usage and not a charge.
+- A run of `one` stops at 25 minutes and a run of `four` at 60, and at a dollar ceiling that goes by its block: $2.00 and $6.00 on `sonnet`, $5.00 and $15.00 on `opus`, $1.00 and $3.00 on `haiku`. These are the runner's watchdog; no session is told of them.
+- The whole check stops at **$140.00** on a ledger of its own, `ledger.json` in this folder. A cost that is not yet settled counts at its ceiling. The thirty-six ceilings add up to $192.00, more than the cap, on purpose: a run is not started unless the ledger has room for its ceiling, so the check ends early if the runs cost far more than expected.
 - A run that fails for a reason outside the session (the sign-in, the network, a usage limit) may be run once more, with the reason written beside it.
 - A run is recorded before its result is used (decision 0015): the harness's output saved as it runs, a ledger row with the session's id and reported cost.
 
@@ -80,7 +92,7 @@ What it cannot say: anything about another model, another harness, a session a p
 1. This page is on `main`. After the first run nothing here changes without a dated note saying what and why.
 2. `node scripts/lib/compare-profile.mjs --check` holds on every line. (It did on 2026-10-09: the profile is signed in, and nothing has ever been run from it.)
 3. **The profile's first call is on record and says later runs may start.** That is the profile's own rule: one short session, at most $1.00 and ten minutes, started from a terminal by a person on the owner's yes for it by name. It has not been made.
-4. The owner's yes for these twelve, given on the review desk on 2026-10-09 (card `q78-does-watching-change-anything`).
+4. The owner's yes, given on the review desk: for the check on 2026-10-09 (card `q78-does-watching-change-anything`), and on 2026-10-10 for the runner, the first call and the scoring (card `q80-the-twelve-runs-three-yeses`), where he also asked whether other models should be tried and left the limits to the driver.
 
 A paid run is started from a terminal, by a person. The runner (`scripts/lib/watching-check-paid.mjs`, built on the profile's own) is not on this page's commit; it comes in its own pull request, and its `--dry-run` starts nothing and shows what would be started.
 
@@ -98,3 +110,11 @@ A paid run is started from a terminal, by a person. The runner (`scripts/lib/wat
 So on this Mac (Apple M3 Pro, Node 26.10) a hook call costs what it costs to start Node, about a twentieth of a second, and the hook's own work is a few milliseconds of that. As installed for Claude Code, five of its seven entries run in the background and the harness does not wait for them. It waits for two: the one at a turn's end and the one at the session's end. The full report is [`free-checks/result-2026-10-09.json`](free-checks/result-2026-10-09.json).
 
 This shows what the hook does when it is run. It does not show what a harness does with a hook: that rests on both harnesses' documentation ([`docs/subagents.md`](../../docs/subagents.md) §5), and the twelve runs are the first look at it in practice.
+
+## Changed before any run
+
+**2026-10-10.** Three things, each before the first model session and on the owner's word of that day (card `q80-the-twelve-runs-three-yeses`: he approved the runs, asked whether Opus or Haiku should be tried beside Sonnet, and said the limits could be raised where the driver thought it right).
+
+- **Three models where there was one.** The twelve runs are made on Sonnet 5.5 as written, and again on Opus 5.5 and on Haiku ("Three models").
+- **The limits.** Minutes went from 15 and 40 to 25 and 60, so that a run is not cut off for being slow. The dollar ceilings now go by block, and the cap went from $45.00 to $140.00 for thirty-six runs.
+- **`haiku` is no longer pinned for this check.** The profile pinned that short name to `claude-haiku-4-5-20251001`. A session in ordinary use has no such pin, and what a session does with subagents is one of the things watched, so the name is left to the harness and the model that answered is recorded.

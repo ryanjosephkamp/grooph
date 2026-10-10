@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { check, commandFor, FLAGS, instructionsAbove, layout, SERVER_FLAGS, SESSION_PATH, settingsFor, userTemp } from "./compare-profile.mjs";
+import { check, commandFor, FLAGS, instructionsAbove, layout, pinOf, PINS, SERVER_FLAGS, SESSION_PATH, settingsFor, userTemp } from "./compare-profile.mjs";
 
 const home = "/Users/someone/grooph-compare";
 
@@ -130,6 +130,21 @@ test("called as it was before a run could attach a server, the command and the e
   assert.deepEqual(ask({ mcp: null, allowed: [], withheld: [] }), ask());
   assert.equal(FLAGS.length, 13, "the profile's own check asks the harness for the same thirteen flags");
   assert.ok(!FLAGS.includes("--mcp-config"));
+});
+
+test("a run may leave a short name of a model to the harness: its pin is left out of the environment, nothing else changes, and fable's pin is never taken off", () => {
+  assert.deepEqual(PINS, { fable: "claude-opus-5-5", opus: "claude-opus-5-5", sonnet: "claude-sonnet-5-5", haiku: "claude-haiku-4-5-20251001" }, "the four short names the profile pins, each to its model");
+  assert.deepEqual(Object.keys(PINS).map(pinOf), Object.keys(ask().env).filter((name) => name.startsWith("ANTHROPIC_DEFAULT_")), "each by its own variable, and no other variable of that kind is set");
+  const left = ask({ unpinned: ["haiku"] });
+  assert.ok(!("ANTHROPIC_DEFAULT_HAIKU_MODEL" in left.env), "the pin is not there at all, rather than there and empty");
+  assert.deepEqual(Object.entries(left.env), Object.entries(ask().env).slice(0, -1), "every other variable is as it was, in its order");
+  assert.deepEqual([left.argv, left.cwd, left.transcript], [ask().argv, ask().cwd, ask().transcript], "and the command is the same");
+  assert.deepEqual(ask({ unpinned: [] }), ask(), "naming none is the call as it was");
+  assert.equal(ask().env.ANTHROPIC_DEFAULT_HAIKU_MODEL, "claude-haiku-4-5-20251001", "and a call that names none still pins it");
+  // Only a short name the profile pins, by that name; and never the one that keeps out a model this project's experiments do not use.
+  assert.throws(() => ask({ unpinned: ["fable"] }), /the pin on fable is not taken off: it is what keeps that name from a model this project's experiments do not use without the owner's authorization \(decision 0031\)/);
+  assert.equal(ask({ unpinned: ["haiku", "sonnet"] }).env.ANTHROPIC_DEFAULT_FABLE_MODEL, "claude-opus-5-5");
+  for (const none of ["Haiku", "claude-haiku-4-5-20251001", "ANTHROPIC_DEFAULT_HAIKU_MODEL", "PATH", "astra", "toString", "", ["haiku"], null]) assert.throws(() => ask({ unpinned: [none] }), /is not a short name the profile pins \(fable, opus, sonnet, haiku\): only one of those can be left to the harness/, JSON.stringify(none));
 });
 
 test("a run that attaches a server names it whole, allows the tools it offers and withholds the rest, and can open nothing else by it", () => {

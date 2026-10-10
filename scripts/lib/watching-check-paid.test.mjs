@@ -10,13 +10,14 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { layout, settingsFor } from "./compare-profile.mjs";
+import { commandFor, layout, PINS, settingsFor } from "./compare-profile.mjs";
 import { DESIGN_WORDS, MECHANICS, deriveD } from "./compare-prompt.mjs";
 import { scoreHeldOut } from "./compare-score.mjs";
 import { scoringDecided } from "./roles-or-information-paid.mjs";
 import { NotStarted, profileFingerprint } from "./study-three-paid.mjs";
 import {
   ARMS,
+  BLOCKS,
   build,
   CLI,
   CLOSED_IN_A_WATCHED_ARM,
@@ -24,11 +25,13 @@ import {
   folderLine,
   FOOTPRINT,
   FOUR_OPENS,
+  heldUpBy,
   HOOK_FILES,
   hookBesideTranscripts,
   INVITATION,
   LEAD,
   LEDGER,
+  LEFT_TO_THE_HARNESS,
   measure,
   namesOnly,
   nextRun,
@@ -37,6 +40,7 @@ import {
   order,
   promptFor,
   readLedger,
+  recordOf,
   room,
   runAll,
   runOne,
@@ -46,6 +50,7 @@ import {
   serverOffers,
   sessionNode,
   settleLine,
+  shortNamesIn,
   stateOf,
   status,
   STOPS_AT_USD,
@@ -93,48 +98,102 @@ function place(plan = { uses: [] }, { decided = true, lines = [] } = {}) {
   writeFileSync(harness, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(STAND_IN)} "$@"\n`, { mode: 0o755 });
   const recordRoot = join(top, "records");
   // What a run is started with in a test: the stand-in, no real profile check, no game session, the first call's yes, a short grace.
+  // `common` names no block, as a run made once more does not; `sonnet` is the same with the first block named.
   const common = { home, claude: harness, ledgerPath, recordRoot, profileCheck: () => [], gameOpen: [], go: "the driver said: run the watching check", grace: 300, firstCallGate: { ok: true, record: "record" } };
-  return { top, home, at, harness, ledgerPath, recordRoot, common, setPlan, ledger: () => JSON.parse(readFileSync(ledgerPath, "utf8")), seen: () => JSON.parse(readFileSync(join(at.profile, "command-seen-by-the-stand-in.json"), "utf8")) };
+  return { top, home, at, harness, ledgerPath, recordRoot, common, sonnet: { ...common, block: "sonnet" }, setPlan, ledger: () => JSON.parse(readFileSync(ledgerPath, "utf8")), seen: () => JSON.parse(readFileSync(join(at.profile, "command-seen-by-the-stand-in.json"), "utf8")) };
 }
-const settled = (run, cost, more = {}) => ({ n: 1, run, project: run.split("/").slice(0, 2).join("/"), kind: "kickoff", status: "ok", cost_usd: cost, reported_cost_usd: cost, max_budget_usd: 6, started: "2026-10-09T00:00:00.000Z", ...more });
+const settled = (run, cost, more = {}) => ({ n: 1, run, project: run.split("/").slice(0, 3).join("/"), kind: "kickoff", status: "ok", cost_usd: cost, reported_cost_usd: cost, max_budget_usd: 6, started: "2026-10-09T00:00:00.000Z", ...more });
+/** The twelve runs of one block, in their order. */
+const blockOf = (block) => order().filter((run) => run.block === block);
+/** Records put in the order's way as already made: a run with a result is a run that is recorded. */
+function inHand(p, runs, result = { ended_by: "the session" }) {
+  for (const run of runs) {
+    mkdirSync(join(p.recordRoot, run.name), { recursive: true });
+    writeFileSync(join(p.recordRoot, run.name, "result.json"), JSON.stringify(result), "utf8");
+  }
+}
+/** The value after a flag in the command the stand-in was started with. */
+const flagOf = (args, name) => args[args.indexOf(name) + 1];
+/** What a record of this check says of the short names of a model: three pinned as the profile pins them, `haiku` left to the harness. */
+const SHORT_NAMES = { pinned: { fable: "claude-opus-5-5", opus: "claude-opus-5-5", sonnet: "claude-sonnet-5-5" }, left_to_the_harness: ["haiku"], read_from: "the names of the variables the session was started with" };
 
 // ── the protocol's own words ─────────────────────────────────────────────
 
-test("the twelve runs, in the order the protocol gives", () => {
+test("the thirty-six runs: the twelve in the order the protocol gives, once for each block, each named with its block and recorded under it", () => {
+  const twelve = ["one/plain-1", "four/plain-1", "one/watched-1", "four/watched-1", "one/invited-1", "four/invited-1", "one/plain-2", "four/plain-2", "one/watched-2", "four/watched-2", "one/invited-2", "four/invited-2"];
+  // The blocks in the page's order, and the twelve whole in each before the next begins.
+  assert.ok(page.includes("the order is `sonnet`, `opus`, `haiku`"));
+  assert.deepEqual(BLOCKS, ["sonnet", "opus", "haiku"]);
   assert.deepEqual(
     order().map((run) => run.name),
-    ["one/plain-1", "four/plain-1", "one/watched-1", "four/watched-1", "one/invited-1", "four/invited-1", "one/plain-2", "four/plain-2", "one/watched-2", "four/watched-2", "one/invited-2", "four/invited-2"],
+    ["sonnet", "opus", "haiku"].flatMap((block) => twelve.map((name) => `${block}/${name}`)),
   );
-  // The page's own sentence, read from the page: the first six in its words, "then the same six again".
+  assert.ok(page.includes("\nThirty-six runs. "));
+  assert.deepEqual([order().length, new Set(order().map((run) => run.name)).size], [36, 36]);
+  assert.deepEqual([order()[0].name, order()[12].name, order()[17].name, order()[24].name, order()[35].name], ["sonnet/one/plain-1", "opus/one/plain-1", "opus/four/invited-1", "haiku/one/plain-1", "haiku/four/invited-2"]);
+  // The page's own sentence, read from the page: the first six in its words, "then the same six again". In every block.
   const said = /in this order: (.+?); then the same six again\./.exec(page)[1];
   const six = said.split(", ").map((part) => /^`(\w+)` (\w+)$/.exec(part).slice(1)).map(([task, arm]) => `${task}/${arm}`);
-  assert.deepEqual(order().slice(0, 6).map((run) => `${run.task}/${run.arm}`), six);
-  assert.deepEqual(order().slice(6).map((run) => `${run.task}/${run.arm}`), six);
-  assert.deepEqual([order().length, new Set(order().map((run) => run.name)).size], [12, 12]);
+  for (const block of BLOCKS) {
+    assert.equal(blockOf(block).length, 12, block);
+    assert.deepEqual(blockOf(block).slice(0, 6).map((run) => `${run.task}/${run.arm}`), six, block);
+    assert.deepEqual(blockOf(block).slice(6).map((run) => `${run.task}/${run.arm}`), six, block);
+    assert.deepEqual(blockOf(block).map((run) => run.replicate), [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2], block);
+  }
+  // A run's record: experiments/watching/<block>/<task>/<arm>-<n>, which is its name under the check's own folder.
+  assert.equal(recordOf(order()[17]), join(root, "experiments", "watching", "opus", "four", "invited-1"));
+  for (const run of order()) assert.deepEqual([recordOf(run, "/records"), run.name], [`/records/${run.block}/${run.task}/${run.arm}-${run.replicate}`, `${run.block}/${run.task}/${run.arm}-${run.replicate}`]);
+  assert.equal(new Set(order().map((run) => recordOf(run, "/records"))).size, 36, "no two runs share a folder");
   const top = mkdtempSync(join(tmpdir(), "watching-order-"));
   try {
-    assert.equal(nextRun(top).name, "one/plain-1");
-    for (const name of ["one/plain-1", "four/plain-1"]) {
+    assert.equal(nextRun(top).name, "sonnet/one/plain-1");
+    assert.deepEqual(BLOCKS.map((block) => nextRun(top, block).name), ["sonnet/one/plain-1", "opus/one/plain-1", "haiku/one/plain-1"], "the next run of a block is the first of that block with no record");
+    for (const name of ["sonnet/one/plain-1", "sonnet/four/plain-1"]) {
       mkdirSync(join(top, name), { recursive: true });
-      writeFileSync(join(top, name, "result.json"), JSON.stringify({ ended_by: name.startsWith("four") ? "the harness" : "the session", why: "no result from the harness (exit 1)" }), "utf8");
+      writeFileSync(join(top, name, "result.json"), JSON.stringify({ ended_by: name.includes("/four/") ? "the harness" : "the session", why: "no result from the harness (exit 1)" }), "utf8");
     }
-    assert.equal(nextRun(top).name, "one/watched-1", "a run the harness ended does not hold up the order: it waits for its one rerun");
+    assert.equal(nextRun(top).name, "sonnet/one/watched-1", "a run the harness ended does not hold up the order: it waits for its one rerun");
+    assert.deepEqual([nextRun(top, "sonnet").name, nextRun(top, "opus").name], ["sonnet/one/watched-1", "opus/one/plain-1"]);
     assert.deepEqual([stateOf(order()[0], top).state, stateOf(order()[1], top).state, stateOf(order()[2], top).state], ["recorded, not scored", "ended by the harness, and not yet run again", "not recorded"]);
+    // A record kept where the check as first written kept it, with no block above it, is no run's record.
+    mkdirSync(join(top, "one", "watched-1"), { recursive: true });
+    writeFileSync(join(top, "one", "watched-1", "result.json"), JSON.stringify({ ended_by: "the session" }), "utf8");
+    assert.equal(nextRun(top).name, "sonnet/one/watched-1");
   } finally {
     rmSync(top, { recursive: true, force: true });
   }
 });
 
-test("the two sentences, the model, the limits and the tasks are the page's, to the letter", () => {
+test("the two sentences, the three models, the limits and the tasks are the page's, to the letter", () => {
   assert.ok(page.includes(`\n> ${SUBAGENTS_SENTENCE}\n`), "the sentence every prompt ends its task with");
   assert.ok(page.includes(`\n> ${INVITATION}\n`), "the invitation");
-  assert.ok(page.includes("on Claude Sonnet 5.5 at high effort"));
-  assert.deepEqual(LEAD, { model: "claude-sonnet-5-5", effort: "high" });
+  // The three blocks and the model each one's session is asked for, from the page's own table: all at high effort.
+  assert.ok(page.includes("Every session is headless (`claude -p`), at high effort, on one of three models (below)"));
+  assert.ok(page.includes("| `sonnet` | Claude Sonnet 5.5 (`claude-sonnet-5-5`) |"));
+  assert.ok(page.includes("| `opus` | Claude Opus 5.5 (`claude-opus-5-5`) |"));
+  assert.ok(page.includes("| `haiku` | the harness's current Haiku, asked for by its short name |"));
+  assert.deepEqual(LEAD, { sonnet: { model: "claude-sonnet-5-5", effort: "high" }, opus: { model: "claude-opus-5-5", effort: "high" }, haiku: { model: "haiku", effort: "high" } });
+  assert.deepEqual(Object.keys(LEAD), BLOCKS);
+  assert.deepEqual(page.match(/^\| `\w+` \|/gm).map((row) => /`(\w+)`/.exec(row)[1]), BLOCKS, "the table's rows are the blocks, in their order");
   assert.deepEqual(ARMS, ["plain", "watched", "invited"]);
-  assert.ok(page.includes("A run of `one` stops at $2.00 or 15 minutes. A run of `four` stops at $6.00 or 40 minutes."));
-  assert.deepEqual(WATCHDOG, { one: { usd: 2, minutes: 15 }, four: { usd: 6, minutes: 40 } });
-  assert.ok(page.includes("The whole check stops at **$45.00** on a ledger of its own"));
-  assert.equal(STOPS_AT_USD, 45);
+  // The limits: the page's sentence, written out, and the same sentence made from the runner's numbers, so that neither moves without the other.
+  const limits = "A run of `one` stops at 25 minutes and a run of `four` at 60, and at a dollar ceiling that goes by its block: $2.00 and $6.00 on `sonnet`, $5.00 and $15.00 on `opus`, $1.00 and $3.00 on `haiku`.";
+  assert.ok(page.includes(limits));
+  assert.equal(`A run of \`one\` stops at ${WATCHDOG.sonnet.one.minutes} minutes and a run of \`four\` at ${WATCHDOG.sonnet.four.minutes}, and at a dollar ceiling that goes by its block: ${BLOCKS.map((block) => `$${WATCHDOG[block].one.usd.toFixed(2)} and $${WATCHDOG[block].four.usd.toFixed(2)} on \`${block}\``).join(", ")}.`, limits);
+  assert.deepEqual(WATCHDOG, {
+    sonnet: { one: { usd: 2, minutes: 25 }, four: { usd: 6, minutes: 60 } },
+    opus: { one: { usd: 5, minutes: 25 }, four: { usd: 15, minutes: 60 } },
+    haiku: { one: { usd: 1, minutes: 25 }, four: { usd: 3, minutes: 60 } },
+  });
+  for (const block of BLOCKS) assert.deepEqual([WATCHDOG[block].one.minutes, WATCHDOG[block].four.minutes], [25, 60], `${block}: the minutes go by the task, the same in every block`);
+  assert.ok(page.includes("The whole check stops at **$140.00** on a ledger of its own"));
+  assert.equal(STOPS_AT_USD, 140);
+  assert.ok(page.includes("The thirty-six ceilings add up to $192.00, more than the cap, on purpose"));
+  assert.equal(order().reduce((sum, run) => sum + WATCHDOG[run.block][run.task].usd, 0), 192);
+  // The one short name this check leaves to the harness, and the three the profile goes on pinning.
+  assert.ok(page.includes("The profile pins four short names of a model (`opus` and `fable` to Opus 5.5, `sonnet` to Sonnet 5.5, `haiku` to an older Haiku). A session of this check is started without the pin on `haiku`"));
+  assert.deepEqual(LEFT_TO_THE_HARNESS, ["haiku"]);
+  assert.deepEqual(Object.fromEntries(Object.entries(PINS).filter(([short]) => !LEFT_TO_THE_HARNESS.includes(short))), { fable: "claude-opus-5-5", opus: "claude-opus-5-5", sonnet: "claude-sonnet-5-5" });
   assert.ok(page.includes("`grooph_plan` and `grooph_note`, and every other tool of it withheld"));
   assert.deepEqual(OFFERED, ["grooph_plan", "grooph_note"]);
   assert.ok(page.includes("how many of the session's tool calls name `.grooph` or `.claude/settings.json`"));
@@ -304,7 +363,11 @@ test("the watched arm's folder is the plain arm's and what grooph hooks install 
 
 test("the ledger as the repository keeps it: the protocol's cap and ceilings, read by the runner, and the decision on scoring", () => {
   const kept = readLedger();
-  assert.deepEqual([kept.cap_usd, kept.watchdog.one, kept.watchdog.four], [45, { usd: 2, minutes: 15 }, { usd: 6, minutes: 40 }]);
+  assert.equal(kept.cap_usd, 140);
+  assert.deepEqual([kept.watchdog.sonnet, kept.watchdog.opus, kept.watchdog.haiku], [{ one: { usd: 2, minutes: 25 }, four: { usd: 6, minutes: 60 } }, { one: { usd: 5, minutes: 25 }, four: { usd: 15, minutes: 60 } }, { one: { usd: 1, minutes: 25 }, four: { usd: 3, minutes: 60 } }]);
+  assert.deepEqual(Object.fromEntries(BLOCKS.map((block) => [block, kept.watchdog[block]])), WATCHDOG, "each block's limits, as the runner holds them");
+  // The two numbers the paid path itself reads: the least that must be left is the smallest ceiling, the most one session is given the largest.
+  assert.deepEqual([kept.refuse_below_usd, kept.per_invocation_ceiling_usd], [1, 15]);
   assert.ok(Array.isArray(kept.invocations));
   assert.deepEqual(Object.keys(kept.scoring_outside_the_sandbox), ["about", "decided_by", "on", "words"]);
   // This is the one line that has to change, on purpose and in the same commit, when the owner's decision is written down.
@@ -316,7 +379,30 @@ test("the ledger as the repository keeps it: the protocol's cap and ceilings, re
     assert.throws(() => readLedger(path), notStarted(/could not be read \(.*ENOENT\)/));
     writeFileSync(path, "{ not json", "utf8");
     assert.throws(() => readLedger(path), notStarted(/could not be read/));
-    for (const [change, says] of [[{ cap_usd: 60 }, /its cap is 60, and the protocol's is 45/], [{ cap_usd: null }, /its cap is null/], [{ watchdog: { ...kept.watchdog, four: { usd: 9, minutes: 40 } } }, /its limits for a run of `four` are \{"usd":9,"minutes":40\}/], [{ watchdog: { one: kept.watchdog.one } }, /its limits for a run of `four` are null/], [{ invocations: null }, /it holds no list of invocations/], [{ per_invocation_ceiling_usd: 1 }, /the most it gives one session is 1, and the protocol's largest ceiling is 6/], [{ per_invocation_ceiling_usd: undefined }, /the most it gives one session is null/], [{ per_invocation_ceiling_usd: 9 }, /the most it gives one session is 9/], [{ refuse_below_usd: 6 }, /it refuses below 6, and the protocol's smallest ceiling is 2/], [{ refuse_below_usd: undefined }, /it refuses below null/], [{ invocations: [{ n: 1, status: "failed", cost_usd: null, max_budget_usd: null }] }, /its line 1 counts as no amount/], [{ invocations: [{ n: 2, status: "ok", cost_usd: -1, max_budget_usd: 2 }] }, /its line 2 counts as no amount/]]) {
+    const inBlock = (block, task, limit) => ({ watchdog: { ...kept.watchdog, [block]: { ...kept.watchdog[block], [task]: limit } } });
+    for (const [change, says] of [
+      [{ cap_usd: 60 }, /its cap is 60, and the protocol's is 140/],
+      [{ cap_usd: null }, /its cap is null/],
+      // The check as first written, before any run: its cap, its minutes, and its limits by the task alone.
+      [{ cap_usd: 45 }, /its cap is 45, and the protocol's is 140/],
+      [inBlock("sonnet", "one", { usd: 2, minutes: 15 }), /its limits for a run of `one` in the `sonnet` block are \{"usd":2,"minutes":15\}, and the protocol's are \$2\.00 and 25 minutes/],
+      [{ watchdog: { one: { usd: 2, minutes: 15 }, four: { usd: 6, minutes: 40 } } }, /its limits for a run of `one` in the `sonnet` block are null.*its limits for a run of `four` in the `haiku` block are null/],
+      // One block's ceiling moved, a block given another's, a task gone from a block, a block gone.
+      [inBlock("opus", "four", { usd: 20, minutes: 60 }), /its limits for a run of `four` in the `opus` block are \{"usd":20,"minutes":60\}, and the protocol's are \$15\.00 and 60 minutes/],
+      [{ watchdog: { ...kept.watchdog, haiku: kept.watchdog.sonnet } }, /its limits for a run of `one` in the `haiku` block are \{"usd":2,"minutes":25\}, and the protocol's are \$1\.00 and 25 minutes; its limits for a run of `four` in the `haiku` block are \{"usd":6,"minutes":60\}, and the protocol's are \$3\.00 and 60 minutes/],
+      [{ watchdog: { ...kept.watchdog, haiku: { one: kept.watchdog.haiku.one } } }, /its limits for a run of `four` in the `haiku` block are null/],
+      [{ watchdog: { sonnet: kept.watchdog.sonnet, haiku: kept.watchdog.haiku } }, /its limits for a run of `one` in the `opus` block are null/],
+      [{ invocations: null }, /it holds no list of invocations/],
+      [{ per_invocation_ceiling_usd: 1 }, /the most it gives one session is 1, and the protocol's largest ceiling is 15/],
+      [{ per_invocation_ceiling_usd: undefined }, /the most it gives one session is null/],
+      [{ per_invocation_ceiling_usd: 6 }, /the most it gives one session is 6/],
+      [{ per_invocation_ceiling_usd: 20 }, /the most it gives one session is 20/],
+      [{ refuse_below_usd: 6 }, /it refuses below 6, and the protocol's smallest ceiling is 1/],
+      [{ refuse_below_usd: 2 }, /it refuses below 2/],
+      [{ refuse_below_usd: undefined }, /it refuses below null/],
+      [{ invocations: [{ n: 1, status: "failed", cost_usd: null, max_budget_usd: null }] }, /its line 1 counts as no amount/],
+      [{ invocations: [{ n: 2, status: "ok", cost_usd: -1, max_budget_usd: 2 }] }, /its line 2 counts as no amount/],
+    ]) {
       writeFileSync(path, JSON.stringify({ ...kept, ...change }), "utf8");
       assert.throws(() => readLedger(path), notStarted(says), JSON.stringify(change));
     }
@@ -328,42 +414,63 @@ test("the ledger as the repository keeps it: the protocol's cap and ceilings, re
 });
 
 test("a run is not started unless the ledger has room for its ceiling: a settled run counts at its reported cost, an unsettled one at its ceiling", async () => {
-  const ledger = (lines) => ({ cap_usd: 45, invocations: lines });
-  const done = (cost) => ({ status: "ok", cost_usd: cost, max_budget_usd: 6 });
+  const ledger = (lines) => ({ cap_usd: 140, invocations: lines });
+  const done = (cost) => ({ status: "ok", cost_usd: cost, max_budget_usd: 15 });
   const open = (ceiling) => ({ status: "running", cost_usd: null, max_budget_usd: ceiling });
-  // The ceilings of the twelve add up to more than the cap. That is meant: the cap is what stops the check.
-  assert.equal(order().reduce((sum, run) => sum + WATCHDOG[run.task].usd, 0), 48);
-  assert.deepEqual([room(ledger([]), 6).ok, room(ledger([]), 6).left], [true, 45]);
-  // Settled at what the harness reported, not at the ceiling it had: eleven cheap runs leave room for the twelfth.
-  assert.deepEqual([room(ledger(Array(11).fill(done(0.4))), 6).ok, Math.round(room(ledger(Array(11).fill(done(0.4))), 6).spent * 100) / 100], [true, 4.4]);
-  // To the cent, for each kind of run: room for exactly its ceiling is room; a cent less is not.
-  assert.equal(room(ledger([done(39)]), 6).ok, true);
-  assert.equal(room(ledger([done(39.01)]), 6).ok, false);
-  assert.equal(room(ledger([done(39.01)]), 2).ok, true, "a run of `one` still fits where a run of `four` does not");
-  assert.equal(room(ledger([done(43)]), 2).ok, true);
-  assert.equal(room(ledger([done(43.01)]), 2).ok, false);
+  const ceiling = (run) => WATCHDOG[run.block][run.task].usd;
+  // The ceilings of the thirty-six add up to more than the cap. That is meant: the cap is what stops the check.
+  assert.equal(order().reduce((sum, run) => sum + ceiling(run), 0), 192);
+  assert.deepEqual(BLOCKS.map((block) => blockOf(block).reduce((sum, run) => sum + ceiling(run), 0)), [48, 120, 24], "six runs of each task in a block, at that block's two ceilings");
+  assert.deepEqual([room(ledger([]), 15).ok, room(ledger([]), 15).left], [true, 140]);
+  // Settled at what the harness reported, not at the ceiling it had: thirty-five cheap runs leave room for the thirty-sixth.
+  assert.deepEqual([room(ledger(Array(35).fill(done(0.4))), 3).ok, Math.round(room(ledger(Array(35).fill(done(0.4))), 3).spent * 100) / 100], [true, 14]);
+  // To the cent, for each of the six ceilings: room for exactly its ceiling is room; a cent less is not.
+  assert.deepEqual([...new Set(order().map(ceiling))].sort((a, b) => a - b), [1, 2, 3, 5, 6, 15]);
+  for (const usd of [1, 2, 3, 5, 6, 15]) {
+    assert.equal(room(ledger([done(140 - usd)]), usd).ok, true, `$${usd}`);
+    assert.equal(room(ledger([done(140 - usd + 0.01)]), usd).ok, false, `$${usd}, a cent short`);
+  }
+  assert.equal(room(ledger([done(125.01)]), 5).ok, true, "a run of `one` in the opus block still fits where a run of `four` does not");
+  assert.equal(room(ledger([done(137.5)]), 1).ok, true, "and a run of `one` in the haiku block where no run of the opus block does");
   // An unsettled line counts at its ceiling, whatever it may turn out to have cost.
-  assert.equal(room(ledger([done(34), open(6)]), 6).ok, false, "34 settled and 6 held for a run still open leave 5");
-  assert.equal(room(ledger([done(33), open(6)]), 6).ok, true);
-  assert.equal(room(ledger([done(34), { status: "failed", cost_usd: null, max_budget_usd: 6 }]), 6).ok, false, "a call that ended with no reported cost stays at its ceiling");
-  assert.equal(room(ledger([done(34), { status: "failed", cost_usd: 0, max_budget_usd: 6 }]), 6).ok, true, "a harness that could not be started spent nothing");
-  const refused = room(ledger([done(41.5)]), 6);
-  assert.match(refused.why, /has counted \$41\.50 on its ledger, and this run may cost up to \$6\.00: together past the \$45\.00 at which the whole check stops/);
+  assert.equal(room(ledger([done(120), open(15)]), 6).ok, false, "120 settled and 15 held for a run still open leave 5");
+  assert.equal(room(ledger([done(119), open(15)]), 6).ok, true);
+  assert.equal(room(ledger([done(120), { status: "failed", cost_usd: null, max_budget_usd: 15 }]), 6).ok, false, "a call that ended with no reported cost stays at its ceiling");
+  assert.equal(room(ledger([done(120), { status: "failed", cost_usd: 0, max_budget_usd: 15 }]), 6).ok, true, "a harness that could not be started spent nothing");
+  const refused = room(ledger([done(130.5)]), 15);
+  assert.match(refused.why, /has counted \$130\.50 on its ledger, and this run may cost up to \$15\.00: together past the \$140\.00 at which the whole check stops/);
+  // Were every run to cost its whole ceiling, the check would stop inside the opus block, at its tenth run: the
+  // twenty-second of the thirty-six, with $133.00 counted and no room for the $15.00 it may cost.
+  const atCeiling = [];
+  const stopsAt = order().find((run) => !room(ledger(atCeiling), ceiling(run)).ok || (atCeiling.push(done(ceiling(run))), false));
+  assert.deepEqual([stopsAt.name, atCeiling.length, room(ledger(atCeiling), 0).spent, room(ledger(atCeiling), ceiling(stopsAt)).left], ["opus/four/watched-2", 21, 133, 7]);
 
   // A paid run is refused by it before any folder is made, and no line is written; --status says so for the next run.
-  const p = place({ uses: [], cost: 0.1 }, { lines: [settled("watching/one/plain-1", 41.5)] });
+  const p = place({ uses: [], cost: 0.1 }, { lines: [settled("watching/sonnet/one/plain-1", 135.5)] });
   try {
-    mkdirSync(join(p.recordRoot, "one", "plain-1"), { recursive: true });
-    writeFileSync(join(p.recordRoot, "one", "plain-1", "result.json"), JSON.stringify({ ended_by: "the session" }), "utf8");
-    assert.equal(nextRun(p.recordRoot).name, "four/plain-1");
-    await assert.rejects(runOne(p.common), notStarted(/together past the \$45\.00 at which the whole check stops/));
+    inHand(p, [order()[0]]);
+    assert.equal(nextRun(p.recordRoot).name, "sonnet/four/plain-1");
+    await assert.rejects(runOne(p.sonnet), notStarted(/has counted \$135\.50 on its ledger, and this run may cost up to \$6\.00: together past the \$140\.00 at which the whole check stops/));
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length], [[], 1], "nothing was made and nothing was written");
     const said = status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot });
-    assert.match(said, /\$41\.50 counted of \$45\.00, in 1 line\(s\)/);
-    assert.match(said, /next: four\/plain-1, which may cost up to \$6\.00\nTHE LEDGER HAS NO ROOM FOR IT, and it would be refused: the watching check has counted \$41\.50/);
-    assert.match(status({ ledgerPath: p.ledgerPath, recordRoot: join(p.top, "no-records") }), /next: one\/plain-1, which may cost up to \$2\.00; the ledger has room for it \(\$3\.50 left\)/);
+    assert.match(said, /\$135\.50 counted of \$140\.00, in 1 line\(s\)/);
+    assert.match(said, /next: sonnet\/four\/plain-1 \(started with --block sonnet\), which may cost up to \$6\.00\nTHE LEDGER HAS NO ROOM FOR IT, and it would be refused: the watching check has counted \$135\.50/);
+    assert.match(status({ ledgerPath: p.ledgerPath, recordRoot: join(p.top, "no-records") }), /next: sonnet\/one\/plain-1 \(started with --block sonnet\), which may cost up to \$2\.00; the ledger has room for it \(\$4\.50 left\)/);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
+  }
+  // The room a run needs is its own block's ceiling: with $10.00 left, a run of `four` in the opus block is refused
+  // for want of $15.00, though a run of `four` in the sonnet block would have fitted.
+  const q = place({ uses: [], cost: 0.1 }, { lines: [settled("watching/sonnet/one/plain-1", 130)] });
+  try {
+    inHand(q, [...blockOf("sonnet"), blockOf("opus")[0]]);
+    assert.equal(nextRun(q.recordRoot, "opus").name, "opus/four/plain-1");
+    await assert.rejects(runOne({ ...q.common, block: "opus" }), notStarted(/has counted \$130\.00 on its ledger, and this run may cost up to \$15\.00: together past the \$140\.00/));
+    assert.deepEqual([readdirSync(q.at.work), q.ledger().invocations.length], [[], 1]);
+    assert.match(status({ ledgerPath: q.ledgerPath, recordRoot: q.recordRoot }), /next: opus\/four\/plain-1 \(started with --block opus\), which may cost up to \$15\.00\nTHE LEDGER HAS NO ROOM FOR IT/);
+    assert.equal(room(q.ledger(), WATCHDOG.sonnet.four.usd).ok, true);
+  } finally {
+    rmSync(q.top, { recursive: true, force: true });
   }
 });
 
@@ -374,34 +481,37 @@ test("no run starts without the first call's yes, the owner's decision on scorin
   const nothingMade = (why) => assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations, existsSync(p.recordRoot)], [[], [], false], why);
   try {
     // The first call's word comes first.
-    await assert.rejects(runOne({ ...p.common, firstCallGate: { ok: false, why: "the first paid call has no record" } }), notStarted(/the first paid call has no record/));
+    await assert.rejects(runOne({ ...p.sonnet, firstCallGate: { ok: false, why: "the first paid call has no record" } }), notStarted(/the first paid call has no record/));
     // Then the decision on scoring: the whole run is refused, since a run that cannot be scored is not paid for.
     const sentence = (error) => error instanceof NotStarted && error.message.includes(SCORING_RUNS_WHAT_A_SESSION_WROTE) && /no decision of his is recorded \(experiments\/watching\/ledger\.json, scoring_outside_the_sandbox/.test(error.message);
-    await assert.rejects(runOne(p.common), sentence);
-    assert.throws(() => scoreKept({ name: "one/plain-1", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), (error) => error instanceof NotScored && error.message.includes(SCORING_RUNS_WHAT_A_SESSION_WROTE));
+    await assert.rejects(runOne(p.sonnet), sentence);
+    assert.throws(() => scoreKept({ name: "sonnet/one/plain-1", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), (error) => error instanceof NotScored && error.message.includes(SCORING_RUNS_WHAT_A_SESSION_WROTE));
     nothingMade("refused before any folder is made");
     // A decision recorded for roles or information, in its own file, is not this check's: only the ledger's own fields are read.
     assert.match(SCORING_RUNS_WHAT_A_SESSION_WROTE, /runs the code the session wrote: outside the sandbox, with this account's rights/);
     const decided = { ...p.ledger(), scoring_outside_the_sandbox: DECISION };
     writeFileSync(p.ledgerPath, JSON.stringify(decided), "utf8");
     // The driver's words.
-    await assert.rejects(runOne({ ...p.common, go: undefined }), notStarted(/no word from the driver/));
+    await assert.rejects(runOne({ ...p.sonnet, go: undefined }), notStarted(/no word from the driver/));
     // The profile, a session of the game experiment, a work folder that is not empty.
-    await assert.rejects(runOne({ ...p.common, profileCheck: () => [{ what: "the profile is signed in", ok: false, how: "not signed in" }] }), notStarted(/the profile: the profile is signed in: not signed in/));
-    await assert.rejects(runOne({ ...p.common, gameOpen: ["123 claude --name arena-claude-a"] }), notStarted(/a session of the game experiment is open/));
+    await assert.rejects(runOne({ ...p.sonnet, profileCheck: () => [{ what: "the profile is signed in", ok: false, how: "not signed in" }] }), notStarted(/the profile: the profile is signed in: not signed in/));
+    await assert.rejects(runOne({ ...p.sonnet, gameOpen: ["123 claude --name arena-claude-a"] }), notStarted(/a session of the game experiment is open/));
     nothingMade("each of those took its folder away again");
     mkdirSync(join(p.at.work, "left-by-an-earlier-session"));
-    await assert.rejects(runOne(p.common), notStarted(/the profile's work folder is not empty/));
+    await assert.rejects(runOne(p.sonnet), notStarted(/the profile's work folder is not empty/));
     rmSync(join(p.at.work, "left-by-an-earlier-session"), { recursive: true });
-    // The ledger.
+    // The ledger: another cap, the cap and limits of the check as first written, no ledger at all.
     writeFileSync(p.ledgerPath, JSON.stringify({ ...decided, cap_usd: 100 }), "utf8");
-    await assert.rejects(runOne(p.common), notStarted(/is not what the protocol says: its cap is 100/));
+    await assert.rejects(runOne(p.sonnet), notStarted(/is not what the protocol says: its cap is 100/));
+    writeFileSync(p.ledgerPath, JSON.stringify({ ...decided, cap_usd: 45, refuse_below_usd: 2, per_invocation_ceiling_usd: 6, watchdog: { one: { usd: 2, minutes: 15 }, four: { usd: 6, minutes: 40 } } }), "utf8");
+    await assert.rejects(runOne(p.sonnet), notStarted(/is not what the protocol says: its cap is 45, and the protocol's is 140; its limits for a run of `one` in the `sonnet` block are null/));
     rmSync(p.ledgerPath);
-    await assert.rejects(runOne(p.common), notStarted(/ledger could not be read/));
+    await assert.rejects(runOne(p.sonnet), notStarted(/ledger could not be read/));
     writeFileSync(p.ledgerPath, JSON.stringify(decided), "utf8");
-    // A run is made once more only when the harness ended it, and only a run of the twelve.
-    await assert.rejects(runOne({ ...p.common, rerun: "one/steered-1" }), notStarted(/not a run of the watching check/));
-    await assert.rejects(runOne({ ...p.common, rerun: "one/plain-1" }), notStarted(/has no record the harness ended/));
+    // A run is made once more only when the harness ended it, and only a run of the thirty-six, named with its block.
+    await assert.rejects(runOne({ ...p.common, rerun: "sonnet/one/steered-1" }), notStarted(/not a run of the watching check/));
+    await assert.rejects(runOne({ ...p.common, rerun: "one/plain-1" }), notStarted(/"one\/plain-1" is not a run of the watching check: --rerun names one, such as sonnet\/one\/plain-1/));
+    await assert.rejects(runOne({ ...p.common, rerun: "sonnet/one/plain-1" }), notStarted(/has no record the harness ended/));
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations], [[], []]);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
@@ -419,14 +529,27 @@ test("on the command line: a flag it does not know, a paid run without both flag
     [["--next", "--go", "the driver's words"], /will not without --spend/],
     [words, /say which: --next .* None was given\. Nothing was started\./],
     [["--next", "--all", ...words], /More than one was given\. Nothing was started\./],
-    [["--run", "one/plain-1", ...words], /--run names a run for --dry-run only/],
-    [["--rerun", ...words], /--rerun names a run, such as one\/plain-1\. Nothing was started\./],
+    [["--run", "sonnet/one/plain-1", ...words], /--run names a run for --dry-run only/],
+    [["--rerun", ...words], /--rerun names a run, such as sonnet\/one\/plain-1\. Nothing was started\./],
     [["--score"], /--score names a run/],
+    // A block is started by name: with both flags and no block, neither the next run nor every run to come is started.
+    [["--next", ...words], /^say which block: --block sonnet, --block opus or --block haiku\. A block is started by name, by a person, in that order \(experiments\/watching\/README\.md, "Three models"\)\. Nothing was started\.$/m],
+    [["--all", ...words], /^say which block: --block sonnet, --block opus or --block haiku\./],
+    [["--next", "--block", "sonnet"], /will not without --spend and --go/],
+    [["--next", "--block", "mini", ...words], /--block names a block of the check: sonnet, opus, haiku\. Nothing was started\./],
+    [["--all", "--block", "claude-opus-5-5", ...words], /--block names a block of the check/],
+    [["--all", "--block", ...words], /--block names a block of the check/],
+    [["--dry-run", "--block", "all"], /--block names a block of the check/],
+    // A run's name carries its block, so a block is named only where no run is.
+    [["--rerun", "sonnet/one/plain-1", "--block", "sonnet", ...words], /--block does not go with --rerun: a run's name carries its block\. Nothing was started\./],
+    [["--dry-run", "--run", "opus/four/invited-1", "--block", "opus"], /--block does not go with --run: a run's name carries its block/],
     // One thing at a time: a flag that belongs to another thing is refused, so a dry run of a scoring is never a scoring.
-    [["--dry-run", "--score", "one/plain-1"], /--score does not go with --dry-run\. Nothing was started, and nothing a session wrote was run\./],
-    [["--score", "one/plain-1", "--spend"], /--score does not go with --spend/],
+    [["--dry-run", "--score", "sonnet/one/plain-1"], /--score does not go with --dry-run\. Nothing was started, and nothing a session wrote was run\./],
+    [["--score", "sonnet/one/plain-1", "--spend"], /--score does not go with --spend/],
+    [["--score", "sonnet/one/plain-1", "--block", "sonnet"], /--score does not go with --block/],
     [["--status", "--all"], /--status does not go with --all/],
-    [["--dry-run", "--rerun", "one/plain-1"], /--dry-run does not go with --rerun/],
+    [["--status", "--block", "opus"], /--status does not go with --block/],
+    [["--dry-run", "--rerun", "sonnet/one/plain-1"], /--dry-run does not go with --rerun/],
     [["--next", ...words, "--cost", "1"], /a paid run does not go with --cost/],
     [["--settle", "1", "--cost", "1", "--note", "what happened here", "--all"], /--settle does not go with --all/],
     [["--settle", "1", "--note", "what happened here"], /--cost is what the harness reported, in dollars, or the word ceiling/],
@@ -436,7 +559,7 @@ test("on the command line: a flag it does not know, a paid run without both flag
   }
   // As the repository stands, with no decision recorded, a scoring is refused and says what it would have run.
   if (!scoringDecided(readLedger()).ok) {
-    const out = ask("--score", "one/plain-1");
+    const out = ask("--score", "sonnet/one/plain-1");
     assert.deepEqual([out.status, out.stderr.includes(SCORING_RUNS_WHAT_A_SESSION_WROTE), out.stderr.includes("Nothing a session wrote was run.")], [64, true, true]);
   }
 });
@@ -638,23 +761,44 @@ test("the digest a record keeps is names: no command, no file, no prompt a subag
 // ── a run, start to record, with a stand-in for the harness ──────────────
 
 test("a dry run builds the folder, says what would be started and what would refuse it, and takes the folder away again", { skip: !built }, () => {
-  const p = place({ uses: [] }, { decided: false, lines: [settled("watching/one/plain-1", 44)] });
+  const p = place({ uses: [] }, { decided: false, lines: [settled("watching/sonnet/one/plain-1", 139)] });
   try {
     const stand = () => ({ claude: p.harness, refused: ["the first paid call has no record"] });
-    const text = dryRun({ run: order()[5], home: p.home, ledgerPath: p.ledgerPath, stand, node: "/a/node" });
-    assert.match(text, /^four\/invited-1\n/);
+    const text = dryRun({ run: order()[5], home: p.home, ledgerPath: p.ledgerPath, recordRoot: p.recordRoot, stand, node: "/a/node" });
+    assert.match(text, /^sonnet\/four\/invited-1\nthe block: sonnet: the session itself on claude-sonnet-5-5 at high effort\n/);
     assert.match(text, /would start, in .*\/work\/[0-9a-f]{8}\/packages:\n {2}\S*stand-in-harness -p <the prompt> --model claude-sonnet-5-5 --effort high --output-format json --max-budget-usd 6 --permission-mode dontAsk --allowedTools 'Edit\(\/\*\*\)' mcp__grooph__grooph_plan mcp__grooph__grooph_note --strict-mcp-config --mcp-config '\{"mcpServers":\{"grooph":\{"command":"\/a\/node","args":\[".*\/packages\/cli\/bin\/grooph\.js","mcp","--dir",".*\/packages"\]\}\}\}' --setting-sources user,project --no-chrome --disable-slash-commands --session-id '<a new id>' --disallowedTools 'Edit\(\/\/.*\/packages\/\.grooph\)' 'Edit\(\/\/.*\/packages\/\.grooph\/\*\*\)' mcp__grooph__grooph_running /);
     assert.match(text, /; \.grooph is closed to the session's writing, whole: the harness runs the hook outside the sandbox, and the hook appends under that folder with no check for a link/);
     assert.ok(text.includes(promptFor(order()[5]).replace(/^/gm, "  | ")), "the prompt is shown whole");
-    assert.match(text, /the watchdog: \$6\.00 and 40 minutes; the ledger has counted \$44\.00 of \$45\.00/);
-    assert.match(text, /a paid run would be refused:\n {2}- the first paid call has no record\n {2}- Scoring runs the repository's unseen suites .*\n {2}- the watching check has counted \$44\.00 on its ledger, and this run may cost up to \$6\.00/);
+    assert.match(text, /\nshort names of a model, in its environment: fable pinned to claude-opus-5-5, opus pinned to claude-opus-5-5, sonnet pinned to claude-sonnet-5-5; left to the harness: haiku\n/);
+    assert.match(text, /the watchdog: \$6\.00 and 60 minutes; the ledger has counted \$139\.00 of \$140\.00/);
+    assert.match(text, /a paid run would be refused:\n {2}- the first paid call has no record\n {2}- Scoring runs the repository's unseen suites .*\n {2}- the watching check has counted \$139\.00 on its ledger, and this run may cost up to \$6\.00/);
+    assert.ok(!/is not started while/.test(text), "the first block waits for no other");
     assert.match(text, /its own instructions are \d+ characters and first name one of the two tools at character \d+; the harness hands a session the first 2,048 of them at its start, by its documentation/);
     assert.match(text, /nothing was started\.$/);
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length, existsSync(p.recordRoot)], [[], 1, false], "the folder is gone, no line was written, no record was made");
-    const plain = dryRun({ run: order()[0], home: p.home, ledgerPath: p.ledgerPath, stand: () => ({ claude: p.harness, refused: [] }) });
+    const plain = dryRun({ run: order()[0], home: p.home, ledgerPath: p.ledgerPath, recordRoot: p.recordRoot, stand: () => ({ claude: p.harness, refused: [] }) });
     assert.match(plain, /the arm: plain: nothing of grooph is in the folder/);
-    assert.ok(!/--mcp-config|mcp__|--disallowedTools|grooph/i.test(plain.split("the prompt,")[0].split("would start")[1]), "the plain arm's command names no server, withholds nothing, closes nothing, and holds nothing of grooph");
+    assert.ok(!/--mcp-config|mcp__|--disallowedTools|grooph/i.test(plain.split("short names of a model")[0].split("would start")[1]), "the plain arm's command names no server, withholds nothing, closes nothing, and holds nothing of grooph");
     assert.deepEqual(readdirSync(p.at.work), []);
+    // A run of a later block: its own model and ceilings, and what holds its block up, said with the runs that do.
+    writeFileSync(p.ledgerPath, JSON.stringify({ ...p.ledger(), invocations: [], scoring_outside_the_sandbox: DECISION }), "utf8");
+    const none = () => ({ claude: p.harness, refused: [] });
+    const opus = dryRun({ run: order()[17], home: p.home, ledgerPath: p.ledgerPath, recordRoot: p.recordRoot, stand: none, node: "/a/node" });
+    assert.match(opus, /^opus\/four\/invited-1\nthe block: opus: the session itself on claude-opus-5-5 at high effort\n/);
+    assert.match(opus, /stand-in-harness -p <the prompt> --model claude-opus-5-5 --effort high --output-format json --max-budget-usd 15 /);
+    assert.match(opus, /the watchdog: \$15\.00 and 60 minutes; the ledger has counted \$0\.00 of \$140\.00/);
+    assert.match(opus, /a paid run would be refused:\n {2}- the `opus` block is not started while the `sonnet` block, which comes before it, has 12 runs with no record \(sonnet\/one\/plain-1, sonnet\/four\/plain-1, .*, sonnet\/four\/invited-2\): a block is started by a person, and the driver reads its records before the next is started \(experiments\/watching\/README\.md, "Three models"\)\nnothing was started\.$/);
+    const haiku = dryRun({ run: order()[24], home: p.home, ledgerPath: p.ledgerPath, recordRoot: p.recordRoot, stand: none });
+    assert.match(haiku, /^haiku\/one\/plain-1\nthe block: haiku: the session itself on haiku, asked for by its short name, at high effort\n/);
+    assert.match(haiku, /stand-in-harness -p <the prompt> --model haiku --effort high --output-format json --max-budget-usd 1 /);
+    assert.match(haiku, /the watchdog: \$1\.00 and 25 minutes; /);
+    assert.match(haiku, /left to the harness: haiku\n/);
+    assert.match(haiku, /- the `haiku` block is not started while the `sonnet` block, which comes before it, has 12 runs with no record/, "the first block that is short of a record is the one named");
+    // With the block before it recorded, nothing holds a block up.
+    inHand(p, blockOf("sonnet"));
+    assert.match(dryRun({ run: order()[12], home: p.home, ledgerPath: p.ledgerPath, recordRoot: p.recordRoot, stand: none }), /\nas things stand, a paid run would pass the gates before the ledger's\nnothing was started\.$/);
+    assert.match(dryRun({ run: order()[24], home: p.home, ledgerPath: p.ledgerPath, recordRoot: p.recordRoot, stand: none }), /- the `haiku` block is not started while the `opus` block, which comes before it, has 12 runs with no record/);
+    assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length], [[], 0]);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
@@ -666,42 +810,46 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
   const p = place({ uses: [work], cost: 0.31, model: "claude-sonnet-5-5" });
   // Only `one` is run here: the order is the runner's, so the records of `four` are put in its way as already made.
   const skipFour = () => {
-    const next = nextRun(p.recordRoot);
-    if (next?.task !== "four") return;
-    mkdirSync(join(p.recordRoot, next.task, `${next.arm}-${next.replicate}`), { recursive: true });
-    writeFileSync(join(p.recordRoot, next.task, `${next.arm}-${next.replicate}`, "result.json"), JSON.stringify({ ended_by: "the session" }), "utf8");
+    const next = nextRun(p.recordRoot, "sonnet");
+    if (next?.task === "four") inHand(p, [next]);
   };
   const record = (done, name) => JSON.parse(readFileSync(join(done.recordDir, name), "utf8"));
   try {
     // ── plain ──
-    const plain = await runOne(p.common);
-    assert.equal(plain.run.name, "one/plain-1");
+    const plain = await runOne(p.sonnet);
+    assert.equal(plain.run.name, "sonnet/one/plain-1");
+    assert.equal(plain.recordDir, join(p.recordRoot, "sonnet", "one", "plain-1"), "a run's record is kept under its block and its task");
+    assert.deepEqual([plain.result.run, plain.result.block, plain.result.task, plain.result.arm, plain.result.replicate], ["sonnet/one/plain-1", "sonnet", "one", "plain", 1]);
     assert.deepEqual([plain.result.ended_by, plain.result.problems, plain.result.scored, plain.result.scored_outside_the_sandbox_on], ["the session", [], true, DECISION]);
     assert.deepEqual(plain.score.packages.map((pkg) => [pkg.package, pkg.folder, pkg.passed, pkg.cases, pkg.scored_from]), [["printkit", ".", 70, 70, "experiments/comparisons/heterogeneous-critic/held-out"]], "the reference solution, scored from the repository's own suite");
     const { the_runners_checkout: checkedOut, ...givenPlain } = plain.result.given;
-    assert.deepEqual(givenPlain, { the_prompt_ends_with: [SUBAGENTS_SENTENCE], hook_installed: [], closed_to_the_session: [], server: null });
+    assert.deepEqual(givenPlain, { the_sessions_model: { block: "sonnet", asked_for: "claude-sonnet-5-5", effort: "high" }, short_names_of_a_model: SHORT_NAMES, the_prompt_ends_with: [SUBAGENTS_SENTENCE], hook_installed: [], closed_to_the_session: [], server: null });
     assert.ok((checkedOut.commit === null || /^[0-9a-f]{40}$/.test(checkedOut.commit)) && Number.isInteger(checkedOut.files_changed_since_it), "the record says which commit of this repository made the run");
     assert.equal(checkedOut.grooph_version, JSON.parse(readFileSync(join(root, "packages", "cli", "package.json"), "utf8")).version);
     assert.equal(plain.result.the_hooks_file_beside_the_transcripts, null);
     assert.deepEqual([plain.result.measures.subagents.count, plain.result.measures.session.tool_calls, plain.result.measures.session.cost_usd_as_the_harness_reports, plain.result.measures.the_two_tools.either_called], [0, { Write: 1 }, 0.31, false]);
+    assert.deepEqual(plain.result.measures.session.models_that_answered, ["claude-sonnet-5-5"], "the session's own model as it answered, by its transcript");
     assert.deepEqual([plain.result.measures.footprint.named_in_the_input.calls, plain.result.measures.footprint.shown_in_the_result.calls], [0, 0]);
     assert.deepEqual([plain.result.measures.given.tools_of_a_server_named_to_it, plain.result.measures.given.servers_whose_instructions_it_was_handed, plain.result.measures.given.instructions_it_was_handed], [[], [], []], "by the harness's own record, the plain arm was named no server's tool and handed no server's instructions");
     // What the stand-in was started with: the profile's command for this model and ceiling, and nothing of a server or a wall.
-    const flag = (args, name) => args[args.indexOf(name) + 1];
     let seen = p.seen();
-    assert.deepEqual([flag(seen.args, "--model"), flag(seen.args, "--effort"), flag(seen.args, "--max-budget-usd"), flag(seen.args, "--allowedTools"), flag(seen.args, "--setting-sources")], ["claude-sonnet-5-5", "high", "2", "Edit(/**)", "user,project"]);
+    assert.deepEqual([flagOf(seen.args, "--model"), flagOf(seen.args, "--effort"), flagOf(seen.args, "--max-budget-usd"), flagOf(seen.args, "--allowedTools"), flagOf(seen.args, "--setting-sources")], ["claude-sonnet-5-5", "high", "2", "Edit(/**)", "user,project"]);
+    assert.deepEqual(plain.result.watchdog, { usd: 2, minutes: 25, fired: null, is_not_a_graphs_stop: true }, "the first block's limits for a run of `one`");
     assert.equal(seen.args[1], promptFor(plain.run), "the prompt it was given is the run's");
     assert.ok(!seen.args.includes("--mcp-config") && !seen.args.includes("--disallowedTools"), "no server, nothing withheld, nothing closed");
     assert.ok(!seen.args.some((arg) => /grooph/i.test(arg)), "and no argument of the plain arm's command names grooph");
     assert.ok(!seen.environment.some((name) => /GROOPH/i.test(name)), "and nothing of grooph in its environment");
+    // The session was started with three short names pinned and `haiku` left to the harness, and its record says so.
+    assert.deepEqual(seen.environment.filter((name) => /^ANTHROPIC_DEFAULT_/.test(name)), ["ANTHROPIC_DEFAULT_FABLE_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL"]);
+    assert.deepEqual(plain.result.environment.filter((name) => /^ANTHROPIC_DEFAULT_/.test(name)), ["ANTHROPIC_DEFAULT_FABLE_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL"]);
     assert.deepEqual(readdirSync(plain.recordDir).sort(), ["claude-output.json", "claude-stderr.txt", "loaded.txt", "project.diff", "prompt.md", "result.json", "score.json", "settings.json", "transcript-digest.json"]);
     assert.equal(readFileSync(join(plain.recordDir, "prompt.md"), "utf8"), promptFor(plain.run));
     assert.deepEqual(record(plain, "settings.json").sandbox.filesystem.denyWrite, []);
     assert.deepEqual(record(plain, "transcript-digest.json")[0].tool_uses, [{ tool: "Write", at: "2026-10-05T00:00:00.000Z", refused: false }], "the digest is names: not the file a call named");
     assert.match(readFileSync(join(plain.recordDir, "project.diff"), "utf8"), /src\/parse-ranges\.mjs/);
     const [line] = p.ledger().invocations;
-    assert.deepEqual([line.run, line.status, line.cost_usd, line.max_budget_usd, line.session_id], ["watching/one/plain-1", "ok", 0.31, 2, plain.result.session_id]);
-    assert.match(line.note, /the watching check: one, plain; the driver's go: the driver said: run the watching check; ended by the session/);
+    assert.deepEqual([line.run, line.project, line.status, line.cost_usd, line.max_budget_usd, line.session_id], ["watching/sonnet/one/plain-1", "watching/sonnet/one", "ok", 0.31, 2, plain.result.session_id]);
+    assert.match(line.note, /the watching check: sonnet, one, plain; the driver's go: the driver said: run the watching check; ended by the session/);
     assert.deepEqual([readdirSync(p.at.work), existsSync(join(plain.kept, "work", "printkit", "src", "parse-ranges.mjs"))], [[], true], "the folder was moved aside, and the next starts with the work folder empty");
     assert.equal(waitsForAPerson(plain), null);
     assert.equal(stateOf(plain.run, p.recordRoot).state, "recorded and scored");
@@ -712,10 +860,10 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     const agentUse = { tool: "Agent", input: { subagent_type: "general-purpose", description: "A DESCRIPTION", prompt: "SECRET-PROMPT", model: "haiku" }, result: "done", meta: { toolUseId: "<use>", spawnDepth: 1, requestShape: "background", model: "haiku" }, subagent_uses: [{ tool: "Edit", input: { file_path: "src/parse-ranges.mjs" }, result: "ok" }], writes: { ".grooph/events/<session>.jsonl": hook("session-start", { cwd: "/a/folder" }) + hook("subagent-start", { agent: "1", type: "general-purpose" }) + hook("tool", { tool: "Agent", spawned: "1" }) + hook("subagent-stop", { agent: "1", type: "general-purpose" }) + hook("turn-end") } };
     const looked = { tool: "Bash", input: { command: "git status --short" }, result: "?? .grooph/events/\n?? src/parse-ranges.mjs" };
     p.setPlan({ uses: [work, agentUse, looked], cost: 0.4, model: "claude-sonnet-5-5", sub_model: "claude-haiku-4-5-20251001", denials: [{ tool_name: "Bash", tool_use_id: "use-9", tool_input: { command: "A COMMAND THE HARNESS DENIED" } }] });
-    const watched = await runOne(p.common);
-    assert.equal(watched.run.name, "one/watched-1");
+    const watched = await runOne(p.sonnet);
+    assert.equal(watched.run.name, "sonnet/one/watched-1");
     assert.deepEqual([watched.result.ended_by, watched.result.problems, watched.score.packages[0].passed], ["the session", [], 70]);
-    assert.deepEqual({ ...watched.result.given, the_runners_checkout: null }, { the_runners_checkout: null, the_prompt_ends_with: [SUBAGENTS_SENTENCE], hook_installed: HOOK_FILES, closed_to_the_session: [".grooph"], server: null });
+    assert.deepEqual({ ...watched.result.given, the_runners_checkout: null }, { the_runners_checkout: null, the_sessions_model: { block: "sonnet", asked_for: "claude-sonnet-5-5", effort: "high" }, short_names_of_a_model: SHORT_NAMES, the_prompt_ends_with: [SUBAGENTS_SENTENCE], hook_installed: HOOK_FILES, closed_to_the_session: [".grooph"], server: null });
     seen = p.seen();
     assert.equal(seen.args[1], promptFor(plain.run), "the watched arm's prompt is the plain arm's, to the letter");
     assert.ok(!seen.args.includes("--mcp-config"));
@@ -741,21 +889,21 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     assert.equal(output.result, "done", "the rest of the harness's output is as it was");
     assert.deepEqual(watched.result.measures.session.calls_the_harness_reports_it_denied, { Bash: 1 });
     assert.ok(readFileSync(join(watched.kept, "work", "harness", "claude-output.json"), "utf8").includes("A COMMAND THE HARNESS DENIED"), "the harness's own output is whole on the machine, where the runner moved it");
-    assert.equal(p.ledger().invocations.at(-1).run, "watching/one/watched-1");
+    assert.equal(p.ledger().invocations.at(-1).run, "watching/sonnet/one/watched-1");
     skipFour();
 
     // ── invited ── The session said what it intended through the two tools.
     const planned = { tool: "mcp__grooph__grooph_plan", input: { title: "Page ranges", agents: [{ type: "general-purpose", purpose: "the tests" }] }, result: "Plan recorded" };
     const noted = { tool: "mcp__grooph__grooph_note", input: { text: "One subagent for the tests." }, result: "Noted.", writes: { ".grooph/events/said-<session>.jsonl": hook("note", { text: "One subagent for the tests." }) } };
     p.setPlan({ uses: [planned, agentUse, noted, work], cost: 0.5, model: "claude-sonnet-5-5", servers: ["grooph"], deferred: ["mcp__grooph__grooph_plan", "mcp__grooph__grooph_note"] });
-    const invited = await runOne({ ...p.common, node: "/a/node" });
-    assert.equal(invited.run.name, "one/invited-1");
+    const invited = await runOne({ ...p.sonnet, node: "/a/node" });
+    assert.equal(invited.run.name, "sonnet/one/invited-1");
     assert.deepEqual([invited.result.ended_by, invited.result.problems, invited.score.packages[0].passed], ["the session", [], 70]);
     seen = p.seen();
     assert.equal(seen.args[1], `${promptFor(plain.run)}\n${INVITATION}\n`);
     const allowedAt = seen.args.indexOf("--allowedTools");
     assert.deepEqual(seen.args.slice(allowedAt + 1, allowedAt + 4), ["Edit(/**)", "mcp__grooph__grooph_plan", "mcp__grooph__grooph_note"], "the two tools are allowed, and nothing else is added");
-    const server = JSON.parse(flag(seen.args, "--mcp-config"));
+    const server = JSON.parse(flagOf(seen.args, "--mcp-config"));
     assert.deepEqual(Object.keys(server.mcpServers), ["grooph"]);
     assert.deepEqual([server.mcpServers.grooph.command, server.mcpServers.grooph.args.slice(0, 3)], ["/a/node", [CLI, "mcp", "--dir"]]);
     assert.match(server.mcpServers.grooph.args[3], /\/work\/[0-9a-f]{8}\/printkit$/, "the server is given the session's own folder");
@@ -773,39 +921,53 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     assert.deepEqual([invited.result.measures.given.tools_of_a_server_named_to_it, invited.result.measures.given.servers_whose_instructions_it_was_handed], [["mcp__grooph__grooph_note", "mcp__grooph__grooph_plan"], ["grooph"]]);
     assert.deepEqual(readdirSync(join(invited.recordDir, "events")).sort(), [`${invited.result.session_id}.jsonl`, `said-${invited.result.session_id}.jsonl`].sort());
     assert.deepEqual([invited.result.the_hooks_file_beside_the_transcripts.files_of_what_was_said, invited.result.the_hooks_file_beside_the_transcripts.a_file_of_what_was_said_under_this_sessions_id], [1, true]);
-    assert.deepEqual(p.ledger().invocations.map((entry) => entry.run), ["watching/one/plain-1", "watching/one/watched-1", "watching/one/invited-1"]);
+    assert.deepEqual(p.ledger().invocations.map((entry) => entry.run), ["watching/sonnet/one/plain-1", "watching/sonnet/one/watched-1", "watching/sonnet/one/invited-1"]);
+    assert.deepEqual(p.seen().environment.filter((name) => /^ANTHROPIC_DEFAULT_/.test(name)), ["ANTHROPIC_DEFAULT_FABLE_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL"], "a server changes nothing of that");
     assert.deepEqual(readdirSync(p.at.work), []);
     skipFour();
 
     // ── a run the harness ended is recorded, not scored, and stops what comes after it; it is made once more, once ──
     p.setPlan({ no_output: true });
-    const dead = await runOne(p.common);
-    assert.equal(dead.run.name, "one/plain-2");
+    const dead = await runOne(p.sonnet);
+    assert.equal(dead.run.name, "sonnet/one/plain-2");
     assert.deepEqual([dead.result.ended_by, dead.score, dead.result.scored, existsSync(join(dead.recordDir, "score.json"))], ["the harness", null, false, false]);
     assert.equal(waitsForAPerson(dead), "the harness ended it");
     assert.equal(stateOf(dead.run, p.recordRoot).state, "ended by the harness, and not yet run again");
-    assert.throws(() => scoreKept({ name: "one/plain-2", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /such a run is not scored/);
-    await assert.rejects(runOne({ ...p.common, rerun: "one/plain-1" }), notStarted(/has no record the harness ended/));
+    assert.throws(() => scoreKept({ name: "sonnet/one/plain-2", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /such a run is not scored/);
+    await assert.rejects(runOne({ ...p.common, rerun: "sonnet/one/plain-1" }), notStarted(/has no record the harness ended/));
+    // A run made once more is named whole, its block in its name: a block named beside it is refused, whichever it is.
+    await assert.rejects(runOne({ ...p.sonnet, rerun: "sonnet/one/plain-2" }), notStarted(/--rerun names its run whole, its block in its name \(sonnet\/one\/plain-1\): --block does not go with it/));
     p.setPlan({ uses: [], cost: 0.2 });
-    const again = await runOne({ ...p.common, rerun: "one/plain-2" });
-    assert.ok(again.recordDir.endsWith(join("one", "plain-2-rerun")));
-    assert.deepEqual([again.result.rerun_of, again.result.ended_by], ["one/plain-2", "the session"]);
+    const again = await runOne({ ...p.common, rerun: "sonnet/one/plain-2" });
+    assert.equal(again.recordDir, join(p.recordRoot, "sonnet", "one", "plain-2-rerun"));
+    assert.deepEqual([again.result.rerun_of, again.result.block, again.result.ended_by], ["sonnet/one/plain-2", "sonnet", "the session"]);
     assert.match(again.result.rerun_because, /no result from the harness/, "the reason is written beside it");
     assert.match(p.ledger().invocations.at(-1).note, /the one rerun of a run the harness ended \(no result from the harness/);
-    assert.equal(p.ledger().invocations.at(-1).run, "watching/one/plain-2-rerun");
+    assert.equal(p.ledger().invocations.at(-1).run, "watching/sonnet/one/plain-2-rerun");
+    assert.deepEqual([flagOf(p.seen().args, "--model"), flagOf(p.seen().args, "--max-budget-usd"), again.result.watchdog.minutes], ["claude-sonnet-5-5", "2", 25], "under its own block's model and limits");
     assert.ok(again.score.packages[0].passed < 70, "a folder with no work in it does not pass the suite");
     assert.deepEqual([stateOf(dead.run, p.recordRoot).state, stateOf(dead.run, p.recordRoot).from], ["recorded and scored", "its rerun"]);
-    await assert.rejects(runOne({ ...p.common, rerun: "one/plain-2" }), notStarted(/was already run once more/));
+    await assert.rejects(runOne({ ...p.common, rerun: "sonnet/one/plain-2" }), notStarted(/was already run once more/));
 
     // A score that is not there is not a score of nothing: it can be made again from the packages the runner kept.
     rmSync(join(again.recordDir, "score.json"));
     assert.equal(stateOf(dead.run, p.recordRoot).state, "recorded, not scored");
-    const rescored = scoreKept({ name: "one/plain-2-rerun", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot });
+    const rescored = scoreKept({ name: "sonnet/one/plain-2-rerun", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot });
     assert.deepEqual([rescored.score.packages[0].passed, rescored.score.scored_afterwards_from, rescored.score.scored_outside_the_sandbox_on], [again.score.packages[0].passed, "the packages as the runner kept them", DECISION]);
-    assert.throws(() => scoreKept({ name: "one/plain-2-rerun", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /already scored/);
-    assert.throws(() => scoreKept({ name: "nine/plain-1", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /not a run of the watching check/);
-    assert.throws(() => scoreKept({ name: "one/watched-2", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /has no record/);
-    assert.match(status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }), /one\/plain-2 +recorded and scored: ended by the session \(its rerun\); printkit \d+\/70/);
+    assert.equal(rescored.recordDir, again.recordDir);
+    assert.throws(() => scoreKept({ name: "sonnet/one/plain-2-rerun", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /already scored/);
+    assert.throws(() => scoreKept({ name: "sonnet/nine/plain-1", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /not a run of the watching check/);
+    assert.throws(() => scoreKept({ name: "one/plain-2-rerun", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /"one\/plain-2-rerun" is not a run of the watching check: --score names one, such as sonnet\/one\/plain-1 or sonnet\/one\/plain-1-rerun/, "a name with no block is no run's");
+    assert.throws(() => scoreKept({ name: "sonnet/one/watched-2", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /has no record/);
+    assert.throws(() => scoreKept({ name: "opus/one/plain-1", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /has no record/, "the same task and arm in another block is another run");
+    const said = status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot });
+    assert.match(said, /\n {2}sonnet\/one\/plain-2 +recorded and scored: ended by the session \(its rerun\); printkit \d+\/70\n/);
+    // The three blocks, each with its model, its limits and how far it is; the two after the first wait for it.
+    assert.match(said, /\nthe thirty-six runs, in three blocks of twelve, in their order \(7 recorded\):\nthe sonnet block, the session itself on claude-sonnet-5-5 at high effort \(7 of 12 recorded; a run of `one` stops at \$2\.00 or 25 minutes, a run of `four` stops at \$6\.00 or 60 minutes\):\n/);
+    assert.match(said, /\nthe opus block, the session itself on claude-opus-5-5 at high effort \(0 of 12 recorded; a run of `one` stops at \$5\.00 or 25 minutes, a run of `four` stops at \$15\.00 or 60 minutes\); not started while the sonnet block has 5 runs with no record:\n {2}opus\/one\/plain-1 +not recorded\n/);
+    assert.match(said, /\nthe haiku block, the session itself on haiku at high effort \(0 of 12 recorded; a run of `one` stops at \$1\.00 or 25 minutes, a run of `four` stops at \$3\.00 or 60 minutes\); not started while the sonnet block has 5 runs with no record:\n/);
+    assert.equal(said.split("\n").filter((line) => /^ {2}(sonnet|opus|haiku)\//.test(line)).length, 36, "a line for each of the thirty-six");
+    assert.match(said, /\nnext: sonnet\/four\/plain-2 \(started with --block sonnet\), which may cost up to \$6\.00; the ledger has room for it/);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
@@ -818,18 +980,19 @@ test("the wide task, with a stand-in for the harness: four packages scored one b
   const own = JSON.stringify({ name: "settingskit", type: "module", scripts: { test: "node -e \"require('node:fs').writeFileSync('run-by-the-scorer.txt', 'x')\"" } });
   const p = place({ uses: [{ tool: "Write", input: { file_path: "settingskit/src/layer.mjs" }, result: "ok", writes: { "settingskit/src/layer.mjs": layer, "settingskit/package.json": own } }], cost: 1.2, model: "claude-sonnet-5-5" });
   try {
-    mkdirSync(join(p.recordRoot, "one", "plain-1"), { recursive: true });
-    writeFileSync(join(p.recordRoot, "one", "plain-1", "result.json"), JSON.stringify({ ended_by: "the session" }), "utf8");
-    const four = await runOne(p.common);
-    assert.equal(four.run.name, "four/plain-1");
+    inHand(p, [order()[0]]);
+    const four = await runOne(p.sonnet);
+    assert.equal(four.run.name, "sonnet/four/plain-1");
+    assert.equal(four.recordDir, join(p.recordRoot, "sonnet", "four", "plain-1"));
     assert.deepEqual(four.result.problems, []);
     assert.deepEqual(four.score.packages.map((pkg) => [pkg.package, pkg.folder, pkg.scored_from]), TASKS.four.packages.map((pkg) => [pkg.name, pkg.folder, `experiments/comparisons/${pkg.project}/held-out`]));
     assert.deepEqual(four.score.packages.map((pkg) => pkg.cases), [55, 88, 73, 62]);
     assert.equal(four.score.packages[0].passed, 55, "the one package whose work was done passes its suite");
     assert.ok(four.score.packages.slice(1).every((pkg) => pkg.passed < pkg.cases), "and the three with no work in them do not");
     assert.ok(!existsSync(join(four.kept, "work", "packages", "settingskit", "run-by-the-scorer.txt")), "a package's own test command, which a session can make anything, is not run by the scorer");
-    assert.deepEqual([p.ledger().invocations[0].run, p.ledger().invocations[0].max_budget_usd], ["watching/four/plain-1", 6]);
+    assert.deepEqual([p.ledger().invocations[0].run, p.ledger().invocations[0].max_budget_usd], ["watching/sonnet/four/plain-1", 6]);
     assert.equal(p.seen().args[p.seen().args.indexOf("--max-budget-usd") + 1], "6");
+    assert.deepEqual([four.result.watchdog.usd, four.result.watchdog.minutes], [6, 60], "the first block's limits for a run of `four`");
     assert.equal(p.seen().args[1], promptFor(four.run));
 
     // A package's folder that is gone, or is no longer a folder, is not run at all and passes nothing.
@@ -849,48 +1012,150 @@ test("the wide task, with a stand-in for the harness: four packages scored one b
   }
 });
 
-test("every run still to come, one at a time: it stops at the first run the harness ended and at the first refusal, and starts nothing after either", { skip: !built }, async () => {
-  const inHand = (p, runs) => {
-    for (const run of runs) {
-      mkdirSync(join(p.recordRoot, run.name), { recursive: true });
-      writeFileSync(join(p.recordRoot, run.name, "result.json"), JSON.stringify({ ended_by: "the session" }), "utf8");
-    }
-  };
-  // The last three of the twelve, each in its turn, and then nothing is left to start.
+test("every run of a block still to come, one at a time: it stops at the first run the harness ended and at the first refusal, starts nothing after either, and never goes on into the next block", { skip: !built }, async () => {
+  // The last three of the first block's twelve, each in its turn, and then nothing of that block is left to start.
   const p = place({ uses: [], cost: 0.2 });
   try {
-    inHand(p, order().slice(0, 9));
+    inHand(p, blockOf("sonnet").slice(0, 9));
     const told = [];
-    const all = await runAll({ ...p.common, each: (done) => told.push(done.run.name) });
-    assert.deepEqual([all.done.map((done) => done.run.name), all.stopped, told], [["four/watched-2", "one/invited-2", "four/invited-2"], null, ["four/watched-2", "one/invited-2", "four/invited-2"]]);
-    assert.deepEqual(p.ledger().invocations.map((entry) => [entry.run, entry.max_budget_usd, entry.status]), [["watching/four/watched-2", 6, "ok"], ["watching/one/invited-2", 2, "ok"], ["watching/four/invited-2", 6, "ok"]]);
-    assert.equal(nextRun(p.recordRoot), null);
-    assert.deepEqual(await runAll(p.common), { done: [], stopped: null }, "with every run recorded there is nothing to start");
-    await assert.rejects(runOne(p.common), notStarted(/every run of the watching check is recorded/));
-    assert.equal(p.ledger().invocations.length, 3);
+    const all = await runAll({ ...p.sonnet, each: (done) => told.push(done.run.name) });
+    assert.deepEqual([all.done.map((done) => done.run.name), all.stopped, told], [["sonnet/four/watched-2", "sonnet/one/invited-2", "sonnet/four/invited-2"], null, ["sonnet/four/watched-2", "sonnet/one/invited-2", "sonnet/four/invited-2"]]);
+    assert.deepEqual(p.ledger().invocations.map((entry) => [entry.run, entry.max_budget_usd, entry.status]), [["watching/sonnet/four/watched-2", 6, "ok"], ["watching/sonnet/one/invited-2", 2, "ok"], ["watching/sonnet/four/invited-2", 6, "ok"]]);
+    // The block is done and the check is not: the next block has every run still to come, and none of it was started.
+    assert.deepEqual([nextRun(p.recordRoot, "sonnet"), nextRun(p.recordRoot).name, all.done.at(-1).next], [null, "opus/one/plain-1", null]);
+    assert.deepEqual(await runAll(p.sonnet), { done: [], stopped: null }, "with every run of the block recorded there is nothing to start");
+    await assert.rejects(runOne(p.sonnet), notStarted(/every run of the `sonnet` block is recorded/));
+    assert.deepEqual([p.ledger().invocations.length, existsSync(join(p.recordRoot, "opus"))], [3, false]);
+    // The next block, by its own name: its last two runs, under its own ceilings, and nothing of the block after it.
+    inHand(p, blockOf("opus").slice(0, 10));
+    const opus = await runAll({ ...p.common, block: "opus" });
+    assert.deepEqual([opus.done.map((done) => done.run.name), opus.stopped], [["opus/one/invited-2", "opus/four/invited-2"], null]);
+    assert.deepEqual(p.ledger().invocations.slice(3).map((entry) => [entry.run, entry.max_budget_usd, entry.status]), [["watching/opus/one/invited-2", 5, "ok"], ["watching/opus/four/invited-2", 15, "ok"]]);
+    assert.deepEqual([nextRun(p.recordRoot, "opus"), nextRun(p.recordRoot).name, existsSync(join(p.recordRoot, "haiku"))], [null, "haiku/one/plain-1", false]);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
   // A run the harness ended stops it: the run after is not started.
   const q = place({ no_output: true });
   try {
-    inHand(q, order().slice(0, 10));
-    const all = await runAll(q.common);
-    assert.deepEqual([all.done.map((done) => done.run.name), all.stopped], [["one/invited-2"], { after: "one/invited-2", why: "the harness ended it", by_the_harness: true }]);
-    assert.deepEqual([q.ledger().invocations.length, nextRun(q.recordRoot).name, readdirSync(q.at.work)], [1, "four/invited-2", []], "one line, and the next run still to come");
+    inHand(q, blockOf("sonnet").slice(0, 10));
+    const all = await runAll(q.sonnet);
+    assert.deepEqual([all.done.map((done) => done.run.name), all.stopped], [["sonnet/one/invited-2"], { after: "sonnet/one/invited-2", why: "the harness ended it", by_the_harness: true }]);
+    assert.deepEqual([q.ledger().invocations.length, nextRun(q.recordRoot).name, readdirSync(q.at.work)], [1, "sonnet/four/invited-2", []], "one line, and the next run still to come");
   } finally {
     rmSync(q.top, { recursive: true, force: true });
   }
   // A refusal stops it: the ledger had room for the first of the two and has none for the second.
-  const r = place({ uses: [], cost: 0.2 }, { lines: [settled("watching/one/plain-1", 39.5)] });
+  const r = place({ uses: [], cost: 0.2 }, { lines: [settled("watching/sonnet/one/plain-1", 134.5)] });
   try {
-    inHand(r, order().slice(0, 10));
+    inHand(r, blockOf("sonnet").slice(0, 10));
     const told = [];
-    await assert.rejects(runAll({ ...r.common, each: (done) => told.push(done.run.name) }), notStarted(/has counted \$39\.70 on its ledger, and this run may cost up to \$6\.00: together past the \$45\.00/));
-    assert.deepEqual([told, r.ledger().invocations.length, nextRun(r.recordRoot).name, readdirSync(r.at.work)], [["one/invited-2"], 2, "four/invited-2", []], "what was done before the refusal was said, and nothing was started after it");
+    await assert.rejects(runAll({ ...r.sonnet, each: (done) => told.push(done.run.name) }), notStarted(/has counted \$134\.70 on its ledger, and this run may cost up to \$6\.00: together past the \$140\.00/));
+    assert.deepEqual([told, r.ledger().invocations.length, nextRun(r.recordRoot).name, readdirSync(r.at.work)], [["sonnet/one/invited-2"], 2, "sonnet/four/invited-2", []], "what was done before the refusal was said, and nothing was started after it");
   } finally {
     rmSync(r.top, { recursive: true, force: true });
   }
+});
+
+test("a block is started by name: none with no block named, none while a block before it has a run with no record, and each on its own model under its own ceilings", { skip: !built }, async () => {
+  const p = place({ uses: [{ tool: "Bash", input: { command: "true" }, result: "" }], cost: 0.2, model: "claude-opus-5-5" });
+  const nothingMade = (why) => assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations, existsSync(p.recordRoot)], [[], [], false], why);
+  const pins = (environment) => environment.filter((name) => /^ANTHROPIC_DEFAULT_/.test(name));
+  try {
+    // What was asked comes first: a paid run names its block, and a name that is no block's is none.
+    await assert.rejects(runOne(p.common), notStarted(/no block was named: say which block: --block sonnet, --block opus or --block haiku\. A block is started by name, by a person, in that order/));
+    await assert.rejects(runOne({ ...p.common, block: "mini" }), notStarted(/"mini" is not a block of the watching check: say which block/));
+    await assert.rejects(runOne({ ...p.common, block: "claude-opus-5-5" }), notStarted(/is not a block of the watching check/));
+    await assert.rejects(runAll(p.common), notStarted(/no block was named: say which block/));
+    await assert.rejects(runAll({ ...p.common, block: "all" }), notStarted(/"all" is not a block of the watching check/));
+    // Said whatever the gates hold: before the first call's word is looked at.
+    await assert.rejects(runOne({ ...p.common, firstCallGate: { ok: false, why: "the first paid call has no record" } }), notStarted(/no block was named/));
+
+    // With nothing recorded, the first block waits for no other, and the two after it wait for its twelve.
+    assert.equal(heldUpBy("sonnet", p.recordRoot), null);
+    assert.deepEqual([heldUpBy("opus", p.recordRoot).block, heldUpBy("opus", p.recordRoot).runs], ["sonnet", blockOf("sonnet").map((run) => run.name)]);
+    assert.deepEqual([heldUpBy("haiku", p.recordRoot).block, heldUpBy("haiku", p.recordRoot).runs.length], ["sonnet", 12], "the first block that is short of a record is the one named");
+    await assert.rejects(runOne({ ...p.common, block: "opus" }), notStarted(/the `opus` block is not started while the `sonnet` block, which comes before it, has 12 runs with no record \(sonnet\/one\/plain-1, sonnet\/four\/plain-1, .*, sonnet\/four\/invited-2\): a block is started by a person, and the driver reads its records before the next is started \(experiments\/watching\/README\.md, "Three models"\)/));
+    await assert.rejects(runAll({ ...p.common, block: "opus" }), notStarted(/the `opus` block is not started while the `sonnet` block/));
+    await assert.rejects(runOne({ ...p.common, block: "haiku" }), notStarted(/the `haiku` block is not started while the `sonnet` block, which comes before it, has 12 runs with no record/));
+    await assert.rejects(runAll({ ...p.common, block: "haiku" }), notStarted(/the `haiku` block is not started while the `sonnet` block/));
+    nothingMade("each was refused before any folder was made or any line written");
+
+    // All but two of the first block recorded, then all but one: still held, and which runs is said.
+    inHand(p, blockOf("sonnet").slice(0, 10));
+    await assert.rejects(runOne({ ...p.common, block: "opus" }), notStarted(/while the `sonnet` block, which comes before it, has 2 runs with no record \(sonnet\/one\/invited-2, sonnet\/four\/invited-2\)/));
+    inHand(p, [blockOf("sonnet")[10]]);
+    await assert.rejects(runOne({ ...p.common, block: "opus" }), notStarted(/while the `sonnet` block, which comes before it, has a run with no record \(sonnet\/four\/invited-2\)/));
+    await assert.rejects(runAll({ ...p.common, block: "haiku" }), notStarted(/while the `sonnet` block, which comes before it, has a run with no record \(sonnet\/four\/invited-2\)/));
+    assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations], [[], []]);
+    // A run the harness ended has a record. It holds nothing up, in a block as in the order: it waits for its one rerun.
+    inHand(p, [blockOf("sonnet")[11]], { ended_by: "the harness", why: "no result from the harness (exit 1)" });
+    assert.deepEqual([heldUpBy("opus", p.recordRoot), stateOf(blockOf("sonnet")[11], p.recordRoot).state], [null, "ended by the harness, and not yet run again"]);
+    // The third block now waits for the second, and for all of it.
+    assert.deepEqual([heldUpBy("haiku", p.recordRoot).block, heldUpBy("haiku", p.recordRoot).runs.length], ["opus", 12]);
+    await assert.rejects(runOne({ ...p.common, block: "haiku" }), notStarted(/the `haiku` block is not started while the `opus` block, which comes before it, has 12 runs with no record \(opus\/one\/plain-1, /));
+
+    // ── the opus block ── Its session on Opus 5.5 at high effort, under $5.00 and 25 minutes for `one` and $15.00 and 60 for `four`.
+    const opusOne = await runOne({ ...p.common, block: "opus" });
+    assert.deepEqual([opusOne.run.name, opusOne.recordDir, opusOne.result.problems], ["opus/one/plain-1", join(p.recordRoot, "opus", "one", "plain-1"), []]);
+    let seen = p.seen();
+    assert.deepEqual([flagOf(seen.args, "--model"), flagOf(seen.args, "--effort"), flagOf(seen.args, "--max-budget-usd")], ["claude-opus-5-5", "high", "5"]);
+    assert.deepEqual(pins(seen.environment), ["ANTHROPIC_DEFAULT_FABLE_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL"], "no pin on haiku, in this block as in every other");
+    assert.deepEqual(opusOne.result.watchdog, { usd: 5, minutes: 25, fired: null, is_not_a_graphs_stop: true });
+    assert.deepEqual([opusOne.result.block, opusOne.result.given.the_sessions_model, opusOne.result.given.short_names_of_a_model], ["opus", { block: "opus", asked_for: "claude-opus-5-5", effort: "high" }, SHORT_NAMES]);
+    assert.deepEqual([p.ledger().invocations[0].run, p.ledger().invocations[0].project, p.ledger().invocations[0].max_budget_usd], ["watching/opus/one/plain-1", "watching/opus/one", 5]);
+    assert.match(p.ledger().invocations[0].note, /^the watching check: opus, one, plain; the driver's go: /);
+    assert.equal(opusOne.next.name, "opus/four/plain-1", "what comes next is the next of its own block");
+    const opusFour = await runOne({ ...p.common, block: "opus" });
+    seen = p.seen();
+    assert.deepEqual([opusFour.run.name, flagOf(seen.args, "--model"), flagOf(seen.args, "--max-budget-usd"), opusFour.result.watchdog.usd, opusFour.result.watchdog.minutes, p.ledger().invocations[1].max_budget_usd, opusFour.result.problems], ["opus/four/plain-1", "claude-opus-5-5", "15", 15, 60, 15, []]);
+    assert.equal(seen.args[1], promptFor({ task: "four", arm: "plain" }), "the prompt is the task's and the arm's, the same in every block");
+    // The status shows the three blocks: the first done, the second begun, the third waiting for the second.
+    const said = status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot });
+    assert.match(said, /\nthe sonnet block, the session itself on claude-sonnet-5-5 at high effort \(12 of 12 recorded; .*\):\n/);
+    assert.match(said, /\n {2}sonnet\/four\/invited-2 +ended by the harness, and not yet run again \(no result from the harness \(exit 1\)\)\n/);
+    assert.match(said, /\nthe opus block, the session itself on claude-opus-5-5 at high effort \(2 of 12 recorded; a run of `one` stops at \$5\.00 or 25 minutes, a run of `four` stops at \$15\.00 or 60 minutes\):\n {2}opus\/one\/plain-1 +recorded and scored: ended by the session; printkit \d+\/70\n/);
+    assert.match(said, /\nthe haiku block, the session itself on haiku at high effort \(0 of 12 recorded; a run of `one` stops at \$1\.00 or 25 minutes, a run of `four` stops at \$3\.00 or 60 minutes\); not started while the opus block has 10 runs with no record:\n/);
+    assert.match(said, /\nnext: opus\/one\/watched-1 \(started with --block opus\), which may cost up to \$5\.00; the ledger has room for it \(\$139\.60 left\)$/);
+
+    // ── the haiku block ── Asked for by its short name, which nothing pins: the model that answered is kept beside it.
+    inHand(p, blockOf("opus").slice(2));
+    assert.equal(heldUpBy("haiku", p.recordRoot), null);
+    p.setPlan({ uses: [{ tool: "Bash", input: { command: "true" }, result: "" }], cost: 0.05, model: "claude-haiku-as-the-harness-has-it" });
+    const haikuOne = await runOne({ ...p.common, block: "haiku" });
+    seen = p.seen();
+    assert.deepEqual([haikuOne.run.name, haikuOne.recordDir, haikuOne.result.problems], ["haiku/one/plain-1", join(p.recordRoot, "haiku", "one", "plain-1"), []]);
+    assert.deepEqual([flagOf(seen.args, "--model"), flagOf(seen.args, "--effort"), flagOf(seen.args, "--max-budget-usd")], ["haiku", "high", "1"]);
+    assert.deepEqual(pins(seen.environment), ["ANTHROPIC_DEFAULT_FABLE_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL"]);
+    assert.deepEqual(haikuOne.result.watchdog, { usd: 1, minutes: 25, fired: null, is_not_a_graphs_stop: true });
+    assert.deepEqual([haikuOne.result.given.the_sessions_model, haikuOne.result.given.short_names_of_a_model], [{ block: "haiku", asked_for: "haiku", effort: "high" }, SHORT_NAMES]);
+    assert.deepEqual([haikuOne.result.measures.session.models_that_answered, haikuOne.result.models], [["claude-haiku-as-the-harness-has-it"], ["claude-haiku-as-the-harness-has-it"]], "the name asked for and the model that answered are both in the record");
+    const haikuFour = await runOne({ ...p.common, block: "haiku" });
+    assert.deepEqual([haikuFour.run.name, flagOf(p.seen().args, "--model"), flagOf(p.seen().args, "--max-budget-usd"), haikuFour.result.watchdog.usd, haikuFour.result.watchdog.minutes], ["haiku/four/plain-1", "haiku", "3", 3, 60]);
+    assert.deepEqual(p.ledger().invocations.map((entry) => [entry.run, entry.max_budget_usd]), [["watching/opus/one/plain-1", 5], ["watching/opus/four/plain-1", 15], ["watching/haiku/one/plain-1", 1], ["watching/haiku/four/plain-1", 3]]);
+    assert.deepEqual(readdirSync(p.at.work), []);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("a session of the watching check is started with no pin on haiku and the other three as the profile pins them; called as the other runners call it, commandFor still pins all four", () => {
+  const home = "/Users/someone/grooph-compare";
+  const ask = (more = {}) => commandFor({ home, claude: "/Users/someone/.local/bin/claude", cwd: join(home, "work", "a1b2", "printkit"), prompt: "go", model: "haiku", effort: "high", sessionId: "11111111-2222-3333-4444-555555555555", maxBudgetUsd: 1, user: "someone", userHome: "/Users/someone", ...more });
+  const usual = ask();
+  const watching = ask({ unpinned: LEFT_TO_THE_HARNESS });
+  // The default: the four pins, as every other runner's session has them.
+  assert.deepEqual(Object.entries(usual.env).filter(([name]) => /^ANTHROPIC_DEFAULT_/.test(name)), [["ANTHROPIC_DEFAULT_FABLE_MODEL", "claude-opus-5-5"], ["ANTHROPIC_DEFAULT_OPUS_MODEL", "claude-opus-5-5"], ["ANTHROPIC_DEFAULT_SONNET_MODEL", "claude-sonnet-5-5"], ["ANTHROPIC_DEFAULT_HAIKU_MODEL", "claude-haiku-4-5-20251001"]]);
+  assert.deepEqual(ask({ unpinned: [] }), usual, "naming nothing to leave to the harness is the same call");
+  // This check's: that one variable is gone, and nothing else of the environment or the command is another.
+  assert.ok(!("ANTHROPIC_DEFAULT_HAIKU_MODEL" in watching.env));
+  assert.deepEqual(Object.entries(watching.env), Object.entries(usual.env).filter(([name]) => name !== "ANTHROPIC_DEFAULT_HAIKU_MODEL"), "every other variable, with its value, in its order");
+  assert.deepEqual([watching.argv, watching.cwd, watching.transcript], [usual.argv, usual.cwd, usual.transcript]);
+  assert.deepEqual([watching.env.ANTHROPIC_DEFAULT_FABLE_MODEL, watching.env.ANTHROPIC_DEFAULT_OPUS_MODEL, watching.env.ANTHROPIC_DEFAULT_SONNET_MODEL], ["claude-opus-5-5", "claude-opus-5-5", "claude-sonnet-5-5"]);
+  // What a record says of it is read from the names of the variables a session was started with.
+  assert.deepEqual(shortNamesIn(Object.keys(watching.env)), SHORT_NAMES);
+  assert.deepEqual(shortNamesIn(Object.keys(usual.env)), { pinned: { fable: "claude-opus-5-5", opus: "claude-opus-5-5", sonnet: "claude-sonnet-5-5", haiku: "claude-haiku-4-5-20251001" }, left_to_the_harness: [], read_from: SHORT_NAMES.read_from });
+  assert.deepEqual(shortNamesIn(undefined).left_to_the_harness, ["fable", "opus", "sonnet", "haiku"], "an environment that was not kept shows no pin, and a record of that would say so");
 });
 
 test("a subagent's transcript that repeats its parent's lines adds nothing twice: a call and a message are counted once, for the first transcript that holds them", () => {
@@ -926,25 +1191,22 @@ test("what goes wrong after a session has started is in its record, whichever st
   // The last steps before the result are the ones a record could lose: here the measures themselves fail.
   const p = place({ uses: [], cost: 0.2 });
   try {
-    const done = await runOne({ ...p.common, measureWith: () => { throw new Error("the measures could not be read"); } });
+    const done = await runOne({ ...p.sonnet, measureWith: () => { throw new Error("the measures could not be read"); } });
     assert.deepEqual([done.result.measures, done.result.the_hooks_file_beside_the_transcripts, done.result.problems], [null, null, ["the measures: the measures could not be read"]]);
     assert.equal(waitsForAPerson(done), "its record has problems");
     assert.deepEqual(JSON.parse(readFileSync(join(done.recordDir, "result.json"), "utf8")).problems, ["the measures: the measures could not be read"], "and it is in the file, not only in what came back");
     assert.equal(done.result.scored, true, "the rest of the record is kept all the same");
-    const all = await runAll({ ...p.common, measureWith: () => { throw new Error("again"); } });
-    assert.deepEqual([all.done.length, all.stopped], [1, { after: "four/plain-1", why: "its record has problems", by_the_harness: false }], "the run after it is the last one started");
+    const all = await runAll({ ...p.sonnet, measureWith: () => { throw new Error("again"); } });
+    assert.deepEqual([all.done.length, all.stopped], [1, { after: "sonnet/four/plain-1", why: "its record has problems", by_the_harness: false }], "the run after it is the last one started");
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
   // A folder left where the hook's file would be: nothing is thrown, the hook's file is said not to be there.
   const q = place({ uses: [{ tool: "Bash", input: { command: "true" }, result: "", writes: { ".grooph/events/<session>.jsonl/x.txt": "x" } }], cost: 0.2 });
   try {
-    for (const run of order().slice(0, 2)) {
-      mkdirSync(join(q.recordRoot, run.name), { recursive: true });
-      writeFileSync(join(q.recordRoot, run.name, "result.json"), JSON.stringify({ ended_by: "the session" }), "utf8");
-    }
-    const done = await runOne(q.common);
-    assert.equal(done.run.name, "one/watched-1");
+    inHand(q, order().slice(0, 2));
+    const done = await runOne(q.sonnet);
+    assert.equal(done.run.name, "sonnet/one/watched-1");
     assert.deepEqual([done.result.the_hooks_file_beside_the_transcripts.the_hook_wrote_a_file_for_this_session, done.result.problems], [false, []]);
   } finally {
     rmSync(q.top, { recursive: true, force: true });
@@ -952,31 +1214,30 @@ test("what goes wrong after a session has started is in its record, whichever st
 });
 
 test("a total that is whole in every line and a hair over in arithmetic leaves the room it should, and the run starts under its own ceiling", { skip: !built }, async () => {
-  // 31.42 + 0.59 + 6.99 is 39 in dollars and 39.00000000000001 in a sum of floating numbers.
-  const lines = [31.42, 0.59, 6.99].map((cost, i) => ({ ...settled(`watching/x/y-${i}`, cost), n: i + 1 }));
-  assert.ok(lines.reduce((sum, line) => sum + line.cost_usd, 0) > 39, "the sum this is about");
-  assert.deepEqual([room({ cap_usd: 45, invocations: lines }, 6).ok, room({ cap_usd: 45, invocations: lines }, 6).left], [true, 6]);
+  // 124.2 + 3.94 + 5.86 is 134 in dollars and 134.00000000000003 in a sum of floating numbers.
+  const lines = [124.2, 3.94, 5.86].map((cost, i) => ({ ...settled(`watching/x/y/z-${i}`, cost), n: i + 1 }));
+  assert.ok(lines.reduce((sum, line) => sum + line.cost_usd, 0) > 134, "the sum this is about");
+  assert.deepEqual([room({ cap_usd: 140, invocations: lines }, 6).ok, room({ cap_usd: 140, invocations: lines }, 6).left], [true, 6]);
   const p = place({ uses: [], cost: 0.2 }, { lines });
   try {
-    mkdirSync(join(p.recordRoot, "one", "plain-1"), { recursive: true });
-    writeFileSync(join(p.recordRoot, "one", "plain-1", "result.json"), JSON.stringify({ ended_by: "the session" }), "utf8");
-    const done = await runOne(p.common);
-    assert.deepEqual([done.run.name, done.result.watchdog.usd, p.ledger().invocations.at(-1).max_budget_usd, done.result.problems], ["four/plain-1", 6, 6, []], "started, and with the protocol's ceiling for a run of four");
+    inHand(p, [order()[0]]);
+    const done = await runOne(p.sonnet);
+    assert.deepEqual([done.run.name, done.result.watchdog.usd, p.ledger().invocations.at(-1).max_budget_usd, done.result.problems], ["sonnet/four/plain-1", 6, 6, []], "started, and with the protocol's ceiling for a run of four in its block");
     assert.equal(p.seen().args[p.seen().args.indexOf("--max-budget-usd") + 1], "6");
     // And a cent more counted would have refused it.
-    assert.equal(room({ cap_usd: 45, invocations: [...lines, { cost_usd: 0.01, max_budget_usd: 2 }] }, 6).ok, false);
+    assert.equal(room({ cap_usd: 140, invocations: [...lines, { cost_usd: 0.01, max_budget_usd: 2 }] }, 6).ok, false);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
 });
 
 test("a runner stopped between the ledger and the record leaves a line and no record: nothing starts over it, it is settled by hand, and the run is made once more", { skip: !built }, async () => {
-  const left = { n: 1, run: "watching/one/plain-1", project: "watching/one", arm: "plain", replicate: 1, kind: "kickoff", status: "running", cost_usd: null, reported_cost_usd: null, max_budget_usd: 2, started: "2026-10-09T00:00:00.000Z", ended: null, note: "the watching check: one, plain" };
+  const left = { n: 1, run: "watching/sonnet/one/plain-1", project: "watching/sonnet/one", arm: "plain", replicate: 1, kind: "kickoff", status: "running", cost_usd: null, reported_cost_usd: null, max_budget_usd: 2, started: "2026-10-09T00:00:00.000Z", ended: null, note: "the watching check: sonnet, one, plain" };
   const p = place({ uses: [], cost: 0.2 }, { lines: [left] });
   try {
-    assert.equal(nextRun(p.recordRoot).name, "one/plain-1");
-    await assert.rejects(runOne(p.common), notStarted(/one\/plain-1 has a line on the ledger \(1\) and no record: the runner was stopped before it could write one\. Settle that line first \(--settle 1 /));
-    await assert.rejects(runOne({ ...p.common, rerun: "one/plain-1" }), notStarted(/its line on the ledger \(1\) is still marked running: settle that first/));
+    assert.equal(nextRun(p.recordRoot).name, "sonnet/one/plain-1");
+    await assert.rejects(runOne(p.sonnet), notStarted(/sonnet\/one\/plain-1 has a line on the ledger \(1\) and no record: the runner was stopped before it could write one\. Settle that line first \(--settle 1 /));
+    await assert.rejects(runOne({ ...p.common, rerun: "sonnet/one/plain-1" }), notStarted(/its line on the ledger \(1\) is still marked running: settle that first/));
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length], [[], 1], "nothing was made");
     // Settled by hand: what the harness reported where that can be read, or its ceiling.
     assert.throws(() => settleLine({ n: 7, cost: null, note: "the machine slept", ledgerPath: p.ledgerPath }), notStarted(/7 is not a line of the watching check's ledger still marked running/));
@@ -988,13 +1249,13 @@ test("a runner stopped between the ledger and the record leaves a line and no re
     assert.match(p.ledger().invocations[0].note, /settled by hand: the machine slept/);
     assert.throws(() => settleLine({ n: 1, cost: 0.5, note: "a second time, with a cost", ledgerPath: p.ledgerPath }), notStarted(/not a line .* still marked running/), "a settled line is not settled again");
     // Still nothing in passing; once more by name.
-    await assert.rejects(runOne(p.common), notStarted(/has a line on the ledger \(1\) and no record.* Then it may be run once more.*--rerun one\/plain-1/));
-    const again = await runOne({ ...p.common, rerun: "one/plain-1" });
-    assert.ok(again.recordDir.endsWith(join("one", "plain-1-rerun")));
+    await assert.rejects(runOne(p.sonnet), notStarted(/has a line on the ledger \(1\) and no record.* Then it may be run once more.*--rerun sonnet\/one\/plain-1/));
+    const again = await runOne({ ...p.common, rerun: "sonnet/one/plain-1" });
+    assert.equal(again.recordDir, join(p.recordRoot, "sonnet", "one", "plain-1-rerun"));
     assert.match(again.result.rerun_because, /the runner was stopped before it recorded the run; its line on the ledger \(1\) says: .*settled by hand: the machine slept/);
-    assert.deepEqual([p.ledger().invocations.map((entry) => entry.run), nextRun(p.recordRoot).name], [["watching/one/plain-1", "watching/one/plain-1-rerun"], "four/plain-1"], "and the order goes on from the run after it");
+    assert.deepEqual([p.ledger().invocations.map((entry) => entry.run), nextRun(p.recordRoot).name], [["watching/sonnet/one/plain-1", "watching/sonnet/one/plain-1-rerun"], "sonnet/four/plain-1"], "and the order goes on from the run after it");
     assert.deepEqual([stateOf(order()[0], p.recordRoot).state, stateOf(order()[0], p.recordRoot).from], ["recorded and scored", "its rerun"]);
-    await assert.rejects(runOne({ ...p.common, rerun: "one/plain-1" }), notStarted(/was already run once more/));
+    await assert.rejects(runOne({ ...p.common, rerun: "sonnet/one/plain-1" }), notStarted(/was already run once more/));
     // The command line does the same, and changes nothing when it is asked wrongly.
     const ask = (...flags) => spawnSync(process.execPath, [SCRIPT, ...flags], { encoding: "utf8" });
     const none = ask("--settle", "99", "--cost", "ceiling", "--note", "there is no such line here");
@@ -1003,9 +1264,9 @@ test("a runner stopped between the ledger and the record leaves a line and no re
     rmSync(p.top, { recursive: true, force: true });
   }
   // A line of the ledger the paid path itself refuses over is said for this ledger, with the command that settles it.
-  const q = place({ uses: [], cost: 0.2 }, { lines: [{ ...left, n: 1, run: "watching/four/invited-2", project: "watching/four", arm: "invited", replicate: 2 }] });
+  const q = place({ uses: [], cost: 0.2 }, { lines: [{ ...left, n: 1, run: "watching/sonnet/four/invited-2", project: "watching/sonnet/four", arm: "invited", replicate: 2 }] });
   try {
-    await assert.rejects(runOne(q.common), notStarted(/invocation 1 is still marked running.*\n {2}This check has a ledger of its own \(experiments\/watching\/ledger\.json\), and compare-ledger\.mjs opens the comparisons ledger and not it\. A line left running is settled with: node scripts\/lib\/watching-check-paid\.mjs --settle/));
+    await assert.rejects(runOne(q.sonnet), notStarted(/invocation 1 is still marked running.*\n {2}This check has a ledger of its own \(experiments\/watching\/ledger\.json\), and compare-ledger\.mjs opens the comparisons ledger and not it\. A line left running is settled with: node scripts\/lib\/watching-check-paid\.mjs --settle/));
     assert.deepEqual(readdirSync(q.at.work), []);
   } finally {
     rmSync(q.top, { recursive: true, force: true });

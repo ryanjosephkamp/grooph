@@ -74,10 +74,17 @@ export function settingsFor({ home = DEFAULT_HOME, temp = userTemp(), closed = [
 const SERVER_TOOL = /^mcp__([A-Za-z0-9_-]+?)__([A-Za-z0-9_-]+)$/;
 
 /**
+ * The harness's short names for a model that the profile pins, each with the model it is pinned to, and the variable
+ * that holds one's pin (prove-pattern.mjs `ALIAS_ENV`, which is where they are kept and which nothing here changes).
+ */
+export const pinOf = (short) => `ANTHROPIC_DEFAULT_${String(short).toUpperCase()}_MODEL`;
+export const PINS = Object.fromEntries(Object.entries(ALIAS_ENV).map(([variable, model]) => [variable.slice("ANTHROPIC_DEFAULT_".length, -"_MODEL".length).toLowerCase(), model]));
+
+/**
  * The environment and the command a headless comparison session is started with. Nothing of the caller's own
  * environment goes in. The session's id is chosen beforehand, so the record can name its transcript before it exists.
  *
- * Three more things a run may name, and only the watching check does (experiments/watching/README.md). Called without
+ * Four more things a run may name, and only the watching check does (experiments/watching/README.md). Called without
  * them, the command and the environment are what they were before these existed, to the letter: the first call's
  * record is held against a checksum of both (study-three-paid.mjs `profileFingerprint`), and a test pins them.
  *
@@ -86,8 +93,10 @@ const SERVER_TOOL = /^mcp__([A-Za-z0-9_-]+?)__([A-Za-z0-9_-]+)$/;
  *   allowed    tools of those servers a session may call. The mode is `dontAsk`, which refuses what no rule allows
  *   withheld   tools of those servers a session is not to be offered: a bare name after `--disallowedTools` takes a
  *              tool out of what the model is shown, by the harness's documentation
+ *   unpinned   short names of a model the profile pins (`PINS`) that this run leaves to the harness: the variable that
+ *              pins each is left out of the environment, and nothing else of it changes. `fable` is never one of them
  */
-export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd, closed = [], user = userInfo().username, userHome = homedir(), mcp = null, allowed = [], withheld = [] }) {
+export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd, closed = [], user = userInfo().username, userHome = homedir(), mcp = null, allowed = [], withheld = [], unpinned = [] }) {
   const at = layout(home);
   for (const [name, value] of Object.entries({ claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd })) if (value === undefined || value === null || value === "") throw new Error(`commandFor needs ${name}`);
   // The ceiling is an amount of dollars above nothing. What is not a number would be passed to the harness as the words "NaN" or "Infinity".
@@ -104,6 +113,12 @@ export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, ef
   }
   const both = allowed.filter((name) => withheld.includes(name));
   if (both.length > 0) throw new Error(`${both.join(", ")} cannot be both allowed and withheld`);
+  // A run may take the pin off a short name the profile pins, and off no other variable. Never off `fable`: that pin is
+  // what keeps a session's own asking for it from reaching a model this project's experiments do not use.
+  for (const short of unpinned) {
+    if (typeof short !== "string" || !Object.hasOwn(PINS, short)) throw new Error(`${JSON.stringify(short)} is not a short name the profile pins (${Object.keys(PINS).join(", ")}): only one of those can be left to the harness`);
+    if (/fable|astra/i.test(short)) throw new Error(`the pin on ${short} is not taken off: it is what keeps that name from a model this project's experiments do not use without the owner's authorization (decision 0031)`);
+  }
   const env = {
     HOME: userHome,
     USER: user,
@@ -124,6 +139,7 @@ export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, ef
     CLAUDE_CODE_AUTO_CONNECT_IDE: "false",
     ...ALIAS_ENV,
   };
+  for (const short of unpinned) delete env[pinOf(short)];
   const argv = [claude, "-p", prompt, "--model", model, "--effort", effort, "--output-format", "json", "--max-budget-usd", String(maxBudgetUsd), "--permission-mode", "dontAsk", "--allowedTools", "Edit(/**)", ...allowed, "--strict-mcp-config", ...(mcp === null ? [] : ["--mcp-config", JSON.stringify(mcp)]), "--setting-sources", "user,project", "--no-chrome", "--disable-slash-commands", "--session-id", sessionId];
   // A rule that begins with two slashes names a path from the root of the disk. It refuses the file tools; the sandbox's denyWrite refuses commands.
   const denied = [...closed.flatMap((path) => [`Edit(/${resolve(path)})`, `Edit(/${resolve(path)}/**)`]), ...withheld];
