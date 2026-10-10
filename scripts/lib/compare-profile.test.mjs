@@ -78,6 +78,9 @@ test("a session is refused a folder outside the profile's work folder, a model n
   assert.throws(() => ask({ cwd: join(home, "profile") }), /must be under/);
   assert.throws(() => ask({ model: "claude-fable-5-1" }), /do not use without the owner's authorization/);
   assert.throws(() => ask({ maxBudgetUsd: undefined }), /needs maxBudgetUsd/);
+  // A ceiling that is not an amount above nothing would reach the harness as a word.
+  for (const none of [Number.NaN, 0, -1, Number.POSITIVE_INFINITY, "a lot"]) assert.throws(() => ask({ maxBudgetUsd: none }), /needs maxBudgetUsd as dollars above zero/, String(none));
+  assert.equal(ask({ maxBudgetUsd: 0.5 }).argv[ask().argv.indexOf("--max-budget-usd") + 1], "0.5");
   assert.throws(() => ask({ sessionId: "" }), /needs sessionId/);
 });
 
@@ -146,6 +149,8 @@ test("a run that attaches a server names it whole, allows the tools it offers an
   assert.throws(() => ask({ mcp, allowed: ["mcp__another__tool"] }), /is not a tool of a server this run attaches/);
   assert.throws(() => ask({ mcp, withheld: ["Edit(/**)"] }), /is not a tool of a server this run attaches/);
   assert.throws(() => ask({ mcp, allowed: ["mcp__grooph__*"] }), /is not a tool of a server this run attaches/, "a pattern is not a tool's name");
+  assert.throws(() => ask({ mcp, allowed: [["mcp__grooph__grooph_plan"]] }), /is not a tool of a server this run attaches/, "nor is a list that would be read as one");
+  assert.throws(() => ask({ mcp, withheld: [{ toString: () => "mcp__grooph__grooph_plan" }] }), /is not a tool of a server this run attaches/);
   assert.throws(() => ask({ allowed: ["mcp__grooph__grooph_plan"] }), /it attaches none/, "with no server attached there is no tool to allow");
   assert.throws(() => ask({ mcp, allowed: ["mcp__grooph__grooph_plan"], withheld: ["mcp__grooph__grooph_plan"] }), /cannot be both allowed and withheld/);
   assert.throws(() => ask({ mcp: {} }), /names at least one, under mcpServers/);

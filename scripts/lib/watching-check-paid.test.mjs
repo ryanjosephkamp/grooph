@@ -45,6 +45,7 @@ import {
   SCORING_RUNS_WHAT_A_SESSION_WROTE,
   serverOffers,
   sessionNode,
+  settleLine,
   stateOf,
   status,
   STOPS_AT_USD,
@@ -235,7 +236,7 @@ test("the plain arm's folder is the task's packages, byte for byte, in one commi
   }
 });
 
-test("the watched arm's folder is the plain arm's and what grooph hooks install leaves, in the same one commit; the invited arm's folder is the watched arm's", { skip: !built }, () => {
+test("the watched arm's folder is the plain arm's and what grooph hooks install leaves, in the same one commit; the invited arm's folder is the watched arm's", { skip: !built }, async () => {
   const p = place();
   try {
     const folder = (arm) => {
@@ -280,10 +281,17 @@ test("the watched arm's folder is the plain arm's and what grooph hooks install 
     assert.ok(invited.made.server.withheld.includes("mcp__grooph__grooph_running") && invited.made.server.withheld.length === offers.tools.length - 2);
     assert.deepEqual(invited.made.instructions, offers.instructions);
     assert.ok(offers.instructions.characters > 0 && /^[0-9a-f]{64}$/.test(offers.instructions.sha256), "what the server says of itself to a harness is named in the record by its length and checksum");
-    assert.ok(offers.instructions.first_names_one_of_the_two_tools_at_character === null || Number.isInteger(offers.instructions.first_names_one_of_the_two_tools_at_character), "and by where it first names one of the two tools");
+    // The same, asked of the server's own code in this process and not of a process started for it.
+    const { handle } = await import(join(root, "packages", "cli", "dist", "src", "mcp.js"));
+    const said = (await handle({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }, { project: p.top, version: "0", harness: "claude-code", session: "s", now: () => new Date() })).result.instructions;
+    assert.deepEqual(offers.instructions, { characters: said.length, sha256: createHash("sha256").update(said).digest("hex"), first_names_one_of_the_two_tools_at_character: Math.min(said.indexOf("grooph_plan"), said.indexOf("grooph_note")) }, "its length, its checksum, and where it first names one of the two tools");
+    assert.ok(said.indexOf("grooph_plan") > 0 && said.indexOf("grooph_note") > 0, "the server's own instructions name both tools somewhere");
     assert.equal(invited.made.prompt, `${plain.made.prompt}\n${INVITATION}\n`);
     assert.deepEqual(readdirSync(p.at.work), [], "each folder was taken away again");
-    assert.ok(sessionNode() === "node" || sessionNode().startsWith("/"), "the server is started by node as a session's own path finds it");
+    // The server is started by node as a session's own path finds it: by its whole path where it is on that path, by its name where it is not.
+    mkdirSync(join(p.top, "bin"));
+    writeFileSync(join(p.top, "bin", "node"), "#!/bin/sh\n", { mode: 0o755 });
+    assert.deepEqual([sessionNode(join(p.top, "bin")), sessionNode(join(p.top, "no-such-folder"))], [join(p.top, "bin", "node"), "node"]);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
@@ -305,7 +313,7 @@ test("the ledger as the repository keeps it: the protocol's cap and ceilings, re
     assert.throws(() => readLedger(path), notStarted(/could not be read \(.*ENOENT\)/));
     writeFileSync(path, "{ not json", "utf8");
     assert.throws(() => readLedger(path), notStarted(/could not be read/));
-    for (const [change, says] of [[{ cap_usd: 60 }, /its cap is 60, and the protocol's is 45/], [{ cap_usd: null }, /its cap is null/], [{ watchdog: { ...kept.watchdog, four: { usd: 9, minutes: 40 } } }, /its limits for a run of `four` are \{"usd":9,"minutes":40\}/], [{ watchdog: { one: kept.watchdog.one } }, /its limits for a run of `four` are null/], [{ invocations: null }, /it holds no list of invocations/]]) {
+    for (const [change, says] of [[{ cap_usd: 60 }, /its cap is 60, and the protocol's is 45/], [{ cap_usd: null }, /its cap is null/], [{ watchdog: { ...kept.watchdog, four: { usd: 9, minutes: 40 } } }, /its limits for a run of `four` are \{"usd":9,"minutes":40\}/], [{ watchdog: { one: kept.watchdog.one } }, /its limits for a run of `four` are null/], [{ invocations: null }, /it holds no list of invocations/], [{ per_invocation_ceiling_usd: 1 }, /the most it gives one session is 1, and the protocol's largest ceiling is 6/], [{ per_invocation_ceiling_usd: undefined }, /the most it gives one session is null/], [{ per_invocation_ceiling_usd: 9 }, /the most it gives one session is 9/], [{ refuse_below_usd: 6 }, /it refuses below 6, and the protocol's smallest ceiling is 2/], [{ refuse_below_usd: undefined }, /it refuses below null/], [{ invocations: [{ n: 1, status: "failed", cost_usd: null, max_budget_usd: null }] }, /its line 1 counts as no amount/], [{ invocations: [{ n: 2, status: "ok", cost_usd: -1, max_budget_usd: 2 }] }, /its line 2 counts as no amount/]]) {
       writeFileSync(path, JSON.stringify({ ...kept, ...change }), "utf8");
       assert.throws(() => readLedger(path), notStarted(says), JSON.stringify(change));
     }
@@ -411,6 +419,14 @@ test("on the command line: a flag it does not know, a paid run without both flag
     [["--run", "one/plain-1", ...words], /--run names a run for --dry-run only/],
     [["--rerun", ...words], /--rerun names a run, such as one\/plain-1\. Nothing was started\./],
     [["--score"], /--score names a run/],
+    // One thing at a time: a flag that belongs to another thing is refused, so a dry run of a scoring is never a scoring.
+    [["--dry-run", "--score", "one/plain-1"], /--score does not go with --dry-run\. Nothing was started, and nothing a session wrote was run\./],
+    [["--score", "one/plain-1", "--spend"], /--score does not go with --spend/],
+    [["--status", "--all"], /--status does not go with --all/],
+    [["--dry-run", "--rerun", "one/plain-1"], /--dry-run does not go with --rerun/],
+    [["--next", ...words, "--cost", "1"], /a paid run does not go with --cost/],
+    [["--settle", "1", "--cost", "1", "--note", "what happened here", "--all"], /--settle does not go with --all/],
+    [["--settle", "1", "--note", "what happened here"], /--cost is what the harness reported, in dollars, or the word ceiling/],
   ]) {
     const out = ask(...flags);
     assert.deepEqual([out.status, says.test(out.stderr)], [64, true], `${flags.join(" ")}: ${out.stderr}`);
@@ -585,7 +601,17 @@ test("the hook's own file set beside the transcripts: a subagent with no start l
     );
     writeFileSync(join(events, `said-${sid}.jsonl`), `${line("note", { text: "a note" })}\n`, "utf8");
     const seen = hookBesideTranscripts({ eventsDir: events, sessionId: sid, subagentIds: ["aaa", "bbb", "ccc", "ddd"] });
-    assert.deepEqual([seen.the_hook_wrote_a_file_for_this_session, seen.files_in_its_folder, seen.a_file_of_what_was_said, seen.lines, seen.lines_that_are_not_events], [true, 2, true, 9, 2]);
+    assert.deepEqual([seen.the_hook_wrote_a_file_for_this_session, seen.files_in_its_folder, seen.files_of_what_was_said, seen.a_file_of_what_was_said_under_this_sessions_id, seen.lines, seen.lines_that_are_not_events], [true, 2, 1, true, 9, 2]);
+    // What was said under an id of the server's own, when a harness hands it none, is counted and is not this session's by name.
+    writeFileSync(join(events, "said-mcp-abc-123.jsonl"), `${line("note", { text: "a note" })}\n`, "utf8");
+    rmSync(join(events, `said-${sid}.jsonl`));
+    const other = hookBesideTranscripts({ eventsDir: events, sessionId: sid, subagentIds: [] });
+    assert.deepEqual([other.files_of_what_was_said, other.a_file_of_what_was_said_under_this_sessions_id], [1, false]);
+    // A folder left where the hook's file would be is not the hook's file, and stops nothing.
+    mkdirSync(join(top, "odd", `${sid}.jsonl`), { recursive: true });
+    writeFileSync(join(top, "odd", `${sid}.jsonl`, "x.txt"), "x", "utf8");
+    const odd = hookBesideTranscripts({ eventsDir: join(top, "odd"), sessionId: sid, subagentIds: ["aaa"] });
+    assert.deepEqual([odd.the_hook_wrote_a_file_for_this_session, odd.lines, odd.started_by_the_harness_with_no_start_line], [false, 0, 1]);
     assert.deepEqual(seen.by_event, { "session-start": 1, "subagent-start": 3, "subagent-stop": 2, tool: 1, "turn-end": 1, "turn-start": 1 });
     assert.deepEqual([seen.subagents_in_the_transcripts, seen.subagent_starts_in_the_hooks_file, seen.subagent_stops_in_the_hooks_file], [4, 3, 2]);
     assert.equal(seen.started_by_the_harness_with_no_start_line, 2, "ccc and ddd have a transcript and no start line");
@@ -681,7 +707,7 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     const hook = (event, more = {}) => `${JSON.stringify({ v: 1, t: "2026-10-09T10:00:00.000Z", harness: "claude-code", event, session: "<session>", ...more })}\n`;
     const agentUse = { tool: "Agent", input: { subagent_type: "general-purpose", description: "A DESCRIPTION", prompt: "SECRET-PROMPT", model: "haiku" }, result: "done", meta: { toolUseId: "<use>", spawnDepth: 1, requestShape: "background", model: "haiku" }, subagent_uses: [{ tool: "Edit", input: { file_path: "src/parse-ranges.mjs" }, result: "ok" }], writes: { ".grooph/events/<session>.jsonl": hook("session-start", { cwd: "/a/folder" }) + hook("subagent-start", { agent: "1", type: "general-purpose" }) + hook("tool", { tool: "Agent", spawned: "1" }) + hook("subagent-stop", { agent: "1", type: "general-purpose" }) + hook("turn-end") } };
     const looked = { tool: "Bash", input: { command: "git status --short" }, result: "?? .grooph/events/\n?? src/parse-ranges.mjs" };
-    p.setPlan({ uses: [work, agentUse, looked], cost: 0.4, model: "claude-sonnet-5-5", sub_model: "claude-haiku-4-5-20251001" });
+    p.setPlan({ uses: [work, agentUse, looked], cost: 0.4, model: "claude-sonnet-5-5", sub_model: "claude-haiku-4-5-20251001", denials: [{ tool_name: "Bash", tool_use_id: "use-9", tool_input: { command: "A COMMAND THE HARNESS DENIED" } }] });
     const watched = await runOne(p.common);
     assert.equal(watched.run.name, "one/watched-1");
     assert.deepEqual([watched.result.ended_by, watched.result.problems, watched.score.packages[0].passed], ["the session", [], 70]);
@@ -703,8 +729,14 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     assert.deepEqual([sub.count, sub.by_type, sub.by_model_asked_for, sub.by_model_that_answered, sub.deepest, sub.asked_for], [1, { "general-purpose": 1 }, { haiku: 1 }, { "claude-haiku-4-5-20251001": 1 }, 1, { background: 1 }]);
     assert.deepEqual([sub.each[0].model_asked_for, sub.each[0].models_that_answered, sub.each[0].tool_calls], ["haiku", ["claude-haiku-4-5-20251001"], { Edit: 1 }]);
     assert.deepEqual([watched.result.measures.footprint.named_in_the_input.calls, watched.result.measures.footprint.shown_in_the_result], [0, { calls: 1, by_tool: { Bash: 1 } }], "git status showed the events file, and no call named it");
-    const kept = readFileSync(join(watched.recordDir, "result.json"), "utf8") + readFileSync(join(watched.recordDir, "transcript-digest.json"), "utf8");
-    for (const text of ["SECRET-PROMPT", "A DESCRIPTION", "git status"]) assert.ok(!kept.includes(text), `${text} is not kept in the result or the digest`);
+    // In no file of the record: not what a call asked, not what a subagent was handed, not what the harness says a denied call asked.
+    for (const file of filesUnder(watched.recordDir)) for (const text of ["SECRET-PROMPT", "A DESCRIPTION", "git status", "A COMMAND THE HARNESS DENIED"]) assert.ok(!readFileSync(join(watched.recordDir, file), "utf8").includes(text), `${text} is not kept in ${file}`);
+    const output = record(watched, "claude-output.json");
+    assert.deepEqual(output.permission_denials, [{ tool_name: "Bash", tool_use_id: "use-9" }], "the record's copy of the harness's output names a denied call's tool, and not what it asked");
+    assert.match(output.permission_denials_in_this_copy, /What the call asked is left out of the record/);
+    assert.equal(output.result, "done", "the rest of the harness's output is as it was");
+    assert.deepEqual(watched.result.measures.session.calls_the_harness_reports_it_denied, { Bash: 1 });
+    assert.ok(readFileSync(join(watched.kept, "work", "harness", "claude-output.json"), "utf8").includes("A COMMAND THE HARNESS DENIED"), "the harness's own output is whole on the machine, where the runner moved it");
     assert.equal(p.ledger().invocations.at(-1).run, "watching/one/watched-1");
     skipFour();
 
@@ -735,7 +767,7 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     assert.deepEqual(two.said.map((said) => [said.tool, said.by, said.input]), [["grooph_plan", "the session", planned.input], ["grooph_note", "the session", noted.input]]);
     assert.deepEqual([invited.result.measures.given.tools_of_a_server_named_to_it, invited.result.measures.given.servers_whose_instructions_it_was_handed], [["mcp__grooph__grooph_note", "mcp__grooph__grooph_plan"], ["grooph"]]);
     assert.deepEqual(readdirSync(join(invited.recordDir, "events")).sort(), [`${invited.result.session_id}.jsonl`, `said-${invited.result.session_id}.jsonl`].sort());
-    assert.equal(invited.result.the_hooks_file_beside_the_transcripts.a_file_of_what_was_said, true);
+    assert.deepEqual([invited.result.the_hooks_file_beside_the_transcripts.files_of_what_was_said, invited.result.the_hooks_file_beside_the_transcripts.a_file_of_what_was_said_under_this_sessions_id], [1, true]);
     assert.deepEqual(p.ledger().invocations.map((entry) => entry.run), ["watching/one/plain-1", "watching/one/watched-1", "watching/one/invited-1"]);
     assert.deepEqual(readdirSync(p.at.work), []);
     skipFour();
@@ -853,6 +885,125 @@ test("every run still to come, one at a time: it stops at the first run the harn
     assert.deepEqual([told, r.ledger().invocations.length, nextRun(r.recordRoot).name, readdirSync(r.at.work)], [["one/invited-2"], 2, "four/invited-2", []], "what was done before the refusal was said, and nothing was started after it");
   } finally {
     rmSync(r.top, { recursive: true, force: true });
+  }
+});
+
+test("a subagent's transcript that repeats its parent's lines adds nothing twice: a call and a message are counted once, for the first transcript that holds them", () => {
+  const top = mkdtempSync(join(tmpdir(), "watching-repeat-"));
+  const sid = "22222222-3333-4444-5555-666666666666";
+  try {
+    const folder = join(top, "profile", "projects", "-a-folder");
+    mkdirSync(join(folder, sid, "subagents"), { recursive: true });
+    const says = (id, ...blocks) => JSON.stringify({ type: "assistant", timestamp: "2026-10-09T10:00:00.000Z", message: { id, model: "claude-sonnet-5-5", usage: { input_tokens: 5, output_tokens: 7 }, content: blocks } });
+    const parent = [says("m1", { type: "tool_use", id: "p1", name: "mcp__grooph__grooph_plan", input: { agents: [{ type: "general-purpose" }] } }), says("m2", { type: "tool_use", id: "a1", name: "Agent", input: { subagent_type: "general-purpose", prompt: "go" } })];
+    writeFileSync(join(folder, `${sid}.jsonl`), `${parent.join("\n")}\n`, "utf8");
+    // The subagent carries on from the conversation: its transcript opens with its parent's two lines, then its own.
+    writeFileSync(join(folder, sid, "subagents", "agent-fff.jsonl"), `${[...parent, says("f1", { type: "tool_use", id: "e1", name: "Edit", input: { file_path: "a.mjs" } })].join("\n")}\n`, "utf8");
+    writeFileSync(join(folder, sid, "subagents", "agent-fff.meta.json"), JSON.stringify({ agentType: "general-purpose", toolUseId: "a1" }), "utf8");
+    const m = measure({ profile: join(top, "profile"), sessionId: sid });
+    assert.deepEqual([m.the_two_tools.calls, m.the_two_tools.said.length, m.the_two_tools.said[0].by], [{ grooph_plan: 1, grooph_note: 0 }, 1, "the session"], "said once, by the session");
+    assert.deepEqual(m.session.tool_calls_with_its_subagents, { Agent: 1, Edit: 1, mcp__grooph__grooph_plan: 1 });
+    assert.deepEqual([m.session.messages, m.session.tokens_in_its_transcript.output_tokens], [2, 14]);
+    assert.deepEqual([m.subagents.each[0].tool_calls, m.subagents.each[0].messages, m.subagents.each[0].tokens.output_tokens], [{ Edit: 1 }, 1, 7], "the subagent's own is what only it holds");
+    assert.deepEqual([m.subagents.each[0].depth, m.subagents.each[0].depth_from], [1, "the tool use that started it"], "and it was started by the session, not by itself");
+    // Lines that carry no id at all are each their own: nothing is taken for a repeat that cannot be known to be one.
+    const bare = (name) => JSON.stringify({ type: "assistant", message: { model: "claude-sonnet-5-5", content: [{ type: "tool_use", name, input: {} }] } });
+    writeFileSync(join(folder, "bare.jsonl"), `${bare("Read")}\n${bare("Read")}\n`, "utf8");
+    mkdirSync(join(folder, "bare", "subagents"), { recursive: true });
+    writeFileSync(join(folder, "bare", "subagents", "agent-g.jsonl"), `${bare("Read")}\n`, "utf8");
+    assert.deepEqual([measure({ profile: join(top, "profile"), sessionId: "bare" }).session.tool_calls_with_its_subagents, measure({ profile: join(top, "profile"), sessionId: "bare" }).session.messages], [{ Read: 3 }, 2]);
+  } finally {
+    rmSync(top, { recursive: true, force: true });
+  }
+});
+
+test("what goes wrong after a session has started is in its record, whichever step it was, and stops the runs after it", { skip: !built }, async () => {
+  // The last steps before the result are the ones a record could lose: here the measures themselves fail.
+  const p = place({ uses: [], cost: 0.2 });
+  try {
+    const done = await runOne({ ...p.common, measureWith: () => { throw new Error("the measures could not be read"); } });
+    assert.deepEqual([done.result.measures, done.result.the_hooks_file_beside_the_transcripts, done.result.problems], [null, null, ["the measures: the measures could not be read"]]);
+    assert.equal(waitsForAPerson(done), "its record has problems");
+    assert.deepEqual(JSON.parse(readFileSync(join(done.recordDir, "result.json"), "utf8")).problems, ["the measures: the measures could not be read"], "and it is in the file, not only in what came back");
+    assert.equal(done.result.scored, true, "the rest of the record is kept all the same");
+    const all = await runAll({ ...p.common, measureWith: () => { throw new Error("again"); } });
+    assert.deepEqual([all.done.length, all.stopped], [1, { after: "four/plain-1", why: "its record has problems", by_the_harness: false }], "the run after it is the last one started");
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+  // A folder left where the hook's file would be: nothing is thrown, the hook's file is said not to be there.
+  const q = place({ uses: [{ tool: "Bash", input: { command: "true" }, result: "", writes: { ".grooph/events/<session>.jsonl/x.txt": "x" } }], cost: 0.2 });
+  try {
+    for (const run of order().slice(0, 2)) {
+      mkdirSync(join(q.recordRoot, run.name), { recursive: true });
+      writeFileSync(join(q.recordRoot, run.name, "result.json"), JSON.stringify({ ended_by: "the session" }), "utf8");
+    }
+    const done = await runOne(q.common);
+    assert.equal(done.run.name, "one/watched-1");
+    assert.deepEqual([done.result.the_hooks_file_beside_the_transcripts.the_hook_wrote_a_file_for_this_session, done.result.problems], [false, []]);
+  } finally {
+    rmSync(q.top, { recursive: true, force: true });
+  }
+});
+
+test("a total that is whole in every line and a hair over in arithmetic leaves the room it should, and the run starts under its own ceiling", { skip: !built }, async () => {
+  // 31.42 + 0.59 + 6.99 is 39 in dollars and 39.00000000000001 in a sum of floating numbers.
+  const lines = [31.42, 0.59, 6.99].map((cost, i) => ({ ...settled(`watching/x/y-${i}`, cost), n: i + 1 }));
+  assert.ok(lines.reduce((sum, line) => sum + line.cost_usd, 0) > 39, "the sum this is about");
+  assert.deepEqual([room({ cap_usd: 45, invocations: lines }, 6).ok, room({ cap_usd: 45, invocations: lines }, 6).left], [true, 6]);
+  const p = place({ uses: [], cost: 0.2 }, { lines });
+  try {
+    mkdirSync(join(p.recordRoot, "one", "plain-1"), { recursive: true });
+    writeFileSync(join(p.recordRoot, "one", "plain-1", "result.json"), JSON.stringify({ ended_by: "the session" }), "utf8");
+    const done = await runOne(p.common);
+    assert.deepEqual([done.run.name, done.result.watchdog.usd, p.ledger().invocations.at(-1).max_budget_usd, done.result.problems], ["four/plain-1", 6, 6, []], "started, and with the protocol's ceiling for a run of four");
+    assert.equal(p.seen().args[p.seen().args.indexOf("--max-budget-usd") + 1], "6");
+    // And a cent more counted would have refused it.
+    assert.equal(room({ cap_usd: 45, invocations: [...lines, { cost_usd: 0.01, max_budget_usd: 2 }] }, 6).ok, false);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("a runner stopped between the ledger and the record leaves a line and no record: nothing starts over it, it is settled by hand, and the run is made once more", { skip: !built }, async () => {
+  const left = { n: 1, run: "watching/one/plain-1", project: "watching/one", arm: "plain", replicate: 1, kind: "kickoff", status: "running", cost_usd: null, reported_cost_usd: null, max_budget_usd: 2, started: "2026-10-09T00:00:00.000Z", ended: null, note: "the watching check: one, plain" };
+  const p = place({ uses: [], cost: 0.2 }, { lines: [left] });
+  try {
+    assert.equal(nextRun(p.recordRoot).name, "one/plain-1");
+    await assert.rejects(runOne(p.common), notStarted(/one\/plain-1 has a line on the ledger \(1\) and no record: the runner was stopped before it could write one\. Settle that line first \(--settle 1 /));
+    await assert.rejects(runOne({ ...p.common, rerun: "one/plain-1" }), notStarted(/its line on the ledger \(1\) is still marked running: settle that first/));
+    assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length], [[], 1], "nothing was made");
+    // Settled by hand: what the harness reported where that can be read, or its ceiling.
+    assert.throws(() => settleLine({ n: 7, cost: null, note: "the machine slept", ledgerPath: p.ledgerPath }), notStarted(/7 is not a line of the watching check's ledger still marked running/));
+    assert.throws(() => settleLine({ n: 1, cost: Number("a lot"), note: "the machine slept", ledgerPath: p.ledgerPath }), notStarted(/--cost is what the harness reported/));
+    assert.throws(() => settleLine({ n: 1, cost: -1, note: "the machine slept", ledgerPath: p.ledgerPath }), notStarted(/--cost is what the harness reported/));
+    assert.throws(() => settleLine({ n: 1, cost: null, note: "ok", ledgerPath: p.ledgerPath }), notStarted(/--note says what happened/));
+    const line = settleLine({ n: 1, cost: null, note: "the machine slept during the run; no output of the harness was kept", ledgerPath: p.ledgerPath });
+    assert.deepEqual([line.status, line.cost_usd, p.ledger().invocations[0].status, p.ledger().spent_usd], ["failed", null, "failed", 2], "with no cost known it still counts at its ceiling");
+    assert.match(p.ledger().invocations[0].note, /settled by hand: the machine slept/);
+    assert.throws(() => settleLine({ n: 1, cost: 0.5, note: "a second time, with a cost", ledgerPath: p.ledgerPath }), notStarted(/not a line .* still marked running/), "a settled line is not settled again");
+    // Still nothing in passing; once more by name.
+    await assert.rejects(runOne(p.common), notStarted(/has a line on the ledger \(1\) and no record.* Then it may be run once more.*--rerun one\/plain-1/));
+    const again = await runOne({ ...p.common, rerun: "one/plain-1" });
+    assert.ok(again.recordDir.endsWith(join("one", "plain-1-rerun")));
+    assert.match(again.result.rerun_because, /the runner was stopped before it recorded the run; its line on the ledger \(1\) says: .*settled by hand: the machine slept/);
+    assert.deepEqual([p.ledger().invocations.map((entry) => entry.run), nextRun(p.recordRoot).name], [["watching/one/plain-1", "watching/one/plain-1-rerun"], "four/plain-1"], "and the order goes on from the run after it");
+    assert.deepEqual([stateOf(order()[0], p.recordRoot).state, stateOf(order()[0], p.recordRoot).from], ["recorded and scored", "its rerun"]);
+    await assert.rejects(runOne({ ...p.common, rerun: "one/plain-1" }), notStarted(/was already run once more/));
+    // The command line does the same, and changes nothing when it is asked wrongly.
+    const ask = (...flags) => spawnSync(process.execPath, [SCRIPT, ...flags], { encoding: "utf8" });
+    const none = ask("--settle", "99", "--cost", "ceiling", "--note", "there is no such line here");
+    assert.deepEqual([none.status, /is not a line of the watching check's ledger still marked running\nNothing was changed\./.test(none.stderr)], [64, true], none.stderr);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+  // A line of the ledger the paid path itself refuses over is said for this ledger, with the command that settles it.
+  const q = place({ uses: [], cost: 0.2 }, { lines: [{ ...left, n: 1, run: "watching/four/invited-2", project: "watching/four", arm: "invited", replicate: 2 }] });
+  try {
+    await assert.rejects(runOne(q.common), notStarted(/invocation 1 is still marked running.*\n {2}This check has a ledger of its own \(experiments\/watching\/ledger\.json\), and compare-ledger\.mjs opens the comparisons ledger and not it\. A line left running is settled with: node scripts\/lib\/watching-check-paid\.mjs --settle/));
+    assert.deepEqual(readdirSync(q.at.work), []);
+  } finally {
+    rmSync(q.top, { recursive: true, force: true });
   }
 });
 

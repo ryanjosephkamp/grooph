@@ -14,6 +14,8 @@
  *                                                                             stopping at the first refusal or failed run
  *   … --rerun <task>/<arm>-<n> --spend --go "<…>"    only a run the harness ended, once, the reason written beside it
  *   node scripts/lib/watching-check-paid.mjs --score <task>/<arm>-<n>         score a run whose scorer failed; no session, no spend
+ *   node scripts/lib/watching-check-paid.mjs --settle <n> --cost <usd|ceiling> --note "<what happened>"
+ *                                                                             settle a ledger line a stopped runner left running; no session
  *
  * Twelve runs: two tasks (`one`, `four`), three arms (`plain`, `watched`, `invited`), twice. A session is started
  * from the comparison profile by the profile's own runner (scripts/lib/study-three-paid.mjs), so the gates, the
@@ -40,7 +42,7 @@ import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rm
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { counted } from "./compare-ledger.mjs";
+import { counted, saveLedger, settleEntry } from "./compare-ledger.mjs";
 import { commandFor, DEFAULT_HOME, layout, SERVER_FLAGS, SESSION_PATH } from "./compare-profile.mjs";
 import { deriveD } from "./compare-prompt.mjs";
 import { scoreHeldOut, withExpected } from "./compare-score.mjs";
@@ -117,21 +119,26 @@ export function order() {
 
 const recordOf = (run, recordRoot) => join(recordRoot, run.task, `${run.arm}-${run.replicate}`);
 
-/** The first run of the order that has no record yet, or null when all are recorded. */
-export const nextRun = (recordRoot = HOME) => order().find((run) => !existsSync(join(recordOf(run, recordRoot), "result.json"))) ?? null;
+/**
+ * The first run of the order that has no record yet, or null when all are recorded. A run whose own record was never
+ * written (the runner itself was stopped) and which was then run once more has a record: its rerun's.
+ */
+export const nextRun = (recordRoot = HOME) => order().find((run) => !existsSync(join(recordOf(run, recordRoot), "result.json")) && !existsSync(join(`${recordOf(run, recordRoot)}-rerun`, "result.json"))) ?? null;
 
 /**
- * Where one run stands, from its record: its own, or its one rerun when the harness ended its own. A run the watchdog
- * cut off is a result and is scored as it stands. A run the harness ended both times was not obtained.
+ * Where one run stands, from its record: its own, or its one rerun when the harness ended its own or its own was
+ * never written. A run the watchdog cut off is a result and is scored as it stands. A run the harness ended both
+ * times was not obtained.
  */
 export function stateOf(run, recordRoot = HOME) {
   const first = recordOf(run, recordRoot);
   const read = (dir) => (existsSync(join(dir, "result.json")) ? { result: JSON.parse(readFileSync(join(dir, "result.json"), "utf8")), score: existsSync(join(dir, "score.json")) ? JSON.parse(readFileSync(join(dir, "score.json"), "utf8")) : null } : null);
   const own = read(first);
-  if (!own) return { state: "not recorded" };
-  const used = own.result.ended_by === "the harness" ? read(`${first}-rerun`) : own;
+  const again = read(`${first}-rerun`);
+  if (!own && !again) return { state: "not recorded" };
+  const used = !own || own.result.ended_by === "the harness" ? again : own;
   if (!used) return { state: "ended by the harness, and not yet run again", why: own.result.why ?? null };
-  if (used.result.ended_by === "the harness") return { state: "not obtained: the harness ended it both times" };
+  if (used.result.ended_by === "the harness") return { state: own ? "not obtained: the harness ended it both times" : "not obtained: never recorded the first time, and the harness ended it the second" };
   return {
     state: used.score ? "recorded and scored" : "recorded, not scored",
     from: used === own ? "its own record" : "its rerun",
@@ -159,17 +166,53 @@ export function readLedger(path = LEDGER) {
   if (!ledger || typeof ledger !== "object" || !Array.isArray(ledger.invocations)) wrong.push("it holds no list of invocations");
   if (ledger?.cap_usd !== STOPS_AT_USD) wrong.push(`its cap is ${JSON.stringify(ledger?.cap_usd)}, and the protocol's is ${STOPS_AT_USD}`);
   for (const [task, limit] of Object.entries(WATCHDOG)) if (ledger?.watchdog?.[task]?.usd !== limit.usd || ledger?.watchdog?.[task]?.minutes !== limit.minutes) wrong.push(`its limits for a run of \`${task}\` are ${JSON.stringify(ledger?.watchdog?.[task] ?? null)}, and the protocol's are $${limit.usd.toFixed(2)} and ${limit.minutes} minutes`);
+  // The two numbers the paid path itself reads from a ledger: the most one session may be given, and the least that must
+  // be left. Either one wrong would start a session under another ceiling than the protocol's, or under none at all.
+  const [least, most] = [Math.min(...Object.values(WATCHDOG).map((limit) => limit.usd)), Math.max(...Object.values(WATCHDOG).map((limit) => limit.usd))];
+  if (ledger?.per_invocation_ceiling_usd !== most) wrong.push(`the most it gives one session is ${JSON.stringify(ledger?.per_invocation_ceiling_usd ?? null)}, and the protocol's largest ceiling is ${most}`);
+  if (ledger?.refuse_below_usd !== least) wrong.push(`it refuses below ${JSON.stringify(ledger?.refuse_below_usd ?? null)}, and the protocol's smallest ceiling is ${least}`);
+  // Every line has to count as an amount: its reported cost, or its ceiling while that is not known.
+  for (const entry of Array.isArray(ledger?.invocations) ? ledger.invocations : []) if (!(Number.isFinite(counted(entry)) && counted(entry) >= 0)) wrong.push(`its line ${JSON.stringify(entry?.n ?? null)} counts as no amount (a cost of ${JSON.stringify(entry?.cost_usd ?? null)} under a ceiling of ${JSON.stringify(entry?.max_budget_usd ?? null)})`);
   if (wrong.length > 0) throw new NotStarted(`the watching check's ledger (${relativeToRoot(path)}) is not what the protocol says: ${wrong.join("; ")}. The limits are the protocol's (experiments/watching/README.md, "Limits"); after the first run nothing there changes without a dated note`);
   return ledger;
 }
 
-/** Whether the ledger has room for one more run at its ceiling. A cost that is not yet settled counts at its ceiling. */
+const micro = (usd) => Math.round(usd * 1e6) / 1e6;
+
+/**
+ * Whether the ledger has room for one more run at its ceiling: a settled run counts at its reported cost, one not yet
+ * settled at its ceiling. The total is taken to the millionth of a dollar, as the ledger itself keeps it, so that a
+ * sum that is 39 dollars in every line and 39.00000000000001 in arithmetic leaves room for six.
+ */
 export function room(ledger, usd) {
-  const spent = ledger.invocations.reduce((sum, entry) => sum + counted(entry), 0);
-  const left = ledger.cap_usd - spent;
-  if (left + 1e-9 >= usd) return { ok: true, spent, left };
+  const spent = micro(ledger.invocations.reduce((sum, entry) => sum + counted(entry), 0));
+  const left = micro(ledger.cap_usd - spent);
+  if (left >= usd) return { ok: true, spent, left };
   return { ok: false, spent, left, why: `the watching check has counted $${spent.toFixed(2)} on its ledger, and this run may cost up to $${usd.toFixed(2)}: together past the $${ledger.cap_usd.toFixed(2)} at which the whole check stops (experiments/watching/README.md, "Limits"; a cost that is not yet settled counts at its ceiling). Past that is the owner's word` };
 }
+
+/**
+ * Settle by hand a line the runner left marked as running: it was stopped before it could (the machine slept, the
+ * process was killed). Its real cost is in the harness's own output where the runner kept it, or it counts at its
+ * ceiling. The comparisons ledger's own command for this opens that ledger and not this one. Starts nothing.
+ */
+export function settleLine({ n, cost, note, ledgerPath = LEDGER }) {
+  // What was asked is looked at before the ledger is: a settling that was asked wrongly says so whatever the ledger holds.
+  if (cost !== null && !(Number.isFinite(cost) && cost >= 0)) throw new NotStarted("--cost is what the harness reported, in dollars, or the word ceiling when that is not known");
+  if (typeof note !== "string" || note.trim().length < 8) throw new NotStarted('--note says what happened and where the cost was read: "<a sentence>"');
+  const ledger = readLedger(ledgerPath);
+  const line = ledger.invocations.find((entry) => entry.n === n);
+  if (!line || line.status !== "running") throw new NotStarted(`${JSON.stringify(n)} is not a line of the watching check's ledger still marked running`);
+  settleEntry(line, { status: "failed", cost_usd: cost, reported_cost_usd: cost, note: [line.note, `settled by hand: ${note.trim()}`].filter(Boolean).join("; ") });
+  saveLedger(ledger, ledgerPath);
+  return line;
+}
+
+/** A refusal of the paid path that names the comparisons ledger's own commands, said for this ledger. */
+const forThisLedger = (message) =>
+  /compare-ledger\.mjs|still marked running/.test(message)
+    ? `${message}\n  This check has a ledger of its own (experiments/watching/ledger.json), and compare-ledger.mjs opens the comparisons ledger and not it. A line left running is settled with: node scripts/lib/watching-check-paid.mjs --settle <n> --cost <usd|ceiling> --note "<what happened>". Any other answer is written into that file by hand, with who decided it and when.`
+    : message;
 
 // ── the prompts ──────────────────────────────────────────────────────────
 
@@ -256,10 +299,10 @@ export function serverOffers(dir) {
 }
 
 /** `node` as a session's own path finds it: the program the hook is run by, and so the one the server is started by. */
-export function sessionNode() {
-  const found = spawnSync("/bin/sh", ["-c", "command -v node"], { encoding: "utf8", env: { PATH: SESSION_PATH } });
-  const path = String(found.stdout ?? "").trim().split("\n")[0];
-  return found.status === 0 && path.startsWith("/") ? path : "node";
+export function sessionNode(sessionPath = SESSION_PATH) {
+  const found = spawnSync("/bin/sh", ["-c", "command -v node"], { encoding: "utf8", env: { PATH: sessionPath } });
+  const program = String(found.stdout ?? "").trim().split("\n")[0];
+  return found.status === 0 && program.startsWith("/") ? program : "node";
 }
 
 /** The invited arm's server: this checkout's `grooph mcp --dir <the session's folder>`, the two tools allowed, every other tool of it withheld. */
@@ -322,6 +365,8 @@ const DISPATCH = new Set(["Agent", "Task"]);
 const textOf = (content) => (Array.isArray(content) ? content.map((part) => (typeof part?.text === "string" ? part.text : "")).join("\n") : typeof content === "string" ? content : "");
 const tally = (names) => Object.fromEntries([...names.reduce((counts, name) => counts.set(name, (counts.get(name) ?? 0) + 1), new Map())].sort(([a], [b]) => a.localeCompare(b)));
 const TOKENS = ["input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"];
+/** What an id the runner makes up begins with, for a line of a transcript that carries none: no transcript's own id begins so. */
+const NO_ID = "\u0000no id: ";
 
 /**
  * Every transcript the harness kept of one session, in the profile: the session's own, and each subagent's with the
@@ -375,10 +420,10 @@ function readTranscript(file) {
     if (record.type === "assistant") {
       if (typeof record.message?.model === "string" && record.message.model !== "<synthetic>") models.add(record.message.model);
       // One message may be written as several lines, one for each part of it, each with the message's use so far: the largest is the message's.
-      const id = typeof record.message?.id === "string" ? record.message.id : `line-${messages.size}`;
+      const id = typeof record.message?.id === "string" ? record.message.id : `${NO_ID}message-${messages.size}`;
       const before = messages.get(id) ?? {};
       messages.set(id, Object.fromEntries(TOKENS.map((key) => [key, Math.max(before[key] ?? 0, Number(record.message?.usage?.[key]) || 0)])));
-      for (const block of content) if (block?.type === "tool_use" && typeof block.name === "string") uses.set(typeof block.id === "string" ? block.id : `use-${uses.size}`, { tool: block.name, input: block.input ?? {}, at: record.timestamp ?? null });
+      for (const block of content) if (block?.type === "tool_use" && typeof block.name === "string") uses.set(typeof block.id === "string" ? block.id : `${NO_ID}use-${uses.size}`, { tool: block.name, input: block.input ?? {}, at: record.timestamp ?? null });
     } else if (record.type === "user") {
       for (const block of content) if (block?.type === "tool_result") results.set(block.tool_use_id, { refused: block.is_error === true, text: textOf(block.content) });
     }
@@ -399,6 +444,17 @@ const names = (value) => (Array.isArray(value) ? value : []).map((entry) => (typ
  */
 export function measure({ profile, sessionId, output = null, wallS = null }) {
   const read = transcriptsOf(profile, sessionId).map((transcript) => ({ ...transcript, ...readTranscript(transcript.file) }));
+  // A subagent that carries on from its parent's conversation may have its parent's lines in its own transcript. A
+  // tool use and a message are counted once, for the first transcript that holds them: the session's own first.
+  const claimed = { uses: new Set(), messages: new Set() };
+  for (const transcript of read) {
+    for (const [kind, held] of [["uses", transcript.uses], ["messages", transcript.messages]]) {
+      for (const id of [...held.keys()]) {
+        if (claimed[kind].has(id)) held.delete(id);
+        else if (!id.startsWith(NO_ID)) claimed[kind].add(id);
+      }
+    }
+  }
   const lead = read.find((transcript) => transcript.lead) ?? null;
   const subagents = read.filter((transcript) => !transcript.lead);
   // Which transcript holds the tool use that started each subagent.
@@ -529,11 +585,19 @@ function realFolder(base, ...parts) {
  * (docs/subagents.md §5): such lines are counted apart, so they are not read as a subagent the session started.
  */
 export function hookBesideTranscripts({ eventsDir, sessionId, subagentIds }) {
-  const file = eventsDir ? join(eventsDir, `${sessionId}.jsonl`) : null;
   const kept = eventsDir && existsSync(eventsDir) ? readdirSync(eventsDir).sort() : [];
+  // The record's copy holds plain files only; a folder left where the file would be is not the hook's file.
+  const isFile = (path) => {
+    try {
+      return lstatSync(path).isFile();
+    } catch {
+      return false;
+    }
+  };
+  const file = eventsDir && isFile(join(eventsDir, `${sessionId}.jsonl`)) ? join(eventsDir, `${sessionId}.jsonl`) : null;
   const lines = [];
   let unread = 0;
-  if (file && existsSync(file)) {
+  if (file) {
     for (const line of readFileSync(file, "utf8").split("\n")) {
       if (!line.trim()) continue;
       try {
@@ -552,9 +616,11 @@ export function hookBesideTranscripts({ eventsDir, sessionId, subagentIds }) {
   const naming = lines.flatMap((line) => [line.agent, line.spawned].filter((id) => typeof id === "string").map((id) => ({ id, typed: typeof line.type === "string" || typeof line.spawned === "string" })));
   const strangers = naming.filter((entry) => !known.has(entry.id));
   return {
-    the_hook_wrote_a_file_for_this_session: Boolean(file && existsSync(file)),
+    the_hook_wrote_a_file_for_this_session: file !== null,
     files_in_its_folder: kept.length,
-    a_file_of_what_was_said: kept.includes(`said-${sessionId}.jsonl`),
+    // The server names its file by the session's id when the harness hands it one, and by an id of its own when not.
+    files_of_what_was_said: kept.filter((name) => name.startsWith("said-")).length,
+    a_file_of_what_was_said_under_this_sessions_id: kept.includes(`said-${sessionId}.jsonl`),
     lines: lines.length,
     lines_that_are_not_events: unread,
     by_event: tally(lines.map((line) => String(line.event))),
@@ -609,8 +675,33 @@ export function serverFlagsMissing(claude) {
   return SERVER_FLAGS.filter((flag) => !String(help.stdout ?? "").includes(flag));
 }
 
-/** One run, start to record. Before the call, a refusal throws `NotStarted` and nothing was spent. After it, nothing is thrown and nothing is removed. */
-export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, ledgerPath = LEDGER, recordRoot = HOME, profileCheck, gameOpen, firstCallGate = firstCallAllows(), grace, node }) {
+/**
+ * The harness's result names each call it denied, with what the call asked. A record keeps the names: what a call
+ * said is not kept. The record's copy is written again without it, and says so in itself; the harness's own output is
+ * whole on the machine, beside the session's folder where the runner moves it. Returns how many were taken out.
+ */
+export function withoutWhatDeniedCallsAsked(path) {
+  let text;
+  let output;
+  try {
+    text = readFileSync(path, "utf8");
+    output = JSON.parse(text);
+  } catch {
+    return 0;
+  }
+  if (!output || typeof output !== "object" || !Array.isArray(output.permission_denials) || output.permission_denials.length === 0) return 0;
+  const denied = output.permission_denials.length;
+  output.permission_denials = output.permission_denials.map((denial) => ({ tool_name: typeof denial?.tool_name === "string" ? denial.tool_name : null, tool_use_id: typeof denial?.tool_use_id === "string" ? denial.tool_use_id : null }));
+  output.permission_denials_in_this_copy = "the name of each denied call's tool, and its id. What the call asked is left out of the record; the harness's own output is whole on the machine, with the session's folder";
+  writeFileSync(path, `${JSON.stringify(output)}${text.endsWith("\n") ? "\n" : ""}`, "utf8");
+  return denied;
+}
+
+/**
+ * One run, start to record. Before the call, a refusal throws `NotStarted` and nothing was spent. After it, nothing
+ * is thrown and nothing is removed. `measureWith` is the measures' own function, and is another only in a test.
+ */
+export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, ledgerPath = LEDGER, recordRoot = HOME, profileCheck, gameOpen, firstCallGate = firstCallAllows(), grace, node, measureWith = measure }) {
   if (!firstCallGate.ok) throw new NotStarted(firstCallGate.why);
   const ledger = readLedger(ledgerPath);
   // Before any folder is made: a run is scored by running what the session wrote, outside the sandbox. Without the
@@ -625,12 +716,19 @@ export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, le
     if (!run) throw new NotStarted(`${JSON.stringify(rerun)} is not a run of the watching check: --rerun names one, such as one/plain-1`);
     const first = recordOf(run, recordRoot);
     const kept = existsSync(join(first, "result.json")) ? JSON.parse(readFileSync(join(first, "result.json"), "utf8")) : null;
-    if (kept?.ended_by !== "the harness") throw new NotStarted(`${rerun} has no record the harness ended: a run is made once more only when it failed for a reason outside the session (the sign-in, the network, a usage limit)`);
+    // A run with a line on the ledger and no record at all: the runner itself was stopped after the session started
+    // and before it could write one. That too is a failure outside the session. Its line has to be settled first.
+    const line = ledger.invocations.find((entry) => entry.run === `watching/${run.name}`) ?? null;
+    const neverRecorded = kept === null && line !== null && line.status !== "running";
+    if (kept?.ended_by !== "the harness" && !neverRecorded) throw new NotStarted(`${rerun} has no record the harness ended${line?.status === "running" ? `, and its line on the ledger (${line.n}) is still marked running: settle that first` : ""}: a run is made once more only when it failed for a reason outside the session (the sign-in, the network, a usage limit)`);
     recordDir = `${first}-rerun`;
     if (existsSync(join(recordDir, "result.json"))) throw new NotStarted(`${rerun} was already run once more`);
-    because = kept.why ?? "the harness ended it, and its record says no more";
+    because = kept ? (kept.why ?? "the harness ended it, and its record says no more") : `the runner was stopped before it recorded the run; its line on the ledger (${line.n}) says: ${line.note || "nothing"}`;
   }
   if (!run) throw new NotStarted("every run of the watching check is recorded");
+  // A line on the ledger and no record: the runner was stopped between the two. Nothing is started over it in passing.
+  const already = rerun === null ? ledger.invocations.find((entry) => entry.run === `watching/${run.name}`) : null;
+  if (already) throw new NotStarted(`${run.name} has a line on the ledger (${already.n}) and no record: the runner was stopped before it could write one. ${already.status === "running" ? `Settle that line first (--settle ${already.n} --cost <usd|ceiling> --note "<what happened>"), then` : "Then"} it may be run once more, as a failure outside the session: --rerun ${run.name}`);
   const watchdog = WATCHDOG[run.task];
   const has = room(ledger, watchdog.usd);
   if (!has.ok) throw new NotStarted(has.why);
@@ -641,31 +739,39 @@ export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, le
   const built = build({ run, home, node });
   let call;
   try {
-    call = await runSession({ home, cwd: built.cwd, prompt: built.prompt, ...LEAD, usd: watchdog.usd, minutes: watchdog.minutes, closed: built.closed, server: built.server, label: { project: `watching/${run.task}`, arm: run.arm, replicate: rerun ? `${run.replicate}-rerun` : run.replicate }, note: `the watching check: ${run.task}, ${run.arm}${rerun ? `; the one rerun of a run the harness ended (${because})` : ""}`, go, claude, ledgerPath, harnessDir: built.harnessDir, profileCheck, gameOpen, plan: { projects: ["watching"], stop_usd: ledger.cap_usd }, grace });
+    call = await runSession({ home, cwd: built.cwd, prompt: built.prompt, ...LEAD, usd: watchdog.usd, minutes: watchdog.minutes, closed: built.closed, server: built.server, label: { project: `watching/${run.task}`, arm: run.arm, replicate: rerun ? `${run.replicate}-rerun` : run.replicate }, note: `the watching check: ${run.task}, ${run.arm}${rerun ? `; the one rerun of a run the harness ended (${because})` : ""}`, go, claude, ledgerPath, harnessDir: built.harnessDir, profileCheck, gameOpen, plan: { projects: ["watching"], stop_usd: ledger.cap_usd + 1e-6 }, grace });
   } catch (error) {
-    if (error instanceof NotStarted) rmSync(built.work, { recursive: true, force: true });
+    if (error instanceof NotStarted) {
+      rmSync(built.work, { recursive: true, force: true });
+      throw new NotStarted(forThisLedger(error.message));
+    }
     throw error;
   }
-  // From here on nothing is thrown: each part of the record is kept on its own, and what could not be kept is named in it.
-  const mine = [];
+  // From here on nothing is thrown: each part of the record is kept on its own, and what could not be kept is named in
+  // it. One list holds what went wrong, from here to the result: first this one, then the record's own once it exists.
+  let problems = [];
   const attempt = (what, work, otherwise) => {
     try {
       return work();
     } catch (error) {
-      mine.push(`${what}: ${error.message}`);
+      problems.push(`${what}: ${error.message}`);
       return otherwise;
     }
   };
+  // The session ran under the protocol's ceiling, or the record says it did not.
+  if (call.watchdog?.usd !== watchdog.usd) problems.push(`the session was given a ceiling of $${call.watchdog?.usd}, and the protocol's for a run of \`${run.task}\` is $${watchdog.usd.toFixed(2)}`);
   // The hook's own files, kept before the record is scrubbed: plain files of the session's folder, never through a link.
   const events = run.arm === "plain" ? null : realFolder(built.cwd, ".grooph", "events");
   if (events) {
     const left = attempt("the hook's own files", () => (mkdirSync(recordDir, { recursive: true }), copyPlain(events, join(recordDir, "events"))), []);
-    if (left.length > 0) mine.push(`left out of the copy of the hook's files: ${left.join(", ")}`);
+    if (left.length > 0) problems.push(`left out of the copy of the hook's files: ${left.join(", ")}`);
   }
   const copied = copyRecord({ home, cwd: built.cwd, base: built.base, gitDir: built.gitDir, call, recordDir, prompt: built.prompt, annotate: namesOnly, excludes: run.arm === "plain" ? [] : [join(".grooph", "events")] });
-  copied.problems.push(...mine);
-  const measured = attempt("the measures", () => measure({ profile: layout(home).profile, sessionId: call.session_id, output: call.output, wallS: call.wall_s }), null);
-  if (measured && measured.transcripts !== copied.transcripts.length) copied.problems.push(`the measures read ${measured.transcripts} transcript(s) and the record names ${copied.transcripts.length}: a subagent's transcript is somewhere the record's list does not look`);
+  copied.problems.push(...problems);
+  problems = copied.problems;
+  attempt("taking what denied calls asked out of the record's copy of the harness's output", () => withoutWhatDeniedCallsAsked(join(recordDir, "claude-output.json")));
+  const measured = attempt("the measures", () => measureWith({ profile: layout(home).profile, sessionId: call.session_id, output: call.output, wallS: call.wall_s }), null);
+  if (measured && measured.transcripts !== copied.transcripts.length) problems.push(`the measures read ${measured.transcripts} transcript(s) and the record names ${copied.transcripts.length}: a subagent's transcript is somewhere the record's list does not look`);
   const beside = run.arm === "plain" || !measured ? null : attempt("the hook's file beside the transcripts", () => hookBesideTranscripts({ eventsDir: events ? join(recordDir, "events") : null, sessionId: call.session_id, subagentIds: measured.subagents.ids }), null);
   // The scorer runs what the session wrote, outside the sandbox: on the owner's recorded decision, which the record
   // names. A run the harness ended is not scored. If the scorer itself fails there is no score, which is not a score
@@ -816,7 +922,8 @@ export function status({ ledgerPath = LEDGER, recordRoot = HOME, firstCallGate }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const flags = process.argv.slice(2);
-  const unknown = unknownFlags(flags, { plain: ["--status", "--dry-run", "--next", "--all", "--spend"], valued: ["--go", "--run", "--rerun", "--score"] });
+  const KNOWN = { plain: ["--status", "--dry-run", "--next", "--all", "--spend"], valued: ["--go", "--run", "--rerun", "--score", "--settle", "--cost", "--note"] };
+  const unknown = unknownFlags(flags, KNOWN);
   if (unknown.length > 0) {
     console.error(`${unknown.join(", ")}: not a flag of this script. Nothing was started.`);
     process.exit(64);
@@ -828,9 +935,34 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       process.exit(64);
     }
   }
+  // One thing is asked for at a time. A flag that belongs to another thing is refused, never passed over: a dry run
+  // of a scoring would otherwise be a scoring.
+  const asked = [...KNOWN.plain, ...KNOWN.valued].filter((flag) => flags.includes(flag));
+  const only = (what, allowed) => {
+    const beside = asked.filter((flag) => !allowed.includes(flag));
+    if (beside.length === 0) return;
+    console.error(`${what} does not go with ${beside.join(", ")}. Nothing was started, and nothing a session wrote was run.`);
+    process.exit(64);
+  };
+  if (flags.includes("--status")) only("--status", ["--status"]);
+  else if (flags.includes("--score")) only("--score", ["--score"]);
+  else if (flags.includes("--settle")) only("--settle", ["--settle", "--cost", "--note"]);
+  else if (flags.includes("--dry-run")) only("--dry-run", ["--dry-run", "--next", "--all", "--run", "--spend", "--go"]);
+  else only("a paid run", ["--next", "--all", "--rerun", "--spend", "--go", "--run"]);
   if (flags.includes("--status")) {
     console.log(status({ firstCallGate: firstCallAllows() }));
     process.exit(0);
+  }
+  if (flags.includes("--settle")) {
+    try {
+      const said = valueOf("--cost");
+      const line = settleLine({ n: Number(valueOf("--settle")), cost: said === "ceiling" ? null : said === null ? NaN : Number(said), note: valueOf("--note") });
+      console.log(`line ${line.n} (${line.run}) is settled: ${typeof line.cost_usd === "number" ? `$${line.cost_usd.toFixed(4)}` : `no cost known, so it counts at its ceiling of $${line.max_budget_usd}`}. No session was started.`);
+      process.exit(0);
+    } catch (error) {
+      console.error(`${error.message}\nNothing was changed.`);
+      process.exit(64);
+    }
   }
   if (flags.includes("--score")) {
     try {

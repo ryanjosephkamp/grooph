@@ -90,6 +90,8 @@ const SERVER_TOOL = /^mcp__([A-Za-z0-9_-]+?)__([A-Za-z0-9_-]+)$/;
 export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd, closed = [], user = userInfo().username, userHome = homedir(), mcp = null, allowed = [], withheld = [] }) {
   const at = layout(home);
   for (const [name, value] of Object.entries({ claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd })) if (value === undefined || value === null || value === "") throw new Error(`commandFor needs ${name}`);
+  // The ceiling is an amount of dollars above nothing. What is not a number would be passed to the harness as the words "NaN" or "Infinity".
+  if (!(Number.isFinite(Number(maxBudgetUsd)) && Number(maxBudgetUsd) > 0)) throw new Error(`commandFor needs maxBudgetUsd as dollars above zero, and was given ${String(maxBudgetUsd)}`);
   if (!resolve(cwd).startsWith(`${at.work}/`)) throw new Error(`a session's folder must be under ${at.work}, which the profile's sandbox leaves open; ${cwd} is not`);
   if (/fable|astra/i.test(model)) throw new Error(`${model} is a model this project's experiments do not use without the owner's authorization (decision 0031)`);
   for (const path of closed) if (!resolve(path).startsWith(`${resolve(cwd)}/`)) throw new Error(`a closed path must be inside the session's folder; ${path} is not inside ${cwd}`);
@@ -97,7 +99,7 @@ export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, ef
   const servers = Object.keys(mcp?.mcpServers ?? {});
   if (mcp !== null && servers.length === 0) throw new Error("a configuration of servers names at least one, under mcpServers");
   for (const name of [...allowed, ...withheld]) {
-    const tool = SERVER_TOOL.exec(String(name));
+    const tool = typeof name === "string" ? SERVER_TOOL.exec(name) : null;
     if (!tool || !servers.includes(tool[1])) throw new Error(`${JSON.stringify(name)} is not a tool of a server this run attaches (${servers.join(", ") || "it attaches none"}): only those may be allowed or withheld`);
   }
   const both = allowed.filter((name) => withheld.includes(name));

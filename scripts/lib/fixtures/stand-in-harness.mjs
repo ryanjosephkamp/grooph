@@ -98,5 +98,5 @@ let agents = 0;
 writeFileSync(join(folder, `${sessionId}.jsonl`), `${lines.join("\n")}\n`, "utf8");
 const models = { [plan.model ?? "claude-opus-5-5"]: { costUSD: plan.cost ?? 0.01 } };
 if (agents > 0) models["claude-sonnet-5-5"] = { costUSD: 0 };
-console.log(JSON.stringify({ type: "result", subtype: plan.subtype ?? "success", is_error: plan.is_error === true, api_error_status: plan.api_error_status ?? null, session_id: plan.reported_session_id ?? sessionId, ...(plan.no_cost ? {} : { total_cost_usd: plan.cost ?? 0.01 }), num_turns: (plan.uses ?? []).length + 1, result: plan.reply ?? "done", modelUsage: models }));
+console.log(JSON.stringify({ type: "result", subtype: plan.subtype ?? "success", is_error: plan.is_error === true, api_error_status: plan.api_error_status ?? null, session_id: plan.reported_session_id ?? sessionId, ...(plan.no_cost ? {} : { total_cost_usd: plan.cost ?? 0.01 }), num_turns: (plan.uses ?? []).length + 1, result: plan.reply ?? "done", modelUsage: models, ...(plan.denials ? { permission_denials: plan.denials } : {}) }));
 process.exit(plan.exit ?? 0);
