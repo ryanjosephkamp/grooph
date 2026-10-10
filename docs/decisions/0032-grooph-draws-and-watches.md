@@ -6,7 +6,7 @@
 
 grooph was built to do two things: let a person and an agent draw a multi-agent workflow, and hand a harness a package that makes a session follow it. On 2026-10-09 the owner asked plainly whether the second is worth offering.
 
-**What the record says.** Two paired studies, on seven small tasks. In the first the package showed no quality advantage over a prompt derived from it. In the second the prompt matched the package on the author's unseen tests in each of three projects, at lower cost ([`docs/claims.md`](../claims.md), the [questions page](../faq.md), [`docs/PROGRESS.md`](../PROGRESS.md)). No round cap or budget is on record as having stopped a run. A package's brakes are sentences in a lead's brief, not locks (`AGENTS.md`; decision 0029). Nothing longer or larger than those tasks has been tried, so nothing here shows that directing a session is worse in general: it shows that grooph's way of doing it has not earned its cost where it was measured.
+**What the record says**, in the words the audit left standing (the [questions page](../faq.md), [`docs/claims.md`](../claims.md), decision 0029). In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it; that is not a test of equivalence. In a second, on three small tasks designed to need feedback, the package and the same design as prose matched on the author's hidden suites and reference checks, both scored higher there than the task alone, and the package cost more than single-session prose; the judges of the code projects, given only the visible task, ranked the task-only outputs higher; and the study did not isolate the effect of structure from the extra evidence. No round cap or budget is on record as firing in a package's run; the one run that was cut off was a prompt run, stopped by the runner's own dollar ceiling. A package's stops and limits are sentences in a lead's brief, not locks; what a harness does enforce of a package is each agent file's list of tools. Nothing longer or larger than those tasks has been tried. So nothing here shows that directing a session is worse in general, or that a design with a reviewer is worth nothing. It shows that grooph's package has not earned its cost over the same design said as a prompt, where that was measured.
 
 **What the harnesses now do themselves.** By its own documentation, Claude Code runs loops, limits and gates in its own runtime: a workflow script holds the loop, an agent file can cap a subagent's turns or give it a worktree of its own, and an agent team (experimental) shares a task list whose hooks can refuse a task marked done. grooph's compiler uses none of these. A paragraph of instructions from outside will not hold a session more firmly than the program that runs it.
 
@@ -25,7 +25,7 @@ grooph was built to do two things: let a person and an agent draw a multi-agent 
 5. **The directing side moves to a lab in the repository.** It keeps building and keeps its tests. It is not in the npm package, not in the app and not on the site. Version 0.4.1 stays on npm, and the tag `checkpoint/2026-10-09` holds everything as it stood.
 6. **The loop rules become advice.** The checker's rules about loops and stops are something a person can ask for on a drawing. They are never errors, and they are never applied to a graph that records what happened.
 7. **The twenty shapes are kept, and none is something to run.** They are examples of what can be drawn, a record of what was tested before this decision, and starting designs for the views that watch a session. The guide grows from what is seen, and people may send in the graph their own agents actually followed, naming the harness and the models.
-8. **What is said about the old line is what was measured:** no better than a prompt on seven small tasks, usually costlier, nothing larger tried.
+8. **What is said about the old line is what the questions page already says of it, and no more.** In short: on four small tasks the package showed no quality advantage over the same design written as a prompt; on three more it matched that prose on the author's hidden suites and cost more; nothing larger was tried.
 9. **Before anything is moved,** the watching check is run: does installing the recorder, or inviting a session to state its plan, change what a session does ([`experiments/watching/`](../../experiments/watching/README.md)).
 
 ## What stays, what moves, what changes
@@ -50,13 +50,14 @@ grooph was built to do two things: let a person and an agent draw a multi-agent 
 **Changes.**
 
 - `grooph validate` reports whether a document is well formed. The rules about loops are asked for by name.
+- The commands and tools that stay lose what points at the lab: the `next: grooph export` lines that `pick` and `validate` print, the MCP tool `grooph_validate` checking for export by default, the authoring tools' closing mention of `grooph_export`, and the MCP server's opening instruction to a coding session to call `grooph_plan` before it starts subagents, which becomes an offer and not an instruction.
 - The live view becomes a graph where it is now a list, with a replay.
 - The twenty templates become shapes in a guide (point 7).
 - The README, the site, `AGENTS.md` and the rule and field guides are rewritten for this, after the lab is made.
 
 ## The order of work
 
-Each step is its own pull request, and each from the third on waits for the owner's word.
+Each step is its own pull request. He has said yes to the third (card q78); each from the fourth on waits for his word.
 
 1. A checkpoint. Done on 2026-10-09: the tag `checkpoint/2026-10-09`; 0.4.1 on npm.
 2. This page and [the contract](../../spec/contract.md), approved.
@@ -68,6 +69,7 @@ Each step is its own pull request, and each from the third on waits for the owne
 
 ## Not decided here
 
+- Where the line falls inside the commands that do both. `share` and `embed` also carry a recorded run and its replay, and the front page plays one; `sub` stays while what its refresh refuses moves; `plan` borrows a helper from `export`. The handoff for the lab settles each, and nothing recorded stops being viewable.
 - What the watched graph is called.
 - Reading the harness's own short description of each subagent. Claude Code keeps one beside each subagent's transcript, with the model it runs on. The viewer would read it on the person's machine when they look, and neither store nor send it. The words for the privacy page come with that step and are the owner's to approve.
 - Whether the lessons of the old line are written up as a report, and when.
@@ -77,6 +79,6 @@ Each step is its own pull request, and each from the third on waits for the owne
 ## Consequences
 
 - [`spec/contract.md`](../../spec/contract.md) is the contract in force, by amendment A-021. The capability spec and its earlier amendments describe the document and the lab.
-- Decision 0013's fifth point, which would have turned grooph toward "bounded autonomy and the record", is replaced by this. Decisions 0008, 0009, 0011, 0012, 0029 and 0030 describe the lab from here on.
+- Decision 0013's fifth point, which would have turned grooph toward "bounded autonomy and the record", is replaced by this. Decisions 0008, 0009, 0011, 0012, 0029 and 0030 describe the lab from here on, as does the part of decision 0025 about what a subgrooph's refresh refuses.
 - What was listed for after the pause about brakes, adoption, template descriptions and the paid experiments of study three ([`handoffs/DRIVER.md`](../../handoffs/DRIVER.md)) belongs to the lab and is not planned.
 - A claim about what grooph does to the quality, cost, speed or safety of work still goes through the audit loop first (decision 0024). The new product makes few: that the record is true, and that watching does not interfere. Both can be checked against a harness's own files.

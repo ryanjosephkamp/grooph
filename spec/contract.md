@@ -25,12 +25,12 @@ A way to draw a workflow, and a way to watch one. The workflow may be a multi-ag
 - **Seen.** What a session's agents did, drawn from the harness's own record: who exists, who started whom, what is running or finished, on which model. The prompt is not changed by a word.
 - **Said.** What a session chooses to state about what it intends. It is optional, it is one small call, and no session is asked to keep a picture up to date.
 - The picture shows both and marks where they differ.
-- **The recorder cannot steer.** grooph's hook appends one line and exits 0. It prints nothing, to either stream, so a harness has nothing of it to hand an agent. It keeps ids, names and times, and never a prompt, a tool's input or result, or anything an agent said (amendments A-012 to A-017).
+- **The recorder cannot steer.** grooph's hook appends one line and exits 0. It prints nothing, to either stream, so a harness has nothing of it to hand an agent. It keeps ids, names and times, and on the machine it runs on the working folder's path and where a subagent's transcript is kept. It never writes a prompt, a tool's input or result, or anything an agent said (amendments A-012 to A-017).
 - What a session says through grooph's tools is kept as that session's own statement, beside the record and never in it.
 
 ## The shapes
 
-The built-in shapes are examples of what can be drawn and a record of what has been seen. None is something a model is made to follow.
+The built-in shapes are examples of what can be drawn and a record of what was tested before decision 0032. As the guide grows it also records what has been seen. None is something a model is made to follow.
 
 ## The lab
 

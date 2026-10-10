@@ -2,7 +2,7 @@
 
 For the session that drives grooph next. The driver's memory is this file, `docs/PROGRESS.md`, the review desk, and the memory folder the harness loads (`~/.claude/projects/-Users-noir-Documents-grooph/memory/`). A session that has grown long hands the seat over by bringing this file up to date and saying so to the owner; the owner opens a fresh session in this folder and tells it to read this file.
 
-**Last brought up to date:** 2026-10-09, 9 p.m. Eastern (by the clock, `date`), by the session that took the seat that afternoon from the one titled "grooph opus operator" (the brief for that handover is [`handoffs/briefs/handover-2026-10-09.html`](briefs/handover-2026-10-09.html)).
+**Last brought up to date:** 2026-10-09, 8:45 p.m. Eastern (by the clock, `date`), by the session that took the seat that afternoon from the one titled "grooph opus operator" (the brief for that handover is [`handoffs/briefs/handover-2026-10-09.html`](briefs/handover-2026-10-09.html)).
 
 ## Who you are
 
@@ -42,7 +42,7 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 - **Pull requests**: `gh`. After opening one, `mcp__ccd_pr__get_status`.
 - **Codex** by command, for a small check only: `/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex exec … < /dev/null`. An audit or a slice goes to a Codex session the owner opens.
 
-## Now: a change of direction, taken step by step (written 2026-10-09, 9 p.m. Eastern; read this first)
+## Now: a change of direction, taken step by step (written 2026-10-09, 8:45 p.m. Eastern; read this first)
 
 **On 2026-10-09 the owner chose to change what grooph is** ([decision 0032](../docs/decisions/0032-grooph-draws-and-watches.md), [the contract](../spec/contract.md)): it draws workflows and it watches them, and it no longer directs a session. He asked first whether grooph is worth more than a diagram tool now that Claude Code runs teams and workflows itself; the driver's plain answer, with the numbers, is on the desk's settled cards q72 to q74. He then described the direction in his own words (a file kept unchanged at `/Users/noir/Documents/grooph-exchange/driver/checkpoint-2026-10-09/owner-notes/`) and answered four cards, q75 to q78: the watched graph is drawn from the harness's record first, with what a session says on top; the directing side goes to a lab in the repository; the twenty shapes are kept and none is something to run; and before the weekly reset of 2026-10-12 one test only, that watching changes nothing.
 
@@ -52,8 +52,8 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 
 **In flight.**
 
-- The pull request from `docs/0032-grooph-draws-and-watches`: the decision, the contract, amendment A-021 and these pages. It is a change to the contract, so it merges on his "approved" and not before; the decision's status line is changed to accepted, with his words, in the commit before the merge.
-- The branch `slice/0102-the-watching-check`: the protocol ([`experiments/watching/`](../experiments/watching/README.md)), the free checks (run: 25 of 25 inputs silent, about 50 ms a call) and a runner built by a subagent, which the driver reads before it opens the pull request. The twelve runs are started from a terminal by a person, after the clean profile's first call (at most $1.00, his to start, on his yes for it by name) is on record. The profile is signed in; nothing has ever been run from it.
+- The pull request from `docs/0032-grooph-draws-and-watches` (#183): the decision, the contract, amendment A-021, these pages, and the watching check's protocol and free checks (the one commit it shares with the slice's branch). It is a change to the contract, so it merges on his "approved" and not before; the decision's status line is changed to accepted, with his words, in the commit before the merge.
+- The branch `slice/0102-the-watching-check`: the protocol ([`experiments/watching/`](../experiments/watching/README.md)) and the free checks (run: 25 of 25 inputs silent, about 50 ms a call). Its runner is being built by a subagent and is not yet on the branch; the driver reads it before it opens the pull request. The twelve runs are started from a terminal by a person, after the clean profile's first call (at most $1.00, his to start, on his yes for it by name) is on record. The profile is signed in; nothing has ever been run from it.
 
 **His review of the site is put off** until the site has been changed for the new focus (card q50).
 

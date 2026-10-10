@@ -9,7 +9,7 @@ The owner asked for one kind of test before grooph is changed from something tha
 ## What is asked
 
 1. **Does installing the recorder change what a session does?** The recorder is the event hook `grooph hooks install` puts in a project. It prints nothing and always exits 0, so a session is handed nothing to read. What it does leave is files in the project: `.claude/settings.json` and `.grooph/`.
-2. **What does an invitation cost, and does it change what the model chooses?** The invitation is one sentence and two tools with which a session may say what it intends.
+2. **What does an invitation cost, and does it change what the model chooses?** The invitation is one sentence, two tools with which a session may say what it intends, and what grooph's MCP server itself tells a session, as 0.4.1 ships it.
 3. **Is the record true?** Does what the hook wrote agree with what the harness's own transcripts say happened?
 4. A by-product: the first recordings of what a model does with subagents when it is allowed to use them and told nothing about how.
 
@@ -29,7 +29,9 @@ The invitation, in the third arm only, after that sentence:
 
 > If you do use subagents, you may say what you intend with the `grooph_plan` tool, and leave a short note for whoever is watching with `grooph_note`. This is optional, and nothing here depends on it.
 
-Nothing else differs. Every session is headless (`claude -p`), on Claude Sonnet 5.5 at high effort, started from the clean profile of [`experiments/comparisons/profile/`](../comparisons/profile/README.md) by that profile's own runner, so that it loads nothing of the owner's account and can write nowhere but its own folder. Which model a subagent runs on is left to the session: it is one of the things watched.
+**What the third arm really holds.** grooph 0.4.1's MCP server gives every session that attaches it some 400 words of instructions of its own, written for all of its tools. One sentence of them is about these two: "In a coding session: before starting subagents, call grooph_plan with the kinds you will start". The description of `grooph_plan` says "Call it again when the plan changes", and its reply says "Start them as you planned". Those are instructions, not an offer, and the new contract will not allow them (decision 0032). They are left in on purpose: this check is of what exists. So a difference in the third arm cannot be divided between the one invited sentence and the server's own words, and what the arm measures is the said layer as 0.4.1 ships it.
+
+Nothing else differs. Every session is headless (`claude -p`), on Claude Sonnet 5.5 at high effort, started from the clean profile of [`experiments/comparisons/profile/`](../comparisons/profile/README.md) by that profile's own runner, so that it loads nothing of the owner's account and can write nowhere but its own folder. Which model a subagent runs on is left to the session: it is one of the things watched. The profile pins what each short name means (`opus` and `fable` to Opus 5.5, `sonnet` to Sonnet 5.5, `haiku` to `claude-haiku-4-5-20251001`), so the name a session asked for and the model that answered are both kept.
 
 ## Two tasks
 
@@ -47,7 +49,7 @@ Every arm is measured the same way, **from the harness's own files in the clean 
 - Subagents: how many, of which types, on which models, how deep, started in the foreground or the background.
 - The session: turns, tool calls by tool name, minutes, tokens, and the cost the harness reports.
 - The result: how many of the unseen tests pass, for each package.
-- The footprint: how many of the session's tool calls name `.grooph` or `.claude/settings.json`. A count; what a call said is not kept.
+- The footprint: how many of the session's tool calls name `.grooph` or `.claude/settings.json`, or get a result that shows either (`git status` lists the hook's own file as untracked while a watched session runs). Counts; what a call said or returned is not kept.
 - In the watched arms, the hook's own file is kept, and set beside the transcripts: a subagent the harness started with no start line, a start with no stop, a line for a subagent that was never started.
 - In the invited arm: whether either tool was called, how many times, and what was said. That text is kept. It is the session's own statement and it is what the arm is for.
 
@@ -65,7 +67,7 @@ What it cannot say: anything about another model, another harness, a session a p
 ## Limits
 
 - A run of `one` stops at $2.00 or 15 minutes. A run of `four` stops at $6.00 or 40 minutes. These are the runner's watchdog; no session is told of them.
-- The whole check stops at **$45.00** on a ledger of its own, [`ledger.json`](ledger.json). A cost that is not yet settled counts at its ceiling. The dollars are the list price the harness reports; on the owner's subscription they are usage and not a charge.
+- The whole check stops at **$45.00** on a ledger of its own, `ledger.json` in this folder, which is made with the runner. A cost that is not yet settled counts at its ceiling. The twelve ceilings add up to $48.00, more than the cap, on purpose: a run is not started unless the ledger has room for its ceiling, so the check ends early if the runs cost far more than expected. The dollars are the list price the harness reports; on the owner's subscription they are usage and not a charge.
 - A run that fails for a reason outside the session (the sign-in, the network, a usage limit) may be run once more, with the reason written beside it.
 - A run is recorded before its result is used (decision 0015): the harness's output saved as it runs, a ledger row with the session's id and reported cost.
 
@@ -76,7 +78,7 @@ What it cannot say: anything about another model, another harness, a session a p
 3. **The profile's first call is on record and says later runs may start.** That is the profile's own rule: one short session, at most $1.00 and ten minutes, started from a terminal by a person on the owner's yes for it by name. It has not been made.
 4. The owner's yes for these twelve, given on the review desk on 2026-10-09 (card `q78-does-watching-change-anything`).
 
-A paid run is started from a terminal, by a person. The runner's `--dry-run` starts nothing and shows what would be started.
+A paid run is started from a terminal, by a person. The runner (`scripts/lib/watching-check-paid.mjs`, built on the profile's own) is not on this page's commit; it comes in its own pull request, and its `--dry-run` starts nothing and shows what would be started.
 
 ## The free checks (run on 2026-10-09, no model)
 
@@ -89,6 +91,6 @@ A paid run is started from a terminal, by a person. The runner's `--dry-run` sta
 | One call of the hook, median of 200 | 51.5 ms |
 | Node starting and doing nothing, median of 200 | 48.3 ms |
 
-So on this Mac (Apple M3 Pro, Node 26.10) a hook call costs what it costs to start Node, about a twentieth of a second, and the hook's own work is a few milliseconds of that. As installed, five of its seven entries run in the background and the harness does not wait for them. It waits for two: the one at a turn's end and the one at the session's end. The full report is [`free-checks/result-2026-10-09.json`](free-checks/result-2026-10-09.json).
+So on this Mac (Apple M3 Pro, Node 26.10) a hook call costs what it costs to start Node, about a twentieth of a second, and the hook's own work is a few milliseconds of that. As installed for Claude Code, five of its seven entries run in the background and the harness does not wait for them. It waits for two: the one at a turn's end and the one at the session's end. The full report is [`free-checks/result-2026-10-09.json`](free-checks/result-2026-10-09.json).
 
 This shows what the hook does when it is run. It does not show what a harness does with a hook: that rests on both harnesses' documentation ([`docs/subagents.md`](../../docs/subagents.md) §5), and the twelve runs are the first look at it in practice.
