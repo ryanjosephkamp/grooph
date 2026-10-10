@@ -2,7 +2,7 @@
 
 For the session that drives grooph next. The driver's memory is this file, `docs/PROGRESS.md`, the review desk, and the memory folder the harness loads (`~/.claude/projects/-Users-noir-Documents-grooph/memory/`). A session that has grown long hands the seat over by bringing this file up to date and saying so to the owner; the owner opens a fresh session in this folder and tells it to read this file.
 
-**Last brought up to date:** 2026-10-10, 11:45 a.m. Eastern (by the clock, `date`), by the session that took the seat that afternoon from the one titled "grooph opus operator" (the brief for that handover is [`handoffs/briefs/handover-2026-10-09.html`](briefs/handover-2026-10-09.html)).
+**Last brought up to date:** 2026-10-10, 11:10 a.m. Eastern (by the clock, `date`), by the session that took the seat that afternoon from the one titled "grooph opus operator" (the brief for that handover is [`handoffs/briefs/handover-2026-10-09.html`](briefs/handover-2026-10-09.html)).
 
 ## Who you are
 
@@ -50,7 +50,7 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 
 **Done on his word that day.** The main clone rebuilt (`grooph` answers 0.4.1). The tag `checkpoint/2026-10-09` pushed at `ccbcab2`. The desk's data copied to the exchange folder beside his notes. Nothing has been removed from the package or the site.
 
-**Where it stands (2026-10-10, 11:45 a.m.).** Decision 0032 is accepted: he approved it on the desk that morning ("Fully approved."), and #183 is merged. The watching check's runner is merged (#184) on his yes to three things on card q80: the runner, the clean profile's first call, and scoring what the sessions wrote; his scoring decision is in `experiments/watching/ledger.json`. On the same card he asked whether Opus or Haiku should be tried beside Sonnet and left the limits to the driver, so the check was changed before any run: three blocks of the same twelve (`sonnet`, `opus`, `haiku`), 25 and 60 minutes, dollar ceilings by block, a cap of $140.00, and no pin on the short name `haiku` ([`experiments/watching/README.md`](../experiments/watching/README.md), "Changed before any run").
+**Where it stands (2026-10-10, 11:10 a.m.).** Decision 0032 is accepted: he approved it on the desk that morning ("Fully approved."), and #183 is merged. The watching check's runner is merged (#184) on his yes to three things on card q80: the runner, the clean profile's first call, and scoring what the sessions wrote; his scoring decision is in `experiments/watching/ledger.json`. On the same card he asked whether Opus or Haiku should be tried beside Sonnet and left the limits to the driver, so the check was changed before any run: three blocks of the same twelve (`sonnet`, `opus`, `haiku`), 25 and 60 minutes, dollar ceilings by block, a cap of $140.00, and no pin on the short name `haiku` ([`experiments/watching/README.md`](../experiments/watching/README.md), "Changed before any run").
 
 **What comes next, in order.**
 
