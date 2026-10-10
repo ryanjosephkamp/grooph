@@ -191,7 +191,7 @@ test("the two sentences, the three models, the limits and the tasks are the page
   assert.ok(page.includes("The thirty-six ceilings add up to $192.00, more than the cap, on purpose"));
   assert.equal(order().reduce((sum, run) => sum + WATCHDOG[run.block][run.task].usd, 0), 192);
   // The one short name this check leaves to the harness, and the three the profile goes on pinning.
-  assert.ok(page.includes("The profile pins what three short names mean (`opus` and `fable` to Opus 5.5, `sonnet` to Sonnet 5.5). For this check `haiku` is left to mean what the harness makes it mean"));
+  assert.ok(page.includes("The profile pins four short names of a model (`opus` and `fable` to Opus 5.5, `sonnet` to Sonnet 5.5, `haiku` to an older Haiku). A session of this check is started without the pin on `haiku`"));
   assert.deepEqual(LEFT_TO_THE_HARNESS, ["haiku"]);
   assert.deepEqual(Object.fromEntries(Object.entries(PINS).filter(([short]) => !LEFT_TO_THE_HARNESS.includes(short))), { fable: "claude-opus-5-5", opus: "claude-opus-5-5", sonnet: "claude-sonnet-5-5" });
   assert.ok(page.includes("`grooph_plan` and `grooph_note`, and every other tool of it withheld"));
