@@ -2,7 +2,7 @@
 
 For the session that drives grooph next. The driver's memory is this file, `docs/PROGRESS.md`, the review desk, and the memory folder the harness loads (`~/.claude/projects/-Users-noir-Documents-grooph/memory/`). A session that has grown long hands the seat over by bringing this file up to date and saying so to the owner; the owner opens a fresh session in this folder and tells it to read this file.
 
-**Last brought up to date:** 2026-10-09, 8:45 p.m. Eastern (by the clock, `date`), by the session that took the seat that afternoon from the one titled "grooph opus operator" (the brief for that handover is [`handoffs/briefs/handover-2026-10-09.html`](briefs/handover-2026-10-09.html)).
+**Last brought up to date:** 2026-10-10, 11:45 a.m. Eastern (by the clock, `date`), by the session that took the seat that afternoon from the one titled "grooph opus operator" (the brief for that handover is [`handoffs/briefs/handover-2026-10-09.html`](briefs/handover-2026-10-09.html)).
 
 ## Who you are
 
@@ -50,12 +50,20 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 
 **Done on his word that day.** The main clone rebuilt (`grooph` answers 0.4.1). The tag `checkpoint/2026-10-09` pushed at `ccbcab2`. The desk's data copied to the exchange folder beside his notes. Nothing has been removed from the package or the site.
 
-**In flight.**
+**Where it stands (2026-10-10, 11:45 a.m.).** Decision 0032 is accepted: he approved it on the desk that morning ("Fully approved."), and #183 is merged. The watching check's runner is merged (#184) on his yes to three things on card q80: the runner, the clean profile's first call, and scoring what the sessions wrote; his scoring decision is in `experiments/watching/ledger.json`. On the same card he asked whether Opus or Haiku should be tried beside Sonnet and left the limits to the driver, so the check was changed before any run: three blocks of the same twelve (`sonnet`, `opus`, `haiku`), 25 and 60 minutes, dollar ceilings by block, a cap of $140.00, and no pin on the short name `haiku` ([`experiments/watching/README.md`](../experiments/watching/README.md), "Changed before any run").
 
-- The pull request from `docs/0032-grooph-draws-and-watches` (#183): the decision, the contract, amendment A-021, these pages, and the watching check's protocol and free checks (the one commit it shares with the slice's branch). He approved it on the review desk on 2026-10-10 ("Fully approved."), and it was merged that morning with the decision's status line changed to accepted.
-- The branch `slice/0102-the-watching-check`: the protocol ([`experiments/watching/`](../experiments/watching/README.md)) and the free checks (run: 25 of 25 inputs silent, about 50 ms a call). Its runner is being built by a subagent and is not yet on the branch; the driver reads it before it opens the pull request. The twelve runs are started from a terminal by a person, after the clean profile's first call (at most $1.00, his to start, on his yes for it by name) is on record. The profile is signed in; nothing has ever been run from it.
+**What comes next, in order.**
 
-**His review of the site is put off** until the site has been changed for the new focus (card q50).
+1. One built worktree for the runs (`git worktree add .claude/worktrees/watching-runs origin/main`, then `pnpm install --frozen-lockfile && pnpm -r build` in it). The server and the hook's installer are that checkout's code, and the records are written into it.
+2. He starts the clean profile's first call from a terminal: at most $1.00 and ten minutes, Opus 5.5. The driver reads its record before anything else is started.
+3. He starts one block at a time, `sonnet`, then `opus`, then `haiku` (`node scripts/lib/watching-check-paid.mjs --all --block <name> --spend --go "<the driver's words>"`); the driver reads each block's records before giving him the next. A paid run is started from a terminal, by a person.
+4. The records are committed from that worktree, and the tables written as the protocol's "How it will be read" says.
+
+**Found on the way, for the steps that build the product.** The hook appends under `.grooph/events` with no check for a link, and a harness runs it outside the sandbox: a small real fault in 0.4.1's hook, to be fixed with a test in a pull request of its own, on his word since it changes what ships. Claude Code cuts a server's instructions at 2,048 characters and grooph's are 2,625, so the one sentence the server has for a session's lead does not arrive and what does arrive is about authoring: the watching tools want a short server of their own.
+
+**Codex.** He asked when. The driver's answer: after the fifth step of the decision's order (the live graph of one Claude Code session, which he uses), as a step of its own, with a watching check under `codex exec` first. The hook already records Codex; its hooks do not say which agent started which, so the tree comes from Codex's own session files.
+
+**His review of the site is put off** until the site has been changed for the new focus (card q50). If he looks before then, he was told what stays (the look, the editor and canvas, the pictures and the five views in three dimensions, the themes, plans, maps, share links and embeds, the shapes as drawings) and what will be rewritten (every page that talks about running agents).
 
 **The lanes.** All six are idle and none has been used or told anything. A subagent in a worktree did the building for 0102. If lanes are wanted again, fresh ones.
 

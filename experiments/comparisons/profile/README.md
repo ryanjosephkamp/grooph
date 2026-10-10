@@ -40,7 +40,7 @@ It is the game experiment's profile made for headless comparison sessions. [`exp
 | A browser | Playwright's, readable | none | no task drives one |
 | The event hook | walled off from the session | none installed | no hook is part of these runs |
 | Paths a session may not write | the hook's files | whatever a run names: a check's own files, for the brake experiment | so a check is read-only by a wall and not by an instruction. As in the game's profile there are two: the sandbox's `denyWrite` for commands, and `--disallowedTools` on the command line for the file tools. A builder with `Edit` and no shell meets only the second |
-| Model aliases | not pinned | pinned as in study two | so no alias can reach a model this project never uses |
+| Model aliases | not pinned | pinned as in study two; the watching check alone leaves `haiku` to the harness, and never `fable` | so no alias can reach a model this project never uses |
 | Skills | the package's own | none (`--disable-slash-commands`) | as in study two: a prose arm must not be shown a skill's name |
 
 ## What can be checked with no session, and what it showed on 2026-10-05
