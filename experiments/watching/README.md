@@ -4,7 +4,7 @@ Does watching a session change what it does?
 
 The owner asked for one kind of test before grooph is changed from something that directs agents into something that watches and draws them (decision 0032): that what grooph adds does not get in the way of how a session would work anyway. This page is that test, written before anything is run. It uses what grooph 0.4.1 already ships and builds nothing new into the product.
 
-**Status: run on 2026-10-10.** What the thirty-six runs showed is in [`RESULTS.md`](RESULTS.md); it has not been read by a second harness. This page was changed once before any run, on 2026-10-10, and has one note from after them (the last two sections). The free checks at the end have been run and need no model. No model session has been started.
+**Status: run on 2026-10-10.** What the thirty-six runs showed is in [`RESULTS.md`](RESULTS.md); it has not been read by a second harness. This page was changed once before any run, on 2026-10-10, and has one note from after them (the last two sections). The free checks at the end need no model and were run the day before.
 
 ## What is asked
 

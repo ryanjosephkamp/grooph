@@ -8,25 +8,35 @@ Every number below comes from a run's own record under `sonnet/`, `opus/` and `h
 
 - **All thirty-six runs ended by themselves, and every record is whole.** $16.72 by the list price the harness reports ($4.17, $9.42 and $3.14 for the three blocks, each rounded), of a cap of $140.00. The clean profile's first call, made first, cost $0.35 and held on every check.
 - **Thirty-five of the thirty-six sessions used no subagent.** The tasks were small enough that a session did them itself, the wide one included. So this check says little about sessions that delegate, which is what the product is for.
-- **The recorder loaded and wrote its file in all twenty-four watched runs.** In the one run with subagents, its file has four starts and four stops for the four subagents the harness's transcripts show, and no line for anything else.
+- **The recorder loaded and wrote its file in all twenty-four watched runs.** In the one run with subagents, its file has four starts and four stops for the four subagents the harness's transcripts show, and no subagent line for anything else.
 - **Unseen-test scores overlap between the plain arm and each watched arm, on both tasks, in every block.**
-- **Cost differs between arms in both directions, by amounts about the size of the spread between two runs of one arm.** By the protocol's rule these are reported as differences, below.
-- **A watched session can see the recorder's files, and Opus looked.** In three of its four narrow watched runs it made calls that named them, and in one it wrote about them in its own review file and its final reply. Nothing of the recorder's was changed.
-- **Nobody used the two tools.** No invited session called either or searched for them, the one that used subagents included.
+- **Cost differs between arms in both directions, by a few cents.** By the protocol's rule these are reported as differences, each of them below.
+- **A watched session can see the recorder's files, and some said so.** In eight of the twenty-four watched and invited runs the session's final reply mentions the hook's events folder: three on Sonnet, five on Opus, none on Haiku. Only Opus made calls that named the files, in three of its four narrow runs with the hook. Nothing of the recorder's was changed.
+- **Nobody used the two tools.** Eleven of the twelve invited sessions used no subagent, so an invitation that is about subagents had no occasion. The one session that did use subagents did not use the tools.
 
 ## What each question got for an answer
 
-**1. Does installing the recorder change what a session does?** Not in its score, by the protocol's rule: between plain and watched the unseen-test results overlap on both tasks in all three blocks. In cost, the rule gives a different answer in each block. On Sonnet the two watched runs of the wide task cost more than the two plain ones ($0.54 and $0.64 against $0.47 and $0.53); on Opus the ranges overlap on both tasks; on Haiku the two watched runs of the narrow task cost less than the two plain ones ($0.09 and $0.10 against $0.13 and $0.15). The differences run both ways, and in each case the gap between the two arms' ranges is smaller than the spread between two plain runs elsewhere in the same block. Two runs an arm cannot say more.
+**1. Does installing the recorder change what a session does?** No difference seen in its score, by the protocol's rule: between plain and watched the unseen-test results overlap on both tasks in all three blocks.
 
-What the recorder does change is what is in the folder. Its files were shown to the session in tool results in sixteen of the twenty-four watched runs (a listing or `git status`). Sonnet and Haiku never made a call that named them. Opus did in three of its four narrow watched runs: one or two calls each, one of them an edit of its own review file, which says of the events file that it is "a session log written by the project's own hook", and its final reply says "I left it alone." So with the hook installed inside the project, watching is not invisible to a strong model: it takes a little of its attention and can appear in what it writes.
+In cost the rule gives a different answer in each block. These are all the cases where an arm with the hook does not overlap the plain arm:
 
-**2. What does the invitation cost, and does it change what the model chooses?** Every invited session was handed 2,071 characters of the server's own instructions, which name neither tool, and was named exactly the two tools: the cut the harness documents, seen. No invited session searched for a tool or called one. Between watched and invited, cost and score overlap on both tasks on Sonnet and on Opus. On Haiku there are two exceptions: on the narrow task the watched runs passed 52 and 52 of 70 and the invited runs 48 and 46; and on the wide task the invited runs cost more ($0.39 and $0.52 against $0.29 and $0.33), the dearer of them being the one run that used subagents.
+- **Sonnet, the wide task.** Plain $0.47 and $0.53; watched $0.54 and $0.64; invited $0.59 and $0.60. Both arms with the hook cost more. The gap to the nearer is $0.01, against $0.07 between the two plain runs.
+- **Opus, the wide task.** Plain $1.25 and $1.50; invited $1.19 and $1.24, under plain by less than a cent. Plain and watched overlap on both tasks.
+- **Haiku, the narrow task.** Plain $0.13 and $0.15; watched $0.09 and $0.10; invited $0.10 and $0.09. Both arms with the hook cost less, by $0.03, which is more than the $0.02 between the two plain runs.
+
+The differences run both ways and are a few cents. Two runs an arm cannot say whether any of them is more than chance.
+
+What the recorder does change is what is in the folder. Its files were shown to the session in tool results in sixteen of the twenty-four runs with the hook (a listing or `git status`). In eight of those twenty-four the session's final reply mentions the hook's events folder: Sonnet's narrow runs `watched-1`, `invited-1` and `invited-2`, all four of Opus's narrow runs, and Opus's wide run `invited-2`. Haiku never mentioned it. Only Opus made calls that named the files, in three of its four narrow runs with the hook: one or two calls each, one of them an edit of its own review file, which says of the events file that it is "a session log written by the project's own hook", and that session's final reply says "I left it alone." So with the hook installed inside the project, watching is not invisible: a session may spend a little attention on the files and may say so in what it writes.
+
+**2. What does the invitation cost, and does it change what the model chooses?** Every invited session was handed 2,071 characters of the server's own instructions (the 2,048 the harness documents, and its mark that they were cut), which name neither tool, and was named exactly the two tools. No invited session searched for a tool or called one. Eleven of the twelve used no subagent, so the invitation had no occasion; one of those, `sonnet/four/invited-2`, ends its reply by saying that it "did not use subagents or the grooph tools".
+
+Between watched and invited, cost and score overlap on both tasks on Sonnet and on Opus. On Haiku there are two exceptions: on the narrow task the watched runs passed 52 and 52 of 70 and the invited runs 48 and 46; and on the wide task the invited runs cost more ($0.39 and $0.52 against $0.29 and $0.33), the dearer of them being the one run that used subagents.
 
 The one session that used subagents was an invited one (`haiku/four/invited-1`: four `general-purpose` subagents in the background, one for each package). Its twin, `haiku/four/invited-2`, used none, and so did every other run. One run cannot say whether the invitation had anything to do with it. That session did not use the tools it was invited to use.
 
-**3. Is the record true?** Where there was something to record, yes, once: four subagents in the transcripts, four starts and four stops in the hook's file, none missing and none extra. In the other twenty-three watched runs the hook wrote a file with no subagent lines, and the transcripts show no subagent. That is one run's worth of evidence about subagents.
+**3. Is the record true?** Where there was something to record, yes, once: four subagents in the transcripts, four starts and four stops in the hook's file under the same ids, none missing and no subagent line for anything else. In the other twenty-three watched runs the hook wrote a file with no subagent lines, and the transcripts show no subagent. That is one run's worth of evidence about subagents.
 
-**4. What a model does with subagents when it is allowed to and told nothing about how.** On these tasks: nothing, thirty-five times of thirty-six. Sonnet 5.5 and Opus 5.5 did four independent packages one after another in three to six minutes. Haiku split them among four subagents in one of its six runs of the wide task.
+**4. What a model does with subagents when it is allowed to and told nothing about how.** On these tasks: nothing, thirty-five times of thirty-six. Sonnet 5.5 and Opus 5.5 did four independent packages one after another in about three to six minutes. Haiku split them among four subagents in one of its six runs of the wide task.
 
 ## What this cannot say
 
@@ -37,8 +47,8 @@ The one session that used subagents was an invited one (`haiku/four/invited-1`: 
 
 ## What follows for the product
 
-- **Install the recorder outside the project.** A hook at the user's level, with its events kept outside the working folder, leaves nothing in the folder for a session to notice. That removes the one effect this check did see.
-- **The two tools, as shipped, are not picked up.** The server's one sentence for a session's lead does not arrive (it lies past the 2,048 characters the harness hands over), and what does arrive is about authoring graphs. What a session may say needs a short server of its own.
+- **Install the recorder outside the project.** A hook at the user's level, with its events kept outside the working folder, would leave no file of grooph's in the folder for a session to see or to mention. This check did not try that.
+- **The two tools were not used the one time there was occasion, and what the server hands a session does not mention them.** Its one sentence for a session's lead lies past the 2,048 characters the harness hands over, and what does arrive is about authoring graphs. What a session may say needs a short server of its own.
 - **The next look needs work that calls for subagents.** What a model chooses, and whether the record of it is true, can only be seen where it chooses something.
 
 ## The thirty-six runs
