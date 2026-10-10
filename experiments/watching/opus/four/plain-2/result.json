@@ -1,0 +1,277 @@
+{
+  "session_id": "e78d155b-9523-40c4-9377-9245d285fbb7",
+  "transcript": "~/grooph-compare/profile/projects/-Users-noir-grooph-compare-work-92ed80c0-packages/e78d155b-9523-40c4-9377-9245d285fbb7.jsonl",
+  "ledger_n": 20,
+  "reported_cost_usd": 1.5044666,
+  "counted_usd": 1.504467,
+  "wall_s": 376,
+  "ended_by": "the session",
+  "which": null,
+  "watchdog": {
+    "usd": 15,
+    "minutes": 60,
+    "fired": null,
+    "is_not_a_graphs_stop": true
+  },
+  "harness": {
+    "path": "~/.local/bin/claude",
+    "version": "2.1.289 (Claude Code)"
+  },
+  "models": [
+    "claude-opus-5-5"
+  ],
+  "models_never_used": [],
+  "harness_turns": 51,
+  "exit": 0,
+  "command": [
+    "~/.local/bin/claude",
+    "-p",
+    "<the prompt>",
+    "--model",
+    "claude-opus-5-5",
+    "--effort",
+    "high",
+    "--output-format",
+    "json",
+    "--max-budget-usd",
+    "15",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Edit(/**)",
+    "--strict-mcp-config",
+    "--setting-sources",
+    "user,project",
+    "--no-chrome",
+    "--disable-slash-commands",
+    "--session-id",
+    "e78d155b-9523-40c4-9377-9245d285fbb7"
+  ],
+  "environment": [
+    "ANTHROPIC_DEFAULT_FABLE_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "CLAUDE_CODE_AUTO_CONNECT_IDE",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY",
+    "CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL",
+    "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK",
+    "CLAUDE_CODE_TMPDIR",
+    "CLAUDE_CONFIG_DIR",
+    "DISABLE_AUTOUPDATER",
+    "ENABLE_CLAUDEAI_MCP_SERVERS",
+    "HOME",
+    "LANG",
+    "LOGNAME",
+    "PATH",
+    "SHELL",
+    "TERM",
+    "TMPDIR",
+    "USER",
+    "ZDOTDIR"
+  ],
+  "problems_after_the_call": [],
+  "tripwire": "",
+  "project_files_changed": [
+    "M csvline/src/csv.mjs",
+    "M csvline/tests/csv.test.mjs",
+    "M semver-mini/src/semver.mjs",
+    "M settingskit/CHANGELOG.md",
+    "A settingskit/REVIEW.md",
+    "A settingskit/src/layer.mjs",
+    "A settingskit/tests/layer.test.mjs",
+    "M textwrap/README.md",
+    "A textwrap/src/wrap.mjs",
+    "A textwrap/tests/wrap.test.mjs"
+  ],
+  "result_tail": "f the grammar;\n  - eighteen 100 KB records of different shapes, each under a second.\n\n## semver-mini\n- **Implemented** `compare` in `src/semver.mjs`; the tests are untouched.\n- **Beyond the visible tests:** numbers are compared as digit strings, so values past 2^53 stay exact. When one argument is not a string, the `TypeError` wins over a `RangeError` for the other.\n- **Held-out set:** I did not look for it or run it. I did probe about forty extra cases of my own (big numbers, hyphen-only identifiers, ASCII ordering, trailing newline, non-ASCII digits), and all behaved as semver.org specifies.",
+  "run": "opus/four/plain-2",
+  "block": "opus",
+  "task": "four",
+  "arm": "plain",
+  "replicate": 2,
+  "rerun_of": null,
+  "rerun_because": null,
+  "given": {
+    "the_runners_checkout": {
+      "commit": "01048e9e35f3af06b228266dd2cdd1180cb7cee7",
+      "files_changed_since_it": 2,
+      "grooph_version": "0.4.1"
+    },
+    "the_sessions_model": {
+      "block": "opus",
+      "asked_for": "claude-opus-5-5",
+      "effort": "high"
+    },
+    "short_names_of_a_model": {
+      "pinned": {
+        "fable": "claude-opus-5-5",
+        "opus": "claude-opus-5-5",
+        "sonnet": "claude-sonnet-5-5"
+      },
+      "left_to_the_harness": [
+        "haiku"
+      ],
+      "read_from": "the names of the variables the session was started with"
+    },
+    "the_prompt_ends_with": [
+      "You may use subagents for any part of this if you judge that it helps. You do not have to."
+    ],
+    "hook_installed": [],
+    "closed_to_the_session": [],
+    "server": null
+  },
+  "measures": {
+    "read_from": "the harness's own files in the profile: the session's transcript, each subagent's transcript and the file beside it, and the result the harness printed. Nothing is read from grooph",
+    "transcripts": 1,
+    "the_sessions_transcript_found": true,
+    "session": {
+      "turns_as_the_harness_reports": 51,
+      "models_that_answered": [
+        "claude-opus-5-5"
+      ],
+      "messages": 14,
+      "tool_calls": {
+        "Bash": 20,
+        "Edit": 4,
+        "Read": 18,
+        "Write": 8
+      },
+      "tool_calls_with_its_subagents": {
+        "Bash": 20,
+        "Edit": 4,
+        "Read": 18,
+        "Write": 8
+      },
+      "tool_calls_that_came_back_as_errors": {
+        "Bash": 6
+      },
+      "calls_the_harness_reports_it_denied": {
+        "Bash": 6
+      },
+      "minutes_by_the_runners_clock": 6.27,
+      "seconds_as_the_harness_reports": 375,
+      "tokens_as_the_harness_reports": {
+        "input_tokens": 28,
+        "output_tokens": 41484,
+        "cache_creation_input_tokens": 66378,
+        "cache_read_input_tokens": 718253
+      },
+      "tokens_by_model_as_the_harness_reports": {
+        "claude-opus-5-5": {
+          "input": 28,
+          "output": 41484,
+          "cache_read": 718253,
+          "cache_creation": 66378,
+          "cost_usd": 1.5044666
+        }
+      },
+      "tokens_in_its_transcript": {
+        "input_tokens": 28,
+        "output_tokens": 41484,
+        "cache_creation_input_tokens": 66378,
+        "cache_read_input_tokens": 718253
+      },
+      "cost_usd_as_the_harness_reports": 1.5044666
+    },
+    "subagents": {
+      "count": 0,
+      "by_type": {},
+      "by_model_asked_for": {},
+      "by_model_that_answered": {},
+      "deepest": null,
+      "asked_for": {},
+      "as_the_harness_counts": {
+        "spawned": 0,
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "started_in_background": 0,
+        "max_depth": 0,
+        "spawned_by_subagents": 0,
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "user": 0,
+          "system": 0
+        },
+        "refused": {
+          "depth_limit": 0,
+          "concurrency_limit": 0,
+          "budget": 0
+        },
+        "by_type": {}
+      },
+      "ids": [],
+      "each": []
+    },
+    "footprint": {
+      "counts": "tool calls, the session's and its subagents', that name .grooph or .claude/settings.json: in what the call asked, and in what came back. Two counts, kept apart; one call may be in both. Counts only: nothing a call said and nothing that came back is kept",
+      "named_in_the_input": {
+        "calls": 0,
+        "by_tool": {},
+        "of_them_refused": 0
+      },
+      "shown_in_the_result": {
+        "calls": 0,
+        "by_tool": {}
+      },
+      "in_both": 0
+    },
+    "given": {
+      "tools_of_a_server_named_to_it": [],
+      "servers_whose_instructions_it_was_handed": [],
+      "instructions_it_was_handed": [],
+      "entries_of_what_it_was_given": {
+        "agent_listing_delta": 1,
+        "budget_usd": 14,
+        "credential_org": 1,
+        "date": 1,
+        "deferred_tools_delta": 1,
+        "deferred_tools_record": 6,
+        "environment": 1,
+        "model": 1,
+        "prompt_snapshot": 2,
+        "remote_session_change": 1,
+        "sandbox_instructions": 1,
+        "session_context": 1,
+        "silent_turn_reminder": 2
+      }
+    },
+    "the_two_tools": {
+      "either_called": false,
+      "calls": {
+        "grooph_plan": 0,
+        "grooph_note": 0
+      },
+      "refused": 0,
+      "searches_for_a_tool": 0,
+      "other_tools_of_a_server_called": {},
+      "said": []
+    }
+  },
+  "the_hooks_file_beside_the_transcripts": null,
+  "scored": true,
+  "scored_outside_the_sandbox_on": {
+    "decided_by": "the owner, on the review desk (card q80-the-twelve-runs-three-yeses)",
+    "on": "2026-10-10",
+    "words": "Yes to all three: the runner, the first call, and scoring what the sessions wrote. I fully approve"
+  },
+  "transcripts": [
+    {
+      "who": "lead",
+      "file": "~/grooph-compare/profile/projects/-Users-noir-grooph-compare-work-92ed80c0-packages/e78d155b-9523-40c4-9377-9245d285fbb7.jsonl",
+      "sha256": "952253901521afed70b40b8d40362a258988470010c020b8c5bc81a8f9da5589",
+      "stays": "on this machine"
+    }
+  ],
+  "problems": [],
+  "kept_out_of_the_record": {
+    "addresses": 1,
+    "home_paths": 8
+  },
+  "protocol": "experiments/watching/README.md",
+  "recorded": "2026-10-10T16:55:38.846Z"
+}

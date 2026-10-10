@@ -1,0 +1,49 @@
+[
+  {
+    "who": "lead",
+    "transcript": "b9dc95d1-5503-4e61-832e-10cb71275ea8.jsonl",
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "started": "2026-10-10T16:42:34.572Z",
+    "ended": "2026-10-10T16:43:25.947Z",
+    "assistant_messages": 11,
+    "tool_uses": [
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T16:42:36.541Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T16:42:38.451Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T16:42:55.351Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T16:43:06.885Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T16:43:11.154Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T16:43:12.877Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T16:43:16.683Z",
+        "refused": false
+      }
+    ]
+  }
+]

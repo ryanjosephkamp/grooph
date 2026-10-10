@@ -1,0 +1,358 @@
+{
+  "session_id": "b9dc95d1-5503-4e61-832e-10cb71275ea8",
+  "transcript": "~/grooph-compare/profile/projects/-Users-noir-grooph-compare-work-d4714fc6-printkit/b9dc95d1-5503-4e61-832e-10cb71275ea8.jsonl",
+  "ledger_n": 17,
+  "reported_cost_usd": 0.2596914,
+  "counted_usd": 0.259691,
+  "wall_s": 53,
+  "ended_by": "the session",
+  "which": null,
+  "watchdog": {
+    "usd": 5,
+    "minutes": 25,
+    "fired": null,
+    "is_not_a_graphs_stop": true
+  },
+  "harness": {
+    "path": "~/.local/bin/claude",
+    "version": "2.1.289 (Claude Code)"
+  },
+  "models": [
+    "claude-opus-5-5"
+  ],
+  "models_never_used": [],
+  "harness_turns": 8,
+  "exit": 0,
+  "command": [
+    "~/.local/bin/claude",
+    "-p",
+    "<the prompt>",
+    "--model",
+    "claude-opus-5-5",
+    "--effort",
+    "high",
+    "--output-format",
+    "json",
+    "--max-budget-usd",
+    "5",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Edit(/**)",
+    "mcp__grooph__grooph_plan",
+    "mcp__grooph__grooph_note",
+    "--strict-mcp-config",
+    "--mcp-config",
+    "{\"mcpServers\":{\"grooph\":{\"command\":\"/opt/homebrew/bin/node\",\"args\":[\"~/Documents/grooph/.claude/worktrees/watching-runs/packages/cli/bin/grooph.js\",\"mcp\",\"--dir\",\"~/grooph-compare/work/d4714fc6/printkit\"]}}}",
+    "--setting-sources",
+    "user,project",
+    "--no-chrome",
+    "--disable-slash-commands",
+    "--session-id",
+    "b9dc95d1-5503-4e61-832e-10cb71275ea8",
+    "--disallowedTools",
+    "Edit(/~/grooph-compare/work/d4714fc6/printkit/.grooph)",
+    "Edit(/~/grooph-compare/work/d4714fc6/printkit/.grooph/**)",
+    "mcp__grooph__grooph_running",
+    "mcp__grooph__grooph_validate",
+    "mcp__grooph__grooph_templates",
+    "mcp__grooph__grooph_use_template",
+    "mcp__grooph__grooph_new",
+    "mcp__grooph__grooph_apply",
+    "mcp__grooph__grooph_explain",
+    "mcp__grooph__grooph_shape",
+    "mcp__grooph__grooph_share",
+    "mcp__grooph__grooph_picture",
+    "mcp__grooph__grooph_export_plan",
+    "mcp__grooph__grooph_export"
+  ],
+  "environment": [
+    "ANTHROPIC_DEFAULT_FABLE_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "CLAUDE_CODE_AUTO_CONNECT_IDE",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY",
+    "CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL",
+    "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK",
+    "CLAUDE_CODE_TMPDIR",
+    "CLAUDE_CONFIG_DIR",
+    "DISABLE_AUTOUPDATER",
+    "ENABLE_CLAUDEAI_MCP_SERVERS",
+    "HOME",
+    "LANG",
+    "LOGNAME",
+    "PATH",
+    "SHELL",
+    "TERM",
+    "TMPDIR",
+    "USER",
+    "ZDOTDIR"
+  ],
+  "problems_after_the_call": [],
+  "tripwire": "",
+  "project_files_changed": [
+    "M README.md",
+    "A src/parse-ranges.mjs",
+    "A tests/parse-ranges.test.mjs"
+  ],
+  "result_tail": "   | page `0` | `src/parse-ranges.mjs:20` | `:63` |\n   | a word | `src/parse-ranges.mjs:17` | `:68` |\n   | part neither page nor range | `src/parse-ranges.mjs:17` | `:73` |\n\n4. **README documents it beside `paperSize`:** example at `README.md:20-25`, description at `:27-32`, what throws at `:34-39`.\n5. **`npm test` exits 0, nothing skipped or todo:** confirmed in the run above.\n6. **Nothing else changed:** my changes are only in `src/`, `tests/` and `README.md`; the `.grooph/events/` folder is the exception noted above. I did not write a `REVIEW.md` or `CHANGES.md`; this message is the record.",
+  "run": "opus/one/invited-1",
+  "block": "opus",
+  "task": "one",
+  "arm": "invited",
+  "replicate": 1,
+  "rerun_of": null,
+  "rerun_because": null,
+  "given": {
+    "the_runners_checkout": {
+      "commit": "01048e9e35f3af06b228266dd2cdd1180cb7cee7",
+      "files_changed_since_it": 2,
+      "grooph_version": "0.4.1"
+    },
+    "the_sessions_model": {
+      "block": "opus",
+      "asked_for": "claude-opus-5-5",
+      "effort": "high"
+    },
+    "short_names_of_a_model": {
+      "pinned": {
+        "fable": "claude-opus-5-5",
+        "opus": "claude-opus-5-5",
+        "sonnet": "claude-sonnet-5-5"
+      },
+      "left_to_the_harness": [
+        "haiku"
+      ],
+      "read_from": "the names of the variables the session was started with"
+    },
+    "the_prompt_ends_with": [
+      "You may use subagents for any part of this if you judge that it helps. You do not have to.",
+      "If you do use subagents, you may say what you intend with the `grooph_plan` tool, and leave a short note for whoever is watching with `grooph_note`. This is optional, and nothing here depends on it."
+    ],
+    "hook_installed": [
+      ".claude/settings.json",
+      ".grooph/hooks/grooph-event.mjs",
+      ".grooph/hooks/grooph-events-push.mjs"
+    ],
+    "closed_to_the_session": [
+      ".grooph"
+    ],
+    "server": {
+      "name": "grooph",
+      "started_by": "this checkout's grooph mcp --dir <the session's folder>",
+      "tools_allowed": [
+        "mcp__grooph__grooph_plan",
+        "mcp__grooph__grooph_note"
+      ],
+      "tools_withheld": [
+        "mcp__grooph__grooph_running",
+        "mcp__grooph__grooph_validate",
+        "mcp__grooph__grooph_templates",
+        "mcp__grooph__grooph_use_template",
+        "mcp__grooph__grooph_new",
+        "mcp__grooph__grooph_apply",
+        "mcp__grooph__grooph_explain",
+        "mcp__grooph__grooph_shape",
+        "mcp__grooph__grooph_share",
+        "mcp__grooph__grooph_picture",
+        "mcp__grooph__grooph_export_plan",
+        "mcp__grooph__grooph_export"
+      ],
+      "its_own_instructions": {
+        "characters": 2625,
+        "sha256": "178cc018b368398d6db9f62568e807964d62c405a0d8a3869aebf85c55f2f319",
+        "first_names_one_of_the_two_tools_at_character": 2426,
+        "note": "the harness hands a server's instructions to a session at its start, cut at 2,048 characters by default, by its documentation"
+      }
+    }
+  },
+  "measures": {
+    "read_from": "the harness's own files in the profile: the session's transcript, each subagent's transcript and the file beside it, and the result the harness printed. Nothing is read from grooph",
+    "transcripts": 1,
+    "the_sessions_transcript_found": true,
+    "session": {
+      "turns_as_the_harness_reports": 8,
+      "models_that_answered": [
+        "claude-opus-5-5"
+      ],
+      "messages": 5,
+      "tool_calls": {
+        "Bash": 4,
+        "Edit": 1,
+        "Write": 2
+      },
+      "tool_calls_with_its_subagents": {
+        "Bash": 4,
+        "Edit": 1,
+        "Write": 2
+      },
+      "tool_calls_that_came_back_as_errors": {},
+      "calls_the_harness_reports_it_denied": {},
+      "minutes_by_the_runners_clock": 0.88,
+      "seconds_as_the_harness_reports": 51,
+      "tokens_as_the_harness_reports": {
+        "input_tokens": 10,
+        "output_tokens": 5837,
+        "cache_creation_input_tokens": 14709,
+        "cache_read_input_tokens": 126197
+      },
+      "tokens_by_model_as_the_harness_reports": {
+        "claude-opus-5-5": {
+          "input": 10,
+          "output": 5837,
+          "cache_read": 126197,
+          "cache_creation": 14709,
+          "cost_usd": 0.2596914
+        }
+      },
+      "tokens_in_its_transcript": {
+        "input_tokens": 10,
+        "output_tokens": 5837,
+        "cache_creation_input_tokens": 14709,
+        "cache_read_input_tokens": 126197
+      },
+      "cost_usd_as_the_harness_reports": 0.2596914
+    },
+    "subagents": {
+      "count": 0,
+      "by_type": {},
+      "by_model_asked_for": {},
+      "by_model_that_answered": {},
+      "deepest": null,
+      "asked_for": {},
+      "as_the_harness_counts": {
+        "spawned": 0,
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "started_in_background": 0,
+        "max_depth": 0,
+        "spawned_by_subagents": 0,
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "user": 0,
+          "system": 0
+        },
+        "refused": {
+          "depth_limit": 0,
+          "concurrency_limit": 0,
+          "budget": 0
+        },
+        "by_type": {}
+      },
+      "ids": [],
+      "each": []
+    },
+    "footprint": {
+      "counts": "tool calls, the session's and its subagents', that name .grooph or .claude/settings.json: in what the call asked, and in what came back. Two counts, kept apart; one call may be in both. Counts only: nothing a call said and nothing that came back is kept",
+      "named_in_the_input": {
+        "calls": 2,
+        "by_tool": {
+          "Bash": 2
+        },
+        "of_them_refused": 0
+      },
+      "shown_in_the_result": {
+        "calls": 4,
+        "by_tool": {
+          "Bash": 4
+        }
+      },
+      "in_both": 2
+    },
+    "given": {
+      "tools_of_a_server_named_to_it": [
+        "mcp__grooph__grooph_note",
+        "mcp__grooph__grooph_plan"
+      ],
+      "servers_whose_instructions_it_was_handed": [
+        "grooph"
+      ],
+      "instructions_it_was_handed": [
+        {
+          "characters": 2071,
+          "of_the_two_tools_it_names": []
+        }
+      ],
+      "entries_of_what_it_was_given": {
+        "agent_listing_delta": 1,
+        "budget_usd": 5,
+        "credential_org": 1,
+        "date": 1,
+        "deferred_tools_delta": 1,
+        "deferred_tools_record": 4,
+        "environment": 1,
+        "mcp_instructions_delta": 1,
+        "model": 1,
+        "prompt_snapshot": 2,
+        "remote_session_change": 1,
+        "sandbox_instructions": 1,
+        "session_context": 1
+      }
+    },
+    "the_two_tools": {
+      "either_called": false,
+      "calls": {
+        "grooph_plan": 0,
+        "grooph_note": 0
+      },
+      "refused": 0,
+      "searches_for_a_tool": 0,
+      "other_tools_of_a_server_called": {},
+      "said": []
+    }
+  },
+  "the_hooks_file_beside_the_transcripts": {
+    "the_hook_wrote_a_file_for_this_session": true,
+    "files_in_its_folder": 1,
+    "files_of_what_was_said": 0,
+    "a_file_of_what_was_said_under_this_sessions_id": false,
+    "lines": 4,
+    "lines_that_are_not_events": 0,
+    "by_event": {
+      "session-end": 1,
+      "session-start": 1,
+      "turn-end": 1,
+      "turn-start": 1
+    },
+    "subagents_in_the_transcripts": 0,
+    "subagent_starts_in_the_hooks_file": 0,
+    "subagent_stops_in_the_hooks_file": 0,
+    "started_by_the_harness_with_no_start_line": 0,
+    "starts_with_no_stop": 0,
+    "lines_for_a_subagent_never_started": {
+      "subagents": 0,
+      "lines": 0
+    },
+    "lines_that_name_an_agent_and_no_type": {
+      "agents": 0,
+      "lines": 0,
+      "read_as": "the harness's own helpers, which leave no transcript (docs/subagents.md §5)"
+    }
+  },
+  "scored": true,
+  "scored_outside_the_sandbox_on": {
+    "decided_by": "the owner, on the review desk (card q80-the-twelve-runs-three-yeses)",
+    "on": "2026-10-10",
+    "words": "Yes to all three: the runner, the first call, and scoring what the sessions wrote. I fully approve"
+  },
+  "transcripts": [
+    {
+      "who": "lead",
+      "file": "~/grooph-compare/profile/projects/-Users-noir-grooph-compare-work-d4714fc6-printkit/b9dc95d1-5503-4e61-832e-10cb71275ea8.jsonl",
+      "sha256": "90e54ec1578a484b496f2f4aad9dab93da7c0532aa5acb8eb1778deb7c0dacbb",
+      "stays": "on this machine"
+    }
+  ],
+  "problems": [],
+  "kept_out_of_the_record": {
+    "addresses": 1,
+    "home_paths": 13
+  },
+  "protocol": "experiments/watching/README.md",
+  "recorded": "2026-10-10T16:43:26.698Z"
+}

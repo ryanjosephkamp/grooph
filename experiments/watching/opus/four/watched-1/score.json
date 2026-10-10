@@ -1,0 +1,71 @@
+{
+  "scored_at": "2026-10-10T16:42:33.094Z",
+  "scorer": "scripts/lib/compare-score.mjs (scoreHeldOut): the project's unseen suite alone, from the repository's copy",
+  "ending": {
+    "kind": "clean",
+    "reason": "the session ended itself"
+  },
+  "packages": [
+    {
+      "package": "settingskit",
+      "folder": "settingskit",
+      "scored_from": "experiments/comparisons/review-gate-2/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/layer-cases.test.mjs",
+      "cases": 55,
+      "passed": 51,
+      "failed": 4,
+      "skipped": 0,
+      "rate": 0.927,
+      "failing": [
+        "undefined: undefined in over leaves base's value",
+        "undefined: undefined in over leaves base's object, copied",
+        "undefined: undefined deeper in over leaves base's value there",
+        "undefined: a key only over has, with undefined, does not appear"
+      ],
+      "exit": 1
+    },
+    {
+      "package": "textwrap",
+      "folder": "textwrap",
+      "scored_from": "experiments/comparisons/spec-then-loop/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/wrap-invariants.test.mjs",
+      "cases": 88,
+      "passed": 88,
+      "failed": 0,
+      "skipped": 0,
+      "rate": 1,
+      "failing": [],
+      "exit": 0
+    },
+    {
+      "package": "csvline",
+      "folder": "csvline",
+      "scored_from": "experiments/comparisons/red-team-loop/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/csv-cases.test.mjs",
+      "cases": 73,
+      "passed": 73,
+      "failed": 0,
+      "skipped": 0,
+      "rate": 1,
+      "failing": [],
+      "exit": 0
+    },
+    {
+      "package": "semver-mini",
+      "folder": "semver-mini",
+      "scored_from": "experiments/comparisons/grind-loop/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/semver-cases.test.mjs",
+      "cases": 62,
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0,
+      "rate": 1,
+      "failing": [],
+      "exit": 0
+    }
+  ]
+}
