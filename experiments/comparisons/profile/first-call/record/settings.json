@@ -1,0 +1,68 @@
+{
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "blockReadsOutsideWorkingDirectories": true,
+    "deny": [
+      "WebFetch",
+      "WebSearch",
+      "AskUserQuestion",
+      "ListAgents",
+      "SendMessage",
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(mdfind *)",
+      "Bash(mdls *)",
+      "Bash(security *)",
+      "Bash(launchctl *)",
+      "Bash(osascript *)",
+      "Bash(open *)",
+      "Bash(pbpaste)",
+      "Bash(pbpaste *)",
+      "Bash(screencapture *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "filesystem": {
+      "allowWrite": [
+        "~/grooph-compare/npm-cache"
+      ],
+      "allowRead": [
+        "~/grooph-compare/npm-cache"
+      ],
+      "denyRead": [
+        "/tmp",
+        "/private/tmp",
+        "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn",
+        "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn",
+        "~/grooph-compare/kept",
+        "~/grooph-compare/profile/projects"
+      ],
+      "denyWrite": [
+        "~/grooph-compare/work/35992d9a/probe/closed"
+      ]
+    },
+    "network": {
+      "allowedDomains": [],
+      "strictAllowlist": true,
+      "allowLocalBinding": false
+    }
+  },
+  "env": {
+    "npm_config_cache": "~/grooph-compare/npm-cache",
+    "npm_config_userconfig": "~/grooph-compare/npm-cache/npmrc",
+    "npm_config_update_notifier": "false"
+  },
+  "autoMemoryEnabled": false,
+  "disableClaudeAiConnectors": true,
+  "syncClaudeAiSkills": false,
+  "syncClaudeAiPlugins": false,
+  "crossSessionInbound": "refuse",
+  "disableRemoteControl": true,
+  "enableArtifact": false,
+  "respondToBashCommands": false,
+  "cleanupPeriodDays": 3650
+}

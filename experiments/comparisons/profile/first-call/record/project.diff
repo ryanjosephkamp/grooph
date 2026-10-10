@@ -1,0 +1,16 @@
+diff --git a/open/by-file-tool.txt b/open/by-file-tool.txt
+new file mode 100644
+index 0000000..c1b0730
+--- /dev/null
++++ b/open/by-file-tool.txt
+@@ -0,0 +1 @@
++x
+\ No newline at end of file
+diff --git a/open/by-subagent.txt b/open/by-subagent.txt
+new file mode 100644
+index 0000000..c1b0730
+--- /dev/null
++++ b/open/by-subagent.txt
+@@ -0,0 +1 @@
++x
+\ No newline at end of file
