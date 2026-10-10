@@ -1,0 +1,225 @@
+{
+  "what": "the free checks of the watching check: the shipped event hook, fed by hand",
+  "hook_sha256": "c28e9b2e85c2e63c2c4c9c401f076647378e9cd71d24a25a5fb5f7e181f5e45c",
+  "node": "v26.10.0",
+  "machine": "darwin arm64, Apple M3 Pro",
+  "inputs": 25,
+  "inputs_ok": 25,
+  "nothing_said_was_kept": true,
+  "results": [
+    {
+      "input": "claude-code: a session starts",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "claude-code: a prompt arrives",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "claude-code: a subagent starts",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "claude-code: the tool call that started it ends",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "claude-code: a subagent stops",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "claude-code: a turn ends",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "claude-code: the session ends",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "codex: a session starts",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "codex: a prompt arrives",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "codex: a subagent starts",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "codex: the tool call that started it ends",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "codex: a subagent stops",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "codex: a turn ends",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "codex: the session ends",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "nothing on standard input",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 0,
+      "ok": true
+    },
+    {
+      "input": "text that is not JSON",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 0,
+      "ok": true
+    },
+    {
+      "input": "JSON that is a list",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 0,
+      "ok": true
+    },
+    {
+      "input": "JSON that is null",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 0,
+      "ok": true
+    },
+    {
+      "input": "an event it does not know",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 0,
+      "ok": true
+    },
+    {
+      "input": "no session id",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 0,
+      "ok": true
+    },
+    {
+      "input": "a session working in another folder",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 0,
+      "ok": true
+    },
+    {
+      "input": "no harness named on the command line",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "a megabyte of text in the payload",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "ids that are not text",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 1,
+      "ok": true
+    },
+    {
+      "input": "the events folder cannot be written",
+      "exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "lines_written": 0,
+      "ok": true
+    }
+  ],
+  "timing": {
+    "times": 200,
+    "node_starting_and_doing_nothing": {
+      "median_ms": 48.3,
+      "p95_ms": 54.7,
+      "max_ms": 66.6
+    },
+    "the_hook_on_one_event": {
+      "median_ms": 51.5,
+      "p95_ms": 57.5,
+      "max_ms": 94.9
+    },
+    "added_by_the_hook_median_ms": 3.2
+  }
+}
