@@ -95,8 +95,15 @@ export const OFFERED = ["grooph_plan", "grooph_note"];
 const toolOf = (name) => `mcp__${SERVER}__${name}`;
 /** The hook's own files, as `grooph hooks install` leaves them with no other flag. The harness runs the first outside the sandbox. */
 export const HOOK_FILES = [".claude/settings.json", ".grooph/hooks/grooph-event.mjs", ".grooph/hooks/grooph-events-push.mjs"];
-/** In the watched arms: the one folder of the session's own whose files the harness runs outside the sandbox. It is closed to the session, as the game experiment's profile closes it. */
-export const CLOSED_IN_A_WATCHED_ARM = [join(".grooph", "hooks")];
+/**
+ * In the watched arms: the folder that is closed to the session, whole. The harness runs the hook outside the sandbox,
+ * with the owner's access. A session that could write `.grooph/hooks` could rewrite what is run there; one that could
+ * write anywhere else under `.grooph` could put a link where the hook's `events` folder or its own events file would
+ * be, and the hook, which makes that folder and appends to that file with no check for a link, would write through
+ * it. The hook and the server run outside the sandbox and still write there; nothing of the runner's needs a session to.
+ * `.claude/` is left as it is: Claude Code refuses writes to it by itself in this mode.
+ */
+export const CLOSED_IN_A_WATCHED_ARM = [".grooph"];
 /** What the footprint counts: a tool call that names either of these. */
 export const FOOTPRINT = [".grooph", ".claude/settings.json"];
 
@@ -876,7 +883,7 @@ export function dryRun({ run, home = DEFAULT_HOME, ledgerPath = LEDGER, stand = 
     const arm =
       run.arm === "plain"
         ? "plain: nothing of grooph is in the folder, in the session's settings or on its path"
-        : `${run.arm}: grooph hooks install was run in the folder before its one commit, with no other flag (${built.installed.join(", ")}); ${built.closed.map((path) => path.slice(built.cwd.length + 1)).join(", ")} is closed to the session's writing, since the harness runs the hook outside the sandbox${
+        : `${run.arm}: grooph hooks install was run in the folder before its one commit, with no other flag (${built.installed.join(", ")}); ${built.closed.map((path) => path.slice(built.cwd.length + 1)).join(", ")} is closed to the session's writing, whole: the harness runs the hook outside the sandbox, and the hook appends under that folder with no check for a link${
             run.arm === "invited" ? `\n  and this checkout's server is attached: ${built.server.allowed.join(" and ")} allowed, its other ${built.server.withheld.length} tools withheld; its own instructions are ${built.instructions.characters} characters and first name one of the two tools at character ${built.instructions.first_names_one_of_the_two_tools_at_character ?? "none"}; the harness hands a session the first 2,048 of them at its start, by its documentation` : ""
           }`;
     return [

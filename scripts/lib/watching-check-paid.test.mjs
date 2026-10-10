@@ -263,16 +263,19 @@ test("the watched arm's folder is the plain arm's and what grooph hooks install 
     assert.deepEqual(Object.keys(watched.settings.hooks).sort(), ["PostToolUse", "SessionEnd", "SessionStart", "Stop", "SubagentStart", "SubagentStop", "UserPromptSubmit"]);
     assert.equal(watched.settings.hooks.PostToolUse[0].matcher, "Agent");
     assert.ok(!JSON.stringify(watched.settings).includes("push"), "installed with no other flag: nothing is sent anywhere");
-    // The hook's folder is closed to the session, as the game experiment's profile closes it: the harness runs the hook outside the sandbox.
-    assert.deepEqual(CLOSED_IN_A_WATCHED_ARM, [join(".grooph", "hooks")]);
-    assert.deepEqual(watched.made.closed, [join(watched.cwd, ".grooph", "hooks")]);
+    // The whole of .grooph is closed to the session: the harness runs the hook outside the sandbox, and the hook makes
+    // its events folder and appends to its file there with no check for a link.
+    assert.deepEqual(CLOSED_IN_A_WATCHED_ARM, [".grooph"]);
+    assert.deepEqual(watched.made.closed, [join(watched.cwd, ".grooph")]);
+    for (const path of HOOK_FILES.filter((file) => file.startsWith(".grooph/"))) assert.ok(join(watched.cwd, path).startsWith(`${watched.made.closed[0]}/`), `${path} is inside what is closed`);
+    assert.ok(join(watched.cwd, ".grooph", "events", "a-session.jsonl").startsWith(`${watched.made.closed[0]}/`), "and so is where the hook writes");
     assert.deepEqual([watched.made.server, watched.made.instructions], [null, null], "the watched arm attaches nothing");
     assert.equal(watched.made.prompt, plain.made.prompt);
 
     // The invited arm: the same files as the watched arm, to the byte. The server leaves nothing in the folder when it is asked what it offers.
     assert.deepEqual(invited.files, watched.files);
     assert.deepEqual(invited.tracked, watched.tracked);
-    assert.deepEqual(invited.made.closed, [join(invited.cwd, ".grooph", "hooks")]);
+    assert.deepEqual(invited.made.closed, [join(invited.cwd, ".grooph")]);
     assert.deepEqual(invited.made.server.mcp, { mcpServers: { grooph: { command: "/a/node", args: [CLI, "mcp", "--dir", invited.cwd] } } }, "this checkout's grooph mcp --dir <the session's folder>, and no other flag");
     assert.deepEqual(invited.made.server.allowed, ["mcp__grooph__grooph_plan", "mcp__grooph__grooph_note"]);
     // Every other tool the server lists is withheld, by its own list and not by one kept here.
@@ -640,7 +643,8 @@ test("a dry run builds the folder, says what would be started and what would ref
     const stand = () => ({ claude: p.harness, refused: ["the first paid call has no record"] });
     const text = dryRun({ run: order()[5], home: p.home, ledgerPath: p.ledgerPath, stand, node: "/a/node" });
     assert.match(text, /^four\/invited-1\n/);
-    assert.match(text, /would start, in .*\/work\/[0-9a-f]{8}\/packages:\n {2}\S*stand-in-harness -p <the prompt> --model claude-sonnet-5-5 --effort high --output-format json --max-budget-usd 6 --permission-mode dontAsk --allowedTools 'Edit\(\/\*\*\)' mcp__grooph__grooph_plan mcp__grooph__grooph_note --strict-mcp-config --mcp-config '\{"mcpServers":\{"grooph":\{"command":"\/a\/node","args":\[".*\/packages\/cli\/bin\/grooph\.js","mcp","--dir",".*\/packages"\]\}\}\}' --setting-sources user,project --no-chrome --disable-slash-commands --session-id '<a new id>' --disallowedTools 'Edit\(\/\/.*\/packages\/\.grooph\/hooks\)' 'Edit\(\/\/.*\/packages\/\.grooph\/hooks\/\*\*\)' mcp__grooph__grooph_running /);
+    assert.match(text, /would start, in .*\/work\/[0-9a-f]{8}\/packages:\n {2}\S*stand-in-harness -p <the prompt> --model claude-sonnet-5-5 --effort high --output-format json --max-budget-usd 6 --permission-mode dontAsk --allowedTools 'Edit\(\/\*\*\)' mcp__grooph__grooph_plan mcp__grooph__grooph_note --strict-mcp-config --mcp-config '\{"mcpServers":\{"grooph":\{"command":"\/a\/node","args":\[".*\/packages\/cli\/bin\/grooph\.js","mcp","--dir",".*\/packages"\]\}\}\}' --setting-sources user,project --no-chrome --disable-slash-commands --session-id '<a new id>' --disallowedTools 'Edit\(\/\/.*\/packages\/\.grooph\)' 'Edit\(\/\/.*\/packages\/\.grooph\/\*\*\)' mcp__grooph__grooph_running /);
+    assert.match(text, /; \.grooph is closed to the session's writing, whole: the harness runs the hook outside the sandbox, and the hook appends under that folder with no check for a link/);
     assert.ok(text.includes(promptFor(order()[5]).replace(/^/gm, "  | ")), "the prompt is shown whole");
     assert.match(text, /the watchdog: \$6\.00 and 40 minutes; the ledger has counted \$44\.00 of \$45\.00/);
     assert.match(text, /a paid run would be refused:\n {2}- the first paid call has no record\n {2}- Scoring runs the repository's unseen suites .*\n {2}- the watching check has counted \$44\.00 on its ledger, and this run may cost up to \$6\.00/);
@@ -711,13 +715,13 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     const watched = await runOne(p.common);
     assert.equal(watched.run.name, "one/watched-1");
     assert.deepEqual([watched.result.ended_by, watched.result.problems, watched.score.packages[0].passed], ["the session", [], 70]);
-    assert.deepEqual({ ...watched.result.given, the_runners_checkout: null }, { the_runners_checkout: null, the_prompt_ends_with: [SUBAGENTS_SENTENCE], hook_installed: HOOK_FILES, closed_to_the_session: [".grooph/hooks"], server: null });
+    assert.deepEqual({ ...watched.result.given, the_runners_checkout: null }, { the_runners_checkout: null, the_prompt_ends_with: [SUBAGENTS_SENTENCE], hook_installed: HOOK_FILES, closed_to_the_session: [".grooph"], server: null });
     seen = p.seen();
     assert.equal(seen.args[1], promptFor(plain.run), "the watched arm's prompt is the plain arm's, to the letter");
     assert.ok(!seen.args.includes("--mcp-config"));
     const closedAt = seen.args.indexOf("--disallowedTools");
-    assert.deepEqual(seen.args.slice(closedAt + 1).map((rule) => rule.replace(/\/\/.*\/printkit\//, "//<the folder>/")), ["Edit(//<the folder>/.grooph/hooks)", "Edit(//<the folder>/.grooph/hooks/**)"], "the hook's folder is closed to the file tools, and nothing else is");
-    assert.deepEqual(record(watched, "settings.json").sandbox.filesystem.denyWrite.map((path) => path.replace(/^.*\/printkit\//, "")), [".grooph/hooks"], "and to commands, in the settings the session ran under");
+    assert.deepEqual(seen.args.slice(closedAt + 1).map((rule) => rule.replace(/\/\/.*\/printkit\//, "//<the folder>/")), ["Edit(//<the folder>/.grooph)", "Edit(//<the folder>/.grooph/**)"], "the whole of .grooph is closed to the file tools, and nothing else is");
+    assert.deepEqual(record(watched, "settings.json").sandbox.filesystem.denyWrite.map((path) => path.replace(/^.*\/printkit\//, "")), [".grooph"], "and to commands, in the settings the session ran under");
     assert.deepEqual(JSON.parse(readFileSync(join(p.at.profile, "settings.json"), "utf8")), settingsFor({ home: p.home }), "which are the repository's again afterwards");
     // The hook's own file is kept, and set beside the transcripts.
     assert.deepEqual(readdirSync(join(watched.recordDir, "events")), [`${watched.result.session_id}.jsonl`]);
@@ -758,7 +762,8 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     const denied = seen.args.slice(seen.args.indexOf("--disallowedTools") + 1);
     const every = serverOffers(p.top).tools.map((name) => `mcp__grooph__${name}`);
     assert.deepEqual(denied.filter((rule) => rule.startsWith("mcp__")).sort(), every.filter((name) => !["mcp__grooph__grooph_plan", "mcp__grooph__grooph_note"].includes(name)).sort(), "every other tool of the server is withheld, by a bare name");
-    assert.equal(denied.filter((rule) => rule.startsWith("Edit(")).length, 2, "and the hook's folder is closed as in the watched arm");
+    assert.deepEqual(denied.filter((rule) => rule.startsWith("Edit(")).map((rule) => rule.replace(/\/\/.*\/printkit\//, "//<the folder>/")), ["Edit(//<the folder>/.grooph)", "Edit(//<the folder>/.grooph/**)"], "and .grooph is closed as in the watched arm");
+    assert.deepEqual([invited.result.given.closed_to_the_session, record(invited, "settings.json").sandbox.filesystem.denyWrite.map((path) => path.replace(/^.*\/printkit\//, ""))], [[".grooph"], [".grooph"]]);
     assert.deepEqual([invited.result.given.server.tools_allowed, invited.result.given.server.tools_withheld.length, invited.result.given.the_prompt_ends_with], [["mcp__grooph__grooph_plan", "mcp__grooph__grooph_note"], every.length - 2, [SUBAGENTS_SENTENCE, INVITATION]]);
     assert.ok(invited.result.given.server.its_own_instructions.characters > 0);
     // Whether either tool was called, how many times, and what was said: kept, as the session's own statement.

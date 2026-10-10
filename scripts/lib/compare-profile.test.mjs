@@ -135,13 +135,13 @@ test("called as it was before a run could attach a server, the command and the e
 test("a run that attaches a server names it whole, allows the tools it offers and withholds the rest, and can open nothing else by it", () => {
   const cwd = join(home, "work", "a1b2", "rounds");
   const mcp = { mcpServers: { grooph: { command: "/opt/homebrew/bin/node", args: ["/a/checkout/packages/cli/bin/grooph.js", "mcp", "--dir", cwd] } } };
-  const { argv, env } = ask({ cwd, mcp, allowed: ["mcp__grooph__grooph_plan", "mcp__grooph__grooph_note"], withheld: ["mcp__grooph__grooph_running", "mcp__grooph__grooph_validate"], closed: [join(cwd, ".grooph", "hooks")] });
+  const { argv, env } = ask({ cwd, mcp, allowed: ["mcp__grooph__grooph_plan", "mcp__grooph__grooph_note"], withheld: ["mcp__grooph__grooph_running", "mcp__grooph__grooph_validate"], closed: [join(cwd, ".grooph")] });
   const after = (name, count) => argv.slice(argv.indexOf(name) + 1, argv.indexOf(name) + 1 + count);
   assert.deepEqual(after("--allowedTools", 4), ["Edit(/**)", "mcp__grooph__grooph_plan", "mcp__grooph__grooph_note", "--strict-mcp-config"], "the two tools are allowed beside the file tool, and nothing else is");
   assert.deepEqual(after("--strict-mcp-config", 3), ["--mcp-config", JSON.stringify(mcp), "--setting-sources"], "the one configuration read is the run's own, given whole on the command line");
-  assert.deepEqual(argv.slice(argv.indexOf("--disallowedTools") + 1), [`Edit(/${cwd}/.grooph/hooks)`, `Edit(/${cwd}/.grooph/hooks/**)`, "mcp__grooph__grooph_running", "mcp__grooph__grooph_validate"], "the closed path's rules, then each withheld tool by its bare name: that is what takes a tool out of what a model is shown");
+  assert.deepEqual(argv.slice(argv.indexOf("--disallowedTools") + 1), [`Edit(/${cwd}/.grooph)`, `Edit(/${cwd}/.grooph/**)`, "mcp__grooph__grooph_running", "mcp__grooph__grooph_validate"], "the closed path's rules, then each withheld tool by its bare name: that is what takes a tool out of what a model is shown");
   assert.deepEqual(env, ask().env, "a server changes nothing in the environment");
-  assert.deepEqual(argv.filter((arg) => !["mcp__grooph__grooph_plan", "mcp__grooph__grooph_note", "--mcp-config", JSON.stringify(mcp), "mcp__grooph__grooph_running", "mcp__grooph__grooph_validate"].includes(arg)), ask({ cwd, closed: [join(cwd, ".grooph", "hooks")] }).argv, "and nothing else in the command");
+  assert.deepEqual(argv.filter((arg) => !["mcp__grooph__grooph_plan", "mcp__grooph__grooph_note", "--mcp-config", JSON.stringify(mcp), "mcp__grooph__grooph_running", "mcp__grooph__grooph_validate"].includes(arg)), ask({ cwd, closed: [join(cwd, ".grooph")] }).argv, "and nothing else in the command");
   assert.deepEqual(SERVER_FLAGS, ["--mcp-config"]);
   // A run may allow or withhold a tool of a server it attaches, and nothing else.
   assert.throws(() => ask({ mcp, allowed: ["Bash"] }), /"Bash" is not a tool of a server this run attaches \(grooph\)/);
