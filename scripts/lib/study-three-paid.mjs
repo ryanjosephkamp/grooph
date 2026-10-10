@@ -216,8 +216,11 @@ export function runBounded({ program, args, cwd, env, outPath, errPath, ms, grac
  * Start one session and settle it on the ledger. Before the call, a refusal throws `NotStarted`. Once the call has
  * started nothing is thrown: what went wrong afterwards is in `problems_after_the_call`. The record is copied by
  * `copyRecord`, by the caller, before anything is read from it.
+ *
+ * `server` is for a run that attaches a server of its own (the watching check's third arm): `{ mcp, allowed, withheld }`,
+ * handed to `commandFor` as they are. Without it the command is what it was before a run could name one.
  */
-export async function runSession({ home, cwd, prompt, model, effort, usd, minutes, closed = [], label, note, go, claude, ledgerPath = LEDGER_PATH, harnessDir, gameOpen, profileCheck, plan, findProgram = findHarness, grace }) {
+export async function runSession({ home, cwd, prompt, model, effort, usd, minutes, closed = [], label, note, go, claude, ledgerPath = LEDGER_PATH, harnessDir, gameOpen, profileCheck, plan, findProgram = findHarness, grace, server = null }) {
   const at = layout(home);
   let base, harness, ledger, ceiling, sessionId, command, entry, spentBefore;
   let settingsWritten = false;
@@ -238,7 +241,7 @@ export async function runSession({ home, cwd, prompt, model, effort, usd, minute
     const spent = firstStepsSpent(ledger, plan);
     if (spent + ceiling > plan.stop_usd) throw new NotStarted(`the first steps have cost $${spent.toFixed(2)} on the ledger, and this call may cost up to $${ceiling.toFixed(2)}: together past the $${plan.stop_usd.toFixed(2)} at which they stop (experiments/comparisons/study-three-first-steps.json). Past that is the owner's word, recorded there`);
     sessionId = randomUUID();
-    command = commandFor({ home, claude: harness.path, cwd, prompt, model, effort, sessionId, maxBudgetUsd: ceiling, closed });
+    command = commandFor({ home, claude: harness.path, cwd, prompt, model, effort, sessionId, maxBudgetUsd: ceiling, closed, ...(server ? { mcp: server.mcp, allowed: server.allowed ?? [], withheld: server.withheld ?? [] } : {}) });
 
     // From here on something is written. The settings for this run, with what it closes to commands, read back; a copy for the record.
     const settings = `${JSON.stringify(settingsFor({ home, closed }), null, 2)}\n`;

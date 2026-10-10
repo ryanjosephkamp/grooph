@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { check, commandFor, FLAGS, instructionsAbove, layout, SESSION_PATH, settingsFor, userTemp } from "./compare-profile.mjs";
+import { check, commandFor, FLAGS, instructionsAbove, layout, SERVER_FLAGS, SESSION_PATH, settingsFor, userTemp } from "./compare-profile.mjs";
 
 const home = "/Users/someone/grooph-compare";
 
@@ -78,6 +78,9 @@ test("a session is refused a folder outside the profile's work folder, a model n
   assert.throws(() => ask({ cwd: join(home, "profile") }), /must be under/);
   assert.throws(() => ask({ model: "claude-fable-5-1" }), /do not use without the owner's authorization/);
   assert.throws(() => ask({ maxBudgetUsd: undefined }), /needs maxBudgetUsd/);
+  // A ceiling that is not an amount above nothing would reach the harness as a word.
+  for (const none of [Number.NaN, 0, -1, Number.POSITIVE_INFINITY, "a lot"]) assert.throws(() => ask({ maxBudgetUsd: none }), /needs maxBudgetUsd as dollars above zero/, String(none));
+  assert.equal(ask({ maxBudgetUsd: 0.5 }).argv[ask().argv.indexOf("--max-budget-usd") + 1], "0.5");
   assert.throws(() => ask({ sessionId: "" }), /needs sessionId/);
 });
 
@@ -91,6 +94,66 @@ test("a path a run closes is closed to the file tools on the command line and to
   assert.deepEqual(settingsFor({ home, temp: "/x", closed: [join(cwd, "check")] }).sandbox.filesystem.denyWrite, [join(cwd, "check")]);
   assert.throws(() => ask({ cwd, closed: ["/Users/someone/elsewhere/check"] }), /must be inside the session's folder/);
   assert.throws(() => ask({ cwd, closed: [cwd] }), /must be inside the session's folder/, "the folder itself is not a path inside it");
+});
+
+test("called as it was before a run could attach a server, the command and the environment are what they were, to the letter", () => {
+  // The first call's record is held against a checksum of both (study-three-paid.mjs `profileFingerprint`): a change
+  // here invalidates it for every runner. So these are written out whole, in their order, and not built from the code.
+  const cwd = join(home, "work", "a1b2", "rounds");
+  const fixed = ["/Users/someone/.local/bin/claude", "-p", "go", "--model", "claude-opus-5-5", "--effort", "high", "--output-format", "json", "--max-budget-usd", "3", "--permission-mode", "dontAsk", "--allowedTools", "Edit(/**)", "--strict-mcp-config", "--setting-sources", "user,project", "--no-chrome", "--disable-slash-commands", "--session-id", "11111111-2222-3333-4444-555555555555"];
+  assert.deepEqual(ask().argv, fixed, "with nothing closed");
+  assert.deepEqual(ask({ cwd, closed: [join(cwd, "check")] }).argv, [...fixed, "--disallowedTools", "Edit(//Users/someone/grooph-compare/work/a1b2/rounds/check)", "Edit(//Users/someone/grooph-compare/work/a1b2/rounds/check/**)"], "with a path closed");
+  assert.deepEqual(Object.entries(ask().env), [
+    ["HOME", "/Users/someone"],
+    ["USER", "someone"],
+    ["LOGNAME", "someone"],
+    ["SHELL", "/bin/zsh"],
+    ["ZDOTDIR", "/Users/someone/grooph-compare/profile/no-shell-startup"],
+    ["TERM", "dumb"],
+    ["LANG", "en_US.UTF-8"],
+    ["TMPDIR", "/Users/someone/grooph-compare/t"],
+    ["CLAUDE_CODE_TMPDIR", "/Users/someone/grooph-compare/t"],
+    ["PATH", "/opt/homebrew/bin:/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"],
+    ["CLAUDE_CONFIG_DIR", "/Users/someone/grooph-compare/profile"],
+    ["CLAUDE_CODE_DISABLE_AUTO_MEMORY", "1"],
+    ["ENABLE_CLAUDEAI_MCP_SERVERS", "false"],
+    ["DISABLE_AUTOUPDATER", "1"],
+    ["CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL", "1"],
+    ["CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK", "1"],
+    ["CLAUDE_CODE_AUTO_CONNECT_IDE", "false"],
+    ["ANTHROPIC_DEFAULT_FABLE_MODEL", "claude-opus-5-5"],
+    ["ANTHROPIC_DEFAULT_OPUS_MODEL", "claude-opus-5-5"],
+    ["ANTHROPIC_DEFAULT_SONNET_MODEL", "claude-sonnet-5-5"],
+    ["ANTHROPIC_DEFAULT_HAIKU_MODEL", "claude-haiku-4-5-20251001"],
+  ]);
+  // Naming the three new things as their defaults is the same call.
+  assert.deepEqual(ask({ mcp: null, allowed: [], withheld: [] }), ask());
+  assert.equal(FLAGS.length, 13, "the profile's own check asks the harness for the same thirteen flags");
+  assert.ok(!FLAGS.includes("--mcp-config"));
+});
+
+test("a run that attaches a server names it whole, allows the tools it offers and withholds the rest, and can open nothing else by it", () => {
+  const cwd = join(home, "work", "a1b2", "rounds");
+  const mcp = { mcpServers: { grooph: { command: "/opt/homebrew/bin/node", args: ["/a/checkout/packages/cli/bin/grooph.js", "mcp", "--dir", cwd] } } };
+  const { argv, env } = ask({ cwd, mcp, allowed: ["mcp__grooph__grooph_plan", "mcp__grooph__grooph_note"], withheld: ["mcp__grooph__grooph_running", "mcp__grooph__grooph_validate"], closed: [join(cwd, ".grooph")] });
+  const after = (name, count) => argv.slice(argv.indexOf(name) + 1, argv.indexOf(name) + 1 + count);
+  assert.deepEqual(after("--allowedTools", 4), ["Edit(/**)", "mcp__grooph__grooph_plan", "mcp__grooph__grooph_note", "--strict-mcp-config"], "the two tools are allowed beside the file tool, and nothing else is");
+  assert.deepEqual(after("--strict-mcp-config", 3), ["--mcp-config", JSON.stringify(mcp), "--setting-sources"], "the one configuration read is the run's own, given whole on the command line");
+  assert.deepEqual(argv.slice(argv.indexOf("--disallowedTools") + 1), [`Edit(/${cwd}/.grooph)`, `Edit(/${cwd}/.grooph/**)`, "mcp__grooph__grooph_running", "mcp__grooph__grooph_validate"], "the closed path's rules, then each withheld tool by its bare name: that is what takes a tool out of what a model is shown");
+  assert.deepEqual(env, ask().env, "a server changes nothing in the environment");
+  assert.deepEqual(argv.filter((arg) => !["mcp__grooph__grooph_plan", "mcp__grooph__grooph_note", "--mcp-config", JSON.stringify(mcp), "mcp__grooph__grooph_running", "mcp__grooph__grooph_validate"].includes(arg)), ask({ cwd, closed: [join(cwd, ".grooph")] }).argv, "and nothing else in the command");
+  assert.deepEqual(SERVER_FLAGS, ["--mcp-config"]);
+  // A run may allow or withhold a tool of a server it attaches, and nothing else.
+  assert.throws(() => ask({ mcp, allowed: ["Bash"] }), /"Bash" is not a tool of a server this run attaches \(grooph\)/);
+  assert.throws(() => ask({ mcp, allowed: ["WebFetch"] }), /only those may be allowed or withheld/);
+  assert.throws(() => ask({ mcp, allowed: ["mcp__another__tool"] }), /is not a tool of a server this run attaches/);
+  assert.throws(() => ask({ mcp, withheld: ["Edit(/**)"] }), /is not a tool of a server this run attaches/);
+  assert.throws(() => ask({ mcp, allowed: ["mcp__grooph__*"] }), /is not a tool of a server this run attaches/, "a pattern is not a tool's name");
+  assert.throws(() => ask({ mcp, allowed: [["mcp__grooph__grooph_plan"]] }), /is not a tool of a server this run attaches/, "nor is a list that would be read as one");
+  assert.throws(() => ask({ mcp, withheld: [{ toString: () => "mcp__grooph__grooph_plan" }] }), /is not a tool of a server this run attaches/);
+  assert.throws(() => ask({ allowed: ["mcp__grooph__grooph_plan"] }), /it attaches none/, "with no server attached there is no tool to allow");
+  assert.throws(() => ask({ mcp, allowed: ["mcp__grooph__grooph_plan"], withheld: ["mcp__grooph__grooph_plan"] }), /cannot be both allowed and withheld/);
+  assert.throws(() => ask({ mcp: {} }), /names at least one, under mcpServers/);
 });
 
 test("an instruction file in any folder above a session's is found", () => {

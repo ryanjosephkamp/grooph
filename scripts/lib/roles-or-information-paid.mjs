@@ -40,13 +40,17 @@ export const SCORING_RUNS_WHAT_A_SESSION_WROTE =
  * The owner's decision that what sessions wrote may be run outside the sandbox to score it, as it is recorded in the
  * first steps' file. Not recorded is a no: then no run of this question is started, since a run that cannot be scored
  * is not paid for.
+ *
+ * Another question that scores the same way keeps its own decision in its own file and asks with the same function:
+ * `what` is its sentence for what its scoring runs, `where` the file its decision is kept in. A decision recorded for
+ * one question is never read as another's. Asked as before, with the first steps' file alone, it answers as before.
  */
-export function scoringDecided(plan) {
+export function scoringDecided(plan, { what = SCORING_RUNS_WHAT_A_SESSION_WROTE, where = "experiments/comparisons/study-three-first-steps.json" } = {}) {
   const decision = plan?.scoring_outside_the_sandbox ?? {};
   const recorded = ["decided_by", "on", "words"].every((key) => typeof decision[key] === "string" && decision[key].trim() !== "");
   return recorded
     ? { ok: true, decision: { decided_by: decision.decided_by, on: decision.on, words: decision.words } }
-    : { ok: false, why: `${SCORING_RUNS_WHAT_A_SESSION_WROTE} Whether that may be done is the owner's to decide, and no decision of his is recorded (experiments/comparisons/study-three-first-steps.json, scoring_outside_the_sandbox: decided_by, on, words). Until one is, no run of this question is started and none is scored.` };
+    : { ok: false, why: `${what} Whether that may be done is the owner's to decide, and no decision of his is recorded (${where}, scoring_outside_the_sandbox: decided_by, on, words). Until one is, no run of this question is started and none is scored.` };
 }
 const firstSteps = () => JSON.parse(readFileSync(FIRST_STEPS, "utf8"));
 
