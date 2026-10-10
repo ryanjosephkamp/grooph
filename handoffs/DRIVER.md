@@ -2,7 +2,7 @@
 
 For the session that drives grooph next. The driver's memory is this file, `docs/PROGRESS.md`, the review desk, and the memory folder the harness loads (`~/.claude/projects/-Users-noir-Documents-grooph/memory/`). A session that has grown long hands the seat over by bringing this file up to date and saying so to the owner; the owner opens a fresh session in this folder and tells it to read this file.
 
-**Last brought up to date:** 2026-10-10, 11:10 a.m. Eastern (by the clock, `date`), by the session that took the seat that afternoon from the one titled "grooph opus operator" (the brief for that handover is [`handoffs/briefs/handover-2026-10-09.html`](briefs/handover-2026-10-09.html)).
+**Last brought up to date:** 2026-10-10, 11:35 a.m. Eastern (by the clock, `date`), by the session that took the seat that afternoon from the one titled "grooph opus operator" (the brief for that handover is [`handoffs/briefs/handover-2026-10-09.html`](briefs/handover-2026-10-09.html)).
 
 ## Who you are
 
@@ -52,12 +52,12 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 
 **Where it stands (2026-10-10, 11:10 a.m.).** Decision 0032 is accepted: he approved it on the desk that morning ("Fully approved."), and #183 is merged. The watching check's runner is merged (#184) on his yes to three things on card q80: the runner, the clean profile's first call, and scoring what the sessions wrote; his scoring decision is in `experiments/watching/ledger.json`. On the same card he asked whether Opus or Haiku should be tried beside Sonnet and left the limits to the driver, so the check was changed before any run: three blocks of the same twelve (`sonnet`, `opus`, `haiku`), 25 and 60 minutes, dollar ceilings by block, a cap of $140.00, and no pin on the short name `haiku` ([`experiments/watching/README.md`](../experiments/watching/README.md), "Changed before any run").
 
-**What comes next, in order.**
+**The runs, as they stand (2026-10-10, 11:35 a.m.).** One built worktree holds them: `.claude/worktrees/watching-runs`, branch `runs/watching-check`, made at `8dc5145`. The server and the hook's installer are that checkout's code and the records are written into it, so it is not rebuilt or moved while a block is unfinished. `node scripts/lib/watching-check-paid.mjs --status` there says where the check is.
 
-1. One built worktree for the runs (`git worktree add .claude/worktrees/watching-runs origin/main`, then `pnpm install --frozen-lockfile && pnpm -r build` in it). The server and the hook's installer are that checkout's code, and the records are written into it.
-2. He starts the clean profile's first call from a terminal: at most $1.00 and ten minutes, Opus 5.5. The driver reads its record before anything else is started.
-3. He starts one block at a time, `sonnet`, then `opus`, then `haiku` (`node scripts/lib/watching-check-paid.mjs --all --block <name> --spend --go "<the driver's words>"`); the driver reads each block's records before giving him the next. A paid run is started from a terminal, by a person.
-4. The records are committed from that worktree, and the tables written as the protocol's "How it will be read" says.
+- **The clean profile's first call is done and read.** He started it from a terminal that morning. It ended by itself in 39 seconds at a reported $0.35, all fourteen of its checks hold, and its record says later runs may start. The record is committed on that branch.
+- **He has the command for the `sonnet` block** (desk card `q82-start-the-sonnet-block`): `node scripts/lib/watching-check-paid.mjs --all --block sonnet --spend --go "<the driver's words>"`, from that worktree, in a terminal. A paid run is started from a terminal, by a person.
+- **When he says a block is done:** read its twelve records under `experiments/watching/<block>/` before anything else. A run the harness ended is made once more with `--rerun <block>/<task>/<arm>-<n>`, the reason beside it. Then give him the next block's command, `opus`, then `haiku`, with words of the driver's that say its records were read. Whether the harness will start a session with `--model haiku --effort high` is not known until one is tried; if it will not, that block is not run and the protocol gets a dated note.
+- **After the last block:** commit the records from that worktree by name, open the pull request, and write one table for each block as the protocol's "How it will be read" says: "no difference seen" only where two arms overlap on both tasks within a block, and never "no effect". Then a card for him with what was found. The next step of decision 0032, the lab, waits for his word.
 
 **Found on the way, for the steps that build the product.** The hook appends under `.grooph/events` with no check for a link, and a harness runs it outside the sandbox: a small real fault in 0.4.1's hook, to be fixed with a test in a pull request of its own, on his word since it changes what ships. Claude Code cuts a server's instructions at 2,048 characters and grooph's are 2,625, so the one sentence the server has for a session's lead does not arrive and what does arrive is about authoring: the watching tools want a short server of their own.
 
