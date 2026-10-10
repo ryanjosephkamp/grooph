@@ -1,0 +1,23 @@
+{
+  "about": "The watching check's own ledger (README.md beside it, \"Limits\"): every model session the check starts is a line here, opened before the session with its id and settled after it with the cost the harness reported. A cost that is not yet settled counts at its ceiling. The lines are written by scripts/lib/watching-check-paid.mjs and never by hand. The numbers above them are the protocol's: the runner refuses a ledger that states others. No run has been made.",
+  "cap_usd": 45,
+  "cap_is": "where the whole check stops. The twelve runs' ceilings add up to $48.00 and the cap is $45.00, which is meant: a run is not started unless there is room for its ceiling, a settled run counted at its reported cost and an unsettled one at its ceiling. The dollars are the list price the harness reports; on the owner's subscription they are usage and not a charge",
+  "refuse_below_usd": 2,
+  "per_invocation_ceiling_usd": 6,
+  "watchdog": {
+    "one": { "usd": 2, "minutes": 15 },
+    "four": { "usd": 6, "minutes": 40 },
+    "is_not_a_graphs_stop": true,
+    "about": "the runner's outer limits for one run, which no session is told of: dollars by the harness's own ceiling, minutes by the runner's clock"
+  },
+  "once_more": "a run that fails for a reason outside the session (the sign-in, the network, a usage limit) may be run once more, with the reason written beside it: its line is <task>/<arm>-<n>-rerun",
+  "scoring_outside_the_sandbox": {
+    "about": "A run is scored by the repository's unseen suites, run against the packages the session left, and that runs the code the session wrote, outside the sandbox and with the account's rights. A session's commands run inside the sandbox; what it wrote does not when it is scored. Whether that may be done is the owner's to decide, for this check by name: a decision recorded for another experiment is not read here. Until his decision is written in the three fields below, no run of the watching check is started and none is scored.",
+    "decided_by": null,
+    "on": null,
+    "words": null
+  },
+  "invocations": [],
+  "spent_usd": 0,
+  "remaining_usd": 45
+}

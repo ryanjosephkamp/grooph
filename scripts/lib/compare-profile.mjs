@@ -70,16 +70,38 @@ export function settingsFor({ home = DEFAULT_HOME, temp = userTemp(), closed = [
   return settings;
 }
 
+/** A tool of a server a run attaches, as the harness names it: `mcp__<server>__<tool>`. Nothing else may be allowed or withheld by a run. */
+const SERVER_TOOL = /^mcp__([A-Za-z0-9_-]+?)__([A-Za-z0-9_-]+)$/;
+
 /**
  * The environment and the command a headless comparison session is started with. Nothing of the caller's own
  * environment goes in. The session's id is chosen beforehand, so the record can name its transcript before it exists.
+ *
+ * Three more things a run may name, and only the watching check does (experiments/watching/README.md). Called without
+ * them, the command and the environment are what they were before these existed, to the letter: the first call's
+ * record is held against a checksum of both (study-three-paid.mjs `profileFingerprint`), and a test pins them.
+ *
+ *   mcp        one configuration of servers, as the harness reads it (`{ mcpServers: { <name>: { command, args } } }`),
+ *              passed whole on the command line. `--strict-mcp-config` is always there, so it is the only one read
+ *   allowed    tools of those servers a session may call. The mode is `dontAsk`, which refuses what no rule allows
+ *   withheld   tools of those servers a session is not to be offered: a bare name after `--disallowedTools` takes a
+ *              tool out of what the model is shown, by the harness's documentation
  */
-export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd, closed = [], user = userInfo().username, userHome = homedir() }) {
+export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd, closed = [], user = userInfo().username, userHome = homedir(), mcp = null, allowed = [], withheld = [] }) {
   const at = layout(home);
   for (const [name, value] of Object.entries({ claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd })) if (value === undefined || value === null || value === "") throw new Error(`commandFor needs ${name}`);
   if (!resolve(cwd).startsWith(`${at.work}/`)) throw new Error(`a session's folder must be under ${at.work}, which the profile's sandbox leaves open; ${cwd} is not`);
   if (/fable|astra/i.test(model)) throw new Error(`${model} is a model this project's experiments do not use without the owner's authorization (decision 0031)`);
   for (const path of closed) if (!resolve(path).startsWith(`${resolve(cwd)}/`)) throw new Error(`a closed path must be inside the session's folder; ${path} is not inside ${cwd}`);
+  // A run may allow or withhold a tool of a server it attaches, and nothing else: no rule of this kind can open a built-in tool.
+  const servers = Object.keys(mcp?.mcpServers ?? {});
+  if (mcp !== null && servers.length === 0) throw new Error("a configuration of servers names at least one, under mcpServers");
+  for (const name of [...allowed, ...withheld]) {
+    const tool = SERVER_TOOL.exec(String(name));
+    if (!tool || !servers.includes(tool[1])) throw new Error(`${JSON.stringify(name)} is not a tool of a server this run attaches (${servers.join(", ") || "it attaches none"}): only those may be allowed or withheld`);
+  }
+  const both = allowed.filter((name) => withheld.includes(name));
+  if (both.length > 0) throw new Error(`${both.join(", ")} cannot be both allowed and withheld`);
   const env = {
     HOME: userHome,
     USER: user,
@@ -100,14 +122,17 @@ export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, ef
     CLAUDE_CODE_AUTO_CONNECT_IDE: "false",
     ...ALIAS_ENV,
   };
-  const argv = [claude, "-p", prompt, "--model", model, "--effort", effort, "--output-format", "json", "--max-budget-usd", String(maxBudgetUsd), "--permission-mode", "dontAsk", "--allowedTools", "Edit(/**)", "--strict-mcp-config", "--setting-sources", "user,project", "--no-chrome", "--disable-slash-commands", "--session-id", sessionId];
+  const argv = [claude, "-p", prompt, "--model", model, "--effort", effort, "--output-format", "json", "--max-budget-usd", String(maxBudgetUsd), "--permission-mode", "dontAsk", "--allowedTools", "Edit(/**)", ...allowed, "--strict-mcp-config", ...(mcp === null ? [] : ["--mcp-config", JSON.stringify(mcp)]), "--setting-sources", "user,project", "--no-chrome", "--disable-slash-commands", "--session-id", sessionId];
   // A rule that begins with two slashes names a path from the root of the disk. It refuses the file tools; the sandbox's denyWrite refuses commands.
-  if (closed.length > 0) argv.push("--disallowedTools", ...closed.flatMap((path) => [`Edit(/${resolve(path)})`, `Edit(/${resolve(path)}/**)`]));
+  const denied = [...closed.flatMap((path) => [`Edit(/${resolve(path)})`, `Edit(/${resolve(path)}/**)`]), ...withheld];
+  if (denied.length > 0) argv.push("--disallowedTools", ...denied);
   return { env, argv, cwd: resolve(cwd), transcript: join(at.profile, "projects", resolve(cwd).replace(/[^A-Za-z0-9]/g, "-"), `${sessionId}.jsonl`) };
 }
 
 /** Every flag `commandFor` passes, for checking against what the installed harness says it takes. */
 export const FLAGS = ["--print", "--model", "--effort", "--output-format", "--max-budget-usd", "--permission-mode", "--allowedTools", "--disallowedTools", "--strict-mcp-config", "--setting-sources", "--no-chrome", "--disable-slash-commands", "--session-id"];
+/** The one flag more a run that attaches a server passes. It is not among the profile's own: a runner that needs it asks the harness for it by name. */
+export const SERVER_FLAGS = ["--mcp-config"];
 
 function found(name) {
   const which = spawnSync("/bin/sh", ["-c", `command -v ${name}`], { encoding: "utf8" });
