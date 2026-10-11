@@ -181,17 +181,44 @@ function sayAgent(P, v, id) {
 const attrs = (o) => Object.entries(o).filter(([, v]) => v !== undefined && v !== false && v !== null).map(([k, v]) => ` ${k}="${v}"`).join("");
 const tag = (name, o, inner) => (inner === undefined ? `<${name}${attrs(o)}/>` : `<${name}${attrs(o)}>${inner}</${name}>`);
 const text = (x, y, s, o = {}) => tag("text", { x: r1(x), y: r1(y), "font-size": o.size ?? 10, "text-anchor": o.anchor, "font-weight": o.weight, class: o.class, "data-id": o.id }, s);
+/** A hairline lies on the pixel: its place is a whole number and a half. */
+const sn = (v) => Math.round(v) + 0.5;
 const line = (x1, y1, x2, y2, o = {}) => tag("line", { x1: r1(x1), y1: r1(y1), x2: r1(x2), y2: r1(y2), ...o });
+/** A straight hairline, across or down, on the pixel. */
+const rule = (x1, y1, x2, y2, o = {}) => (Math.abs(x1 - x2) < 0.01 ? line(sn(x1), y1, sn(x1), y2, o) : line(x1, sn(y1), x2, sn(y1), o));
+/** A box with a hairline border, on the pixel. */
+const box = (x, y, w, h, o = {}) => tag("rect", { x: sn(x), y: sn(y), width: Math.round(w), height: Math.round(h), ...o });
 const path = (d, o = {}) => tag("path", { d, ...o });
 /** A small red cross: a run that failed. */
-const cross = (x, y, r = 4) => `<g class="s-bad" stroke-width="2" stroke-linecap="round">${line(x - r, y - r, x + r, y + r)}${line(x - r, y + r, x + r, y - r)}</g>`;
+const cross = (x, y, r = 3.5) => `<g class="s-bad" stroke-width="1.5" stroke-linecap="round">${line(x - r, y - r, x + r, y + r)}${line(x - r, y + r, x + r, y - r)}</g>`;
 /** A small amber diamond: seen, and never said (made up on this page). */
-const diamond = (x, y, r = 4.5) => path(`M${r1(x)} ${r1(y - r)}L${r1(x + r)} ${r1(y)}L${r1(x)} ${r1(y + r)}L${r1(x - r)} ${r1(y)}Z`, { class: "s-said f-said", "stroke-width": 1.5 });
-/** How many runs so far, when more than one: a small plate. */
-const plate = (x, y, n) => `${tag("rect", { x: r1(x - 6.5), y: r1(y - 6), width: 13, height: 12, rx: 4, class: "f-ink" })}${text(x, y + 3.2, n, { size: 8.5, anchor: "middle", weight: 700, class: "mono t-plate" })}`;
+const diamond = (x, y, r = 4, cls = "s-said f-said") => path(`M${r1(x)} ${r1(y - r)}L${r1(x + r)} ${r1(y)}L${r1(x)} ${r1(y + r)}L${r1(x - r)} ${r1(y)}Z`, { class: cls, "stroke-width": 1, "stroke-linejoin": "round" });
+/** How many runs so far, when more than one. */
+const times = (x, y, n, anchor) => text(x, y, `×${n}`, { size: 8.5, weight: 600, anchor, class: "mono t2" });
+/** A model's mark: a small square of its color. It takes the color from the group it is in. */
+const swatch = (x, y, size = 7) => tag("rect", { x: r1(x), y: r1(y), width: size, height: size, rx: 2, class: "f-m" });
+/** Running: a dot in the one accent, and a ring that leaves it. */
+const liveDot = (x, y, r = 3) => `${tag("circle", { cx: r1(x), cy: r1(y), r, class: "halo" })}${tag("circle", { cx: r1(x), cy: r1(y), r, class: "f-live" })}`;
 /** An agent's classes: its model, its state, whether this moment is about it. */
 const cls = (s, more = "") => `m-${s.a.m.key} is-${s.state}${more ? ` ${more}` : ""}`;
 /** The elbow that hangs one thing under another. */
-const elbow = (x1, y1, x2, y2) => `M${r1(x1)} ${r1(y1)}V${r1(y2 - 6)}Q${r1(x1)} ${r1(y2)} ${r1(x1 + Math.sign(x2 - x1) * 6)} ${r1(y2)}H${r1(x2)}`;
+const elbow = (x1, y1, x2, y2) => `M${sn(x1)} ${r1(y1)}V${sn(y2) - 5}Q${sn(x1)} ${sn(y2)} ${sn(x1) + Math.sign(x2 - x1) * 5} ${sn(y2)}H${r1(x2)}`;
+/** The session as a disc: the one in charge (W4 and W6). */
+const sessionDisc = (P, v, cx, cy, r, sel) =>
+  `<g data-id="session">${v.working && !v.ended ? tag("circle", { cx: r1(cx), cy: r1(cy), r: r1(r + 3.5), class: "f-none s-live glow", "stroke-width": 1.5 }) : ""}${tag("circle", { cx: r1(cx), cy: r1(cy), r: r1(r), class: "f-card s-ink lift-1", "stroke-width": 1 })}${text(cx, cy - 1, "Session", { size: 10.5, weight: 600, anchor: "middle" })}${text(cx, cy + 10.5, P.lead.short, { size: 9, anchor: "middle", class: "t2" })}${sel === "session" ? tag("circle", { cx: r1(cx), cy: r1(cy), r: r1(r + 7), class: "sel" }) : ""}</g>`;
 
 const DRAW = {};
+/** Where each sample opens: a moment that has something running and something finished. */
+const OPENS = { small: ["stop", "a04"], large: ["start", "a16"], resumed: ["resume", "a10"] };
+const opensAt = (P) => Math.max(0, P.moments.findIndex((m) => m.kind === OPENS[P.id]?.[0] && m.id === OPENS[P.id]?.[1]));
+/** The session the page opens on: the large one. build.mjs draws the same one, at the same moment, as the still a viewer with no script is left with. */
+const OPEN_ON = 1;
+/** A sample in a line: how much there is to it. */
+const aboutLine = (P) => `${P.agents.length} subagents · ${P.agents.reduce((t, a) => t + a.runs.length, 0)} runs · ${dur(P.moments.at(-1).t)} · ${num(P.most)} at once at most`;
+/** A drawing in its frame: the SVG, W wide, with the line that says what is made up wherever an amber mark may show (on the page, and in a picture of it). */
+function frame(name, draw, P, v, W, o) {
+  const { h, body } = draw(P, v, W, o);
+  const key = o.said && P.plans.length > 0 ? `<g>${rule(14, h + 2, W - 14, h + 2, { class: "s-rule", "stroke-width": 1 })}${text(14, h + 17, "Made up", { size: 9, weight: 600, class: "t-said" })}${tag("rect", { x: 58.5, y: h + 9.5, width: 9, height: 9, rx: 2.5, class: "said f-said" })}${text(72, h + 17, "said, never ran", { size: 9, class: "t2" })}${diamond(150, h + 14, 4, "key-d")}${text(158, h + 17, "ran, never said", { size: 9, class: "t2" })}</g>` : "";
+  const H = Math.ceil(h + (key ? 26 : 0));
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${name}: ${P.sample.name}, ${dur(v.t)} in, ${v.running.length} running, ${v.all.length - v.running.length} finished">${body}${key}</svg>`;
+}

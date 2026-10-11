@@ -17,6 +17,8 @@
   --accent: #1f5f4a; --accent-ink: #ffffff; --accent-soft: oklch(0.93 0.03 165);
   --error: #b42318; --said: #b45309; --said-soft: #fcf0d9;
   --m-opus: #7a4cc2; --m-sonnet: #0f7c8c; --m-haiku: #c2410c; --on-m: #ffffff;
+  --dots: oklch(0.83 0.01 165); --stage: oklch(0.985 0.003 165);
+  --lift: drop-shadow(0 1px 1px oklch(0.2 0.01 165 / 0.07)) drop-shadow(0 3px 8px oklch(0.2 0.01 165 / 0.06));
   --font: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -28,6 +30,8 @@
     --accent: #5dbb94; --accent-ink: #0d1a14; --accent-soft: oklch(0.3 0.04 165);
     --error: #ff8f80; --said: #f5a524; --said-soft: #362a15;
     --m-opus: #a883f0; --m-sonnet: #3cc0d0; --m-haiku: #f0874f; --on-m: #10141a;
+    --dots: oklch(0.3 0.008 165); --stage: oklch(0.19 0.006 165);
+    --lift: drop-shadow(0 1px 2px rgb(0 0 0 / 0.45));
     color-scheme: dark;
   }
 }
@@ -38,6 +42,8 @@
   --accent: #5dbb94; --accent-ink: #0d1a14; --accent-soft: oklch(0.3 0.04 165);
   --error: #ff8f80; --said: #f5a524; --said-soft: #362a15;
   --m-opus: #a883f0; --m-sonnet: #3cc0d0; --m-haiku: #f0874f; --on-m: #10141a;
+  --dots: oklch(0.3 0.008 165); --stage: oklch(0.19 0.006 165);
+  --lift: drop-shadow(0 1px 2px rgb(0 0 0 / 0.45));
   color-scheme: dark;
 }
 :root[data-theme="light"] { color-scheme: light; }
@@ -75,8 +81,10 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
 .label { display: inline-flex; align-items: center; gap: 0.55rem; }
 .label b { display: inline-grid; place-items: center; min-width: 2.4rem; height: 1.6rem; padding-inline: 0.4rem; border-radius: 0.4rem; background: var(--accent); color: var(--accent-ink); font: 600 0.8rem/1 var(--mono); }
 .shows b { font-weight: 600; }
-.stage { border: 1px solid var(--line); border-radius: 0.9rem; background: var(--surface-2); overflow: hidden; min-height: 8rem; }
+/* The stage is the app's canvas: its paper, and its grid of dots. */
+.stage { border: 1px solid var(--line-strong); border-radius: 0.6rem; background: var(--stage) radial-gradient(circle, var(--dots) 0.55px, transparent 0.9px) 8px 8px / 16px 16px; overflow: hidden; min-height: 8rem; }
 .stage svg { display: block; width: 100%; height: auto; }
+.noscript { font-size: 0.93rem; color: var(--ink-2); border-left: 0; padding: 0.6rem 0.8rem; background: var(--surface-2); border-radius: 0.5rem; }
 /* The bar and the words for the moment stay at the bottom of the screen for as long as their drawing is on it: a
    tall drawing is watched with a thumb on Play. */
 .deck { position: sticky; bottom: 0; z-index: 4; margin-inline: -1rem; padding: 0.5rem 1rem 0.55rem; background: color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter: blur(6px); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.35rem; }
@@ -96,10 +104,14 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
 .foot { font-size: 0.93rem; color: var(--ink-3); }
 
 /* ── what every drawing is drawn with ────────────────────────────────────────────────────────────────────────
-   Filled in a model's color: running. Hollow: finished. A dashed tie: started in the background. Amber, dashed:
-   something a session said (made up on this page). */
+   Hairlines, one weight of border, and the app's paper. One accent, the app's green, for what is running; a
+   model is a small swatch of its color beside its name or its letter; a thing that has finished is quiet. A dashed
+   tie is a start in the background. Amber, dashed, is something a session said (made up on this page).
+   Every stroke keeps its width when a drawing is scaled (a still, in a viewer that runs no script). */
+.stage svg { font-variant-numeric: tabular-nums; text-rendering: geometricPrecision; }
+.stage svg * { vector-effect: non-scaling-stroke; }
 .stage text { font-family: var(--font); fill: var(--ink); }
-.stage .mono { font-family: var(--mono); }
+.stage .mono { font-family: var(--mono); letter-spacing: -0.01em; }
 .stage .t2 { fill: var(--ink-2); }
 .stage .t3 { fill: var(--ink-3); }
 .m-opus { --m: var(--m-opus); }
@@ -107,59 +119,76 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
 .m-haiku { --m: var(--m-haiku); }
 .m-none { --m: var(--ink-3); }
 .f-m { fill: var(--m); }
+.f-mt { fill: color-mix(in oklab, var(--m) 16%, var(--surface)); }
 .s-m { stroke: var(--m); }
+.s-mh { stroke: color-mix(in oklab, var(--m) 62%, var(--surface)); }
 .t-m { fill: var(--m) !important; }
 .t-on { fill: var(--on-m) !important; }
-.t-plate { fill: var(--surface) !important; }
+.t-clock { fill: var(--accent-ink) !important; }
+.f-card { fill: var(--surface); }
 .f-surface { fill: var(--surface); }
-.f-ground { fill: var(--surface-2); }
+.f-ground { fill: var(--stage); }
 .f-ink { fill: var(--ink); }
+.f-line { fill: var(--line-strong); }
 .f-none { fill: none; }
+.f-live { fill: var(--accent); }
+.f-livet { fill: color-mix(in oklab, var(--accent) 9%, var(--surface)); }
+.s-live { stroke: var(--accent); }
+.t-live { fill: var(--accent) !important; }
 .s-ink { stroke: var(--ink); }
+.s-hair { stroke: var(--line-strong); }
 .s-line { stroke: var(--line-strong); }
+.s-rule { stroke: var(--line); }
 .s-edge { stroke: var(--edge); }
+.s-ground { stroke: var(--stage); }
 .s-bad { stroke: var(--error); }
 .t-bad { fill: var(--error) !important; }
 .s-said { stroke: var(--said); }
-.f-said { fill: var(--said-soft); }
+.f-said { fill: color-mix(in oklab, var(--said) 10%, var(--surface)); }
 .t-said { fill: var(--said) !important; }
+.key-d { fill: color-mix(in oklab, var(--said) 10%, var(--surface)); stroke: var(--said); }
 .s-accent { stroke: var(--accent); }
 .f-accent { fill: var(--accent); }
-.t-accent-ink { fill: var(--accent-ink) !important; }
-.s-ground { stroke: var(--surface-2); }
-/* A word that may lie over a line keeps a rim of the ground's color. */
-.lift { paint-order: stroke; stroke: var(--surface-2); stroke-width: 3px; stroke-linejoin: round; }
-/* The skyline's faces. Running: solid in the model's color, darker down each side. Finished: pale, with the model's edges. */
-.on-t { fill: var(--m); stroke: var(--m); stroke-width: 0.8; animation: sw-glow 1.7s ease-in-out infinite; }
-.on-l { fill: color-mix(in oklab, var(--m) 80%, #000); stroke: color-mix(in oklab, var(--m) 55%, #000); stroke-width: 0.8; }
-.on-r { fill: color-mix(in oklab, var(--m) 62%, #000); stroke: color-mix(in oklab, var(--m) 55%, #000); stroke-width: 0.8; }
-.off-t { fill: var(--surface); stroke: var(--m); stroke-width: 1.1; stroke-linejoin: round; }
-.off-l { fill: color-mix(in oklab, var(--m) 14%, var(--surface)); stroke: var(--m); stroke-width: 1.1; stroke-linejoin: round; }
-.off-r { fill: color-mix(in oklab, var(--m) 30%, var(--surface)); stroke: var(--m); stroke-width: 1.1; stroke-linejoin: round; }
-.step-t { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1; }
-.step-l { fill: var(--line); stroke: var(--line-strong); stroke-width: 1; }
-.step-r { fill: var(--line-strong); stroke: var(--line-strong); stroke-width: 1; }
-.slab-l { fill: var(--line-strong); }
-.slab-r { fill: var(--edge); }
-.tie { fill: none; stroke: var(--edge); stroke-width: 1.3; stroke-linecap: round; }
-.tie.live { stroke: var(--m); stroke-width: 1.9; }
-.tie.bg { stroke-dasharray: 4 3.2; }
-.tie.unknown { stroke: var(--ink-3); stroke-dasharray: 1.2 3.4; stroke-width: 1.6; }
-.said { stroke: var(--said); stroke-width: 1.5; stroke-dasharray: 3 2.6; }
+/* A card or a disc stands a hair off the paper. */
+.lift-1 { filter: var(--lift); }
+/* A word that may lie over a line keeps a rim of the paper's color. */
+.lift { paint-order: stroke; stroke: var(--stage); stroke-width: 3px; stroke-linejoin: round; }
+.tie { fill: none; stroke: var(--line-strong); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
+.tie.live { stroke: var(--ink-2); }
+.tie.bg { stroke-dasharray: 3 3; }
+.tie.unknown { stroke: var(--ink-3); stroke-dasharray: 0.5 3.5; stroke-width: 1.5; }
+.said { stroke: var(--said); stroke-width: 1; stroke-dasharray: 3 2.5; }
 /* Wider than it looks: a thin line or a small bead is touched through this. */
 .hit { fill: transparent; stroke: transparent; pointer-events: all; }
-[data-go] { cursor: pointer; }
-[data-id] { cursor: pointer; }
-.sel { stroke: var(--ink); stroke-width: 2.2; fill: none; pointer-events: none; }
-.halo { fill: var(--m); opacity: 0.22; transform-box: fill-box; transform-origin: center; animation: sw-pulse 1.7s ease-in-out infinite; pointer-events: none; }
-.fresh { transform-box: fill-box; transform-origin: center; animation: sw-pop 0.42s cubic-bezier(0.2, 0.9, 0.25, 1.15) both; }
-.glow { animation: sw-glow 1.7s ease-in-out infinite; }
-@keyframes sw-pulse { 0%, 100% { transform: scale(1); opacity: 0.22; } 50% { transform: scale(1.22); opacity: 0.06; } }
-@keyframes sw-pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes sw-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+[data-go], [data-id] { cursor: pointer; }
+.sel { stroke: var(--ink); stroke-width: 1.5; fill: none; pointer-events: none; }
+/* The skyline's faces. Running: solid in the model's color, darker down each side. Finished: paper, with a roof
+   in a tint of its model. */
+.on-t { fill: var(--m); stroke: color-mix(in oklab, var(--m) 70%, #000); stroke-width: 0.75; stroke-linejoin: round; }
+.on-l { fill: color-mix(in oklab, var(--m) 82%, #000); stroke: color-mix(in oklab, var(--m) 62%, #000); stroke-width: 0.75; stroke-linejoin: round; }
+.on-r { fill: color-mix(in oklab, var(--m) 66%, #000); stroke: color-mix(in oklab, var(--m) 62%, #000); stroke-width: 0.75; stroke-linejoin: round; }
+.off-t { fill: color-mix(in oklab, var(--m) 30%, var(--surface)); stroke: color-mix(in oklab, var(--m) 70%, var(--surface)); stroke-width: 0.75; stroke-linejoin: round; }
+.off-l { fill: var(--surface); stroke: var(--line-strong); stroke-width: 0.75; stroke-linejoin: round; }
+.off-r { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 0.75; stroke-linejoin: round; }
+.step-t { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 0.75; }
+.step-l { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 0.75; }
+.step-r { fill: var(--line); stroke: var(--line-strong); stroke-width: 0.75; }
+.slab-l { fill: var(--line); stroke: var(--line-strong); stroke-width: 0.75; }
+.slab-r { fill: var(--line-strong); stroke: var(--line-strong); stroke-width: 0.75; }
+/* Alive: a ring that leaves a running thing, a breath on a lit roof, and a quick arrival. Nothing bounces. */
+.halo { fill: none; stroke: var(--accent); stroke-width: 1; transform-box: fill-box; transform-origin: center; animation: sw-ping 2s cubic-bezier(0.16, 1, 0.3, 1) infinite; pointer-events: none; }
+.halo.wide { animation-name: sw-ping-wide; }
+.fresh { transform-box: fill-box; transform-origin: center; animation: sw-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.glow { animation: sw-glow 2s ease-in-out infinite; }
+.on-t { animation: sw-glow 2s ease-in-out infinite; }
+@keyframes sw-ping { from { transform: scale(1); opacity: 0.7; } 70%, to { transform: scale(2.4); opacity: 0; } }
+@keyframes sw-ping-wide { from { transform: scale(1); opacity: 0.6; } 70%, to { transform: scale(1.22); opacity: 0; } }
+@keyframes sw-in { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes sw-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
   .halo, .fresh, .glow, .on-t { animation: none; }
+  .halo { opacity: 0; }
 }
 </style>
 
@@ -171,24 +200,26 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
     <p class="how">Play steps a session through every moment at which something changed: a start, an end, a resume, a failure. All six keep the same moment, so you can stop one and scroll to another. Touch anything in a drawing to read what the record has of it. The three buttons that stay at the top change the session for all six.</p>
     <p class="how">Amber is the place kept for what a session <em>says</em> it will do, beside what was seen. No session said anything here: the statements are made up, to show where the two marks would go. Each drawing says so under itself, and <b>Said</b>, at the top, takes them away. <button type="button" class="chip" data-theme-switch>Theme: auto</button></p>
     <ul class="words" aria-label="What the drawings share">
-      <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="2" y="2" width="14" height="14" rx="4" class="m-opus f-m" /></svg>filled: running</li>
-      <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="2" y="2" width="14" height="14" rx="4" class="m-opus f-surface s-m" stroke-width="2" /></svg>hollow: finished</li>
-      <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="2" y="2" width="14" height="14" rx="4" class="m-opus f-surface s-m" stroke-width="2" /><g class="s-bad" stroke-width="2" stroke-linecap="round"><line x1="5" y1="5" x2="13" y2="13" /><line x1="5" y1="13" x2="13" y2="5" /></g></svg>crossed: failed</li>
-      <li><svg width="44" height="18" viewBox="0 0 44 18" aria-hidden="true"><circle cx="7" cy="9" r="5" class="m-opus f-m" /><circle cx="22" cy="9" r="5" class="m-sonnet f-m" /><circle cx="37" cy="9" r="5" class="m-haiku f-m" /></svg>Opus, Sonnet, Haiku</li>
-      <li><svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true"><line x1="2" y1="9" x2="24" y2="9" class="tie bg" /></svg>dashed tie: in the background</li>
-      <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="2.5" y="2.5" width="13" height="13" rx="4" class="said f-said" /></svg>amber, dashed: said, never ran (made up here)</li>
-      <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 3L15 9L9 15L3 9Z" class="s-said f-said" stroke-width="1.5" /></svg>amber diamond: ran, never said (made up here)</li>
+      <li><svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="13" rx="4" class="f-livet s-live" /><circle cx="13.5" cy="9" r="2.5" class="f-live" /></svg>green: running</li>
+      <li><svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="13" rx="4" class="f-card s-hair" /></svg>plain: finished</li>
+      <li><svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="13" rx="4" class="f-card s-bad" /><g class="s-bad" stroke-width="1.5" stroke-linecap="round"><line x1="11" y1="6.5" x2="16" y2="11.5" /><line x1="11" y1="11.5" x2="16" y2="6.5" /></g></svg>red cross: failed</li>
+      <li><svg width="36" height="18" viewBox="0 0 36 18" aria-hidden="true"><rect x="2" y="5.5" width="7" height="7" rx="2" class="m-opus f-m" /><rect x="14" y="5.5" width="7" height="7" rx="2" class="m-sonnet f-m" /><rect x="26" y="5.5" width="7" height="7" rx="2" class="m-haiku f-m" /></svg>Opus, Sonnet, Haiku</li>
+      <li><svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true"><line x1="2" y1="9.5" x2="24" y2="9.5" class="tie bg" /></svg>dashed tie: started in the background</li>
+      <li><svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="13" rx="4" class="said f-said" /></svg>amber, dashed: said, never ran (made up here)</li>
+      <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 4L14 9L9 14L4 9Z" class="s-said f-said" stroke-width="1" /></svg>amber diamond: ran, never said (made up here)</li>
     </ul>
   </header>
 
+  <noscript><p class="noscript">This viewer runs no script, so nothing here plays. Each drawing below is a still of one moment of the largest session (58 subagents over nearly nine days): the moment its fifth runs at once. Opened in a browser, every drawing steps through every moment of three sessions.</p></noscript>
+
   <nav class="docs" aria-label="The session every drawing draws">
     <div class="docs-row" role="radiogroup" aria-label="Session">
-      <button type="button" role="radio" data-doc aria-checked="true">Four at once</button>
-      <button type="button" role="radio" data-doc aria-checked="false">Dozens over days</button>
+      <button type="button" role="radio" data-doc aria-checked="false">Four at once</button>
+      <button type="button" role="radio" data-doc aria-checked="true">Dozens over days</button>
       <button type="button" role="radio" data-doc aria-checked="false">Resumed often</button>
     </div>
     <div class="docs-more">
-      <small data-about></small>
+      <small data-about>58 subagents · 70 runs · 8 d 19 h · five at once at most</small>
       <button type="button" class="chip" data-said aria-pressed="true">Said: on</button>
     </div>
   </nav>
@@ -199,15 +230,15 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
       <h2>The tree that grows</h2>
       <p class="shows"><b>The session at the top, and under it everything it started, in the order it started them.</b> A new subagent takes the next place on the rail and keeps it for good; what changes is how it is drawn where it stands. A subagent's own subagent hangs under it.</p>
     </div>
-    <div class="stage"></div>
+    <div class="stage"><svg viewBox="0 0 343 300" width="343" height="300" role="img" aria-label="The tree that grows: Dozens over days, 3 d 07 h in, 5 running, 11 finished"><path d="M22.5 54V171.5M22.5 63.5Q22.5 68.5 27.5 68.5H303.5M22.5 117.5Q22.5 122.5 27.5 122.5H303.5M22.5 171.5Q22.5 176.5 27.5 176.5H205.5" class="tie"/><g data-id="session"><rect x="14.5" y="14.5" width="248" height="40" rx="8" class="f-card s-ink lift-1"/><circle cx="29" cy="34.5" r="3" class="f-none s-ink" stroke-width="1"/><text x="41" y="31.5" font-size="12" font-weight="600">Session</text><text x="41" y="45" font-size="10" class="t2">Opus 5.5</text><text x="251" y="31.5" font-size="10.5" text-anchor="end" font-weight="600" class="t-live">5 running</text><text x="251" y="45" font-size="10" text-anchor="end" class="t3">11 finished</text></g><line x1="156.5" y1="176" x2="156.5" y2="186" class="said f-none"/><g data-id="s1"><rect x="134.5" y="186.5" width="43" height="32" rx="5" class="said f-said"/><text x="155.5" y="205" font-size="8.5" text-anchor="middle" font-weight="600" class="t-said">said</text></g><line x1="58.5" y1="68" x2="58.5" y2="78" class="tie bg  "/><g data-id="a01" class="m-haiku is-done"><g><rect x="36.5" y="78.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="42" y="91" font-size="10" font-weight="500" class="mono t2">a01</text><rect x="42" y="97.5" width="6" height="6" rx="2" class="f-m"/><text x="51" y="103.5" font-size="8.5" font-weight="600" class="t2">H</text></g></g><line x1="107.5" y1="68" x2="107.5" y2="78" class="tie bg  "/><g data-id="a02" class="m-opus is-done"><g><rect x="85.5" y="78.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="91" y="91" font-size="10" font-weight="500" class="mono t2">a02</text><rect x="91" y="97.5" width="6" height="6" rx="2" class="f-m"/><text x="100" y="103.5" font-size="8.5" font-weight="600" class="t2">O</text></g></g><line x1="156.5" y1="68" x2="156.5" y2="78" class="tie bg  "/><g data-id="a03" class="m-opus is-done"><g><rect x="134.5" y="78.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="140" y="91" font-size="10" font-weight="500" class="mono t2">a03</text><rect x="140" y="97.5" width="6" height="6" rx="2" class="f-m"/><text x="149" y="103.5" font-size="8.5" font-weight="600" class="t2">O</text></g></g><line x1="205.5" y1="68" x2="205.5" y2="78" class="tie bg  "/><g data-id="a04" class="m-opus is-done"><g><rect x="183.5" y="78.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="189" y="91" font-size="10" font-weight="500" class="mono t2">a04</text><rect x="189" y="97.5" width="6" height="6" rx="2" class="f-m"/><text x="198" y="103.5" font-size="8.5" font-weight="600" class="t2">O</text></g></g><line x1="254.5" y1="68" x2="254.5" y2="78" class="tie bg  "/><g data-id="a05" class="m-opus is-done"><g><rect x="232.5" y="78.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="238" y="91" font-size="10" font-weight="500" class="mono t2">a05</text><rect x="238" y="97.5" width="6" height="6" rx="2" class="f-m"/><text x="247" y="103.5" font-size="8.5" font-weight="600" class="t2">O</text></g></g><line x1="303.5" y1="68" x2="303.5" y2="78" class="tie bg  "/><g data-id="a06" class="m-opus is-done"><g><rect x="281.5" y="78.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="287" y="91" font-size="10" font-weight="500" class="mono t2">a06</text><rect x="287" y="97.5" width="6" height="6" rx="2" class="f-m"/><text x="296" y="103.5" font-size="8.5" font-weight="600" class="t2">O</text></g></g><line x1="58.5" y1="122" x2="58.5" y2="132" class="tie bg  "/><g data-id="a07" class="m-opus is-done"><g><rect x="36.5" y="132.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="42" y="145" font-size="10" font-weight="500" class="mono t2">a07</text><rect x="42" y="151.5" width="6" height="6" rx="2" class="f-m"/><text x="51" y="157.5" font-size="8.5" font-weight="600" class="t2">O</text></g></g><line x1="107.5" y1="122" x2="107.5" y2="132" class="tie bg  "/><g data-id="a08" class="m-opus is-done"><g><rect x="85.5" y="132.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="91" y="145" font-size="10" font-weight="500" class="mono t2">a08</text><rect x="91" y="151.5" width="6" height="6" rx="2" class="f-m"/><text x="100" y="157.5" font-size="8.5" font-weight="600" class="t2">O</text></g></g><line x1="156.5" y1="122" x2="156.5" y2="132" class="tie bg  "/><g data-id="a09" class="m-haiku is-done"><g><rect x="134.5" y="132.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="140" y="145" font-size="10" font-weight="500" class="mono t2">a09</text><rect x="140" y="151.5" width="6" height="6" rx="2" class="f-m"/><text x="149" y="157.5" font-size="8.5" font-weight="600" class="t2">H</text></g></g><line x1="205.5" y1="122" x2="205.5" y2="132" class="tie bg  "/><g data-id="a10" class="m-opus is-done"><g><rect x="183.5" y="132.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="189" y="145" font-size="10" font-weight="500" class="mono t2">a10</text><rect x="189" y="151.5" width="6" height="6" rx="2" class="f-m"/><text x="198" y="157.5" font-size="8.5" font-weight="600" class="t2">O</text></g></g><line x1="254.5" y1="122" x2="254.5" y2="132" class="tie bg  "/><g data-id="a11" class="m-sonnet is-done"><g><rect x="232.5" y="132.5" width="43" height="32" rx="5" class="f-card s-hair"/><text x="238" y="145" font-size="10" font-weight="500" class="mono t2">a11</text><rect x="238" y="151.5" width="6" height="6" rx="2" class="f-m"/><text x="247" y="157.5" font-size="8.5" font-weight="600" class="t2">S</text></g></g><line x1="303.5" y1="122" x2="303.5" y2="132" class="tie bg live "/><g data-id="a12" class="m-sonnet is-running"><g><rect x="281.5" y="132.5" width="43" height="32" rx="5" class="f-livet s-live"/><text x="287" y="145" font-size="10" font-weight="700" class="mono">a12</text><circle cx="316" cy="141.5" r="2.5" class="halo"/><circle cx="316" cy="141.5" r="2.5" class="f-live"/><rect x="287" y="151.5" width="6" height="6" rx="2" class="f-m"/><text x="296" y="157.5" font-size="8.5" font-weight="600" class="t2">S</text></g></g><line x1="58.5" y1="176" x2="58.5" y2="186" class="tie bg live "/><g data-id="a13" class="m-opus is-running"><g><rect x="36.5" y="186.5" width="43" height="32" rx="5" class="f-livet s-live"/><text x="42" y="199" font-size="10" font-weight="700" class="mono">a13</text><circle cx="71" cy="195.5" r="2.5" class="halo"/><circle cx="71" cy="195.5" r="2.5" class="f-live"/><rect x="42" y="205.5" width="6" height="6" rx="2" class="f-m"/><text x="51" y="211.5" font-size="8.5" font-weight="600" class="t2">O</text></g></g><line x1="107.5" y1="176" x2="107.5" y2="186" class="tie bg live "/><g data-id="a14" class="m-opus is-running"><g><rect x="85.5" y="186.5" width="43" height="32" rx="5" class="f-livet s-live"/><text x="91" y="199" font-size="10" font-weight="700" class="mono">a14</text><circle cx="120" cy="195.5" r="2.5" class="halo"/><circle cx="120" cy="195.5" r="2.5" class="f-live"/><rect x="91" y="205.5" width="6" height="6" rx="2" class="f-m"/><text x="100" y="211.5" font-size="8.5" font-weight="600" class="t2">O</text></g></g><line x1="205.5" y1="176" x2="205.5" y2="186" class="tie bg live "/><g data-id="a15" class="m-sonnet is-running"><g><rect x="183.5" y="186.5" width="43" height="32" rx="5" class="f-livet s-live"/><text x="189" y="199" font-size="10" font-weight="700" class="mono">a15</text><circle cx="218" cy="195.5" r="2.5" class="halo"/><circle cx="218" cy="195.5" r="2.5" class="f-live"/><rect x="189" y="205.5" width="6" height="6" rx="2" class="f-m"/><text x="198" y="211.5" font-size="8.5" font-weight="600" class="t2">S</text><path d="M183.5 183L187 186.5L183.5 190L180 186.5Z" class="s-said f-said" stroke-width="1" stroke-linejoin="round"/></g></g><path d="M205.5 219V224V230" class="tie  live unknown"/><text x="209.5" y="228" font-size="9.5" font-weight="700" class="t3">?</text><g data-id="a16" class="m-sonnet is-running"><g class="fresh"><rect x="183.5" y="230.5" width="43" height="32" rx="5" class="f-livet s-live"/><text x="189" y="243" font-size="10" font-weight="700" class="mono">a16</text><circle cx="218" cy="239.5" r="2.5" class="halo"/><circle cx="218" cy="239.5" r="2.5" class="f-live"/><rect x="189" y="249.5" width="6" height="6" rx="2" class="f-m"/><text x="198" y="255.5" font-size="8.5" font-weight="600" class="t2">S</text></g></g><g><line x1="14" y1="276.5" x2="329" y2="276.5" class="s-rule" stroke-width="1"/><text x="14" y="291" font-size="9" font-weight="600" class="t-said">Made up</text><rect x="58.5" y="283.5" width="9" height="9" rx="2.5" class="said f-said"/><text x="72" y="291" font-size="9" class="t2">said, never ran</text><path d="M150 284L154 288L150 292L146 288Z" class="key-d" stroke-width="1" stroke-linejoin="round"/><text x="158" y="291" font-size="9" class="t2">ran, never said</text></g></svg></div>
     <div class="deck">
       <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="The moment before">‹</button><button type="button" data-do="next" aria-label="The next moment">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Moment" /><button type="button" data-do="end" aria-label="The last moment">⇥</button></div>
-      <output class="says" aria-live="polite"></output>
+      <output class="says" aria-live="polite">Moment 29 of 145 · 3 d 07 h in. <b>a15</b> starts <b>a16</b> in the foreground: general-purpose on Sonnet 5.5. The hook does not know yet who started it (it learns when a16 ends); the harness's own file says a15. Five running.</output>
     </div>
     <output class="who"></output>
     <ul class="three">
       <li><b>Good at:</b> who exists and who started whom, at any size, with every agent in a place you can find again. With a handful it is the app's own cards, and nothing needs explaining.</li>
-      <li><b>Where it breaks:</b> time. It shows order and not how long anything took or what overlapped, and with dozens the cards become tokens that carry a letter for the model and need the words above.</li>
+      <li><b>Where it breaks:</b> time. It shows order and not how long anything took or what overlapped, and with dozens the cards become small tiles that carry a square of color and a letter for the model, and lean on the words above.</li>
       <li><b>To build:</b> the least of the six. It stands on the canvas the app has (its cards, its ties, the six themes) with a layout of its own in place of the editor's. As drawn here the drawing itself is about 3 KB of script, compressed; it can be fetched when the live screen is opened and weigh nothing before.</li>
     </ul>
   </section>
@@ -218,10 +249,10 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
       <h2>Lanes over time</h2>
       <p class="shows"><b>Time runs left to right, and every run is a bar as long as it took.</b> The strip on top is the whole session, one block for each burst of work and as tall as the most that ran at once; under it is the burst the clock is in, opened to the full width. A tie drops from whoever started a run to where it begins.</p>
     </div>
-    <div class="stage"></div>
+    <div class="stage"><svg viewBox="0 0 343 360" width="343" height="360" role="img" aria-label="Lanes over time: Dozens over days, 3 d 07 h in, 5 running, 11 finished"><defs><pattern id="sw-wait" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" class="f-card"/><line x1="0.5" y1="0" x2="0.5" y2="4" class="s-ink" stroke-width="1" opacity="0.45"/></pattern></defs><text x="14" y="22" font-size="9.5" font-weight="600" class="t2">Whole session · 38 bursts of work</text><text x="329" y="22" font-size="9" text-anchor="end" class="t3">a tick where a day has gone by</text><line x1="14" y1="65.5" x2="329" y2="65.5" class="s-hair" stroke-width="1"/><rect x="15" y="53" width="6.3" height="11" rx="1.5" class="f-ink" opacity="0.42"/><rect x="14" y="34" width="8.3" height="40" class="hit" data-go="1"/><rect x="23.3" y="56" width="6.3" height="8" rx="1.5" class="f-ink" opacity="0.42"/><rect x="22.3" y="34" width="8.3" height="40" class="hit" data-go="5"/><rect x="31.6" y="56" width="6.3" height="8" rx="1.5" class="f-ink" opacity="0.42"/><rect x="30.6" y="34" width="8.3" height="40" class="hit" data-go="7"/><rect x="39.9" y="56" width="6.3" height="8" rx="1.5" class="f-ink" opacity="0.42"/><rect x="38.9" y="34" width="8.3" height="40" class="hit" data-go="9"/><line x1="47.5" y1="34" x2="47.5" y2="68" class="s-hair" stroke-width="1"/><text x="50.2" y="40" font-size="8.5" class="t3 mono">1d</text><rect x="48.2" y="56" width="6.3" height="8" rx="1.5" class="f-ink" opacity="0.42"/><rect x="47.2" y="34" width="8.3" height="40" class="hit" data-go="11"/><rect x="56.4" y="56" width="6.3" height="8" rx="1.5" class="f-ink" opacity="0.42"/><rect x="55.4" y="34" width="8.3" height="40" class="hit" data-go="13"/><line x1="64.5" y1="34" x2="64.5" y2="68" class="s-hair" stroke-width="1"/><text x="66.7" y="40" font-size="8.5" class="t3 mono">2d</text><rect x="64.7" y="56" width="6.3" height="8" rx="1.5" class="f-ink" opacity="0.42"/><rect x="63.7" y="34" width="8.3" height="40" class="hit" data-go="15"/><rect x="73" y="56" width="6.3" height="8" rx="1.5" class="f-ink" opacity="0.42"/><rect x="72" y="34" width="8.3" height="40" class="hit" data-go="17"/><line x1="80.5" y1="34" x2="80.5" y2="68" class="s-hair" stroke-width="1"/><text x="83.3" y="40" font-size="8.5" class="t3 mono">3d</text><rect x="81.3" y="42" width="6.3" height="22" rx="1.5" class="f-accent" opacity="1"/><path d="M81 73h7l-3.5 -5z" class="f-accent"/><rect x="80.3" y="34" width="8.3" height="40" class="hit" data-go="22"/><rect x="89.6" y="53" width="6.3" height="11" rx="1.5" class="f-line" opacity="0.7"/><rect x="88.6" y="34" width="8.3" height="40" class="hit" data-go="39"/><rect x="97.9" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="96.9" y="34" width="8.3" height="40" class="hit" data-go="45"/><rect x="106.2" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="105.2" y="34" width="8.3" height="40" class="hit" data-go="51"/><rect x="114.5" y="53" width="6.3" height="11" rx="1.5" class="f-line" opacity="0.7"/><rect x="113.5" y="34" width="8.3" height="40" class="hit" data-go="53"/><rect x="122.8" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="121.8" y="34" width="8.3" height="40" class="hit" data-go="57"/><line x1="130.5" y1="34" x2="130.5" y2="68" class="s-hair" stroke-width="1"/><text x="133.1" y="40" font-size="8.5" class="t3 mono">4d</text><rect x="131.1" y="53" width="6.3" height="11" rx="1.5" class="f-line" opacity="0.7"/><rect x="130.1" y="34" width="8.3" height="40" class="hit" data-go="59"/><rect x="139.3" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="138.3" y="34" width="8.3" height="40" class="hit" data-go="63"/><rect x="147.6" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="146.6" y="34" width="8.3" height="40" class="hit" data-go="65"/><rect x="155.9" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="154.9" y="34" width="8.3" height="40" class="hit" data-go="67"/><rect x="164.2" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="163.2" y="34" width="8.3" height="40" class="hit" data-go="69"/><rect x="172.5" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="171.5" y="34" width="8.3" height="40" class="hit" data-go="71"/><rect x="180.8" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="179.8" y="34" width="8.3" height="40" class="hit" data-go="73"/><rect x="189.1" y="53" width="6.3" height="11" rx="1.5" class="f-line" opacity="0.7"/><rect x="188.1" y="34" width="8.3" height="40" class="hit" data-go="75"/><rect x="197.4" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="196.4" y="34" width="8.3" height="40" class="hit" data-go="79"/><rect x="205.7" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="204.7" y="34" width="8.3" height="40" class="hit" data-go="81"/><rect x="213.9" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="212.9" y="34" width="8.3" height="40" class="hit" data-go="83"/><rect x="222.2" y="46" width="6.3" height="18" rx="1.5" class="f-line" opacity="0.7"/><rect x="221.2" y="34" width="8.3" height="40" class="hit" data-go="87"/><rect x="230.5" y="53" width="6.3" height="11" rx="1.5" class="f-line" opacity="0.7"/><rect x="229.5" y="34" width="8.3" height="40" class="hit" data-go="109"/><rect x="238.8" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="237.8" y="34" width="8.3" height="40" class="hit" data-go="113"/><rect x="247.1" y="53" width="6.3" height="11" rx="1.5" class="f-line" opacity="0.7"/><rect x="246.1" y="34" width="8.3" height="40" class="hit" data-go="115"/><line x1="254.5" y1="34" x2="254.5" y2="68" class="s-hair" stroke-width="1"/><text x="257.4" y="40" font-size="8.5" class="t3 mono">5d</text><rect x="255.4" y="53" width="6.3" height="11" rx="1.5" class="f-line" opacity="0.7"/><rect x="254.4" y="34" width="8.3" height="40" class="hit" data-go="122"/><rect x="263.7" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="262.7" y="34" width="8.3" height="40" class="hit" data-go="128"/><rect x="272" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="271" y="34" width="8.3" height="40" class="hit" data-go="130"/><rect x="280.3" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="279.3" y="34" width="8.3" height="40" class="hit" data-go="132"/><rect x="288.6" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="287.6" y="34" width="8.3" height="40" class="hit" data-go="134"/><rect x="296.8" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="295.8" y="34" width="8.3" height="40" class="hit" data-go="136"/><rect x="305.1" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="304.1" y="34" width="8.3" height="40" class="hit" data-go="138"/><line x1="312.5" y1="34" x2="312.5" y2="68" class="s-hair" stroke-width="1"/><text x="315.4" y="40" font-size="8.5" class="t3 mono">6d</text><rect x="313.4" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="312.4" y="34" width="8.3" height="40" class="hit" data-go="140"/><rect x="321.7" y="56" width="6.3" height="8" rx="1.5" class="f-line" opacity="0.7"/><rect x="320.7" y="34" width="8.3" height="40" class="hit" data-go="142"/><text x="14" y="97" font-size="10.5" font-weight="600">burst 9 of 38 · begins 3 d 07 h in · 1 h 21 m long</text><line x1="31.5" y1="120" x2="31.5" y2="312" class="s-rule" stroke-width="1"/><text x="31.3" y="324" font-size="8.5" text-anchor="start" class="t3 mono">0</text><line x1="138.5" y1="120" x2="138.5" y2="312" class="s-rule" stroke-width="1"/><text x="137.7" y="324" font-size="8.5" text-anchor="middle" class="t3 mono">+30m</text><line x1="244.5" y1="120" x2="244.5" y2="312" class="s-rule" stroke-width="1"/><text x="244.1" y="324" font-size="8.5" text-anchor="middle" class="t3 mono">+60m</text><line x1="14" y1="120.5" x2="329" y2="120.5" class="s-line" stroke-width="1" data-id="session"/><line x1="14" y1="120.5" x2="51.8" y2="120.5" class="s-ink" stroke-width="3" stroke-linecap="round" data-id="session"/><line x1="73" y1="120.5" x2="75.2" y2="120.5" class="s-ink" stroke-width="3" stroke-linecap="round" data-id="session"/><line x1="97.9" y1="120.5" x2="119.1" y2="120.5" class="s-ink" stroke-width="3" stroke-linecap="round" data-id="session"/><text x="329" y="113" font-size="9" text-anchor="end" class="t3">session · Opus</text><line x1="31.5" y1="120" x2="31.5" y2="136" class="tie bg  "/><circle cx="31.5" cy="120.5" r="1.75" class="f-ink"/><line x1="31.5" y1="120" x2="31.5" y2="161" class="tie bg live "/><circle cx="31.5" cy="120.5" r="1.75" class="f-ink"/><line x1="31.5" y1="120" x2="31.5" y2="186" class="tie bg live "/><circle cx="31.5" cy="120.5" r="1.75" class="f-ink"/><line x1="47.5" y1="120" x2="47.5" y2="211" class="tie bg live "/><circle cx="47.5" cy="120.5" r="1.75" class="f-ink"/><line x1="51.5" y1="120" x2="51.5" y2="236" class="tie bg live "/><circle cx="51.5" cy="120.5" r="1.75" class="f-ink"/><line x1="131.5" y1="254" x2="131.5" y2="261" class="tie  live unknown"/><circle cx="131.5" cy="254.5" r="1.75" class="f-ink"/><text x="135" y="258" font-size="9.5" font-weight="700" class="t3">?</text><path d="M30.5 120v-11.5h8l-2.5 3l2.5 3h-8" class="s-said f-said" stroke-width="1" stroke-linejoin="round"/><text x="41" y="115" font-size="8.5" font-weight="600" class="t-said">said</text><g data-id="a11" class="m-sonnet"><g><rect x="31.5" y="136.5" width="65" height="18" rx="4" class="f-mt s-mh" stroke-width="1"/><text x="38" y="149" font-size="9.5" font-weight="600" class="mono ">a11</text><text x="59.8" y="149" font-size="9" class="t2">Sonnet</text></g></g><g data-id="a12" class="m-sonnet"><g><rect x="31.5" y="161.5" width="100" height="18" rx="4" class="f-m s-m" stroke-width="1"/><circle cx="131.5" cy="170.5" r="3" class="halo"/><text x="38" y="174" font-size="9.5" font-weight="600" class="mono t-on">a12</text><text x="59.8" y="174" font-size="9" class="t-on">Sonnet</text></g></g><g data-id="a13" class="m-opus"><g><rect x="31.5" y="186.5" width="100" height="18" rx="4" class="f-m s-m" stroke-width="1"/><circle cx="131.5" cy="195.5" r="3" class="halo"/><text x="38" y="199" font-size="9.5" font-weight="600" class="mono t-on">a13</text><text x="59.8" y="199" font-size="9" class="t-on">Opus</text></g></g><g data-id="a14" class="m-opus"><g><rect x="47.5" y="211.5" width="84" height="18" rx="4" class="f-m s-m" stroke-width="1"/><circle cx="131.5" cy="220.5" r="3" class="halo"/><text x="54" y="224" font-size="9.5" font-weight="600" class="mono t-on">a14</text><text x="75.8" y="224" font-size="9" class="t-on">Opus</text></g></g><g data-id="a15" class="m-sonnet"><g><rect x="51.5" y="236.5" width="80" height="18" rx="4" class="f-m s-m" stroke-width="1"/><circle cx="131.5" cy="245.5" r="3" class="halo"/><text x="138" y="249" font-size="9.5" font-weight="600" class="mono">a15</text><text x="159.8" y="249" font-size="9" class="t2">Sonnet</text><path d="M51.5 232.5L55.5 236.5L51.5 240.5L47.5 236.5Z" class="s-said f-said" stroke-width="1" stroke-linejoin="round"/></g></g><g data-id="a16" class="m-sonnet"><g class="fresh"><rect x="131.5" y="261.5" width="4" height="18" rx="4" class="f-m s-m" stroke-width="1"/><rect x="127" y="259" width="24" height="22" class="hit"/><circle cx="135.5" cy="270.5" r="3" class="halo"/><text x="142" y="274" font-size="9.5" font-weight="600" class="mono">a16</text><text x="163.8" y="274" font-size="9" class="t2">Sonnet</text></g></g><g data-id="s1"><rect x="30.5" y="286.5" width="112" height="18" rx="4" class="said f-said"/><text x="37" y="299" font-size="9.5" font-weight="600" class="t-said">said, never seen</text></g><line x1="131.5" y1="115" x2="131.5" y2="312" class="s-live" stroke-width="1"/><rect x="116.3" y="101" width="28.8" height="13" rx="3" class="f-live"/><text x="130.7" y="110.5" font-size="8.5" text-anchor="middle" font-weight="600" class="mono t-clock">+28m</text><g><line x1="14" y1="336.5" x2="329" y2="336.5" class="s-rule" stroke-width="1"/><text x="14" y="351" font-size="9" font-weight="600" class="t-said">Made up</text><rect x="58.5" y="343.5" width="9" height="9" rx="2.5" class="said f-said"/><text x="72" y="351" font-size="9" class="t2">said, never ran</text><path d="M150 344L154 348L150 352L146 348Z" class="key-d" stroke-width="1" stroke-linejoin="round"/><text x="158" y="351" font-size="9" class="t2">ran, never said</text></g></svg></div>
     <div class="deck">
       <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="The moment before">‹</button><button type="button" data-do="next" aria-label="The next moment">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Moment" /><button type="button" data-do="end" aria-label="The last moment">⇥</button></div>
-      <output class="says" aria-live="polite"></output>
+      <output class="says" aria-live="polite">Moment 29 of 145 · 3 d 07 h in. <b>a15</b> starts <b>a16</b> in the foreground: general-purpose on Sonnet 5.5. The hook does not know yet who started it (it learns when a16 ends); the harness's own file says a15. Five running.</output>
     </div>
     <output class="who"></output>
     <ul class="three">
@@ -237,10 +268,10 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
       <h2>The line map</h2>
       <p class="shows"><b>The session is the trunk line. A subagent is a line that leaves it at one station and comes back at another.</b> A station is a moment, and stations are evenly spaced, so days of waiting cost nothing and the whole session fits one screen, folded like the strip map over a train's doors. A line is the color of its model.</p>
     </div>
-    <div class="stage"></div>
+    <div class="stage"><svg viewBox="0 0 343 216" width="343" height="216" role="img" aria-label="The line map: Dozens over days, 3 d 07 h in, 5 running, 11 finished"><line x1="22.6" y1="50" x2="319.6" y2="50" class="s-ink" stroke-width="3" stroke-linecap="round" data-id="session"/><path d="M323.1 46.5l3.5 3.5l-3.5 3.5" class="f-none s-ink" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="158" x2="75.4" y2="158" class="s-ink" stroke-width="3" stroke-linecap="round" data-id="session"/><path d="M7 154.5l3.5 3.5l-3.5 3.5" class="f-none s-ink" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><g data-id="a01" class="m-haiku"><path d="M22.6 50Q22.6 39 29.2 39H42.4Q49 39 49 50" class="f-none s-ground" stroke-width="3.6"/><path d="M22.6 50Q22.6 39 29.2 39H42.4Q49 39 49 50" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22.6 50Q22.6 39 29.2 39H42.4Q49 39 49 50" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a02" class="m-opus"><path d="M35.8 50Q35.8 28 42.4 28H55.6Q62.2 28 62.2 50" class="f-none s-ground" stroke-width="3.6"/><path d="M35.8 50Q35.8 28 42.4 28H55.6Q62.2 28 62.2 50" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M35.8 50Q35.8 28 42.4 28H55.6Q62.2 28 62.2 50" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a03" class="m-opus"><path d="M75.4 50Q75.4 39 82 39H82Q88.6 39 88.6 50" class="f-none s-ground" stroke-width="3.6"/><path d="M75.4 50Q75.4 39 82 39H82Q88.6 39 88.6 50" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M75.4 50Q75.4 39 82 39H82Q88.6 39 88.6 50" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a04" class="m-opus"><path d="M101.8 50Q101.8 39 108.4 39H108.4Q115 39 115 50" class="f-none s-ground" stroke-width="3.6"/><path d="M101.8 50Q101.8 39 108.4 39H108.4Q115 39 115 50" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M101.8 50Q101.8 39 108.4 39H108.4Q115 39 115 50" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a05" class="m-opus"><path d="M128.2 50Q128.2 39 134.8 39H134.8Q141.4 39 141.4 50" class="f-none s-ground" stroke-width="3.6"/><path d="M128.2 50Q128.2 39 134.8 39H134.8Q141.4 39 141.4 50" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M128.2 50Q128.2 39 134.8 39H134.8Q141.4 39 141.4 50" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a06" class="m-opus"><path d="M154.6 50Q154.6 39 161.2 39H161.2Q167.8 39 167.8 50" class="f-none s-ground" stroke-width="3.6"/><path d="M154.6 50Q154.6 39 161.2 39H161.2Q167.8 39 167.8 50" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M154.6 50Q154.6 39 161.2 39H161.2Q167.8 39 167.8 50" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a07" class="m-opus"><path d="M181 50Q181 39 187.6 39H187.6Q194.2 39 194.2 50" class="f-none s-ground" stroke-width="3.6"/><path d="M181 50Q181 39 187.6 39H187.6Q194.2 39 194.2 50" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M181 50Q181 39 187.6 39H187.6Q194.2 39 194.2 50" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a08" class="m-opus"><path d="M207.4 50Q207.4 39 214 39H214Q220.6 39 220.6 50" class="f-none s-ground" stroke-width="3.6"/><path d="M207.4 50Q207.4 39 214 39H214Q220.6 39 220.6 50" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M207.4 50Q207.4 39 214 39H214Q220.6 39 220.6 50" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a09" class="m-haiku"><path d="M233.8 50Q233.8 39 240.4 39H240.4Q247 39 247 50" class="f-none s-ground" stroke-width="3.6"/><path d="M233.8 50Q233.8 39 240.4 39H240.4Q247 39 247 50" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M233.8 50Q233.8 39 240.4 39H240.4Q247 39 247 50" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a10" class="m-opus"><path d="M260.2 50Q260.2 39 266.8 39H266.8Q273.4 39 273.4 50" class="f-none s-ground" stroke-width="3.6"/><path d="M260.2 50Q260.2 39 266.8 39H266.8Q273.4 39 273.4 50" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M260.2 50Q260.2 39 266.8 39H266.8Q273.4 39 273.4 50" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a11" class="m-sonnet"><path d="M299.8 50Q299.8 39 306.4 39H319.6M16 147H55.6Q62.2 147 62.2 158" class="f-none s-ground" stroke-width="3.6"/><path d="M299.8 50Q299.8 39 306.4 39H319.6M16 147H55.6Q62.2 147 62.2 158" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M299.8 50Q299.8 39 306.4 39H319.6M16 147H55.6Q62.2 147 62.2 158" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/></g><g data-id="a12" class="m-sonnet"><path d="M313 50Q313 28 319.6 28H319.6M16 136H75.4" class="f-none s-ground" stroke-width="3.6"/><path d="M313 50Q313 28 319.6 28H319.6M16 136H75.4" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M313 50Q313 28 319.6 28H319.6M16 136H75.4" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/><circle cx="75.4" cy="136" r="3.5" class="halo"/><circle cx="75.4" cy="136" r="3.5" class="f-m s-ground" stroke-width="1"/></g><g data-id="a13" class="m-opus"><path d="M22.6 158Q22.6 125 29.2 125H75.4" class="f-none s-ground" stroke-width="3.6"/><path d="M22.6 158Q22.6 125 29.2 125H75.4" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22.6 158Q22.6 125 29.2 125H75.4" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/><circle cx="75.4" cy="125" r="3.5" class="halo"/><circle cx="75.4" cy="125" r="3.5" class="f-m s-ground" stroke-width="1"/></g><g data-id="a14" class="m-opus"><path d="M35.8 158Q35.8 114 42.4 114H75.4" class="f-none s-ground" stroke-width="3.6"/><path d="M35.8 158Q35.8 114 42.4 114H75.4" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M35.8 158Q35.8 114 42.4 114H75.4" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/><circle cx="75.4" cy="114" r="3.5" class="halo"/><circle cx="75.4" cy="114" r="3.5" class="f-m s-ground" stroke-width="1"/></g><g data-id="a15" class="m-sonnet"><path d="M49 158Q49 103 55.6 103H75.4" class="f-none s-ground" stroke-width="3.6"/><path d="M49 158Q49 103 55.6 103H75.4" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M49 158Q49 103 55.6 103H75.4" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/><circle cx="75.4" cy="103" r="3.5" class="halo"/><circle cx="75.4" cy="103" r="3.5" class="f-m s-ground" stroke-width="1"/></g><g data-id="a16" class="m-sonnet"><path d="M75.4 103Q75.4 92 82 92H82" class="f-none s-ground" stroke-width="3.6"/><path d="M75.4 103Q75.4 92 82 92H82" class="f-none s-m" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M75.4 103Q75.4 92 82 92H82" fill="none" stroke="transparent" stroke-width="11" pointer-events="stroke"/><line x1="78.4" y1="103" x2="75.4" y2="103" class="s-ground" stroke-width="1" stroke-dasharray="2 2" data-of="a15"/><path d="M75.4 103Q75.4 92 82 92" class="f-none s-ground" stroke-width="3"/><path d="M75.4 103Q75.4 92 82 92" class="tie unknown"/><circle cx="75.4" cy="92" r="3.5" class="halo"/><circle cx="75.4" cy="92" r="3.5" class="f-m s-ground" stroke-width="1"/></g><rect x="67.1" y="47" width="3.5" height="6" class="f-ground"/><line x1="65.8" y1="54" x2="68.3" y2="46" class="s-ink" stroke-width="1"/><line x1="69.3" y1="54" x2="71.8" y2="46" class="s-ink" stroke-width="1"/><rect x="93.4" y="47" width="3.5" height="6" class="f-ground"/><line x1="92.2" y1="54" x2="94.7" y2="46" class="s-ink" stroke-width="1"/><line x1="95.7" y1="54" x2="98.2" y2="46" class="s-ink" stroke-width="1"/><rect x="119.9" y="47" width="3.5" height="6" class="f-ground"/><line x1="118.6" y1="54" x2="121.1" y2="46" class="s-ink" stroke-width="1"/><line x1="122.1" y1="54" x2="124.6" y2="46" class="s-ink" stroke-width="1"/><rect x="146.3" y="47" width="3.5" height="6" class="f-ground"/><line x1="145" y1="54" x2="147.5" y2="46" class="s-ink" stroke-width="1"/><line x1="148.5" y1="54" x2="151" y2="46" class="s-ink" stroke-width="1"/><rect x="199" y="47" width="3.5" height="6" class="f-ground"/><line x1="197.8" y1="54" x2="200.3" y2="46" class="s-ink" stroke-width="1"/><line x1="201.3" y1="54" x2="203.8" y2="46" class="s-ink" stroke-width="1"/><rect x="225.5" y="47" width="3.5" height="6" class="f-ground"/><line x1="224.2" y1="54" x2="226.7" y2="46" class="s-ink" stroke-width="1"/><line x1="227.7" y1="54" x2="230.2" y2="46" class="s-ink" stroke-width="1"/><rect x="278.3" y="47" width="3.5" height="6" class="f-ground"/><line x1="277" y1="54" x2="279.5" y2="46" class="s-ink" stroke-width="1"/><line x1="280.5" y1="54" x2="283" y2="46" class="s-ink" stroke-width="1"/><circle cx="22.6" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a01"/><circle cx="49" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a01"/><circle cx="35.8" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a02"/><circle cx="62.2" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a02"/><circle cx="75.4" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a03"/><circle cx="88.6" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a03"/><circle cx="101.8" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a04"/><circle cx="115" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a04"/><circle cx="128.2" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a05"/><circle cx="141.4" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a05"/><circle cx="154.6" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a06"/><circle cx="167.8" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a06"/><circle cx="181" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a07"/><circle cx="194.2" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a07"/><circle cx="207.4" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a08"/><circle cx="220.6" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a08"/><circle cx="233.8" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a09"/><circle cx="247" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a09"/><circle cx="260.2" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a10"/><circle cx="273.4" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a10"/><circle cx="299.8" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a11"/><circle cx="62.2" cy="158" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a11"/><circle cx="313" cy="50" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a12"/><circle cx="22.6" cy="158" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a13"/><circle cx="35.8" cy="158" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a14"/><circle cx="49" cy="158" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a15"/><path d="M49 163L52.5 166.5L49 170L45.5 166.5Z" class="s-said f-said" stroke-width="1" stroke-linejoin="round"/><circle cx="75.4" cy="103" r="2.5" class="f-card s-ink" stroke-width="1" data-id="a16"/><path d="M286.6 52v18" class="s-said f-none" stroke-width="1"/><circle cx="286.6" cy="50" r="2.5" class="f-said s-said" stroke-width="1"/><g data-id="s1"><path d="M286.6 70H302.6" class="said f-none"/><circle cx="306.6" cy="70" r="3.5" class="said f-said"/><circle cx="306.6" cy="70" r="10" class="hit"/></g><circle cx="75.4" cy="158" r="6" class="f-none s-live" stroke-width="1.5"/><text x="68.8" y="64" font-size="8" text-anchor="middle" class="t3 mono lift">3h36</text><text x="95.2" y="64" font-size="8" text-anchor="middle" class="t3 mono lift">13h20</text><text x="121.6" y="64" font-size="8" text-anchor="middle" class="t3 mono lift">5h21</text><text x="148" y="64" font-size="8" text-anchor="middle" class="t3 mono lift">22h47</text><text x="200.8" y="64" font-size="8" text-anchor="middle" class="t3 mono lift">5h05</text><text x="227.2" y="64" font-size="8" text-anchor="middle" class="t3 mono lift">14h40</text><text x="280" y="64" font-size="8" text-anchor="middle" class="t3 mono lift">12h19</text><text x="30.2" y="35.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a01">a01</text><text x="43.4" y="24.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a02">a02</text><text x="83" y="35.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a03">a03</text><text x="109.4" y="35.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a04">a04</text><text x="135.8" y="35.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a05">a05</text><text x="162.2" y="35.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a06">a06</text><text x="188.6" y="35.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a07">a07</text><text x="215" y="35.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a08">a08</text><text x="241.4" y="35.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a09">a09</text><text x="267.8" y="35.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a10">a10</text><text x="307.4" y="35.5" font-size="8" font-weight="500" class="mono lift t2" data-id="a11">a11</text><text x="320.6" y="24.5" font-size="8" font-weight="700" class="mono lift" data-id="a12">a12</text><text x="30.2" y="121.5" font-size="8" font-weight="700" class="mono lift" data-id="a13">a13</text><text x="43.4" y="110.5" font-size="8" font-weight="700" class="mono lift" data-id="a14">a14</text><text x="56.6" y="99.5" font-size="8" font-weight="700" class="mono lift" data-id="a15">a15</text><text x="68.4" y="95" font-size="9.5" font-weight="700" class="t3 lift">?</text><text x="83" y="88.5" font-size="8" font-weight="700" class="mono lift" data-id="a16">a16</text><text x="283.6" y="73" font-size="8.5" text-anchor="end" font-weight="600" class="t-said lift">said</text><g><line x1="14" y1="192.5" x2="329" y2="192.5" class="s-rule" stroke-width="1"/><text x="14" y="207" font-size="9" font-weight="600" class="t-said">Made up</text><rect x="58.5" y="199.5" width="9" height="9" rx="2.5" class="said f-said"/><text x="72" y="207" font-size="9" class="t2">said, never ran</text><path d="M150 200L154 204L150 208L146 204Z" class="key-d" stroke-width="1" stroke-linejoin="round"/><text x="158" y="207" font-size="9" class="t2">ran, never said</text></g></svg></div>
     <div class="deck">
       <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="The moment before">‹</button><button type="button" data-do="next" aria-label="The next moment">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Moment" /><button type="button" data-do="end" aria-label="The last moment">⇥</button></div>
-      <output class="says" aria-live="polite"></output>
+      <output class="says" aria-live="polite">Moment 29 of 145 · 3 d 07 h in. <b>a15</b> starts <b>a16</b> in the foreground: general-purpose on Sonnet 5.5. The hook does not know yet who started it (it learns when a16 ends); the harness's own file says a15. Five running.</output>
     </div>
     <output class="who"></output>
     <ul class="three">
@@ -256,10 +287,10 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
       <h2>The ring</h2>
       <p class="shows"><b>What is running stands close around the session; what has finished goes out to the rim and stays there.</b> The middle is the present and the rim is the past, one bead for each subagent in the order it started. A resumed agent comes back in from its bead.</p>
     </div>
-    <div class="stage"></div>
+    <div class="stage"><svg viewBox="0 0 343 397" width="343" height="397" role="img" aria-label="The ring: Dozens over days, 3 d 07 h in, 5 running, 11 finished"><path d="M200.9 39.1A141.5 141.5 0 1 1 142.1 39.1" class="f-none s-hair" stroke-width="1"/><line x1="199.9" y1="44" x2="202" y2="34.2" class="s-ink" stroke-width="1"/><text x="167.5" y="39" font-size="8.5" text-anchor="end" class="t3">first</text><path d="M171.5 177.5Q181.4 138.4 191.3 99.3" class="tie bg live "/><line x1="191.3" y1="99.3" x2="309.6" y2="146.9" class="s-mh m-sonnet" stroke-width="0.75" opacity="0.7"/><circle cx="309.6" cy="146.9" r="3.5" class="f-ground s-mh m-sonnet" stroke-width="1"/><path d="M171.5 177.5Q203.6 153 235.6 128.6" class="tie bg live "/><line x1="235.6" y1="128.6" x2="312" y2="160.7" class="s-mh m-opus" stroke-width="0.75" opacity="0.7"/><circle cx="312" cy="160.7" r="3.5" class="f-ground s-mh m-opus" stroke-width="1"/><path d="M171.5 177.5Q211.8 178.3 252.1 179.1" class="tie bg live "/><line x1="252.1" y1="179.1" x2="313" y2="174.7" class="s-mh m-opus" stroke-width="0.75" opacity="0.7"/><circle cx="313" cy="174.7" r="3.5" class="f-ground s-mh m-opus" stroke-width="1"/><path d="M171.5 177.5Q202.6 203.2 233.6 229" class="tie bg live "/><line x1="233.6" y1="229" x2="310.7" y2="202.7" class="s-mh m-sonnet" stroke-width="0.75" opacity="0.7"/><circle cx="310.7" cy="202.7" r="3.5" class="f-ground s-mh m-sonnet" stroke-width="1"/><path d="M233.6 229Q199.1 249.8 188.1 256.4" class="tie  live unknown"/><text x="204.1" y="245.8" font-size="10" font-weight="700" class="t3 lift">?</text><line x1="188.1" y1="256.4" x2="321.1" y2="220.3" class="s-mh m-sonnet" stroke-width="0.75" opacity="0.7"/><circle cx="321.1" cy="220.3" r="3.5" class="f-ground s-mh m-sonnet" stroke-width="1"/><g data-id="session"><circle cx="171.5" cy="177.5" r="25.6" class="f-card s-ink lift-1" stroke-width="1"/><text x="171.5" y="176.5" font-size="10.5" text-anchor="middle" font-weight="600">Session</text><text x="171.5" y="188" font-size="9" text-anchor="middle" class="t2">Opus</text></g><g data-id="s1"><circle cx="312.5" cy="188.8" r="7" class="hit"/><circle cx="312.5" cy="188.8" r="5" class="said f-said"/><text x="330.5" y="193.2" font-size="8.5" text-anchor="middle" font-weight="600" class="t-said">said</text></g><g data-id="a01" class="m-haiku is-done"><g><circle cx="207.8" cy="40.7" r="7" class="hit"/><circle cx="207.8" cy="40.7" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a02" class="m-opus is-done"><g><circle cx="221.2" cy="45" r="7" class="hit"/><circle cx="221.2" cy="45" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a03" class="m-opus is-done"><g><circle cx="234.1" cy="50.6" r="7" class="hit"/><circle cx="234.1" cy="50.6" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a04" class="m-opus is-done"><g><circle cx="246.3" cy="57.4" r="7" class="hit"/><circle cx="246.3" cy="57.4" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a05" class="m-opus is-done"><g><circle cx="257.9" cy="65.4" r="7" class="hit"/><circle cx="257.9" cy="65.4" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a06" class="m-opus is-done"><g><circle cx="268.6" cy="74.6" r="7" class="hit"/><circle cx="268.6" cy="74.6" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a07" class="m-opus is-done"><g><circle cx="278.3" cy="84.7" r="7" class="hit"/><circle cx="278.3" cy="84.7" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a08" class="m-opus is-done"><g><circle cx="287" cy="95.8" r="7" class="hit"/><circle cx="287" cy="95.8" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a09" class="m-haiku is-done"><g><circle cx="294.5" cy="107.6" r="7" class="hit"/><circle cx="294.5" cy="107.6" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a10" class="m-opus is-done"><g><circle cx="300.9" cy="120.2" r="7" class="hit"/><circle cx="300.9" cy="120.2" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a11" class="m-sonnet is-done"><g><circle cx="305.9" cy="133.3" r="7" class="hit"/><circle cx="305.9" cy="133.3" r="5" class="f-card s-m" stroke-width="1.25"/></g></g><g data-id="a12" class="m-sonnet is-running"><g><circle cx="191.3" cy="99.3" r="20.6" class="halo wide"/><circle cx="191.3" cy="99.3" r="20.6" class="f-card s-m lift-1" stroke-width="1.5"/><text x="191.3" y="98.3" font-size="11" text-anchor="middle" font-weight="600" class="mono">a12</text><rect x="172.5" y="103.8" width="6" height="6" rx="2" class="f-m"/><text x="195.3" y="109.8" font-size="8.5" text-anchor="middle" class="t2">Sonnet</text></g></g><g data-id="a13" class="m-opus is-running"><g><circle cx="235.6" cy="128.6" r="20.6" class="halo wide"/><circle cx="235.6" cy="128.6" r="20.6" class="f-card s-m lift-1" stroke-width="1.5"/><text x="235.6" y="127.6" font-size="11" text-anchor="middle" font-weight="600" class="mono">a13</text><rect x="221.4" y="133.1" width="6" height="6" rx="2" class="f-m"/><text x="239.6" y="139.1" font-size="8.5" text-anchor="middle" class="t2">Opus</text></g></g><g data-id="a14" class="m-opus is-running"><g><circle cx="252.1" cy="179.1" r="20.6" class="halo wide"/><circle cx="252.1" cy="179.1" r="20.6" class="f-card s-m lift-1" stroke-width="1.5"/><text x="252.1" y="178.1" font-size="11" text-anchor="middle" font-weight="600" class="mono">a14</text><rect x="237.9" y="183.6" width="6" height="6" rx="2" class="f-m"/><text x="256.1" y="189.6" font-size="8.5" text-anchor="middle" class="t2">Opus</text></g></g><g data-id="a15" class="m-sonnet is-running"><g><circle cx="233.6" cy="229" r="20.6" class="halo wide"/><circle cx="233.6" cy="229" r="20.6" class="f-card s-m lift-1" stroke-width="1.5"/><text x="233.6" y="228" font-size="11" text-anchor="middle" font-weight="600" class="mono">a15</text><rect x="214.8" y="233.5" width="6" height="6" rx="2" class="f-m"/><text x="237.6" y="239.5" font-size="8.5" text-anchor="middle" class="t2">Sonnet</text><path d="M218.8 210.1L222.8 214.1L218.8 218.1L214.8 214.1Z" class="s-said f-said" stroke-width="1" stroke-linejoin="round"/></g></g><g data-id="a16" class="m-sonnet is-running"><g class="fresh"><circle cx="188.1" cy="256.4" r="20.6" class="halo wide"/><circle cx="188.1" cy="256.4" r="20.6" class="f-card s-m lift-1" stroke-width="1.5"/><text x="188.1" y="255.4" font-size="11" text-anchor="middle" font-weight="600" class="mono">a16</text><rect x="169.3" y="260.9" width="6" height="6" rx="2" class="f-m"/><text x="192.1" y="266.9" font-size="8.5" text-anchor="middle" class="t2">Sonnet</text></g></g><g class="m-opus"><rect x="83.2" y="351.5" width="7" height="7" rx="2" class="f-m"/><text x="94.2" y="358.5" font-size="10" class="t2">10 Opus</text></g><g class="m-sonnet"><rect x="144.3" y="351.5" width="7" height="7" rx="2" class="f-m"/><text x="155.3" y="358.5" font-size="10" class="t2">4 Sonnet</text></g><g class="m-haiku"><rect x="210.7" y="351.5" width="7" height="7" rx="2" class="f-m"/><text x="221.7" y="358.5" font-size="10" class="t2">2 Haiku</text></g><g><line x1="14" y1="373.5" x2="329" y2="373.5" class="s-rule" stroke-width="1"/><text x="14" y="388" font-size="9" font-weight="600" class="t-said">Made up</text><rect x="58.5" y="380.5" width="9" height="9" rx="2.5" class="said f-said"/><text x="72" y="388" font-size="9" class="t2">said, never ran</text><path d="M150 381L154 385L150 389L146 385Z" class="key-d" stroke-width="1" stroke-linejoin="round"/><text x="158" y="388" font-size="9" class="t2">ran, never said</text></g></svg></div>
     <div class="deck">
       <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="The moment before">‹</button><button type="button" data-do="next" aria-label="The next moment">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Moment" /><button type="button" data-do="end" aria-label="The last moment">⇥</button></div>
-      <output class="says" aria-live="polite"></output>
+      <output class="says" aria-live="polite">Moment 29 of 145 · 3 d 07 h in. <b>a15</b> starts <b>a16</b> in the foreground: general-purpose on Sonnet 5.5. The hook does not know yet who started it (it learns when a16 ends); the harness's own file says a15. Five running.</output>
     </div>
     <output class="who"></output>
     <ul class="three">
@@ -275,10 +306,10 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
       <h2>The skyline</h2>
       <p class="shows"><b>Every subagent is a column on the session's floor, as tall as the time it ran, one block for each run.</b> A column grows while its agent runs and is lit on top. A subagent's subagent stands on a step of its own, tied across the floor to the one that started it, when it ran in the background; when its parent waited for it, it stands on its parent's column.</p>
     </div>
-    <div class="stage"></div>
+    <div class="stage"><svg viewBox="0 0 343 292" width="343" height="292" role="img" aria-label="The skyline: Dozens over days, 3 d 07 h in, 5 running, 11 finished"><polygon points="132.1,151.7 289.6,230.4 289.6,235.4 132.1,156.7" class="slab-l"/><polygon points="329,210.8 289.6,230.4 289.6,235.4 329,215.8" class="slab-r"/><polygon points="171.5,132 329,210.8 289.6,230.4 132.1,151.7" class="f-card lift-1 s-ink" stroke-width="1" stroke-linejoin="round" data-id="session"/><line x1="191.2" y1="141.8" x2="151.8" y2="161.5" class="s-rule" stroke-width="0.75"/><line x1="210.9" y1="151.7" x2="171.5" y2="171.4" class="s-rule" stroke-width="0.75"/><line x1="230.6" y1="161.5" x2="191.2" y2="181.2" class="s-rule" stroke-width="0.75"/><line x1="250.3" y1="171.4" x2="210.9" y2="191.1" class="s-rule" stroke-width="0.75"/><line x1="269.9" y1="181.2" x2="230.6" y2="200.9" class="s-rule" stroke-width="0.75"/><line x1="289.6" y1="191.1" x2="250.3" y2="210.8" class="s-rule" stroke-width="0.75"/><line x1="309.3" y1="200.9" x2="269.9" y2="220.6" class="s-rule" stroke-width="0.75"/><line x1="151.8" y1="141.8" x2="309.3" y2="220.6" class="s-rule" stroke-width="0.75"/><text x="171.5" y="253.4" font-size="10" text-anchor="middle" class="t2">the session's floor · Opus 5.5</text><g data-id="a01" class="m-haiku is-done"><g><polygon points="159.7,137.5 171.5,143.4 171.5,147.8 159.7,141.8" class="off-l"/><polygon points="183.3,137.5 171.5,143.4 171.5,147.8 183.3,141.8" class="off-r"/><polygon points="171.5,131.6 183.3,137.5 171.5,143.4 159.7,137.5" class="off-t"/></g></g><g data-id="a02" class="m-opus is-done"><g><polygon points="179.4,143.4 191.2,149.3 191.2,157.6 179.4,151.7" class="off-l"/><polygon points="203,143.4 191.2,149.3 191.2,157.6 203,151.7" class="off-r"/><polygon points="191.2,137.5 203,143.4 191.2,149.3 179.4,143.4" class="off-t"/></g></g><g data-id="a09" class="m-haiku is-done"><g><polygon points="140,148.2 151.8,154.1 151.8,157.6 140,151.7" class="off-l"/><polygon points="163.6,148.2 151.8,154.1 151.8,157.6 163.6,151.7" class="off-r"/><polygon points="151.8,142.3 163.6,148.2 151.8,154.1 140,148.2" class="off-t"/></g></g><g data-id="a03" class="m-opus is-done"><g><polygon points="199.1,157.5 210.9,163.4 210.9,167.4 199.1,161.5" class="off-l"/><polygon points="222.7,157.5 210.9,163.4 210.9,167.4 222.7,161.5" class="off-r"/><polygon points="210.9,151.6 222.7,157.5 210.9,163.4 199.1,157.5" class="off-t"/></g></g><g data-id="a10" class="m-opus is-done"><g><polygon points="159.7,133.6 171.5,139.5 171.5,167.4 159.7,161.5" class="off-l"/><polygon points="183.3,133.6 171.5,139.5 171.5,167.4 183.3,161.5" class="off-r"/><polygon points="171.5,127.7 183.3,133.6 171.5,139.5 159.7,133.6" class="off-t"/></g></g><g data-id="a04" class="m-opus is-done"><g><polygon points="218.8,164.7 230.6,170.6 230.6,177.3 218.8,171.4" class="off-l"/><polygon points="242.4,164.7 230.6,170.6 230.6,177.3 242.4,171.4" class="off-r"/><polygon points="230.6,158.8 242.4,164.7 230.6,170.6 218.8,164.7" class="off-t"/></g></g><g data-id="a11" class="m-sonnet is-done"><g><polygon points="179.4,153.9 191.2,159.8 191.2,177.3 179.4,171.4" class="off-l"/><polygon points="203,153.9 191.2,159.8 191.2,177.3 203,171.4" class="off-r"/><polygon points="191.2,148 203,153.9 191.2,159.8 179.4,153.9" class="off-t"/></g></g><g data-id="a05" class="m-opus is-done"><g><polygon points="238.4,173.4 250.3,179.3 250.3,187.1 238.4,181.2" class="off-l"/><polygon points="262.1,173.4 250.3,179.3 250.3,187.1 262.1,181.2" class="off-r"/><polygon points="250.3,167.5 262.1,173.4 250.3,179.3 238.4,173.4" class="off-t"/></g></g><g data-id="a12" class="m-sonnet is-running"><g><polygon points="199.1,154.2 210.9,160.1 210.9,187.1 199.1,181.2" class="on-l"/><polygon points="222.7,154.2 210.9,160.1 210.9,187.1 222.7,181.2" class="on-r"/><polygon points="210.9,148.3 222.7,154.2 210.9,160.1 199.1,154.2" class="on-t"/></g></g><g data-id="a06" class="m-opus is-done"><g><polygon points="258.1,164.5 269.9,170.4 269.9,197 258.1,191.1" class="off-l"/><polygon points="281.8,164.5 269.9,170.4 269.9,197 281.8,191.1" class="off-r"/><polygon points="269.9,158.6 281.8,164.5 269.9,170.4 258.1,164.5" class="off-t"/></g></g><g data-id="a13" class="m-opus is-running"><g><polygon points="218.8,164 230.6,169.9 230.6,197 218.8,191.1" class="on-l"/><polygon points="242.4,164 230.6,169.9 230.6,197 242.4,191.1" class="on-r"/><polygon points="230.6,158.1 242.4,164 230.6,169.9 218.8,164" class="on-t"/></g></g><g data-id="a07" class="m-opus is-done"><g><polygon points="277.8,185.6 289.6,191.5 289.6,206.8 277.8,200.9" class="off-l"/><polygon points="301.4,185.6 289.6,191.5 289.6,206.8 301.4,200.9" class="off-r"/><polygon points="289.6,179.7 301.4,185.6 289.6,191.5 277.8,185.6" class="off-t"/></g></g><g data-id="a14" class="m-opus is-running"><g><polygon points="238.4,178.2 250.3,184.1 250.3,206.8 238.4,200.9" class="on-l"/><polygon points="262.1,178.2 250.3,184.1 250.3,206.8 262.1,200.9" class="on-r"/><polygon points="250.3,172.3 262.1,178.2 250.3,184.1 238.4,178.2" class="on-t"/></g></g><g data-id="a08" class="m-opus is-done"><g><polygon points="297.5,201.1 309.3,207 309.3,216.7 297.5,210.8" class="off-l"/><polygon points="321.1,201.1 309.3,207 309.3,216.7 321.1,210.8" class="off-r"/><polygon points="309.3,195.2 321.1,201.1 309.3,207 297.5,201.1" class="off-t"/></g></g><g data-id="s1"><path d="M258.1 210.8L269.9 216.7L281.8 210.8L269.9 204.8ZM258.1 184.8L269.9 190.7L281.8 184.8L269.9 178.8ZM258.1 210.8v-26M269.9 216.7v-26M281.8 210.8v-26" class="said" fill="transparent"/></g><g data-id="a15" class="m-sonnet is-running"><g><polygon points="277.8,198.8 289.6,204.7 289.6,226.5 277.8,220.6" class="on-l"/><polygon points="301.4,198.8 289.6,204.7 289.6,226.5 301.4,220.6" class="on-r"/><polygon points="289.6,192.9 301.4,198.8 289.6,204.7 277.8,198.8" class="on-t"/></g></g><g data-id="a16" class="m-sonnet is-running"><g class="fresh"><polygon points="282.5,195.3 289.6,198.9 289.6,202.4 282.5,198.8" class="on-l"/><polygon points="296.7,195.3 289.6,198.9 289.6,202.4 296.7,198.8" class="on-r"/><polygon points="289.6,191.8 296.7,195.3 289.6,198.9 282.5,195.3" class="on-t"/></g></g><text x="210.9" y="143.3" font-size="9" text-anchor="middle" font-weight="600" class="mono lift ">a12</text><text x="230.6" y="153.1" font-size="9" text-anchor="middle" font-weight="600" class="mono lift ">a13</text><text x="250.3" y="167.3" font-size="9" text-anchor="middle" font-weight="600" class="mono lift ">a14</text><text x="289.6" y="186.8" font-size="9" text-anchor="middle" font-weight="600" class="mono lift ">a16 ?</text><text x="289.6" y="175.8" font-size="9" text-anchor="middle" font-weight="600" class="mono lift ">a15</text><path d="M275.8 180.3L279.8 184.3L275.8 188.3L271.8 184.3Z" class="s-said f-said" stroke-width="1" stroke-linejoin="round"/><g><line x1="14" y1="267.5" x2="329" y2="267.5" class="s-rule" stroke-width="1"/><text x="14" y="282.4" font-size="9" font-weight="600" class="t-said">Made up</text><rect x="58.5" y="274.9375" width="9" height="9" rx="2.5" class="said f-said"/><text x="72" y="282.4" font-size="9" class="t2">said, never ran</text><path d="M150 275.4L154 279.4L150 283.4L146 279.4Z" class="key-d" stroke-width="1" stroke-linejoin="round"/><text x="158" y="282.4" font-size="9" class="t2">ran, never said</text></g></svg></div>
     <div class="deck">
       <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="The moment before">‹</button><button type="button" data-do="next" aria-label="The next moment">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Moment" /><button type="button" data-do="end" aria-label="The last moment">⇥</button></div>
-      <output class="says" aria-live="polite"></output>
+      <output class="says" aria-live="polite">Moment 29 of 145 · 3 d 07 h in. <b>a15</b> starts <b>a16</b> in the foreground: general-purpose on Sonnet 5.5. The hook does not know yet who started it (it learns when a16 ends); the harness's own file says a15. Five running.</output>
     </div>
     <output class="who"></output>
     <ul class="three">
@@ -294,10 +325,10 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
       <h2>A sentence of shapes</h2>
       <p class="shows"><b>A long session is not one graph: it is a string of small ones.</b> Each burst of work is drawn as its own little graph, and they are set in a row like words. The burst the clock is in is opened above them at full size, as the app's cards.</p>
     </div>
-    <div class="stage"></div>
+    <div class="stage"><svg viewBox="0 0 343 530" width="343" height="530" role="img" aria-label="A sentence of shapes: Dozens over days, 3 d 07 h in, 5 running, 11 finished"><g data-go="1"><line x1="32.3" y1="35" x2="48.3" y2="30.8" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><line x1="32.3" y1="35" x2="48.3" y2="39.2" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><circle cx="32.3" cy="35" r="2.5" class="f-ink"/><circle cx="48.3" cy="30.8" r="3.3" class="f-card s-m m-haiku" stroke-width="1.25"/><circle cx="48.3" cy="39.2" r="3.3" class="f-card s-m m-opus" stroke-width="1.25"/><text x="40.3" y="57" font-size="8.5" text-anchor="middle" font-weight="400" class="mono t3">2m</text><rect x="14" y="14" width="52.5" height="52" class="hit"/></g><g data-go="5"><line x1="84.8" y1="35" x2="100.8" y2="35" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><circle cx="84.8" cy="35" r="2.5" class="f-ink"/><circle cx="100.8" cy="35" r="3.3" class="f-card s-m m-opus" stroke-width="1.25"/><text x="92.8" y="57" font-size="8.5" text-anchor="middle" font-weight="400" class="mono t3">3h47</text><rect x="66.5" y="14" width="52.5" height="52" class="hit"/></g><g data-go="7"><line x1="137.3" y1="35" x2="153.3" y2="35" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><circle cx="137.3" cy="35" r="2.5" class="f-ink"/><circle cx="153.3" cy="35" r="3.3" class="f-card s-m m-opus" stroke-width="1.25"/><text x="145.3" y="57" font-size="8.5" text-anchor="middle" font-weight="400" class="mono t3">17h11</text><rect x="119" y="14" width="52.5" height="52" class="hit"/></g><g data-go="9"><line x1="189.8" y1="35" x2="205.8" y2="35" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><circle cx="189.8" cy="35" r="2.5" class="f-ink"/><circle cx="205.8" cy="35" r="3.3" class="f-card s-m m-opus" stroke-width="1.25"/><text x="197.8" y="57" font-size="8.5" text-anchor="middle" font-weight="400" class="mono t3">22h39</text><rect x="171.5" y="14" width="52.5" height="52" class="hit"/></g><g data-go="11"><line x1="242.3" y1="35" x2="258.3" y2="35" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><circle cx="242.3" cy="35" r="2.5" class="f-ink"/><circle cx="258.3" cy="35" r="3.3" class="f-card s-m m-opus" stroke-width="1.25"/><text x="250.3" y="57" font-size="8.5" text-anchor="middle" font-weight="400" class="mono t3">1d21h</text><rect x="224" y="14" width="52.5" height="52" class="hit"/></g><g data-go="13"><line x1="294.8" y1="35" x2="310.8" y2="35" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><circle cx="294.8" cy="35" r="2.5" class="f-ink"/><circle cx="310.8" cy="35" r="3.3" class="f-card s-m m-opus" stroke-width="1.25"/><text x="302.8" y="57" font-size="8.5" text-anchor="middle" font-weight="400" class="mono t3">1d22h</text><rect x="276.5" y="14" width="52.5" height="52" class="hit"/></g><g data-go="15"><line x1="32.3" y1="91" x2="48.3" y2="91" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><circle cx="32.3" cy="91" r="2.5" class="f-ink"/><circle cx="48.3" cy="91" r="3.3" class="f-card s-m m-opus" stroke-width="1.25"/><text x="40.3" y="113" font-size="8.5" text-anchor="middle" font-weight="400" class="mono t3">2d03h</text><rect x="14" y="70" width="52.5" height="52" class="hit"/></g><g data-go="17"><line x1="84.8" y1="91" x2="100.8" y2="86.8" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><line x1="84.8" y1="91" x2="100.8" y2="95.2" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><circle cx="84.8" cy="91" r="2.5" class="f-ink"/><circle cx="100.8" cy="86.8" r="3.3" class="f-card s-m m-haiku" stroke-width="1.25"/><circle cx="100.8" cy="95.2" r="3.3" class="f-card s-m m-opus" stroke-width="1.25"/><text x="92.8" y="113" font-size="8.5" text-anchor="middle" font-weight="400" class="mono t3">2d18h</text><rect x="66.5" y="70" width="52.5" height="52" class="hit"/></g><g data-go="22"><rect x="120.5" y="70.5" width="50" height="50" rx="6" class="f-livet s-accent"/><line x1="127.3" y1="91" x2="143.3" y2="82.6" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><line x1="127.3" y1="91" x2="143.3" y2="91" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><line x1="127.3" y1="91" x2="143.3" y2="99.4" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><line x1="127.3" y1="91" x2="153.3" y2="82.6" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><line x1="127.3" y1="91" x2="153.3" y2="91" class="s-line" stroke-width="0.75" stroke-dasharray="2 2"/><line x1="153.3" y1="91" x2="163.3" y2="91" class="s-line" stroke-width="0.75"/><circle cx="127.3" cy="91" r="2.5" class="f-ink"/><circle cx="143.3" cy="82.6" r="3.3" class="f-card s-m m-sonnet" stroke-width="1.25"/><circle cx="143.3" cy="91" r="3.3" class="f-m m-sonnet" stroke-width="1.25"/><circle cx="143.3" cy="99.4" r="3.3" class="f-m m-opus" stroke-width="1.25"/><circle cx="153.3" cy="82.6" r="3.3" class="f-m m-opus" stroke-width="1.25"/><circle cx="153.3" cy="91" r="3.3" class="f-m m-sonnet" stroke-width="1.25"/><path d="M149.3 84.6L151.7 87L149.3 89.4L146.9 87Z" class="s-said f-said" stroke-width="1" stroke-linejoin="round"/><circle cx="163.3" cy="91" r="3.3" class="f-m m-sonnet" stroke-width="1.25"/><circle cx="163.5" cy="78" r="2.8" class="said f-said" stroke-width="1"/><text x="145.3" y="113" font-size="8.5" text-anchor="middle" font-weight="600" class="mono ">3d07h</text><rect x="119" y="70" width="52.5" height="52" class="hit"/></g><line x1="14" y1="132.5" x2="329" y2="132.5" class="s-hair" stroke-width="1"/><text x="14" y="155" font-size="10.5" font-weight="600">burst 9 of 38 · begins 3 d 07 h in · 1 h 21 m long</text><path d="M66 329C74 329 79 188.5 86 188.5" class="tie bg  "/><g data-id="a11" class="m-sonnet is-done"><g><rect x="86.5" y="168.5" width="243" height="40" rx="7" class="f-card s-hair lift-1"/><text x="98" y="185" font-size="12" font-weight="600" class="mono">a11</text><rect x="126" y="178" width="7" height="7" rx="2" class="f-m"/><text x="137" y="185" font-size="10.5" font-weight="600">Sonnet 5.5</text><text x="318" y="185" font-size="10.5" text-anchor="end" class="mono t3">18m</text><text x="293.1" y="185" font-size="10" text-anchor="end" class="t3">done</text><text x="98" y="199" font-size="10" class="t2">general-purpose · background</text></g></g><path d="M66 329C74 329 79 235.5 86 235.5" class="tie bg live "/><g data-id="a12" class="m-sonnet is-running"><g><rect x="86.5" y="215.5" width="243" height="40" rx="7" class="f-livet s-live lift-1"/><text x="98" y="232" font-size="12" font-weight="600" class="mono">a12</text><rect x="126" y="225" width="7" height="7" rx="2" class="f-m"/><text x="137" y="232" font-size="10.5" font-weight="600">Sonnet 5.5</text><text x="318" y="232" font-size="10.5" text-anchor="end" font-weight="600" class="mono t-live">28m</text><circle cx="291.1" cy="228.5" r="2.8" class="halo"/><circle cx="291.1" cy="228.5" r="2.8" class="f-live"/><text x="98" y="246" font-size="10" class="t2">general-purpose · background</text></g></g><path d="M66 329C74 329 79 282.5 86 282.5" class="tie bg live "/><g data-id="a13" class="m-opus is-running"><g><rect x="86.5" y="262.5" width="243" height="40" rx="7" class="f-livet s-live lift-1"/><text x="98" y="279" font-size="12" font-weight="600" class="mono">a13</text><rect x="126" y="272" width="7" height="7" rx="2" class="f-m"/><text x="137" y="279" font-size="10.5" font-weight="600">Opus 5.5</text><text x="318" y="279" font-size="10.5" text-anchor="end" font-weight="600" class="mono t-live">28m</text><circle cx="291.1" cy="275.5" r="2.8" class="halo"/><circle cx="291.1" cy="275.5" r="2.8" class="f-live"/><text x="98" y="293" font-size="10" class="t2">general-purpose · background</text></g></g><path d="M66 329C74 329 79 329.5 86 329.5" class="tie bg live "/><g data-id="a14" class="m-opus is-running"><g><rect x="86.5" y="309.5" width="243" height="40" rx="7" class="f-livet s-live lift-1"/><text x="98" y="326" font-size="12" font-weight="600" class="mono">a14</text><rect x="126" y="319" width="7" height="7" rx="2" class="f-m"/><text x="137" y="326" font-size="10.5" font-weight="600">Opus 5.5</text><text x="318" y="326" font-size="10.5" text-anchor="end" font-weight="600" class="mono t-live">23m</text><circle cx="291.1" cy="322.5" r="2.8" class="halo"/><circle cx="291.1" cy="322.5" r="2.8" class="f-live"/><text x="98" y="340" font-size="10" class="t2">general-purpose · background</text></g></g><path d="M66 329C74 329 79 376.5 86 376.5" class="said f-none"/><g data-id="s1"><rect x="86.5" y="356.5" width="243" height="40" rx="7" class="said f-said"/><text x="98" y="373" font-size="11" font-weight="600" class="t-said">Said, never seen</text><text x="98" y="387" font-size="10" class="t2">general-purpose · made up</text></g><path d="M66 329C74 329 79 423.5 86 423.5" class="tie bg live "/><g data-id="a15" class="m-sonnet is-running"><g><rect x="86.5" y="403.5" width="243" height="40" rx="7" class="f-livet s-live lift-1"/><text x="98" y="420" font-size="12" font-weight="600" class="mono">a15</text><rect x="126" y="413" width="7" height="7" rx="2" class="f-m"/><text x="137" y="420" font-size="10.5" font-weight="600">Sonnet 5.5</text><text x="318" y="420" font-size="10.5" text-anchor="end" font-weight="600" class="mono t-live">23m</text><circle cx="291.1" cy="416.5" r="2.8" class="halo"/><circle cx="291.1" cy="416.5" r="2.8" class="f-live"/><text x="98" y="434" font-size="10" class="t2">general-purpose · background</text><path d="M86.5 399L91 403.5L86.5 408L82 403.5Z" class="s-said f-said" stroke-width="1" stroke-linejoin="round"/></g></g><path d="M94.5 444V465.5Q94.5 470.5 99.5 470.5H102" class="tie  live unknown"/><text x="98" y="455" font-size="10" font-weight="700" class="t3">?</text><g data-id="a16" class="m-sonnet is-running"><g class="fresh"><rect x="102.5" y="450.5" width="227" height="40" rx="7" class="f-livet s-live lift-1"/><text x="114" y="467" font-size="12" font-weight="600" class="mono">a16</text><rect x="142" y="460" width="7" height="7" rx="2" class="f-m"/><text x="153" y="467" font-size="10.5" font-weight="600">Sonnet 5.5</text><text x="318" y="467" font-size="10.5" text-anchor="end" font-weight="600" class="mono t-live">0s</text><circle cx="297.4" cy="463.5" r="2.8" class="halo"/><circle cx="297.4" cy="463.5" r="2.8" class="f-live"/><text x="114" y="481" font-size="10" class="t2">general-purpose · foreground · started by a15</text></g></g><g data-id="session"><circle cx="41" cy="329" r="24" class="f-card s-ink lift-1" stroke-width="1"/><text x="41" y="328" font-size="10.5" text-anchor="middle" font-weight="600">Session</text><text x="41" y="339.5" font-size="9" text-anchor="middle" class="t2">Opus</text></g><g><line x1="14" y1="506.5" x2="329" y2="506.5" class="s-rule" stroke-width="1"/><text x="14" y="521" font-size="9" font-weight="600" class="t-said">Made up</text><rect x="58.5" y="513.5" width="9" height="9" rx="2.5" class="said f-said"/><text x="72" y="521" font-size="9" class="t2">said, never ran</text><path d="M150 514L154 518L150 522L146 518Z" class="key-d" stroke-width="1" stroke-linejoin="round"/><text x="158" y="521" font-size="9" class="t2">ran, never said</text></g></svg></div>
     <div class="deck">
       <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="The moment before">‹</button><button type="button" data-do="next" aria-label="The next moment">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Moment" /><button type="button" data-do="end" aria-label="The last moment">⇥</button></div>
-      <output class="says" aria-live="polite"></output>
+      <output class="says" aria-live="polite">Moment 29 of 145 · 3 d 07 h in. <b>a15</b> starts <b>a16</b> in the foreground: general-purpose on Sonnet 5.5. The hook does not know yet who started it (it learns when a16 ends); the harness's own file says a15. Five running.</output>
     </div>
     <output class="who"></output>
     <ul class="three">
@@ -511,36 +542,63 @@ function sayAgent(P, v, id) {
 const attrs = (o) => Object.entries(o).filter(([, v]) => v !== undefined && v !== false && v !== null).map(([k, v]) => ` ${k}="${v}"`).join("");
 const tag = (name, o, inner) => (inner === undefined ? `<${name}${attrs(o)}/>` : `<${name}${attrs(o)}>${inner}</${name}>`);
 const text = (x, y, s, o = {}) => tag("text", { x: r1(x), y: r1(y), "font-size": o.size ?? 10, "text-anchor": o.anchor, "font-weight": o.weight, class: o.class, "data-id": o.id }, s);
+/** A hairline lies on the pixel: its place is a whole number and a half. */
+const sn = (v) => Math.round(v) + 0.5;
 const line = (x1, y1, x2, y2, o = {}) => tag("line", { x1: r1(x1), y1: r1(y1), x2: r1(x2), y2: r1(y2), ...o });
+/** A straight hairline, across or down, on the pixel. */
+const rule = (x1, y1, x2, y2, o = {}) => (Math.abs(x1 - x2) < 0.01 ? line(sn(x1), y1, sn(x1), y2, o) : line(x1, sn(y1), x2, sn(y1), o));
+/** A box with a hairline border, on the pixel. */
+const box = (x, y, w, h, o = {}) => tag("rect", { x: sn(x), y: sn(y), width: Math.round(w), height: Math.round(h), ...o });
 const path = (d, o = {}) => tag("path", { d, ...o });
 /** A small red cross: a run that failed. */
-const cross = (x, y, r = 4) => `<g class="s-bad" stroke-width="2" stroke-linecap="round">${line(x - r, y - r, x + r, y + r)}${line(x - r, y + r, x + r, y - r)}</g>`;
+const cross = (x, y, r = 3.5) => `<g class="s-bad" stroke-width="1.5" stroke-linecap="round">${line(x - r, y - r, x + r, y + r)}${line(x - r, y + r, x + r, y - r)}</g>`;
 /** A small amber diamond: seen, and never said (made up on this page). */
-const diamond = (x, y, r = 4.5) => path(`M${r1(x)} ${r1(y - r)}L${r1(x + r)} ${r1(y)}L${r1(x)} ${r1(y + r)}L${r1(x - r)} ${r1(y)}Z`, { class: "s-said f-said", "stroke-width": 1.5 });
-/** How many runs so far, when more than one: a small plate. */
-const plate = (x, y, n) => `${tag("rect", { x: r1(x - 6.5), y: r1(y - 6), width: 13, height: 12, rx: 4, class: "f-ink" })}${text(x, y + 3.2, n, { size: 8.5, anchor: "middle", weight: 700, class: "mono t-plate" })}`;
+const diamond = (x, y, r = 4, cls = "s-said f-said") => path(`M${r1(x)} ${r1(y - r)}L${r1(x + r)} ${r1(y)}L${r1(x)} ${r1(y + r)}L${r1(x - r)} ${r1(y)}Z`, { class: cls, "stroke-width": 1, "stroke-linejoin": "round" });
+/** How many runs so far, when more than one. */
+const times = (x, y, n, anchor) => text(x, y, `×${n}`, { size: 8.5, weight: 600, anchor, class: "mono t2" });
+/** A model's mark: a small square of its color. It takes the color from the group it is in. */
+const swatch = (x, y, size = 7) => tag("rect", { x: r1(x), y: r1(y), width: size, height: size, rx: 2, class: "f-m" });
+/** Running: a dot in the one accent, and a ring that leaves it. */
+const liveDot = (x, y, r = 3) => `${tag("circle", { cx: r1(x), cy: r1(y), r, class: "halo" })}${tag("circle", { cx: r1(x), cy: r1(y), r, class: "f-live" })}`;
 /** An agent's classes: its model, its state, whether this moment is about it. */
 const cls = (s, more = "") => `m-${s.a.m.key} is-${s.state}${more ? ` ${more}` : ""}`;
 /** The elbow that hangs one thing under another. */
-const elbow = (x1, y1, x2, y2) => `M${r1(x1)} ${r1(y1)}V${r1(y2 - 6)}Q${r1(x1)} ${r1(y2)} ${r1(x1 + Math.sign(x2 - x1) * 6)} ${r1(y2)}H${r1(x2)}`;
+const elbow = (x1, y1, x2, y2) => `M${sn(x1)} ${r1(y1)}V${sn(y2) - 5}Q${sn(x1)} ${sn(y2)} ${sn(x1) + Math.sign(x2 - x1) * 5} ${sn(y2)}H${r1(x2)}`;
+/** The session as a disc: the one in charge (W4 and W6). */
+const sessionDisc = (P, v, cx, cy, r, sel) =>
+  `<g data-id="session">${v.working && !v.ended ? tag("circle", { cx: r1(cx), cy: r1(cy), r: r1(r + 3.5), class: "f-none s-live glow", "stroke-width": 1.5 }) : ""}${tag("circle", { cx: r1(cx), cy: r1(cy), r: r1(r), class: "f-card s-ink lift-1", "stroke-width": 1 })}${text(cx, cy - 1, "Session", { size: 10.5, weight: 600, anchor: "middle" })}${text(cx, cy + 10.5, P.lead.short, { size: 9, anchor: "middle", class: "t2" })}${sel === "session" ? tag("circle", { cx: r1(cx), cy: r1(cy), r: r1(r + 7), class: "sel" }) : ""}</g>`;
 
 const DRAW = {};
+/** Where each sample opens: a moment that has something running and something finished. */
+const OPENS = { small: ["stop", "a04"], large: ["start", "a16"], resumed: ["resume", "a10"] };
+const opensAt = (P) => Math.max(0, P.moments.findIndex((m) => m.kind === OPENS[P.id]?.[0] && m.id === OPENS[P.id]?.[1]));
+/** The session the page opens on: the large one. build.mjs draws the same one, at the same moment, as the still a viewer with no script is left with. */
+const OPEN_ON = 1;
+/** A sample in a line: how much there is to it. */
+const aboutLine = (P) => `${P.agents.length} subagents · ${P.agents.reduce((t, a) => t + a.runs.length, 0)} runs · ${dur(P.moments.at(-1).t)} · ${num(P.most)} at once at most`;
+/** A drawing in its frame: the SVG, W wide, with the line that says what is made up wherever an amber mark may show (on the page, and in a picture of it). */
+function frame(name, draw, P, v, W, o) {
+  const { h, body } = draw(P, v, W, o);
+  const key = o.said && P.plans.length > 0 ? `<g>${rule(14, h + 2, W - 14, h + 2, { class: "s-rule", "stroke-width": 1 })}${text(14, h + 17, "Made up", { size: 9, weight: 600, class: "t-said" })}${tag("rect", { x: 58.5, y: h + 9.5, width: 9, height: 9, rx: 2.5, class: "said f-said" })}${text(72, h + 17, "said, never ran", { size: 9, class: "t2" })}${diamond(150, h + 14, 4, "key-d")}${text(158, h + 17, "ran, never said", { size: 9, class: "t2" })}</g>` : "";
+  const H = Math.ceil(h + (key ? 26 : 0));
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${name}: ${P.sample.name}, ${dur(v.t)} in, ${v.running.length} running, ${v.all.length - v.running.length} finished">${body}${key}</svg>`;
+}
 
 /* W1 · The tree that grows. The session at the top, and under it everything it started, in the order of starting:
    a rail a row, a stub down to each one, and a subagent's own subagents hung under it. Nothing moves once it has a
-   place; a thing changes where it stands. With six or fewer it is drawn as the app's cards; with dozens, as tokens. */
+   place; a thing changes where it stands. With six or fewer it is drawn as cards; with dozens, as small tiles. */
 DRAW.tree = (P, v, W, o) => {
   const n = P.agents.length;
-  const tier = n <= 6 ? "card" : n <= 16 ? "mid" : "tok";
-  const pad = 12;
-  const trunk = pad + 10;
-  const left = pad + 28;
-  const gap = tier === "tok" ? 8 : 10;
+  const tier = n <= 6 ? "card" : n <= 16 ? "mid" : "tile";
+  const pad = 14;
+  const trunk = pad + 8;
+  const left = pad + 22;
+  const gap = tier === "tile" ? 6 : 8;
   const wide = W >= 600;
-  const cols = tier === "card" ? (wide ? 4 : W < 340 ? 1 : 2) : tier === "mid" ? (wide ? 6 : 3) : Math.floor((W - left - pad + gap) / (30 + gap));
-  const tw = tier === "tok" ? 30 : (W - left - pad - gap * (cols - 1)) / cols;
-  const th = tier === "card" ? 62 : tier === "mid" ? 44 : 30;
-  const under = tier === "tok" ? 13 : 0;
+  const cols = tier === "card" ? (wide ? 4 : W < 340 ? 1 : 2) : tier === "mid" ? (wide ? 6 : 3) : wide ? 12 : 6;
+  const tw = Math.floor((W - left - pad - gap * (cols - 1)) / cols);
+  const th = tier === "card" ? 58 : tier === "mid" ? 40 : 32;
+  const head = 40;
 
   // Every place is given before anything is drawn, from the whole record: a thing that starts later has its place
   // waiting. (Live, a place is given when a thing starts, which comes to the same: the order is the order of starting.)
@@ -554,15 +612,16 @@ DRAW.tree = (P, v, W, o) => {
       top.push(a.id);
       for (const g of ghosts.filter((x) => x.after === a.id)) top.push(g.id);
     }
-    let y = pad + 44 + 16;
+    let y = pad + head + 14;
     for (let r = 0; r * cols < top.length; r++) {
       const row = top.slice(r * cols, (r + 1) * cols);
       const nested = row.some((id) => P.byId.get(id)?.kids.length);
+      const end = y + 10 + th + (nested ? 12 + th : 0) + 12;
       row.forEach((id, c) => {
-        at.set(id, { x: left + c * (tw + gap), y: y + 12, rail: y, row: r, end: y + 12 + th + under + (nested ? 14 + th + under : 0) + 12 });
-        (P.byId.get(id)?.kids ?? []).forEach((kid, j) => at.set(kid, { x: Math.min(left + (c + j) * (tw + gap) + (tier === "tok" ? 0 : 14), W - pad - tw), y: y + 12 + th + under + 14, row: r, under: id }));
+        at.set(id, { x: left + c * (tw + gap), y: y + 10, rail: y, row: r, end });
+        (P.byId.get(id)?.kids ?? []).forEach((kid, j) => at.set(kid, { x: Math.min(left + (c + j) * (tw + gap) + (tier === "tile" ? 0 : 12), W - pad - tw), y: y + 10 + th + 12, row: r, under: id }));
       });
-      y += 12 + th + under + (nested ? 14 + th + under : 0) + 12;
+      y = end;
     }
     P.cache.set(key, at);
   }
@@ -574,23 +633,30 @@ DRAW.tree = (P, v, W, o) => {
   const rows = [...new Set(tops.map((id) => at.get(id).row))];
   if (rows.length > 0) {
     const lastRail = Math.max(...tops.map((id) => at.get(id).rail));
-    out.push(line(trunk, pad + 44, trunk, lastRail, { class: "tie", "stroke-width": 1.6 }));
+    const d = [`M${sn(trunk)} ${pad + head}V${sn(lastRail) - 5}`];
     for (const r of rows) {
       const here = tops.filter((id) => at.get(id).row === r);
+      const rail = sn(at.get(here[0]).rail);
       const end = Math.max(...here.map((id) => at.get(id).x)) + tw / 2;
-      out.push(line(trunk, at.get(here[0]).rail, end, at.get(here[0]).rail, { class: "tie", "stroke-width": 1.6 }));
+      d.push(`M${sn(trunk)} ${rail - 5}Q${sn(trunk)} ${rail} ${sn(trunk) + 5} ${rail}H${sn(end)}`);
     }
+    out.push(path(d.join(""), { class: "tie" }));
   }
   // The session: the one in charge.
-  const sw = Math.min(W - pad * 2, 230);
+  const sw = Math.min(W - pad * 2, 248);
+  const word = leadWord(v);
   out.push(
-    `<g data-id="session">${tag("rect", { x: pad, y: pad, width: sw, height: 44, rx: 10, class: "f-surface s-ink", "stroke-width": 1.6 })}${v.working && !v.ended ? tag("circle", { cx: pad + 16, cy: pad + 22, r: 5, class: "f-accent glow" }) : tag("circle", { cx: pad + 16, cy: pad + 22, r: 4.5, class: "f-none s-ink", "stroke-width": 1.5 })}${text(pad + 30, pad + 19, "session", { size: 12, weight: 700 })}${text(pad + 30, pad + 34, [P.lead.name, leadWord(v)].filter(Boolean).join(" · "), { size: 10.5, class: "t2" })}${text(pad + sw - 10, pad + 19, `${v.running.length} running`, { size: 10.5, anchor: "end", class: "t2" })}${text(pad + sw - 10, pad + 34, `${v.all.length - v.running.length} finished`, { size: 10.5, anchor: "end", class: "t3" })}${o.sel === "session" ? tag("rect", { x: pad - 3, y: pad - 3, width: sw + 6, height: 50, rx: 12, class: "sel" }) : ""}</g>`,
+    `<g data-id="session">${box(pad, pad, sw, head, { rx: 8, class: "f-card s-ink lift-1" })}${v.working && !v.ended ? tag("circle", { cx: pad + 15, cy: pad + 20.5, r: 3.5, class: "f-live glow" }) : tag("circle", { cx: pad + 15, cy: pad + 20.5, r: 3, class: "f-none s-ink", "stroke-width": 1 })}${text(pad + 27, pad + 17.5, "Session", { size: 12, weight: 600 })}${text(pad + 27, pad + 31, word ? `${P.lead.name} · ${word}` : P.lead.name, { size: 10, class: "t2" })}${text(pad + sw - 11, pad + 17.5, `${v.running.length} running`, { size: 10.5, anchor: "end", weight: 600, class: v.running.length ? "t-live" : "t3" })}${text(pad + sw - 11, pad + 31, `${v.all.length - v.running.length} finished`, { size: 10, anchor: "end", class: "t3" })}${o.sel === "session" ? box(pad - 3, pad - 3, sw + 6, head + 6, { rx: 10, class: "sel" }) : ""}</g>`,
   );
 
   for (const g of v.ghosts) {
     const p = at.get(g.id);
-    out.push(line(p.x + tw / 2, p.rail, p.x + tw / 2, p.y, { class: "said f-none" }));
-    out.push(`<g data-id="${g.id}"${g.fresh ? ' class="fresh"' : ""}>${tag("rect", { x: r1(p.x), y: p.y, width: r1(tw), height: th, rx: tier === "tok" ? 8 : 10, class: "said f-said" })}${tier === "tok" ? text(p.x + tw / 2, p.y + th + 10, "said", { size: 8.5, anchor: "middle", class: "t-said" }) : `${text(p.x + 12, p.y + 18, "said, never seen", { size: tier === "card" ? 11.5 : 9.5, weight: 600, class: "t-said" })}${text(p.x + 12, p.y + (tier === "card" ? 36 : 33), `${g.type}${tier === "card" ? " · made up" : ""}`, { size: tier === "card" ? 10.5 : 9, class: "t2" })}`}${o.sel === g.id ? tag("rect", { x: r1(p.x - 3), y: p.y - 3, width: r1(tw + 6), height: th + 6, rx: 11, class: "sel" }) : ""}</g>`);
+    out.push(rule(p.x + tw / 2, p.rail, p.x + tw / 2, p.y, { class: "said f-none" }));
+    const words =
+      tier === "tile"
+        ? text(p.x + tw / 2, p.y + th / 2 + 3, "said", { size: 8.5, anchor: "middle", weight: 600, class: "t-said" })
+        : `${text(p.x + 10, p.y + (tier === "card" ? 19 : 16), "Said, never seen", { size: tier === "card" ? 11 : 9.5, weight: 600, class: "t-said" })}${text(p.x + 10, p.y + (tier === "card" ? 35 : 30), `${g.type}${tier === "card" ? " · made up" : ""}`, { size: tier === "card" ? 10 : 9, class: "t2" })}`;
+    out.push(`<g data-id="${g.id}"${g.fresh ? ' class="fresh"' : ""}>${box(p.x, p.y, tw, th, { rx: tier === "tile" ? 5 : 7, class: "said f-said" })}${words}${o.sel === g.id ? box(p.x - 3, p.y - 3, tw + 6, th + 6, { rx: 9, class: "sel" }) : ""}</g>`);
   }
 
   for (const s of v.all) {
@@ -598,50 +664,57 @@ DRAW.tree = (P, v, W, o) => {
     const p = at.get(a.id);
     const cx = p.x + tw / 2;
     const running = s.state === "running";
-    const tie = `tie ${a.shape === "background" ? "bg" : ""} ${running ? "live" : ""} ${s.known ? "" : "unknown"} m-${a.m.key}`;
+    const failed = s.state === "failed";
+    const tie = `tie ${a.shape === "background" ? "bg" : ""} ${running ? "live" : ""} ${s.known ? "" : "unknown"}`;
     if (p.under) {
       const q = at.get(p.under);
-      const px = q.x + (tier === "tok" ? tw / 2 : 12);
-      const d = tier === "tok" && Math.abs(px - cx) < 1 ? `M${r1(px)} ${q.y + th + under}V${p.y}` : tier === "tok" ? `M${r1(px)} ${q.y + th + under}V${p.y - 7}H${r1(cx)}V${p.y}` : elbow(px, q.y + th, p.x, p.y + th / 2);
+      const px = q.x + (tier === "tile" ? tw / 2 : 10);
+      const d = tier === "tile" ? `M${sn(px)} ${q.y + th + 1}V${p.y - 6}${Math.abs(px - cx) < 1 ? "" : `H${sn(cx)}`}V${p.y}` : elbow(px, q.y + th + 1, p.x, p.y + th / 2);
       out.push(path(d, { class: tie }));
-      if (!s.known) out.push(text(px + 6, q.y + th + under + 10, "?", { size: 10, weight: 700, class: "t3" }));
-    } else out.push(line(cx, p.rail, cx, p.y, { class: tie }));
-    const body = [];
-    if (tier === "tok") {
-      if (running) body.push(tag("rect", { x: p.x - 4, y: p.y - 4, width: tw + 8, height: th + 8, rx: 11, class: "halo" }));
-      body.push(tag("rect", { x: p.x, y: p.y, width: tw, height: th, rx: 8, class: running ? "f-m s-m" : "f-surface s-m", "stroke-width": 2 }));
-      body.push(text(cx, p.y + 20, a.m.letter, { size: 14, weight: 700, anchor: "middle", class: running ? "t-on" : "t-m" }));
-      body.push(text(cx, p.y + th + 10, a.id, { size: 8.5, anchor: "middle", class: `mono ${running ? "" : "t3"}` }));
-      if (s.state === "failed") body.push(cross(p.x + tw - 2, p.y + 2, 4.5));
-      if (s.runs > 1) body.push(plate(p.x + tw - 1, p.y + th - 1, s.runs));
-      if (s.unsaid) body.push(diamond(p.x + 1, p.y + 1));
+      if (!s.known) out.push(text(px + 5, q.y + th + 10, "?", { size: 9.5, weight: 700, class: "t3" }));
+    } else out.push(rule(cx, p.rail, cx, p.y, { class: tie }));
+
+    const body = [box(p.x, p.y, tw, th, { rx: tier === "tile" ? 5 : 7, class: `${running ? "f-livet s-live" : failed ? "f-card s-bad" : "f-card s-hair"}${tier === "tile" ? "" : " lift-1"}` })];
+    if (tier === "tile") {
+      // A tile: its name, whether it runs, and its model as a small square of color and a letter.
+      body.push(text(p.x + 6, p.y + 13, a.id, { size: 10, weight: running ? 700 : 500, class: `mono${running ? "" : " t2"}` }));
+      if (running) body.push(liveDot(p.x + tw - 8, p.y + 9.5, 2.5));
+      if (failed) body.push(cross(p.x + tw - 8, p.y + 9.5, 2.8));
+      body.push(swatch(p.x + 6, p.y + 19.5, 6), text(p.x + 15, p.y + 25.5, a.m.letter, { size: 8.5, weight: 600, class: "t2" }));
+      if (s.runs > 1) body.push(times(p.x + tw - 5, p.y + 25.5, s.runs, "end"));
     } else {
       const big = tier === "card";
-      if (running) body.push(tag("rect", { x: r1(p.x - 4), y: p.y - 4, width: r1(tw + 8), height: th + 8, rx: 13, class: "halo" }));
-      body.push(tag("rect", { x: r1(p.x), y: p.y, width: r1(tw), height: th, rx: 10, class: `f-surface ${running ? "s-m" : "s-line"}`, "stroke-width": running ? 2 : 1.3 }));
-      body.push(tag("rect", { x: r1(p.x + 5), y: p.y + 7, width: 4, height: th - 14, rx: 2, class: running ? "f-m" : "f-surface s-m", "stroke-width": 1.2 }));
-      const word = s.state === "running" ? short(v.t - s.since) : s.state === "failed" ? "failed" : "done";
-      body.push(text(p.x + 16, p.y + (big ? 20 : 17), a.id, { size: big ? 13 : 11.5, weight: 700, class: "mono" }));
-      body.push(text(p.x + tw - 9, p.y + (big ? 20 : 17), `${big && s.runs > 1 ? `run ${s.runs} · ` : ""}${big && running ? "running " : ""}${word}`, { size: big ? 11 : 9.5, anchor: "end", class: s.state === "failed" ? "t-bad" : running ? "t-m" : "t3", weight: running ? 600 : 400 }));
-      if (!big && s.runs > 1) body.push(plate(p.x + tw - 2, p.y + th - 2, s.runs));
+      const y1 = p.y + (big ? 20 : 16);
+      body.push(text(p.x + 10, y1, a.id, { size: big ? 12.5 : 11, weight: 600, class: "mono" }));
+      if (running) {
+        const elapsed = short(v.t - s.since);
+        body.push(text(p.x + tw - 10, y1, elapsed, { size: big ? 10.5 : 9.5, anchor: "end", weight: 600, class: "mono t-live" }));
+        body.push(liveDot(p.x + tw - 18 - elapsed.length * (big ? 6.3 : 5.7), y1 - 3.5, 2.8));
+      } else body.push(text(p.x + tw - 10, y1, failed ? "failed" : "done", { size: big ? 10.5 : 9.5, anchor: "end", class: failed ? "t-bad" : "t3" }));
+      if (failed) body.push(cross(p.x + tw - (big ? 47 : 42), y1 - 3.5, 2.8));
       if (big) {
-        body.push(text(p.x + 16, p.y + 36, a.type, { size: 11, class: "t2" }));
-        body.push(text(p.x + 16, p.y + 52, `${a.m.name} · ${a.shape}`, { size: 11, class: "t-m", weight: 600 }));
-      } else body.push(text(p.x + 16, p.y + 33, `${a.m.short} · ${a.shape === "background" ? "backgr." : "foregr."}`, { size: 9.5, class: "t-m", weight: 600 }));
-      if (s.unsaid) body.push(diamond(p.x + 1, p.y + 1, 5.5));
+        body.push(text(p.x + 10, p.y + 35, a.type, { size: 10, class: "t2" }));
+        body.push(swatch(p.x + 10, p.y + 43), text(p.x + 21, p.y + 49.5, a.m.name, { size: 10, weight: 600 }), text(p.x + 21 + a.m.name.length * 5.4 + 4, p.y + 49.5, `· ${a.shape}`, { size: 10, class: "t3" }));
+        if (s.runs > 1) body.push(text(p.x + tw - 10, p.y + 35, `run ${s.runs}`, { size: 10, anchor: "end", class: "t2" }));
+      } else {
+        body.push(swatch(p.x + 10, p.y + 24.5, 6.5), text(p.x + 20, p.y + 30.5, a.m.short, { size: 9.5, class: "t2" }));
+        if (s.runs > 1) body.push(times(p.x + tw - 10, p.y + 30.5, s.runs, "end"));
+      }
     }
-    if (o.sel === a.id) body.push(tag("rect", { x: r1(p.x - 3), y: p.y - 3, width: r1(tw + 6), height: th + 6, rx: tier === "tok" ? 10 : 12, class: "sel" }));
+    if (s.unsaid) body.push(diamond(p.x + 0.5, p.y + 0.5, tier === "tile" ? 3.5 : 4.5));
+    if (o.sel === a.id) body.push(box(p.x - 3, p.y - 3, tw + 6, th + 6, { rx: tier === "tile" ? 7 : 9, class: "sel" }));
     out.push(`<g data-id="${a.id}" class="${cls(s)}"><g${s.fresh ? ' class="fresh"' : ""}>${body.join("")}</g></g>`);
   }
   // The stage is as tall as the tree has grown.
-  return { h: Math.max(pad + 44 + pad, ...tops.map((id) => at.get(id).end)) + 2, body: out.join("") };
+  return { h: Math.max(pad + head + pad, ...tops.map((id) => at.get(id).end)), body: out.join("") };
 };
 
 /* W2 · Lanes over time. Time runs left to right and a run is a bar as long as it took. A session of days is mostly
    waiting, so the strip on top is the whole session, a block a burst, and under it the burst the clock is in is
-   opened to the full width. A run takes the highest lane that is free; a subagent's own subagent, one under it. */
+   opened to the full width. A run takes the highest lane that is free; a subagent's own subagent, one under it.
+   A bar that is running is solid in its model's color; one that has finished is a tint of it. */
 DRAW.lanes = (P, v, W, o) => {
-  const pad = 12;
+  const pad = 14;
   const many = P.bursts.length > 1;
   const b = v.burst;
   const t = v.t;
@@ -678,26 +751,28 @@ DRAW.lanes = (P, v, W, o) => {
   if (many) {
     // The whole session: one block a burst, as tall as the most that ran at once in it. A tick where a new day begins.
     const bw = (W - pad * 2) / P.bursts.length;
-    out.push(text(pad, y + 8, `the whole session · ${P.bursts.length} bursts of work${W < 340 ? "" : " · a mark where a day has gone by"}`, { size: 9.5, class: "t3" }));
-    const base = y + 54;
+    out.push(text(pad, y + 8, `Whole session · ${P.bursts.length} bursts of work`, { size: 9.5, weight: 600, class: "t2" }));
+    if (W >= 340) out.push(text(W - pad, y + 8, "a tick where a day has gone by", { size: 9, anchor: "end", class: "t3" }));
+    const base = y + 50;
+    out.push(rule(pad, base + 0.5, W - pad, base + 0.5, { class: "s-hair", "stroke-width": 1 }));
     let day = 0;
     P.bursts.forEach((burst, k) => {
       const x = pad + k * bw;
       const d = Math.floor(burst.from / 86400000);
       if (d !== day) {
         day = d;
-        out.push(line(x - 0.5, base - 38, x - 0.5, base + 3, { class: "s-line", "stroke-width": 1 }));
-        out.push(text(x + 2.5, base - 31, `${d}d`, { size: 8, class: "t3 mono" }));
+        out.push(rule(x, base - 30, x, base + 4, { class: "s-hair", "stroke-width": 1 }));
+        out.push(text(x + 3, base - 24, `${d}d`, { size: 8.5, class: "t3 mono" }));
       }
-      const h = 5 + (burst.most / P.most) * 22;
+      const h = Math.round(4 + (burst.most / P.most) * 18);
       const past = burst !== b && burst.runs.every((r) => begun(v, r) && !live(v, r));
       const here = burst === b;
-      out.push(tag("rect", { x: r1(x + 1), y: r1(base - h), width: r1(Math.max(2, bw - 2)), height: r1(h), rx: 1.5, class: here ? "f-accent" : past ? "f-ink" : "f-none s-line", opacity: here ? 1 : past ? 0.5 : 1, "stroke-width": 1 }));
-      if (here) out.push(path(`M${r1(x + bw / 2 - 4)} ${base + 5}h8l-4 5z`, { class: "f-accent" }));
+      out.push(tag("rect", { x: r1(x + 1), y: base - h, width: r1(Math.max(2, bw - 2)), height: h, rx: 1.5, class: here ? "f-accent" : past ? "f-ink" : "f-line", opacity: here ? 1 : past ? 0.42 : 0.7 }));
+      if (here) out.push(path(`M${r1(x + bw / 2 - 3.5)} ${base + 9}h7l-3.5 -5z`, { class: "f-accent" }));
       // Touch a burst to go to its first moment.
-      out.push(tag("rect", { x: r1(x), y: base - 30, width: r1(bw), height: 36, class: "hit", "data-go": P.moments.find((m) => m.t >= burst.from && (m.kind === "start" || m.kind === "resume")).i }));
+      out.push(tag("rect", { x: r1(x), y: base - 30, width: r1(bw), height: 40, class: "hit", "data-go": P.moments.find((m) => m.t >= burst.from && (m.kind === "start" || m.kind === "resume")).i }));
     });
-    y = base + 20;
+    y = base + 24;
   }
 
   // The open burst.
@@ -705,85 +780,100 @@ DRAW.lanes = (P, v, W, o) => {
   const lead = Math.min(span * 0.06, b.from);
   const t0 = b.from - lead;
   const t1 = b.to + span * 0.03;
-  const x = (at) => pad + 2 + ((clamp(at, t0, t1) - t0) / (t1 - t0)) * (W - pad * 2 - 4);
-  out.push(text(pad, y + 9, many ? `burst ${b.k + 1} of ${P.bursts.length} · begins ${dur(b.from)} in · ${dur(span)} long` : `the whole session · ${dur(P.moments.at(-1).t)}`, { size: 10.5, class: "t2", weight: 600 }));
-  y += 20;
-  // The session's own lane: a thin line, thick where it was in a turn of its own.
-  const sy = y + 6;
-  out.push(line(pad, sy, W - pad, sy, { class: "s-line", "stroke-width": 2, "data-id": "session" }));
-  for (const [a, z] of P.sample.turns) if (z > t0 && a < Math.min(t, t1)) out.push(line(x(a), sy, Math.max(x(a) + 1.5, x(Math.min(z, t))), sy, { class: "s-ink", "stroke-width": 5, "stroke-linecap": "round", "data-id": "session" }));
+  const x = (at) => pad + ((clamp(at, t0, t1) - t0) / (t1 - t0)) * (W - pad * 2);
+  out.push(text(pad, y + 9, many ? `burst ${b.k + 1} of ${P.bursts.length} · begins ${dur(b.from)} in · ${dur(span)} long` : `the whole session · ${dur(P.moments.at(-1).t)}`, { size: 10.5, weight: 600 }));
+  y += 26;
+  // The session's own lane: a hairline, thick where the hook timed a turn of its own.
+  const sy = Math.round(y + 6);
+  const top = sy + 16;
+  const bh = 18;
+  const pitch = 25;
+  const laneY = (k) => top + k * pitch;
+  const bottom = laneY(lanes.tallest + (o.said && P.plans.some((p) => p.never.length) ? 1 : 0)) + 1;
+  // A few marks of time, as hairlines the bars lie on.
+  const steps = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200].map((s) => s * 1000);
+  const step = steps.find((s) => span / s <= (W < 500 ? 4.5 : 8)) ?? 14400000;
+  for (let m = 0; m <= span; m += step) {
+    const mx = x(b.from + m);
+    out.push(rule(mx, sy, mx, bottom, { class: "s-rule", "stroke-width": 1 }));
+    out.push(text(mx + (m === 0 ? 0 : 0), bottom + 12, m === 0 ? "0" : `+${short(m)}`, { size: 8.5, anchor: m === 0 ? "start" : "middle", class: "t3 mono" }));
+  }
+  out.push(rule(pad, sy, W - pad, sy, { class: "s-line", "stroke-width": 1, "data-id": "session" }));
+  for (const [a, z] of P.sample.turns) if (z > t0 && a < Math.min(t, t1)) out.push(line(x(a), sn(sy), Math.max(x(a) + 1.5, x(Math.min(z, t))), sn(sy), { class: "s-ink", "stroke-width": 3, "stroke-linecap": "round", "data-id": "session" }));
   out.push(text(W - pad, sy - 7, `session · ${P.lead.short}`, { size: 9, anchor: "end", class: "t3" }));
-  const top = sy + 14;
-  const laneY = (k) => top + k * 29;
-  const bh = 22;
-  const defs = `<defs><pattern id="sw-wait" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" class="f-surface"/><line x1="0" y1="0" x2="0" y2="5" class="s-ink" stroke-width="1.6" opacity="0.55"/></pattern></defs>`;
+  const defs = `<defs><pattern id="sw-wait" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" class="f-card"/><line x1="0.5" y1="0" x2="0.5" y2="4" class="s-ink" stroke-width="1" opacity="0.45"/></pattern></defs>`;
 
   const bars = [];
   const ties = [];
   const prev = new Map();
+  // Where every bar of this burst lies, so that a name set beside a short bar is not set over the next one.
+  const span2 = (r) => [Math.round(x(r.from)), Math.max(Math.round(x(r.from)) + 4, Math.round(x(live(v, r) ? t : r.to)))];
+  const drawn = b.runs.filter((r) => begun(v, r)).map((r) => ({ r, lane: lanes.get(`${r.id}/${r.k}`), at: span2(r) }));
+  const clear = (r, lane, from, to) => !drawn.some((d) => d.r !== r && d.lane === lane && d.at[0] < to && d.at[1] > from);
   for (const r of b.runs) {
     if (!begun(v, r)) continue;
     const s = v.of.get(r.id);
     const a = s.a;
     const k = lanes.get(`${r.id}/${r.k}`);
     const running = live(v, r);
-    const x1 = x(r.from);
-    const x2 = Math.max(x1 + 4, x(running ? t : r.to));
+    const x1 = Math.round(x(r.from));
+    const x2 = Math.max(x1 + 4, Math.round(x(running ? t : r.to)));
     const by = laneY(k);
     const fresh = v.mo.id === r.id && v.mo.run === r.k;
     // The tie from whoever started it: from the session's lane, or from its parent's bar.
     const from = a.parent ? laneY(lanes.get(`${a.parent}/${P.byId.get(a.parent).runs.findIndex((q) => q.from <= r.from && r.from <= q.to)}`) ?? 0) + bh : sy;
     if (r.k === 0) {
-      ties.push(line(x1, from, x1, by, { class: `tie ${a.shape === "background" ? "bg" : ""} ${running ? "live" : ""} ${s.known ? "" : "unknown"} m-${a.m.key}` }));
-      if (!s.known) ties.push(text(x1 + 4, by - 2, "?", { size: 10, weight: 700, class: "t3" }));
-    } else if (prev.has(r.id) && prev.get(r.id).k === k) ties.push(line(prev.get(r.id).x2 + 2, by + bh / 2, x1 - 2, by + bh / 2, { class: `s-m m-${a.m.key}`, "stroke-width": 1.4, "stroke-dasharray": "1.5 3", "stroke-linecap": "round" }));
+      ties.push(rule(x1, from, x1, by, { class: `tie ${a.shape === "background" ? "bg" : ""} ${running ? "live" : ""} ${s.known ? "" : "unknown"}` }));
+      ties.push(tag("circle", { cx: sn(x1), cy: r1(from + 0.5), r: 1.75, class: "f-ink" }));
+      if (!s.known) ties.push(text(x1 + 4, by - 3, "?", { size: 9.5, weight: 700, class: "t3" }));
+    } else if (prev.has(r.id) && prev.get(r.id).k === k) ties.push(line(prev.get(r.id).x2 + 3, sn(by + bh / 2), x1 - 3, sn(by + bh / 2), { class: "s-mh", "stroke-width": 1, "stroke-dasharray": "1 3", "stroke-linecap": "round" }));
     prev.set(r.id, { k, x2 });
     const g = [];
-    if (running) g.push(tag("rect", { x: r1(x2 - 5), y: by - 3, width: 8, height: bh + 6, rx: 4, class: "halo" }));
-    g.push(tag("rect", { x: r1(x1), y: by, width: r1(x2 - x1), height: bh, rx: 6, class: running ? "f-m s-m" : "f-surface s-m", "stroke-width": 1.8 }));
+    const failed = r.end === "failed" && !running;
+    g.push(tag("rect", { x: sn(x1), y: sn(by), width: x2 - x1, height: bh, rx: 4, class: running ? "f-m s-m" : failed ? "f-mt s-bad" : "f-mt s-mh", "stroke-width": 1 }));
+    // A short bar is touched through a wider place.
+    if (x2 - x1 < 24) g.push(tag("rect", { x: x1 - 4, y: by - 2, width: Math.max(24, x2 - x1 + 8), height: bh + 4, class: "hit" }));
+    if (running) g.push(tag("circle", { cx: r1(x2 + 0.5), cy: r1(by + bh / 2 + 0.5), r: 3, class: "halo" }));
     // A foreground child holds its parent still: hatched for as long as the child ran.
     for (const kid of a.kids.map((id) => P.byId.get(id)).filter((c) => c.shape === "foreground" && begun(v, { id: c.id, k: 0 }) && c.runs[0].from >= r.from && c.runs[0].from <= r.to)) {
       const h1 = x(kid.runs[0].from);
       const h2 = x(live(v, { id: kid.id, k: 0 }) ? t : kid.runs[0].to);
-      if (h2 - h1 > 2) g.push(tag("rect", { x: r1(h1), y: by + 1.5, width: r1(h2 - h1), height: bh - 3, fill: "url(#sw-wait)" }));
+      if (h2 - h1 > 2) g.push(tag("rect", { x: r1(h1), y: by + 2, width: r1(h2 - h1), height: bh - 3, fill: "url(#sw-wait)" }));
     }
     const name = `${a.id}${r.k > 0 ? `·${r.k + 1}` : ""}`;
-    const full = `${name} ${a.m.short}`;
-    const wFull = full.length * 5.7 + 10;
-    const wName = name.length * 5.7 + 8;
+    const wName = name.length * 5.6 + 12;
+    const wFull = wName + a.m.short.length * 5 + 4;
     const waits = a.kids.some((id) => P.byId.get(id).shape === "foreground" && begun(v, { id, k: 0 }));
-    if (x2 - x1 >= wFull && !waits) g.push(text(x1 + 6, by + 15, full, { size: 10, weight: 600, class: `mono ${running ? "t-on" : "t-m"}` }));
-    else if (x2 - x1 >= wName && !waits) g.push(text(x1 + 5, by + 15, name, { size: 10, weight: 600, class: `mono ${running ? "t-on" : "t-m"}` }));
-    else if (x2 + wFull < W - pad) g.push(text(x2 + 4, by + 15, full, { size: 10, weight: 600, class: "mono t-m" }));
-    else g.push(text(x1 - 4, by + 15, name, { size: 10, weight: 600, anchor: "end", class: "mono t-m" }));
-    if (r.end === "failed" && !running) g.push(cross(x2, by + bh / 2, 5));
-    if (s.unsaid && r.k === 0) g.push(diamond(x1, by, 5));
-    if (o.sel === a.id) g.push(tag("rect", { x: r1(x1 - 3), y: by - 3, width: r1(x2 - x1 + 6), height: bh + 6, rx: 8, class: "sel" }));
+    const ty = by + 13;
+    const inside = running ? "t-on" : "";
+    if (x2 - x1 >= wFull && !waits) g.push(text(x1 + 7, ty, name, { size: 9.5, weight: 600, class: `mono ${inside}` }), text(x1 + wName, ty, a.m.short, { size: 9, class: running ? "t-on" : "t2" }));
+    else if (x2 - x1 >= wName && !waits) g.push(text(x1 + 7, ty, name, { size: 9.5, weight: 600, class: `mono ${inside}` }));
+    else if (x2 + wFull + 4 < W - pad && clear(r, k, x2 + 2, x2 + wFull + 6)) g.push(text(x2 + 7, ty, name, { size: 9.5, weight: 600, class: "mono" }), text(x2 + wName, ty, a.m.short, { size: 9, class: "t2" }));
+    else if (x2 + wName + 2 < W - pad && clear(r, k, x2 + 2, x2 + wName + 2)) g.push(text(x2 + 7, ty, name, { size: 9.5, weight: 600, class: "mono" }));
+    else if (x1 - wName > pad && clear(r, k, x1 - wName, x1 - 2)) g.push(text(x1 - 6, ty, name, { size: 9.5, weight: 600, anchor: "end", class: "mono" }));
+    if (failed) g.push(cross(x2 + 0.5, by + bh / 2 + 0.5, 3.5));
+    if (s.unsaid && r.k === 0) g.push(diamond(x1 + 0.5, by + 0.5, 4));
+    if (o.sel === a.id) g.push(tag("rect", { x: sn(x1 - 3), y: sn(by - 3), width: x2 - x1 + 6, height: bh + 6, rx: 6, class: "sel" }));
     bars.push(`<g data-id="${a.id}" class="m-${a.m.key}"><g${fresh && running ? ' class="fresh"' : ""}>${g.join("")}</g></g>`);
   }
   // What was said: a flag on the session's lane where it was said, and a dashed bar for what was said and never seen.
   let spare = lanes.tallest;
   for (const p of v.said) {
     if (burstAt(P, P.byId.get(p.before).runs[0].from) !== b) continue;
-    const fx = x(p.at);
-    ties.push(path(`M${r1(fx)} ${sy}v-12h9l-3 3.5l3 3.5h-9`, { class: "s-said f-said", "stroke-width": 1.5, "stroke-linejoin": "round" }));
-    ties.push(text(fx + 12, sy - 4.5, "said", { size: 9, weight: 600, class: "t-said" }));
+    const fx = Math.round(x(p.at));
+    ties.push(path(`M${sn(fx)} ${sy}v-11.5h8l-2.5 3l2.5 3h-8`, { class: "s-said f-said", "stroke-width": 1, "stroke-linejoin": "round" }));
+    ties.push(text(fx + 11, sy - 5, "said", { size: 8.5, weight: 600, class: "t-said" }));
     for (const g of p.never) {
       const by = laneY(spare++);
-      bars.push(`<g data-id="${g.id}">${tag("rect", { x: r1(fx), y: by, width: 132, height: bh, rx: 6, class: "said f-said" })}${text(fx + 7, by + 15, "said, never seen", { size: 10, weight: 600, class: "t-said" })}${o.sel === g.id ? tag("rect", { x: r1(fx - 3), y: by - 3, width: 138, height: bh + 6, rx: 8, class: "sel" }) : ""}</g>`);
+      bars.push(`<g data-id="${g.id}"${g.fresh ? ' class="fresh"' : ""}>${tag("rect", { x: sn(fx), y: sn(by), width: 112, height: bh, rx: 4, class: "said f-said" })}${text(fx + 7, by + 13, "said, never seen", { size: 9.5, weight: 600, class: "t-said" })}${o.sel === g.id ? tag("rect", { x: sn(fx - 3), y: sn(by - 3), width: 118, height: bh + 6, rx: 6, class: "sel" }) : ""}</g>`);
     }
   }
-  const bottom = laneY(lanes.tallest + (o.said && P.plans.some((p) => p.never.length) ? 1 : 0)) + 2;
-  // The clock, and a few marks of time along the bottom.
-  const steps = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200].map((s) => s * 1000);
-  const step = steps.find((s) => span / s <= (W < 500 ? 4.5 : 8)) ?? 14400000;
-  for (let m = 0; m <= span; m += step) {
-    const mx = x(b.from + m);
-    out.push(line(mx, top - 4, mx, bottom, { class: "s-line", "stroke-width": 1, "stroke-dasharray": "2 4" }));
-    out.push(text(mx, bottom + 12, m === 0 ? "0" : `+${short(m)}`, { size: 8.5, anchor: m === 0 ? "start" : "middle", class: "t3 mono" }));
-  }
+  // The clock: a hairline in the accent, and how far into the burst it is.
   const nx = x(t);
-  const clock = t >= t0 && t <= t1 ? `${line(nx, sy - 4, nx, bottom, { class: "s-ink", "stroke-width": 1.4 })}${path(`M${r1(nx - 4)} ${sy - 9}h8l-4 6z`, { class: "f-ink" })}` : "";
+  const into = t >= b.from ? `+${short(t - b.from)}` : "";
+  const cw = into.length * 5.2 + 8;
+  const cx = clamp(nx, pad + cw / 2, W - pad - cw / 2);
+  const clock = t >= t0 && t <= t1 ? `${rule(nx, sy - 5, nx, bottom, { class: "s-live", "stroke-width": 1 })}${into ? `${tag("rect", { x: r1(cx - cw / 2), y: sy - 19, width: r1(cw), height: 13, rx: 3, class: "f-live" })}${text(cx, sy - 9.5, into, { size: 8.5, anchor: "middle", weight: 600, class: "mono t-clock" })}` : ""}` : "";
   return { h: bottom + 22, body: `${defs}${out.join("")}${ties.join("")}${bars.join("")}${clock}` };
 };
 
@@ -793,7 +883,7 @@ DRAW.lanes = (P, v, W, o) => {
    notice is queued for the session; a foreground run comes back to the line that called it, which waits meanwhile.
    What was seen is above the trunk. What was said has the side under it. */
 DRAW.lines = (P, v, W, o) => {
-  const pad = 14;
+  const pad = 16;
   const key = `lines ${W} ${o.said}`;
   let L = P.cache.get(key);
   if (!L) {
@@ -846,6 +936,7 @@ DRAW.lines = (P, v, W, o) => {
   // Where the clock is: the last station at or before this moment.
   const now = Math.max(-1, ...stations.filter((m) => m.i <= v.i).map((m) => col.get(m.i)));
   const out = [];
+  const trunkLines = [];
   const marks = [];
   const names = [];
 
@@ -855,18 +946,18 @@ DRAW.lines = (P, v, W, o) => {
     const first = r * cols;
     const last = Math.min(now, first + cols - 1);
     const y = trunkY(r);
-    out.push(line(X(first) - (r > 0 ? dx / 2 : 0), y, X(last) + (last === first + cols - 1 && now > last ? dx / 2 : 0), y, { class: "s-ink", "stroke-width": 4.5, "stroke-linecap": "round", "data-id": "session" }));
-    if (r > 0) out.push(path(`M${pad - 8} ${y - 4}l4 4l-4 4`, { class: "f-none s-ink", "stroke-width": 1.6, "stroke-linecap": "round" }));
-    if (last === first + cols - 1 && now > last) out.push(path(`M${r1(X(last) + dx / 2 + 3)} ${y - 4}l4 4l-4 4`, { class: "f-none s-ink", "stroke-width": 1.6, "stroke-linecap": "round" }));
+    trunkLines.push(line(X(first) - (r > 0 ? dx / 2 : 0), y, X(last) + (last === first + cols - 1 && now > last ? dx / 2 : 0), y, { class: "s-ink", "stroke-width": 3, "stroke-linecap": "round", "data-id": "session" }));
+    if (r > 0) trunkLines.push(path(`M${pad - 9} ${y - 3.5}l3.5 3.5l-3.5 3.5`, { class: "f-none s-ink", "stroke-width": 1, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    if (last === first + cols - 1 && now > last) trunkLines.push(path(`M${r1(X(last) + dx / 2 + 3.5)} ${y - 3.5}l3.5 3.5l-3.5 3.5`, { class: "f-none s-ink", "stroke-width": 1, "stroke-linecap": "round", "stroke-linejoin": "round" }));
   }
   for (let c = 1; c <= now; c++) {
     const gap = stations[c].t - stations[c - 1].t;
     if (gap < 3 * 3600000) continue;
     const y = trunkY(row(c));
     const x = c % cols === 0 ? X(c) - dx / 2 : (X(c - 1) + X(c)) / 2;
-    marks.push(tag("rect", { x: r1(x - 2.2), y: y - 4, width: 4.4, height: 8, class: "f-ground" }));
-    marks.push(line(x - 3.6, y + 4.5, x - 0.6, y - 4.5, { class: "s-ink", "stroke-width": 1.3 }), line(x + 0.6, y + 4.5, x + 3.6, y - 4.5, { class: "s-ink", "stroke-width": 1.3 }));
-    names.push(text(x, y + 13, short(gap), { size: 7.5, anchor: "middle", class: "t3 mono lift" }));
+    marks.push(tag("rect", { x: r1(x - 1.75), y: y - 3, width: 3.5, height: 6, class: "f-ground" }));
+    marks.push(line(x - 3, y + 4, x - 0.5, y - 4, { class: "s-ink", "stroke-width": 1 }), line(x + 0.5, y + 4, x + 3, y - 4, { class: "s-ink", "stroke-width": 1 }));
+    names.push(text(x, y + 14, short(gap), { size: 8, anchor: "middle", class: "t3 mono lift" }));
   }
 
   for (const r of L.tracks) {
@@ -889,32 +980,34 @@ DRAW.lines = (P, v, W, o) => {
       else d.push(`H${r1(Math.max(from, X(end) - bend))}Q${r1(X(end))} ${r1(y)} ${r1(X(end))} ${r1(Y(end, fore ? r.under : 0))}`);
     }
     const g = [];
-    if (o.sel === a.id) g.push(path(d.join(""), { class: "f-none s-ink", "stroke-width": 8, opacity: 0.22, "stroke-linecap": "round" }));
-    g.push(path(d.join(""), { class: "f-none s-m", "stroke-width": running ? 3.6 : 2.6, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    // Each line is laid over a wider one in the paper's color, so a crossing reads as over and under.
+    g.push(path(d.join(""), { class: "f-none s-ground", "stroke-width": 3.6 }));
+    if (o.sel === a.id) g.push(path(d.join(""), { class: "f-none s-ink", "stroke-width": 6, opacity: 0.2, "stroke-linecap": "round" }));
+    g.push(path(d.join(""), { class: "f-none s-m", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }));
     g.push(path(d.join(""), { fill: "none", stroke: "transparent", "stroke-width": 11, "pointer-events": "stroke" }));
     // The line that waits for a foreground child is drawn hollow for as long.
     if (fore && r.under > 0) {
       const y = Y(r.c0, r.under);
       const parent = P.byId.get(a.parent);
-      if (row(r.c0) === row(end)) g.push(line(X(r.c0) + 3, y, X(end) - (running ? 0 : 3), y, { class: "s-ground", "stroke-width": 1.5, "data-of": parent.id }));
+      if (row(r.c0) === row(end)) g.push(line(X(r.c0) + 3, y, X(end) - (running ? 0 : 3), y, { class: "s-ground", "stroke-width": 1, "stroke-dasharray": "2 2", "data-of": parent.id }));
     }
     if (!s.known && r.run === 0) {
-      g.push(path(`M${r1(X(r.c0))} ${r1(Y(r.c0, r.under))}Q${r1(X(r.c0))} ${r1(Y(r.c0, r.track))} ${r1(X(r.c0) + bend)} ${r1(Y(r.c0, r.track))}`, { class: "f-none s-ground", "stroke-width": 4.2 }));
+      g.push(path(`M${r1(X(r.c0))} ${r1(Y(r.c0, r.under))}Q${r1(X(r.c0))} ${r1(Y(r.c0, r.track))} ${r1(X(r.c0) + bend)} ${r1(Y(r.c0, r.track))}`, { class: "f-none s-ground", "stroke-width": 3 }));
       g.push(path(`M${r1(X(r.c0))} ${r1(Y(r.c0, r.under))}Q${r1(X(r.c0))} ${r1(Y(r.c0, r.track))} ${r1(X(r.c0) + bend)} ${r1(Y(r.c0, r.track))}`, { class: "tie unknown" }));
-      names.push(text(X(r.c0) - 7, Y(r.c0, r.track) + 3, "?", { size: 10, weight: 700, class: "t3 lift" }));
+      names.push(text(X(r.c0) - 7, Y(r.c0, r.track) + 3, "?", { size: 9.5, weight: 700, class: "t3 lift" }));
     }
-    if (running) g.push(tag("circle", { cx: r1(X(end)), cy: r1(Y(end, r.track)), r: 7.5, class: "halo" }), tag("circle", { cx: r1(X(end)), cy: r1(Y(end, r.track)), r: 4.6, class: "f-m" }));
+    if (running) g.push(tag("circle", { cx: r1(X(end)), cy: r1(Y(end, r.track)), r: 3.5, class: "halo" }), tag("circle", { cx: r1(X(end)), cy: r1(Y(end, r.track)), r: 3.5, class: "f-m s-ground", "stroke-width": 1 }));
     out.push(`<g data-id="${a.id}" class="m-${a.m.key}">${g.join("")}</g>`);
     // Stations: where it left, and where it came back.
-    marks.push(tag("circle", { cx: r1(X(r.c0)), cy: r1(Y(r.c0, r.under)), r: 3, class: "f-surface s-ink", "stroke-width": 1.5, "data-id": a.id }));
-    if (s.unsaid && r.run === 0) marks.push(diamond(X(r.c0), Y(r.c0, r.under) + 9, 4));
+    marks.push(tag("circle", { cx: r1(X(r.c0)), cy: r1(Y(r.c0, r.under)), r: 2.5, class: "f-card s-ink", "stroke-width": 1, "data-id": a.id }));
+    if (s.unsaid && r.run === 0) marks.push(diamond(X(r.c0), Y(r.c0, r.under) + 8.5, 3.5));
     if (!running) {
       const ey = Y(end, fore ? r.under : 0);
-      marks.push(r.failed ? cross(X(end), ey, 4.5) : tag("circle", { cx: r1(X(end)), cy: r1(ey), r: 3, class: "f-surface s-ink", "stroke-width": 1.5, "data-id": a.id }));
+      marks.push(r.failed ? cross(X(end), ey, 3.5) : tag("circle", { cx: r1(X(end)), cy: r1(ey), r: 2.5, class: "f-card s-ink", "stroke-width": 1, "data-id": a.id }));
     }
     const label = `${a.id}${r.run > 0 ? `·${r.run + 1}` : ""}`;
     const lx = X(r.c0) + bend + 1;
-    if (lx + label.length * 4.9 < W - 2) names.push(text(lx, Y(r.c0, r.track) - 3.5, label, { size: 8, weight: 600, class: `mono t-m lift m-${a.m.key}`, id: a.id }));
+    if (lx + label.length * 4.9 < W - 2) names.push(text(lx, Y(r.c0, r.track) - 3.5, label, { size: 8, weight: running ? 700 : 500, class: `mono lift${running ? "" : " t2"}`, id: a.id }));
   }
 
   // What was said, under the trunk: a flag where it was said, and a stub that ends in nothing for what never ran.
@@ -923,18 +1016,21 @@ DRAW.lines = (P, v, W, o) => {
     if (c === undefined || c > now) continue;
     const x = X(c);
     const y = trunkY(row(c));
-    marks.push(path(`M${r1(x)} ${y + 2}v18`, { class: "s-said", "stroke-width": 1.5 }), tag("circle", { cx: r1(x), cy: y, r: 3.4, class: "f-said s-said", "stroke-width": 1.5 }));
-    names.push(text(x - 3, y + 23, "said", { size: 8, weight: 600, anchor: "end", class: "t-said lift" }));
+    marks.push(path(`M${r1(x)} ${y + 2}v18`, { class: "s-said f-none", "stroke-width": 1 }), tag("circle", { cx: r1(x), cy: y, r: 2.5, class: "f-said s-said", "stroke-width": 1 }));
+    const flip = x + 32 > W - pad;
+    names.push(text(x + (flip ? 4 : -3), y + 31 - (flip ? 0 : 8), "said", { size: 8.5, weight: 600, anchor: flip ? "start" : "end", class: "t-said lift" }));
     p.never.forEach((g, k) => {
-      const x2 = x + 20 + k * 12;
-      marks.push(`<g data-id="${g.id}">${path(`M${r1(x)} ${y + 20}H${r1(x2 - 4)}`, { class: "said f-none" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 4, class: "said f-said" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 10, class: "hit" })}${o.sel === g.id ? tag("circle", { cx: r1(x2), cy: y + 20, r: 7, class: "sel" }) : ""}</g>`);
+      // The stub runs on to the right, or back to the left where the row ends.
+      const way = x + 32 + k * 12 > W - pad ? -1 : 1;
+      const x2 = x + way * (20 + k * 12);
+      marks.push(`<g data-id="${g.id}">${path(`M${r1(x)} ${y + 20}H${r1(x2 - way * 4)}`, { class: "said f-none" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 3.5, class: "said f-said" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 10, class: "hit" })}${o.sel === g.id ? tag("circle", { cx: r1(x2), cy: y + 20, r: 7, class: "sel" }) : ""}</g>`);
     });
   }
   // The clock: a ring on the trunk at the station it is at.
-  if (now >= 0) marks.push(tag("circle", { cx: r1(X(now)), cy: trunkY(row(now)), r: 6.5, class: "f-none s-accent", "stroke-width": 2.2 }));
+  if (now >= 0) marks.push(tag("circle", { cx: r1(X(now)), cy: trunkY(row(now)), r: 6, class: "f-none s-live", "stroke-width": 1.5 }));
   else names.push(text(pad, trunkY(0) + 4, "The session has begun. Nothing has left it yet.", { size: 10.5, class: "t3" }));
   // The map is as long as the session has gone.
-  return { h: L.tops[row(Math.max(now, 0)) + 1] + 2, body: `${out.join("")}${marks.join("")}${names.join("")}` };
+  return { h: L.tops[row(Math.max(now, 0)) + 1] + 2, body: `${trunkLines.join("")}${out.join("")}${marks.join("")}${names.join("")}` };
 };
 
 /* W4 · The ring. What is running stands close around the session; what has finished goes out to the rim and stays
@@ -960,12 +1056,12 @@ DRAW.ring = (P, v, W, o) => {
   const rb = clamp(((R * 2 * Math.PI * sweep) / 360 / n - 4) / 2, 3.6, 9);
   const at = (a, r) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
   const rim = (id) => at(angle(id), R + (P.byId.get(id)?.parent ? rb * 2 + 4 : 0));
-  const br = clamp(S * 0.062, 18, 25);
+  const br = clamp(S * 0.06, 19, 24);
   const orbit = R * 0.57;
 
   // The bodies in the middle: each as near its own place on the rim as it can stand without touching the next.
   const bodies = v.running.map((s) => ({ s, a: angle(s.a.id) })).sort((p, q) => p.a - q.a);
-  const sep = 2 * Math.asin(Math.min(0.99, (br + 5) / orbit));
+  const sep = 2 * Math.asin(Math.min(0.99, (br + 6) / orbit));
   for (let pass = 0; pass < 60 && bodies.length > 1; pass++) {
     for (let k = 0; k < bodies.length; k++) {
       const p = bodies[k];
@@ -982,20 +1078,23 @@ DRAW.ring = (P, v, W, o) => {
   for (const s of v.all) if (!where.has(s.a.id)) where.set(s.a.id, rim(s.a.id));
 
   const out = [];
-  // The rim: an arc from the first place to the last, clockwise.
+  // The rim: a hairline from the first place to the last, clockwise, with a tick where it begins.
   const a0 = ((-90 + 12) * Math.PI) / 180;
   const a1 = ((-90 + 12 + sweep) * Math.PI) / 180;
   const [x0, y0] = at(a0, R);
   const [x1, y1] = at(a1, R);
-  out.push(path(`M${r1(x0)} ${r1(y0)}A${r1(R)} ${r1(R)} 0 1 1 ${r1(x1)} ${r1(y1)}`, { class: "f-none s-line", "stroke-width": 1.4 }));
-  out.push(text(cx, cy - R + 3.5, "first ›", { size: 9, anchor: "middle", class: "t3" }));
+  const [t0x, t0y] = at(a0, R - 5);
+  const [t1x, t1y] = at(a0, R + 5);
+  out.push(path(`M${r1(x0)} ${r1(y0)}A${r1(R)} ${r1(R)} 0 1 1 ${r1(x1)} ${r1(y1)}`, { class: "f-none s-hair", "stroke-width": 1 }));
+  out.push(line(t0x, t0y, t1x, t1y, { class: "s-ink", "stroke-width": 1 }));
+  out.push(text(cx - 4, cy - R + 3, "first", { size: 8.5, anchor: "end", class: "t3" }));
 
   const ties = [];
   const front = [];
   for (const g of v.ghosts) {
     const [x, y] = rim(g.id);
     const [lx, ly] = at(angle(g.id), R + rb + 13);
-    front.push(`<g data-id="${g.id}"${g.fresh ? ' class="fresh"' : ""}>${tag("circle", { cx: r1(x), cy: r1(y), r: r1(rb + 1), class: "said f-said" })}${text(lx, ly + 3, "said", { size: 8.5, anchor: "middle", weight: 600, class: "t-said" })}${o.sel === g.id ? tag("circle", { cx: r1(x), cy: r1(y), r: r1(rb + 5), class: "sel" }) : ""}</g>`);
+    front.push(`<g data-id="${g.id}"${g.fresh ? ' class="fresh"' : ""}>${tag("circle", { cx: r1(x), cy: r1(y), r: r1(Math.max(rb + 2, 7)), class: "hit" })}${tag("circle", { cx: r1(x), cy: r1(y), r: r1(rb), class: "said f-said" })}${text(lx, ly + 3, "said", { size: 8.5, anchor: "middle", weight: 600, class: "t-said" })}${o.sel === g.id ? tag("circle", { cx: r1(x), cy: r1(y), r: r1(rb + 4), class: "sel" }) : ""}</g>`);
   }
   for (const s of v.all) {
     const a = s.a;
@@ -1006,52 +1105,50 @@ DRAW.ring = (P, v, W, o) => {
       // A tie from who started it: the session in the middle, or its parent wherever its parent is now.
       const mx = (x + px) / 2 + (a.parent ? (cy - (y + py) / 2) * 0.18 : 0);
       const my = (y + py) / 2 + (a.parent ? ((x + px) / 2 - cx) * 0.18 : 0);
-      ties.push(path(`M${r1(px)} ${r1(py)}Q${r1(mx)} ${r1(my)} ${r1(x)} ${r1(y)}`, { class: `tie ${a.shape === "background" ? "bg" : ""} ${running ? "live" : ""} ${s.known ? "" : "unknown"} m-${a.m.key}` }));
-      if (!s.known) ties.push(text(mx + 5, my - 4, "?", { size: 11, weight: 700, class: "t3" }));
+      ties.push(path(`M${r1(px)} ${r1(py)}Q${r1(mx)} ${r1(my)} ${r1(x)} ${r1(y)}`, { class: `tie ${a.shape === "background" ? "bg" : ""} ${running ? "live" : ""} ${s.known ? "" : "unknown"}` }));
+      if (!s.known) ties.push(text(mx + 5, my - 4, "?", { size: 10, weight: 700, class: "t3 lift" }));
     }
     const g = [];
     if (running) {
+      // Its place on the rim waits for it: a small open socket, and a faint line home.
       const [sx, sy] = rim(a.id);
-      ties.push(line(x, y, sx, sy, { class: `s-m m-${a.m.key}`, "stroke-width": 1, opacity: 0.4 }));
-      ties.push(tag("circle", { cx: r1(sx), cy: r1(sy), r: r1(rb), class: `f-ground s-m m-${a.m.key}`, "stroke-width": 1.3, "stroke-dasharray": "2 2" }));
-      g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(br + 5), class: "halo" }));
-      g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(br), class: "f-m" }));
-      g.push(text(x, y - 1, a.id, { size: 11.5, weight: 700, anchor: "middle", class: "mono t-on" }));
-      g.push(text(x, y + 10.5, a.m.short, { size: 9, anchor: "middle", weight: 600, class: "t-on" }));
-      if (s.runs > 1) g.push(plate(x + br * 0.72, y - br * 0.72, s.runs));
-      if (s.unsaid) g.push(diamond(x - br * 0.76, y - br * 0.76, 5.5));
+      ties.push(line(x, y, sx, sy, { class: `s-mh m-${a.m.key}`, "stroke-width": 0.75, opacity: 0.7 }));
+      ties.push(tag("circle", { cx: r1(sx), cy: r1(sy), r: r1(Math.min(rb, 3.5)), class: `f-ground s-mh m-${a.m.key}`, "stroke-width": 1 }));
+      g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(br), class: "halo wide" }));
+      g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(br), class: "f-card s-m lift-1", "stroke-width": 1.5 }));
+      g.push(text(x, y - 1, a.id, { size: 11, weight: 600, anchor: "middle", class: "mono" }));
+      const mw = a.m.short.length * 4.6;
+      g.push(swatch(x - mw / 2 - 5, y + 4.5, 6), text(x + 4, y + 10.5, a.m.short, { size: 8.5, anchor: "middle", class: "t2" }));
+      if (s.runs > 1) g.push(times(x + br * 0.74 + 2, y - br * 0.74, s.runs));
+      if (s.unsaid) g.push(diamond(x - br * 0.72, y - br * 0.72, 4));
       if (o.sel === a.id) g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(br + 4), class: "sel" }));
     } else {
       g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(Math.max(rb + 2, 7)), class: "hit" }));
-      g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(rb), class: "f-surface s-m", "stroke-width": 2 }));
-      if (s.state === "failed") g.push(cross(x, y, rb * 0.62));
-      if (rb >= 7.5 && s.state !== "failed") g.push(text(x, y + 3, a.m.letter, { size: 8.5, weight: 700, anchor: "middle", class: "t-m" }));
+      g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(rb), class: s.state === "failed" ? "f-card s-bad" : "f-card s-m", "stroke-width": 1.25 }));
+      if (s.state === "failed") g.push(cross(x, y, rb * 0.5));
       const [lx, ly] = at(angle(a.id), R + (a.parent ? rb * 2 + 4 : 0) + rb + 8);
       if (n <= 16) g.push(text(lx, ly + 3, a.id, { size: 8.5, anchor: "middle", class: "mono t3" }));
       if (s.runs > 1) {
         const [qx, qy] = n <= 16 ? at(angle(a.id), R - rb - 9) : [lx, ly];
-        g.push(text(qx, qy + 3, `×${s.runs}`, { size: 8.5, weight: 700, anchor: "middle", class: "mono t2" }));
+        g.push(times(qx, qy + 3, s.runs, "middle"));
       }
-      if (s.unsaid) g.push(diamond(x - rb, y - rb, 4));
+      if (s.unsaid) g.push(diamond(x - rb, y - rb, 3.5));
       if (o.sel === a.id) g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(rb + 4), class: "sel" }));
     }
     front.push(`<g data-id="${a.id}" class="${cls(s)}"><g${s.fresh ? ' class="fresh"' : ""}>${g.join("")}</g></g>`);
   }
-  // The session: the one in the middle.
-  const sr = br + 6;
-  const session = `<g data-id="session">${v.working && !v.ended ? tag("circle", { cx: r1(cx), cy: r1(cy), r: r1(sr + 4), class: "f-none s-accent glow", "stroke-width": 2.5 }) : ""}${tag("circle", { cx: r1(cx), cy: r1(cy), r: r1(sr), class: "f-surface s-ink", "stroke-width": 2 })}${text(cx, cy - 1, "session", { size: 10.5, weight: 700, anchor: "middle" })}${text(cx, cy + 11, P.lead.short, { size: 9.5, anchor: "middle", class: "t2" })}${o.sel === "session" ? tag("circle", { cx: r1(cx), cy: r1(cy), r: r1(sr + 8), class: "sel" }) : ""}</g>`;
   // How many so far, by model: the one line of words this drawing needs.
   const by = new Map();
   for (const s of v.all) by.set(s.a.m.key, { m: s.a.m, n: (by.get(s.a.m.key)?.n ?? 0) + 1 });
   const tally = [...by.values()].sort((p, q) => q.n - p.n);
-  const tw = tally.reduce((w, e) => w + 26 + `${e.n} ${e.m.short}`.length * 5.6, 0);
-  let tx = cx - tw / 2;
+  const widthOf = (e) => 24 + `${e.n} ${e.m.short}`.length * 5.3;
+  let tx = cx - tally.reduce((w, e) => w + widthOf(e), 0) / 2 + 6;
   const foot = tally.map((e) => {
-    const s = `${tag("circle", { cx: r1(tx + 5), cy: S + 12, r: 4.5, class: `f-m m-${e.m.key}` })}${text(tx + 13, S + 15.5, `${e.n} ${e.m.short}`, { size: 10.5, class: "t2" })}`;
-    tx += 26 + `${e.n} ${e.m.short}`.length * 5.6;
+    const s = `<g class="m-${e.m.key}">${swatch(tx, S + 8.5, 7)}${text(tx + 11, S + 15.5, `${e.n} ${e.m.short}`, { size: 10, class: "t2" })}</g>`;
+    tx += widthOf(e);
     return s;
   });
-  return { h: S + 28, body: `${out.join("")}${ties.join("")}${session}${front.join("")}${foot.join("")}` };
+  return { h: S + 28, body: `${out.join("")}${ties.join("")}${sessionDisc(P, v, cx, cy, br + 5, o.sel)}${front.join("")}${foot.join("")}` };
 };
 
 /* W5 · The skyline. The app's columns and floors, fed by what was seen: every subagent is a column on the session's
@@ -1060,7 +1157,7 @@ DRAW.ring = (P, v, W, o) => {
    the background, and on top of it when its parent waited for it. Drawn flat-on in two-to-one isometric: the app's
    stage turns under a finger, and this page's pencil does not. */
 DRAW.skyline = (P, v, W, o) => {
-  const pad = 12;
+  const pad = 14;
   const key = `sky ${o.said}`;
   let G = P.cache.get(key);
   if (!G) {
@@ -1089,14 +1186,14 @@ DRAW.skyline = (P, v, W, o) => {
   const out = [];
   // The session's floor: a slab everything it started stands on.
   const corners = [iso(0, 0), iso(cols, 0), iso(cols, rows), iso(0, rows)];
-  const slab = 7;
+  const slab = 5;
   out.push(tag("polygon", { points: pts([corners[3], corners[2], [corners[2][0], corners[2][1] + slab], [corners[3][0], corners[3][1] + slab]]), class: "slab-l" }));
   out.push(tag("polygon", { points: pts([corners[1], corners[2], [corners[2][0], corners[2][1] + slab], [corners[1][0], corners[1][1] + slab]]), class: "slab-r" }));
-  out.push(tag("polygon", { points: pts(corners), class: `f-surface ${v.working && !v.ended ? "s-accent" : "s-ink"}`, "stroke-width": 1.6, "data-id": "session" }));
-  for (let c = 1; c < cols; c++) out.push(line(...iso(c, 0), ...iso(c, rows), { class: "s-line", "stroke-width": 0.7, opacity: 0.6 }));
-  for (let r = 1; r < rows; r++) out.push(line(...iso(0, r), ...iso(cols, r), { class: "s-line", "stroke-width": 0.7, opacity: 0.6 }));
-  const fy = corners[2][1] + slab + 16;
-  out.push(text(W / 2, fy, ["the session's floor", P.lead.name, leadWord(v)].filter(Boolean).join(" · "), { size: 10.5, anchor: "middle", class: "t2" }));
+  out.push(tag("polygon", { points: pts(corners), class: `f-card lift-1 ${v.working && !v.ended ? "s-live" : "s-ink"}`, "stroke-width": 1, "stroke-linejoin": "round", "data-id": "session" }));
+  for (let c = 1; c < cols; c++) out.push(line(...iso(c, 0), ...iso(c, rows), { class: "s-rule", "stroke-width": 0.75 }));
+  for (let r = 1; r < rows; r++) out.push(line(...iso(0, r), ...iso(cols, r), { class: "s-rule", "stroke-width": 0.75 }));
+  const fy = corners[2][1] + slab + 18;
+  out.push(text(W / 2, fy, ["the session's floor", P.lead.name, leadWord(v)].filter(Boolean).join(" · "), { size: 10, anchor: "middle", class: "t2" }));
   if (o.sel === "session") out.push(tag("polygon", { points: pts(corners), class: "sel" }));
 
   const cell = (id) => {
@@ -1128,7 +1225,7 @@ DRAW.skyline = (P, v, W, o) => {
     if (!s.a.parent || !G.at.has(s.a.id)) continue;
     const [x1, y1] = cell(s.a.parent);
     const [x2, y2] = cell(s.a.id);
-    out.push(line(x1, y1, x2, y2, { class: `tie ${s.a.shape === "background" ? "bg" : ""} ${s.state === "running" ? "live" : ""} m-${s.a.m.key}` }));
+    out.push(line(x1, y1, x2, y2, { class: `tie ${s.a.shape === "background" ? "bg" : ""} ${s.state === "running" ? "live" : ""}` }));
   }
   const names = [];
   const order = [...G.items].sort((p, q) => {
@@ -1145,39 +1242,39 @@ DRAW.skyline = (P, v, W, o) => {
       const z = 26;
       const d = `M${r1(cx - a)} ${r1(cy)}L${r1(cx)} ${r1(cy + b)}L${r1(cx + a)} ${r1(cy)}L${r1(cx)} ${r1(cy - b)}ZM${r1(cx - a)} ${r1(cy - z)}L${r1(cx)} ${r1(cy + b - z)}L${r1(cx + a)} ${r1(cy - z)}L${r1(cx)} ${r1(cy - b - z)}ZM${r1(cx - a)} ${r1(cy)}v${-z}M${r1(cx)} ${r1(cy + b)}v${-z}M${r1(cx + a)} ${r1(cy)}v${-z}`;
       out.push(`<g data-id="${id}"${ghost.fresh ? ' class="fresh"' : ""}>${path(d, { class: "said", fill: "transparent" })}</g>`);
-      if (n <= 16) names.push(text(cx, cy - z - b - 5, "said", { size: 9, anchor: "middle", weight: 600, class: "t-said lift" }));
+      if (n <= 16) names.push(text(cx, cy - z - b - 5, "said", { size: 8.5, anchor: "middle", weight: 600, class: "t-said lift" }));
       if (o.sel === id) names.push(tag("ellipse", { cx: r1(cx), cy: r1(cy), rx: r1(a + 4), ry: r1(b + 3), class: "sel" }));
       continue;
     }
     const s = v.of.get(id);
     if (!s?.exists) continue;
     const a = s.a;
-    const step = a.parent ? 9 : 0;
+    const step = a.parent ? 8 : 0;
     const g = [];
     if (step) g.push(block(cx, cy, 0, step, 0.82, "step"));
     const col = column(s, cx, cy, step, f);
     g.push(...col.g);
     let top = col.z;
     const running = s.state === "running";
-    const mark = (z, m, live, size) => text(cx, cy - z + size * 0.36, m.letter, { size, weight: 700, anchor: "middle", class: live ? "t-on" : "t-m" });
-    if (hw * f >= 21) g.push(text(cx, cy - top + 3.2, a.m.short, { size: 9.5, weight: 700, anchor: "middle", class: running ? "t-on" : "t-m" }));
-    else if (hw >= 15) g.push(mark(top, a.m, running, Math.min(11, hh * 0.9)));
-    if (s.state === "failed") g.push(cross(cx, cy - top, 5));
+    // The roof carries the model: its color, and its name where the roof is wide enough for one.
+    const named = hw * f >= 21;
+    if (named) g.push(text(cx, cy - top + 3, a.m.short, { size: 9, weight: 600, anchor: "middle", class: running ? "t-on" : "" }));
+    if (s.state === "failed") g.push(cross(cx + (named ? hw * f - 7 : 0), cy - top, 3.5));
     // A foreground child rides on the column that waits for it.
     const riders = [];
     let rode = 0;
     for (const kid of a.kids.map((k) => v.of.get(k)).filter((k) => k.exists && !G.at.has(k.a.id))) {
       const rider = column(kid, cx, cy, top, 0.36);
-      riders.push(`<g data-id="${kid.a.id}" class="${cls(kid)}"><g${kid.fresh ? ' class="fresh"' : ""}>${rider.g.join("")}${kid.state === "failed" ? cross(cx, cy - rider.z, 4) : ""}</g></g>`);
-      if (kid.state === "running" || !kid.known || n <= 16 || o.sel === kid.a.id) names.push(text(cx, cy - rider.z - hh * 0.36 - 5, `${kid.a.id}${kid.known ? "" : " ?"}`, { size: 9, weight: 700, anchor: "middle", class: `mono lift ${kid.state === "running" ? "" : "t3"}` }));
+      riders.push(`<g data-id="${kid.a.id}" class="${cls(kid)}"><g${kid.fresh ? ' class="fresh"' : ""}>${rider.g.join("")}${kid.state === "failed" ? cross(cx, cy - rider.z, 3) : ""}</g></g>`);
+      if (kid.state === "running" || !kid.known || n <= 16 || o.sel === kid.a.id) names.push(text(cx, cy - rider.z - hh * 0.36 - 5, `${kid.a.id}${kid.known ? "" : " ?"}`, { size: 9, weight: 600, anchor: "middle", class: `mono lift ${kid.state === "running" ? "" : "t3"}` }));
       rode = rider.z + 11;
       if (o.sel === kid.a.id) names.push(tag("ellipse", { cx: r1(cx), cy: r1(cy - rider.z), rx: r1(hw * 0.36 + 4), ry: r1(hh * 0.36 + 3), class: "sel" }));
       top = Math.max(top, rider.z);
     }
     out.push(`<g data-id="${a.id}" class="${cls(s)}"><g${s.fresh ? ' class="fresh"' : ""}>${g.join("")}</g></g>${riders.join("")}`);
     top = Math.max(top, rode);
-    if (running || n <= 6 || o.sel === a.id) names.push(text(cx, cy - top - hh * (rode ? 0.36 : f) - 5, `${a.id}${s.runs > 1 ? ` · run ${s.runs}` : ""}`, { size: n <= 16 ? 10 : 9, weight: 700, anchor: "middle", class: `mono lift ${running ? "" : "t3"}` }));
-    if (s.unsaid) names.push(diamond(cx - hw * f - 1, cy - top, 5));
+    if (running || n <= 6 || o.sel === a.id) names.push(text(cx, cy - top - hh * (rode ? 0.36 : f) - 5, `${a.id}${s.runs > 1 ? ` · run ${s.runs}` : ""}`, { size: n <= 16 ? 10 : 9, weight: 600, anchor: "middle", class: `mono lift ${running ? "" : "t3"}` }));
+    if (s.unsaid) names.push(diamond(cx - hw * f - 2, cy - top, 4));
     if (o.sel === a.id) names.push(tag("ellipse", { cx: r1(cx), cy: r1(cy), rx: r1(hw * f + 4), ry: r1(hh * f + 3), class: "sel" }));
   }
   return { h: fy + 12, body: `${out.join("")}${names.join("")}` };
@@ -1188,7 +1285,7 @@ DRAW.skyline = (P, v, W, o) => {
    the session on the left, and what it started in that burst on the right, as cards. A burst is this page's own
    reading (runs with less than ten minutes between them); no record says the word. */
 DRAW.bursts = (P, v, W, o) => {
-  const pad = 12;
+  const pad = 14;
   const b = v.burst;
   const t = v.t;
   const out = [];
@@ -1198,14 +1295,14 @@ DRAW.bursts = (P, v, W, o) => {
   if (many) {
     const per = W < 500 ? 6 : 10;
     const cw = (W - pad * 2) / per;
-    const ch = 58;
+    const ch = 56;
     P.bursts.forEach((burst, k) => {
       if (burst !== b && !burst.runs.some((r) => begun(v, r))) return;
       const x0 = pad + (k % per) * cw;
       const y0 = y + Math.floor(k / per) * ch;
       const here = burst === b;
       const g = [];
-      if (here) g.push(tag("rect", { x: r1(x0 + 1), y: y0, width: r1(cw - 2), height: ch - 5, rx: 8, class: "f-surface s-accent", "stroke-width": 1.8 }));
+      if (here) g.push(box(x0 + 1, y0, cw - 3, ch - 6, { rx: 6, class: "f-livet s-accent" }));
       // The little graph: the session's dot on the left, and a dot for each subagent with a run in this burst.
       const tops = burst.ids.filter((id) => !burst.ids.includes(P.byId.get(id).parent));
       const place = new Map();
@@ -1229,9 +1326,9 @@ DRAW.bursts = (P, v, W, o) => {
         const a = P.byId.get(id);
         const [x, yy] = place.get(id);
         const [px, py] = place.get(a.parent) ?? [sx, mid];
-        g.push(line(px, py, x, yy, { class: `s-edge`, "stroke-width": 0.9, "stroke-dasharray": a.shape === "background" ? "2 1.6" : undefined }));
+        g.push(line(px, py, x, yy, { class: "s-line", "stroke-width": 0.75, "stroke-dasharray": a.shape === "background" ? "2 2" : undefined }));
       }
-      g.push(tag("circle", { cx: r1(sx), cy: mid, r: 3, class: "f-ink" }));
+      g.push(tag("circle", { cx: r1(sx), cy: mid, r: 2.5, class: "f-ink" }));
       for (const id of burst.ids) {
         const runs = burst.runs.filter((r) => r.id === id && begun(v, r));
         if (runs.length === 0) continue;
@@ -1241,30 +1338,30 @@ DRAW.bursts = (P, v, W, o) => {
         const last = runs.at(-1);
         const running = live(v, last);
         const m = `m-${a.m.key}`;
-        g.push(tag("circle", { cx: r1(x), cy: r1(yy), r: 3.3, class: running ? `f-m ${m}` : `f-surface s-m ${m}`, "stroke-width": 1.5 }));
+        g.push(tag("circle", { cx: r1(x), cy: r1(yy), r: 3.3, class: running ? `f-m ${m}` : `f-card s-m ${m}`, "stroke-width": 1.25 }));
         // Back again: a subagent that had run before this burst has a point in its dot.
-        if (runs[0].k > 0 && !running) g.push(tag("circle", { cx: r1(x), cy: r1(yy), r: 1.1, class: `f-m ${m}` }));
-        if (last.end === "failed" && !running) g.push(cross(x, yy, 2.6));
-        if (s.unsaid && runs[0].k === 0) g.push(diamond(x - 4, yy - 4, 2.6));
+        if (runs[0].k > 0 && !running) g.push(tag("circle", { cx: r1(x), cy: r1(yy), r: 1, class: `f-m ${m}` }));
+        if (last.end === "failed" && !running) g.push(cross(x, yy, 2.2));
+        if (s.unsaid && runs[0].k === 0) g.push(diamond(x - 4, yy - 4, 2.4));
       }
-      if (o.said) for (const p of v.said) if (burstAt(P, P.byId.get(p.before).runs[0].from) === burst) p.never.forEach((ghost, j) => g.push(tag("circle", { cx: r1(x0 + cw - 8), cy: r1(y0 + 8 + j * 8), r: 3, class: "said f-said", "stroke-width": 1.2 })));
-      g.push(text(x0 + cw / 2, y0 + ch - 11, short(burst.from), { size: 8, anchor: "middle", class: `mono ${here ? "" : "t3"}` }));
+      if (o.said) for (const p of v.said) if (burstAt(P, P.byId.get(p.before).runs[0].from) === burst) p.never.forEach((ghost, j) => g.push(tag("circle", { cx: r1(x0 + cw - 8), cy: r1(y0 + 8 + j * 8), r: 2.8, class: "said f-said", "stroke-width": 1 })));
+      g.push(text(x0 + cw / 2, y0 + ch - 13, short(burst.from), { size: 8.5, anchor: "middle", weight: here ? 600 : 400, class: `mono ${here ? "" : "t3"}` }));
       // Touch a burst to go to its first moment.
       g.push(tag("rect", { x: r1(x0), y: y0, width: r1(cw), height: ch - 4, class: "hit" }));
       out.push(`<g data-go="${P.moments.find((m) => m.t >= burst.from && (m.kind === "start" || m.kind === "resume")).i}">${g.join("")}</g>`);
     });
     // The sentence is as long as the session has gone.
     y += Math.ceil((Math.max(b.k, ...P.bursts.filter((x) => x.runs.some((r) => begun(v, r))).map((x) => x.k)) + 1) / per) * ch + 6;
-    out.push(line(pad, y, W - pad, y, { class: "s-line", "stroke-width": 1 }));
-    y += 12;
+    out.push(rule(pad, y, W - pad, y, { class: "s-hair", "stroke-width": 1 }));
+    y += 14;
   }
 
   // The open burst.
   const started = b.runs.filter((r) => begun(v, r));
   const ids = [...new Set(started.map((r) => r.id))];
   const ghosts = v.ghosts.filter((g) => burstAt(P, P.byId.get(P.plans[g.plan].before).runs[0].from) === b);
-  out.push(text(pad, y + 9, many ? `burst ${b.k + 1} of ${P.bursts.length} · begins ${dur(b.from)} in · ${dur(b.to - b.from)} long` : `one burst · ${dur(b.to - b.from)} of subagents' work`, { size: 10.5, class: "t2", weight: 600 }));
-  y += 20;
+  out.push(text(pad, y + 9, many ? `burst ${b.k + 1} of ${P.bursts.length} · begins ${dur(b.from)} in · ${dur(b.to - b.from)} long` : `one burst · ${dur(b.to - b.from)} of subagents' work`, { size: 10.5, weight: 600 }));
+  y += 22;
   // Children under their parents, a step in.
   const order = [];
   for (const id of ids) {
@@ -1277,59 +1374,64 @@ DRAW.bursts = (P, v, W, o) => {
   // Said, and the one it is listed after has not started yet: it stands at the end until then.
   for (const g of ghosts.filter((x) => !order.some((row) => row.ghost === x))) order.push({ ghost: g, in: 0 });
   const sr = 24;
-  const sx = pad + sr + 2;
-  const left = pad + sr * 2 + (W < 500 ? 26 : 44);
+  const sx = pad + sr + 3;
+  const left = pad + sr * 2 + (W < 500 ? 24 : 44);
   const ch = 40;
-  const pitch = 46;
+  const pitch = 47;
   const rowsH = Math.max(order.length, 1) * pitch - (pitch - ch);
   const sy = y + Math.max(rowsH, sr * 2 + 8) / 2;
   const top = y + Math.max(0, (sr * 2 + 8 - rowsH) / 2);
   const cards = [];
   const where = new Map();
+  /** The tie from the session's disc to a card: out along the middle, then an easy curve to the card's own height. */
+  const fan = (x, cy) => `M${sx + sr + 1} ${r1(sy)}C${r1(left - 12)} ${r1(sy)} ${r1(sx + sr + 14)} ${sn(cy + ch / 2)} ${r1(x)} ${sn(cy + ch / 2)}`;
   order.forEach((row, k) => {
-    const x = left + row.in * 18;
+    const x = left + row.in * 16;
     const cy = top + k * pitch;
     const w = W - pad - x;
     if (row.ghost) {
-      cards.push(path(`M${sx + sr + 2} ${r1(sy)}C${r1(left - 14)} ${r1(sy)} ${r1(sx + sr + 16)} ${r1(cy + ch / 2)} ${r1(x)} ${r1(cy + ch / 2)}`, { class: "said f-none" }));
-      cards.push(`<g data-id="${row.ghost.id}"${row.ghost.fresh ? ' class="fresh"' : ""}>${tag("rect", { x: r1(x), y: r1(cy), width: r1(w), height: ch, rx: 10, class: "said f-said" })}${text(x + 14, cy + 17, "said, never seen", { size: 11.5, weight: 700, class: "t-said" })}${text(x + 14, cy + 32, `${row.ghost.type} · made up`, { size: 10, class: "t2" })}${o.sel === row.ghost.id ? tag("rect", { x: r1(x - 3), y: r1(cy - 3), width: r1(w + 6), height: ch + 6, rx: 12, class: "sel" }) : ""}</g>`);
+      cards.push(path(fan(x, cy), { class: "said f-none" }));
+      cards.push(`<g data-id="${row.ghost.id}"${row.ghost.fresh ? ' class="fresh"' : ""}>${box(x, cy, w, ch, { rx: 7, class: "said f-said" })}${text(x + 12, cy + 17, "Said, never seen", { size: 11, weight: 600, class: "t-said" })}${text(x + 12, cy + 31, `${row.ghost.type} · made up`, { size: 10, class: "t2" })}${o.sel === row.ghost.id ? box(x - 3, cy - 3, w + 6, ch + 6, { rx: 9, class: "sel" }) : ""}</g>`);
       return;
     }
     const s = v.of.get(row.id);
     const a = s.a;
     where.set(a.id, [x, cy]);
     const running = s.state === "running";
-    const tie = `tie ${a.shape === "background" ? "bg" : ""} ${running ? "live" : ""} ${s.known ? "" : "unknown"} m-${a.m.key}`;
+    const failed = s.state === "failed";
+    const tie = `tie ${a.shape === "background" ? "bg" : ""} ${running ? "live" : ""} ${s.known ? "" : "unknown"}`;
     if (row.in && where.has(a.parent)) {
       const [px, py] = where.get(a.parent);
-      cards.push(path(elbow(px + 9, py + ch, x, cy + ch / 2), { class: tie }));
-      if (!s.known) cards.push(text(px + 13, py + ch + 12, "?", { size: 11, weight: 700, class: "t3" }));
-    } else cards.push(path(`M${sx + sr + 2} ${r1(sy)}C${r1(left - 14)} ${r1(sy)} ${r1(sx + sr + 16)} ${r1(cy + ch / 2)} ${r1(x)} ${r1(cy + ch / 2)}`, { class: tie }));
-    const g = [];
-    if (running) g.push(tag("rect", { x: r1(x - 4), y: r1(cy - 4), width: r1(w + 8), height: ch + 8, rx: 13, class: "halo" }));
-    g.push(tag("rect", { x: r1(x), y: r1(cy), width: r1(w), height: ch, rx: 10, class: `f-surface ${running ? "s-m" : "s-line"}`, "stroke-width": running ? 2 : 1.3 }));
-    g.push(tag("rect", { x: r1(x + 5), y: r1(cy + 7), width: 4, height: ch - 14, rx: 2, class: running ? "f-m" : "f-surface s-m", "stroke-width": 1.2 }));
-    g.push(text(x + 16, cy + 17, a.id, { size: 12.5, weight: 700, class: "mono" }));
-    g.push(text(x + 16 + 30, cy + 17, a.m.name, { size: 11.5, weight: 600, class: "t-m" }));
-    const word = running ? `running ${short(t - s.since)}` : s.state === "failed" ? "failed" : `done · ${short(s.ran)}`;
-    g.push(text(x + w - 10, cy + 17, word, { size: 10.5, anchor: "end", weight: running ? 600 : 400, class: s.state === "failed" ? "t-bad" : running ? "t-m" : "t3" }));
-    g.push(text(x + 16, cy + 32, `${a.type} · ${a.shape}${row.in ? ` · ${W < 340 ? "" : "started "}by ${a.parent}` : ""}`, { size: 10, class: "t2" }));
-    if (s.runs > 1) g.push(text(x + w - 10, cy + 32, `run ${s.runs}`, { size: 10, anchor: "end", weight: 600, class: "t2" }));
-    if (s.unsaid) g.push(diamond(x + 1, cy + 1, 5.5));
-    if (o.sel === a.id) g.push(tag("rect", { x: r1(x - 3), y: r1(cy - 3), width: r1(w + 6), height: ch + 6, rx: 12, class: "sel" }));
+      cards.push(path(elbow(px + 8, py + ch + 1, x, cy + ch / 2), { class: tie }));
+      if (!s.known) cards.push(text(px + 12, py + ch + 12, "?", { size: 10, weight: 700, class: "t3" }));
+    } else cards.push(path(fan(x, cy), { class: tie }));
+    const g = [box(x, cy, w, ch, { rx: 7, class: `${running ? "f-livet s-live" : failed ? "f-card s-bad" : "f-card s-hair"} lift-1` })];
+    g.push(text(x + 12, cy + 17, a.id, { size: 12, weight: 600, class: "mono" }));
+    g.push(swatch(x + 40, cy + 10), text(x + 51, cy + 17, a.m.name, { size: 10.5, weight: 600 }));
+    if (running) {
+      const elapsed = short(t - s.since);
+      g.push(text(x + w - 11, cy + 17, elapsed, { size: 10.5, anchor: "end", weight: 600, class: "mono t-live" }));
+      g.push(liveDot(x + w - 19 - elapsed.length * 6.3, cy + 13.5, 2.8));
+    } else {
+      const word = failed ? "failed" : short(s.ran);
+      g.push(text(x + w - 11, cy + 17, word, { size: 10.5, anchor: "end", class: failed ? "t-bad" : "mono t3" }));
+      if (!failed) g.push(text(x + w - 17 - word.length * 6.3, cy + 17, "done", { size: 10, anchor: "end", class: "t3" }));
+      else g.push(cross(x + w - 49, cy + 13.5, 2.8));
+    }
+    g.push(text(x + 12, cy + 31, `${a.type} · ${a.shape}${row.in ? ` · ${W < 340 ? "" : "started "}by ${a.parent}` : ""}`, { size: 10, class: "t2" }));
+    if (s.runs > 1) g.push(text(x + w - 11, cy + 31, `run ${s.runs}`, { size: 10, anchor: "end", class: "t2" }));
+    if (s.unsaid) g.push(diamond(x + 0.5, cy + 0.5, 4.5));
+    if (o.sel === a.id) g.push(box(x - 3, cy - 3, w + 6, ch + 6, { rx: 9, class: "sel" }));
     cards.push(`<g data-id="${a.id}" class="${cls(s)}"><g${s.fresh ? ' class="fresh"' : ""}>${g.join("")}</g></g>`);
   });
-  if (order.length === 0) cards.push(text(left, sy + 4, "Nothing has been started yet.", { size: 11, class: "t3" }));
-  const session = `<g data-id="session">${v.working && !v.ended ? tag("circle", { cx: sx, cy: r1(sy), r: sr + 4, class: "f-none s-accent glow", "stroke-width": 2.5 }) : ""}${tag("circle", { cx: sx, cy: r1(sy), r: sr, class: "f-surface s-ink", "stroke-width": 2 })}${text(sx, sy - 1, "session", { size: 10.5, weight: 700, anchor: "middle" })}${text(sx, sy + 11, P.lead.short, { size: 9.5, anchor: "middle", class: "t2" })}${o.sel === "session" ? tag("circle", { cx: sx, cy: r1(sy), r: sr + 8, class: "sel" }) : ""}</g>`;
-  return { h: y + Math.max(rowsH, sr * 2 + 8) + pad, body: `${out.join("")}${cards.join("")}${session}` };
+  if (order.length === 0) cards.push(text(left, sy + 4, "Nothing has been started yet.", { size: 10.5, class: "t3" }));
+  return { h: y + Math.max(rowsH, sr * 2 + 8) + pad, body: `${out.join("")}${cards.join("")}${sessionDisc(P, v, sx, sy, sr, o.sel)}` };
 };
 
 /* The watching studio's page (slice 0109): one clock for all six drawings, the switch of sessions, the made-up
    statements' switch, and each drawing's own bar. The last part of the page's one script (build.mjs). */
 const READY = DATA.samples.map(prepare);
-/** Where each sample opens: a moment that has something running and something finished. */
-const OPENS = { small: (P) => P.moments.findIndex((m) => m.kind === "stop" && m.id === "a04"), large: (P) => P.moments.findIndex((m) => m.kind === "start" && m.id === "a16"), resumed: (P) => P.moments.findIndex((m) => m.kind === "resume" && m.id === "a10") };
-const state = { s: 0, i: 0, said: true, sel: null, playing: null, timer: null };
+const state = { s: OPEN_ON, i: 0, said: true, sel: null, playing: null, timer: null };
 const views = [...document.querySelectorAll("[data-view]")].map((el) => ({
   el,
   draw: DRAW[el.dataset.view],
@@ -1347,11 +1449,7 @@ function paint(view) {
   const p = P();
   const v = viewAt(p, state.i, state.said);
   const W = Math.max(280, Math.round(view.stage.clientWidth));
-  const { h, body } = view.draw(p, v, W, { said: state.said, sel: state.sel });
-  // Wherever an amber mark may show, the drawing itself says that it is made up: on the page and in a picture of it.
-  const key = state.said && p.plans.length > 0 ? `<g>${text(12, h + 13, "Made up:", { size: 9.5, weight: 700, class: "t-said" })}${tag("rect", { x: 57, y: h + 4.5, width: 10, height: 10, rx: 3, class: "said f-said" })}${text(71, h + 13, "said, never ran", { size: 9.5, class: "t2" })}${diamond(148, h + 9.5, 4.5)}${text(157, h + 13, "ran, never said", { size: 9.5, class: "t2" })}</g>` : "";
-  const H = Math.ceil(h + (key ? 22 : 0));
-  view.stage.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${view.el.dataset.name}: ${p.sample.name}, ${dur(v.t)} in, ${v.running.length} running, ${v.all.length - v.running.length} finished">${body}${key}</svg>`;
+  view.stage.innerHTML = frame(view.el.dataset.name, view.draw, p, v, W, { said: state.said, sel: state.sel });
   view.says.innerHTML = sayMoment(p, v);
   view.who.textContent = state.sel ? sayAgent(p, v, state.sel) : "Touch anything in the drawing to read what the record has of it.";
   view.range.max = String(p.moments.length - 1);
@@ -1405,11 +1503,9 @@ function choose(s) {
   stop();
   state.s = s;
   state.sel = null;
-  state.i = settle(Math.max(0, OPENS[P().id]?.(P()) ?? 0), 1);
+  state.i = settle(opensAt(P()), 1);
   document.querySelectorAll("[data-doc]").forEach((b, k) => b.setAttribute("aria-checked", String(k === s)));
-  const p = P();
-  const runs = p.agents.reduce((t, a) => t + a.runs.length, 0);
-  document.querySelector("[data-about]").textContent = `${p.agents.length} subagents · ${runs} runs · ${dur(p.moments.at(-1).t)} · ${num(p.most)} at once at most`;
+  document.querySelector("[data-about]").textContent = aboutLine(P());
   refresh();
 }
 
@@ -1473,7 +1569,7 @@ themeButton.addEventListener("click", () => {
 });
 // A test, or the page's pictures, may ask for one state by the address: #large/40 is the large session at moment 41.
 const asked = /^#(\w+)\/(\d+)$/.exec(location.hash);
-choose(asked ? Math.max(0, READY.findIndex((p) => p.id === asked[1])) : 0);
+choose(asked ? Math.max(0, READY.findIndex((p) => p.id === asked[1])) : OPEN_ON);
 if (asked) go(Number(asked[2]));
 window.STUDIO = { state, READY, go, choose };
 })();

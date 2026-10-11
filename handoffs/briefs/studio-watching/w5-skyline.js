@@ -4,7 +4,7 @@
    the background, and on top of it when its parent waited for it. Drawn flat-on in two-to-one isometric: the app's
    stage turns under a finger, and this page's pencil does not. */
 DRAW.skyline = (P, v, W, o) => {
-  const pad = 12;
+  const pad = 14;
   const key = `sky ${o.said}`;
   let G = P.cache.get(key);
   if (!G) {
@@ -33,14 +33,14 @@ DRAW.skyline = (P, v, W, o) => {
   const out = [];
   // The session's floor: a slab everything it started stands on.
   const corners = [iso(0, 0), iso(cols, 0), iso(cols, rows), iso(0, rows)];
-  const slab = 7;
+  const slab = 5;
   out.push(tag("polygon", { points: pts([corners[3], corners[2], [corners[2][0], corners[2][1] + slab], [corners[3][0], corners[3][1] + slab]]), class: "slab-l" }));
   out.push(tag("polygon", { points: pts([corners[1], corners[2], [corners[2][0], corners[2][1] + slab], [corners[1][0], corners[1][1] + slab]]), class: "slab-r" }));
-  out.push(tag("polygon", { points: pts(corners), class: `f-surface ${v.working && !v.ended ? "s-accent" : "s-ink"}`, "stroke-width": 1.6, "data-id": "session" }));
-  for (let c = 1; c < cols; c++) out.push(line(...iso(c, 0), ...iso(c, rows), { class: "s-line", "stroke-width": 0.7, opacity: 0.6 }));
-  for (let r = 1; r < rows; r++) out.push(line(...iso(0, r), ...iso(cols, r), { class: "s-line", "stroke-width": 0.7, opacity: 0.6 }));
-  const fy = corners[2][1] + slab + 16;
-  out.push(text(W / 2, fy, ["the session's floor", P.lead.name, leadWord(v)].filter(Boolean).join(" · "), { size: 10.5, anchor: "middle", class: "t2" }));
+  out.push(tag("polygon", { points: pts(corners), class: `f-card lift-1 ${v.working && !v.ended ? "s-live" : "s-ink"}`, "stroke-width": 1, "stroke-linejoin": "round", "data-id": "session" }));
+  for (let c = 1; c < cols; c++) out.push(line(...iso(c, 0), ...iso(c, rows), { class: "s-rule", "stroke-width": 0.75 }));
+  for (let r = 1; r < rows; r++) out.push(line(...iso(0, r), ...iso(cols, r), { class: "s-rule", "stroke-width": 0.75 }));
+  const fy = corners[2][1] + slab + 18;
+  out.push(text(W / 2, fy, ["the session's floor", P.lead.name, leadWord(v)].filter(Boolean).join(" · "), { size: 10, anchor: "middle", class: "t2" }));
   if (o.sel === "session") out.push(tag("polygon", { points: pts(corners), class: "sel" }));
 
   const cell = (id) => {
@@ -72,7 +72,7 @@ DRAW.skyline = (P, v, W, o) => {
     if (!s.a.parent || !G.at.has(s.a.id)) continue;
     const [x1, y1] = cell(s.a.parent);
     const [x2, y2] = cell(s.a.id);
-    out.push(line(x1, y1, x2, y2, { class: `tie ${s.a.shape === "background" ? "bg" : ""} ${s.state === "running" ? "live" : ""} m-${s.a.m.key}` }));
+    out.push(line(x1, y1, x2, y2, { class: `tie ${s.a.shape === "background" ? "bg" : ""} ${s.state === "running" ? "live" : ""}` }));
   }
   const names = [];
   const order = [...G.items].sort((p, q) => {
@@ -89,39 +89,39 @@ DRAW.skyline = (P, v, W, o) => {
       const z = 26;
       const d = `M${r1(cx - a)} ${r1(cy)}L${r1(cx)} ${r1(cy + b)}L${r1(cx + a)} ${r1(cy)}L${r1(cx)} ${r1(cy - b)}ZM${r1(cx - a)} ${r1(cy - z)}L${r1(cx)} ${r1(cy + b - z)}L${r1(cx + a)} ${r1(cy - z)}L${r1(cx)} ${r1(cy - b - z)}ZM${r1(cx - a)} ${r1(cy)}v${-z}M${r1(cx)} ${r1(cy + b)}v${-z}M${r1(cx + a)} ${r1(cy)}v${-z}`;
       out.push(`<g data-id="${id}"${ghost.fresh ? ' class="fresh"' : ""}>${path(d, { class: "said", fill: "transparent" })}</g>`);
-      if (n <= 16) names.push(text(cx, cy - z - b - 5, "said", { size: 9, anchor: "middle", weight: 600, class: "t-said lift" }));
+      if (n <= 16) names.push(text(cx, cy - z - b - 5, "said", { size: 8.5, anchor: "middle", weight: 600, class: "t-said lift" }));
       if (o.sel === id) names.push(tag("ellipse", { cx: r1(cx), cy: r1(cy), rx: r1(a + 4), ry: r1(b + 3), class: "sel" }));
       continue;
     }
     const s = v.of.get(id);
     if (!s?.exists) continue;
     const a = s.a;
-    const step = a.parent ? 9 : 0;
+    const step = a.parent ? 8 : 0;
     const g = [];
     if (step) g.push(block(cx, cy, 0, step, 0.82, "step"));
     const col = column(s, cx, cy, step, f);
     g.push(...col.g);
     let top = col.z;
     const running = s.state === "running";
-    const mark = (z, m, live, size) => text(cx, cy - z + size * 0.36, m.letter, { size, weight: 700, anchor: "middle", class: live ? "t-on" : "t-m" });
-    if (hw * f >= 21) g.push(text(cx, cy - top + 3.2, a.m.short, { size: 9.5, weight: 700, anchor: "middle", class: running ? "t-on" : "t-m" }));
-    else if (hw >= 15) g.push(mark(top, a.m, running, Math.min(11, hh * 0.9)));
-    if (s.state === "failed") g.push(cross(cx, cy - top, 5));
+    // The roof carries the model: its color, and its name where the roof is wide enough for one.
+    const named = hw * f >= 21;
+    if (named) g.push(text(cx, cy - top + 3, a.m.short, { size: 9, weight: 600, anchor: "middle", class: running ? "t-on" : "" }));
+    if (s.state === "failed") g.push(cross(cx + (named ? hw * f - 7 : 0), cy - top, 3.5));
     // A foreground child rides on the column that waits for it.
     const riders = [];
     let rode = 0;
     for (const kid of a.kids.map((k) => v.of.get(k)).filter((k) => k.exists && !G.at.has(k.a.id))) {
       const rider = column(kid, cx, cy, top, 0.36);
-      riders.push(`<g data-id="${kid.a.id}" class="${cls(kid)}"><g${kid.fresh ? ' class="fresh"' : ""}>${rider.g.join("")}${kid.state === "failed" ? cross(cx, cy - rider.z, 4) : ""}</g></g>`);
-      if (kid.state === "running" || !kid.known || n <= 16 || o.sel === kid.a.id) names.push(text(cx, cy - rider.z - hh * 0.36 - 5, `${kid.a.id}${kid.known ? "" : " ?"}`, { size: 9, weight: 700, anchor: "middle", class: `mono lift ${kid.state === "running" ? "" : "t3"}` }));
+      riders.push(`<g data-id="${kid.a.id}" class="${cls(kid)}"><g${kid.fresh ? ' class="fresh"' : ""}>${rider.g.join("")}${kid.state === "failed" ? cross(cx, cy - rider.z, 3) : ""}</g></g>`);
+      if (kid.state === "running" || !kid.known || n <= 16 || o.sel === kid.a.id) names.push(text(cx, cy - rider.z - hh * 0.36 - 5, `${kid.a.id}${kid.known ? "" : " ?"}`, { size: 9, weight: 600, anchor: "middle", class: `mono lift ${kid.state === "running" ? "" : "t3"}` }));
       rode = rider.z + 11;
       if (o.sel === kid.a.id) names.push(tag("ellipse", { cx: r1(cx), cy: r1(cy - rider.z), rx: r1(hw * 0.36 + 4), ry: r1(hh * 0.36 + 3), class: "sel" }));
       top = Math.max(top, rider.z);
     }
     out.push(`<g data-id="${a.id}" class="${cls(s)}"><g${s.fresh ? ' class="fresh"' : ""}>${g.join("")}</g></g>${riders.join("")}`);
     top = Math.max(top, rode);
-    if (running || n <= 6 || o.sel === a.id) names.push(text(cx, cy - top - hh * (rode ? 0.36 : f) - 5, `${a.id}${s.runs > 1 ? ` · run ${s.runs}` : ""}`, { size: n <= 16 ? 10 : 9, weight: 700, anchor: "middle", class: `mono lift ${running ? "" : "t3"}` }));
-    if (s.unsaid) names.push(diamond(cx - hw * f - 1, cy - top, 5));
+    if (running || n <= 6 || o.sel === a.id) names.push(text(cx, cy - top - hh * (rode ? 0.36 : f) - 5, `${a.id}${s.runs > 1 ? ` · run ${s.runs}` : ""}`, { size: n <= 16 ? 10 : 9, weight: 600, anchor: "middle", class: `mono lift ${running ? "" : "t3"}` }));
+    if (s.unsaid) names.push(diamond(cx - hw * f - 2, cy - top, 4));
     if (o.sel === a.id) names.push(tag("ellipse", { cx: r1(cx), cy: r1(cy), rx: r1(hw * f + 4), ry: r1(hh * f + 3), class: "sel" }));
   }
   return { h: fy + 12, body: `${out.join("")}${names.join("")}` };

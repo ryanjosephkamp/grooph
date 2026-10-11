@@ -4,7 +4,7 @@
    notice is queued for the session; a foreground run comes back to the line that called it, which waits meanwhile.
    What was seen is above the trunk. What was said has the side under it. */
 DRAW.lines = (P, v, W, o) => {
-  const pad = 14;
+  const pad = 16;
   const key = `lines ${W} ${o.said}`;
   let L = P.cache.get(key);
   if (!L) {
@@ -57,6 +57,7 @@ DRAW.lines = (P, v, W, o) => {
   // Where the clock is: the last station at or before this moment.
   const now = Math.max(-1, ...stations.filter((m) => m.i <= v.i).map((m) => col.get(m.i)));
   const out = [];
+  const trunkLines = [];
   const marks = [];
   const names = [];
 
@@ -66,18 +67,18 @@ DRAW.lines = (P, v, W, o) => {
     const first = r * cols;
     const last = Math.min(now, first + cols - 1);
     const y = trunkY(r);
-    out.push(line(X(first) - (r > 0 ? dx / 2 : 0), y, X(last) + (last === first + cols - 1 && now > last ? dx / 2 : 0), y, { class: "s-ink", "stroke-width": 4.5, "stroke-linecap": "round", "data-id": "session" }));
-    if (r > 0) out.push(path(`M${pad - 8} ${y - 4}l4 4l-4 4`, { class: "f-none s-ink", "stroke-width": 1.6, "stroke-linecap": "round" }));
-    if (last === first + cols - 1 && now > last) out.push(path(`M${r1(X(last) + dx / 2 + 3)} ${y - 4}l4 4l-4 4`, { class: "f-none s-ink", "stroke-width": 1.6, "stroke-linecap": "round" }));
+    trunkLines.push(line(X(first) - (r > 0 ? dx / 2 : 0), y, X(last) + (last === first + cols - 1 && now > last ? dx / 2 : 0), y, { class: "s-ink", "stroke-width": 3, "stroke-linecap": "round", "data-id": "session" }));
+    if (r > 0) trunkLines.push(path(`M${pad - 9} ${y - 3.5}l3.5 3.5l-3.5 3.5`, { class: "f-none s-ink", "stroke-width": 1, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    if (last === first + cols - 1 && now > last) trunkLines.push(path(`M${r1(X(last) + dx / 2 + 3.5)} ${y - 3.5}l3.5 3.5l-3.5 3.5`, { class: "f-none s-ink", "stroke-width": 1, "stroke-linecap": "round", "stroke-linejoin": "round" }));
   }
   for (let c = 1; c <= now; c++) {
     const gap = stations[c].t - stations[c - 1].t;
     if (gap < 3 * 3600000) continue;
     const y = trunkY(row(c));
     const x = c % cols === 0 ? X(c) - dx / 2 : (X(c - 1) + X(c)) / 2;
-    marks.push(tag("rect", { x: r1(x - 2.2), y: y - 4, width: 4.4, height: 8, class: "f-ground" }));
-    marks.push(line(x - 3.6, y + 4.5, x - 0.6, y - 4.5, { class: "s-ink", "stroke-width": 1.3 }), line(x + 0.6, y + 4.5, x + 3.6, y - 4.5, { class: "s-ink", "stroke-width": 1.3 }));
-    names.push(text(x, y + 13, short(gap), { size: 7.5, anchor: "middle", class: "t3 mono lift" }));
+    marks.push(tag("rect", { x: r1(x - 1.75), y: y - 3, width: 3.5, height: 6, class: "f-ground" }));
+    marks.push(line(x - 3, y + 4, x - 0.5, y - 4, { class: "s-ink", "stroke-width": 1 }), line(x + 0.5, y + 4, x + 3, y - 4, { class: "s-ink", "stroke-width": 1 }));
+    names.push(text(x, y + 14, short(gap), { size: 8, anchor: "middle", class: "t3 mono lift" }));
   }
 
   for (const r of L.tracks) {
@@ -100,32 +101,34 @@ DRAW.lines = (P, v, W, o) => {
       else d.push(`H${r1(Math.max(from, X(end) - bend))}Q${r1(X(end))} ${r1(y)} ${r1(X(end))} ${r1(Y(end, fore ? r.under : 0))}`);
     }
     const g = [];
-    if (o.sel === a.id) g.push(path(d.join(""), { class: "f-none s-ink", "stroke-width": 8, opacity: 0.22, "stroke-linecap": "round" }));
-    g.push(path(d.join(""), { class: "f-none s-m", "stroke-width": running ? 3.6 : 2.6, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    // Each line is laid over a wider one in the paper's color, so a crossing reads as over and under.
+    g.push(path(d.join(""), { class: "f-none s-ground", "stroke-width": 3.6 }));
+    if (o.sel === a.id) g.push(path(d.join(""), { class: "f-none s-ink", "stroke-width": 6, opacity: 0.2, "stroke-linecap": "round" }));
+    g.push(path(d.join(""), { class: "f-none s-m", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }));
     g.push(path(d.join(""), { fill: "none", stroke: "transparent", "stroke-width": 11, "pointer-events": "stroke" }));
     // The line that waits for a foreground child is drawn hollow for as long.
     if (fore && r.under > 0) {
       const y = Y(r.c0, r.under);
       const parent = P.byId.get(a.parent);
-      if (row(r.c0) === row(end)) g.push(line(X(r.c0) + 3, y, X(end) - (running ? 0 : 3), y, { class: "s-ground", "stroke-width": 1.5, "data-of": parent.id }));
+      if (row(r.c0) === row(end)) g.push(line(X(r.c0) + 3, y, X(end) - (running ? 0 : 3), y, { class: "s-ground", "stroke-width": 1, "stroke-dasharray": "2 2", "data-of": parent.id }));
     }
     if (!s.known && r.run === 0) {
-      g.push(path(`M${r1(X(r.c0))} ${r1(Y(r.c0, r.under))}Q${r1(X(r.c0))} ${r1(Y(r.c0, r.track))} ${r1(X(r.c0) + bend)} ${r1(Y(r.c0, r.track))}`, { class: "f-none s-ground", "stroke-width": 4.2 }));
+      g.push(path(`M${r1(X(r.c0))} ${r1(Y(r.c0, r.under))}Q${r1(X(r.c0))} ${r1(Y(r.c0, r.track))} ${r1(X(r.c0) + bend)} ${r1(Y(r.c0, r.track))}`, { class: "f-none s-ground", "stroke-width": 3 }));
       g.push(path(`M${r1(X(r.c0))} ${r1(Y(r.c0, r.under))}Q${r1(X(r.c0))} ${r1(Y(r.c0, r.track))} ${r1(X(r.c0) + bend)} ${r1(Y(r.c0, r.track))}`, { class: "tie unknown" }));
-      names.push(text(X(r.c0) - 7, Y(r.c0, r.track) + 3, "?", { size: 10, weight: 700, class: "t3 lift" }));
+      names.push(text(X(r.c0) - 7, Y(r.c0, r.track) + 3, "?", { size: 9.5, weight: 700, class: "t3 lift" }));
     }
-    if (running) g.push(tag("circle", { cx: r1(X(end)), cy: r1(Y(end, r.track)), r: 7.5, class: "halo" }), tag("circle", { cx: r1(X(end)), cy: r1(Y(end, r.track)), r: 4.6, class: "f-m" }));
+    if (running) g.push(tag("circle", { cx: r1(X(end)), cy: r1(Y(end, r.track)), r: 3.5, class: "halo" }), tag("circle", { cx: r1(X(end)), cy: r1(Y(end, r.track)), r: 3.5, class: "f-m s-ground", "stroke-width": 1 }));
     out.push(`<g data-id="${a.id}" class="m-${a.m.key}">${g.join("")}</g>`);
     // Stations: where it left, and where it came back.
-    marks.push(tag("circle", { cx: r1(X(r.c0)), cy: r1(Y(r.c0, r.under)), r: 3, class: "f-surface s-ink", "stroke-width": 1.5, "data-id": a.id }));
-    if (s.unsaid && r.run === 0) marks.push(diamond(X(r.c0), Y(r.c0, r.under) + 9, 4));
+    marks.push(tag("circle", { cx: r1(X(r.c0)), cy: r1(Y(r.c0, r.under)), r: 2.5, class: "f-card s-ink", "stroke-width": 1, "data-id": a.id }));
+    if (s.unsaid && r.run === 0) marks.push(diamond(X(r.c0), Y(r.c0, r.under) + 8.5, 3.5));
     if (!running) {
       const ey = Y(end, fore ? r.under : 0);
-      marks.push(r.failed ? cross(X(end), ey, 4.5) : tag("circle", { cx: r1(X(end)), cy: r1(ey), r: 3, class: "f-surface s-ink", "stroke-width": 1.5, "data-id": a.id }));
+      marks.push(r.failed ? cross(X(end), ey, 3.5) : tag("circle", { cx: r1(X(end)), cy: r1(ey), r: 2.5, class: "f-card s-ink", "stroke-width": 1, "data-id": a.id }));
     }
     const label = `${a.id}${r.run > 0 ? `·${r.run + 1}` : ""}`;
     const lx = X(r.c0) + bend + 1;
-    if (lx + label.length * 4.9 < W - 2) names.push(text(lx, Y(r.c0, r.track) - 3.5, label, { size: 8, weight: 600, class: `mono t-m lift m-${a.m.key}`, id: a.id }));
+    if (lx + label.length * 4.9 < W - 2) names.push(text(lx, Y(r.c0, r.track) - 3.5, label, { size: 8, weight: running ? 700 : 500, class: `mono lift${running ? "" : " t2"}`, id: a.id }));
   }
 
   // What was said, under the trunk: a flag where it was said, and a stub that ends in nothing for what never ran.
@@ -134,16 +137,19 @@ DRAW.lines = (P, v, W, o) => {
     if (c === undefined || c > now) continue;
     const x = X(c);
     const y = trunkY(row(c));
-    marks.push(path(`M${r1(x)} ${y + 2}v18`, { class: "s-said", "stroke-width": 1.5 }), tag("circle", { cx: r1(x), cy: y, r: 3.4, class: "f-said s-said", "stroke-width": 1.5 }));
-    names.push(text(x - 3, y + 23, "said", { size: 8, weight: 600, anchor: "end", class: "t-said lift" }));
+    marks.push(path(`M${r1(x)} ${y + 2}v18`, { class: "s-said f-none", "stroke-width": 1 }), tag("circle", { cx: r1(x), cy: y, r: 2.5, class: "f-said s-said", "stroke-width": 1 }));
+    const flip = x + 32 > W - pad;
+    names.push(text(x + (flip ? 4 : -3), y + 31 - (flip ? 0 : 8), "said", { size: 8.5, weight: 600, anchor: flip ? "start" : "end", class: "t-said lift" }));
     p.never.forEach((g, k) => {
-      const x2 = x + 20 + k * 12;
-      marks.push(`<g data-id="${g.id}">${path(`M${r1(x)} ${y + 20}H${r1(x2 - 4)}`, { class: "said f-none" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 4, class: "said f-said" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 10, class: "hit" })}${o.sel === g.id ? tag("circle", { cx: r1(x2), cy: y + 20, r: 7, class: "sel" }) : ""}</g>`);
+      // The stub runs on to the right, or back to the left where the row ends.
+      const way = x + 32 + k * 12 > W - pad ? -1 : 1;
+      const x2 = x + way * (20 + k * 12);
+      marks.push(`<g data-id="${g.id}">${path(`M${r1(x)} ${y + 20}H${r1(x2 - way * 4)}`, { class: "said f-none" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 3.5, class: "said f-said" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 10, class: "hit" })}${o.sel === g.id ? tag("circle", { cx: r1(x2), cy: y + 20, r: 7, class: "sel" }) : ""}</g>`);
     });
   }
   // The clock: a ring on the trunk at the station it is at.
-  if (now >= 0) marks.push(tag("circle", { cx: r1(X(now)), cy: trunkY(row(now)), r: 6.5, class: "f-none s-accent", "stroke-width": 2.2 }));
+  if (now >= 0) marks.push(tag("circle", { cx: r1(X(now)), cy: trunkY(row(now)), r: 6, class: "f-none s-live", "stroke-width": 1.5 }));
   else names.push(text(pad, trunkY(0) + 4, "The session has begun. Nothing has left it yet.", { size: 10.5, class: "t3" }));
   // The map is as long as the session has gone.
-  return { h: L.tops[row(Math.max(now, 0)) + 1] + 2, body: `${out.join("")}${marks.join("")}${names.join("")}` };
+  return { h: L.tops[row(Math.max(now, 0)) + 1] + 2, body: `${trunkLines.join("")}${out.join("")}${marks.join("")}${names.join("")}` };
 };
