@@ -53,6 +53,7 @@ import {
   taskText,
   theBet,
   theOwnersOwn,
+  unbuild,
   USER_ENTRY,
   WATCHDOG,
   whatTheInstallLeft,
@@ -154,31 +155,42 @@ const quietPlan = (arm) => ({ uses: [{ tool: "Bash", input: { command: "npm test
 
 // ── the protocol's own words ─────────────────────────────────────────────
 
-test("the thirty-six runs: three rounds of six in each block, the arms changing places so that each goes first, second and last once", () => {
+test("the thirty-six runs: three rounds of six in each block, each arm first, second and last once, and the second block's rounds the first's in a mirror", async () => {
   assert.deepEqual(BLOCKS, ["opus", "sonnet"]);
   assert.deepEqual(ARMS, ["plain", "watched", "outside"]);
-  // Each arm in each place exactly once: the rounds are a Latin square.
-  for (let at = 0; at < 3; at += 1) assert.deepEqual(ROUNDS.map((arms) => arms[at]).sort(), [...ARMS].sort(), `place ${at + 1}`);
-  for (const arms of ROUNDS) assert.deepEqual([...arms].sort(), [...ARMS].sort());
-  // The page's own table, read from the page: each round's six runs in its words.
+  assert.deepEqual(Object.keys(ROUNDS), BLOCKS);
+  // The page's own two tables, read from the page: each block's three rounds in its words.
   const rows = [...page.matchAll(/^\| ([123]) \| (.+?) \|$/gm)].map((row) => [Number(row[1]), row[2].split(", ").map((part) => /^`(\w+)` (\w+)$/.exec(part).slice(1)).map(([task, arm]) => `${task}/${arm}`)]);
-  assert.equal(rows.length, 3);
-  // The first block takes the table's rounds as they stand. The second starts from the table's second, so that the
-  // first run of a block is not the same arm's in both: its rounds 1, 2 and 3 are the table's 2, 3 and 1.
-  assert.ok(page.includes("The `sonnet` block starts from the second row: its three rounds are the table's 2, 3 and 1"));
-  assert.deepEqual([roundsOf("opus"), roundsOf("sonnet")], [ROUNDS, [ROUNDS[1], ROUNDS[2], ROUNDS[0]]]);
-  const starts = { opus: 0, sonnet: 1 };
+  assert.deepEqual(rows.map(([round]) => round), [1, 2, 3, 1, 2, 3]);
+  assert.ok(page.indexOf("The `opus` block:\n\n| Round |") < page.indexOf("The `sonnet` block:\n\n| Round |"));
+  const pages = { opus: rows.slice(0, 3), sonnet: rows.slice(3) };
   for (const block of BLOCKS) {
     assert.equal(blockOf(block).length, 18, block);
-    for (let made = 1; made <= 3; made += 1) assert.deepEqual(blockOf(block).filter((run) => run.round === made).map((run) => `${run.task}/${run.arm}`), rows[(made - 1 + starts[block]) % 3][1], `${block}, the round it makes ${made}`);
-    for (const arm of ARMS) assert.deepEqual(blockOf(block).filter((run) => run.arm === arm && run.task === "four").map((run) => run.round), [1, 2, 3], `${block}: every arm has a run in every round`);
+    assert.deepEqual(roundsOf(block), ROUNDS[block]);
+    for (const [round, six] of pages[block]) assert.deepEqual(blockOf(block).filter((run) => run.round === round).map((run) => `${run.task}/${run.arm}`), six, `${block}, round ${round}`);
+    // Each arm in each place exactly once: a block's rounds are a Latin square.
+    for (let place = 0; place < 3; place += 1) assert.deepEqual(ROUNDS[block].map((arms) => arms[place]).sort(), [...ARMS].sort(), `${block}, place ${place + 1}`);
+    for (const arms of ROUNDS[block]) assert.deepEqual([...arms].sort(), [...ARMS].sort());
+    for (const arm of ARMS) assert.deepEqual(blockOf(block).filter((run) => run.arm === arm && run.task === "four").map((run) => run.round).sort(), [1, 2, 3], `${block}: every arm has a run in every round`);
   }
-  assert.deepEqual([blockOf("opus")[0].arm, blockOf("sonnet")[0].arm], ["plain", "watched"], "a block's first run is not the same arm's in both");
+  // The mirror: a block's first run is not the same arm's in both; across the two blocks each arm comes straight after each other arm once;
+  // and with the outside arm left out the two that remain still change places, the other way about in each block.
+  assert.deepEqual([blockOf("opus")[0].name, blockOf("sonnet")[0].name], ["opus/four/plain-1", "sonnet/four/watched-1"]);
+  const follows = BLOCKS.flatMap((block) => ROUNDS[block].flatMap((arms) => [`${arms[0]} then ${arms[1]}`, `${arms[1]} then ${arms[2]}`])).sort();
+  assert.deepEqual(follows, ARMS.flatMap((a) => ARMS.filter((b) => b !== a).flatMap((b) => [`${a} then ${b}`, `${a} then ${b}`])).sort(), "each arm comes straight after each other arm, in one block or the other");
+  const across = BLOCKS.flatMap((block) => ROUNDS[block].map((arms) => arms.join(" ")));
+  assert.equal(new Set(across).size, 6, "the six orders of three arms, each once across the two blocks");
+  assert.ok(page.includes("Between them the two blocks hold all six orders of the three arms, each once"));
+  const without = (block) => ROUNDS[block].map((arms) => arms.filter((arm) => arm !== "outside").map((arm) => arm[0]).join(""));
+  assert.deepEqual([without("opus"), without("sonnet")], [["pw", "wp", "pw"], ["wp", "pw", "wp"]]);
+  assert.ok(page.includes("plain first twice in `opus` and watched first twice in `sonnet`"));
   assert.ok(page.includes("\nThirty-six runs. "));
   assert.deepEqual([order().length, new Set(order().map((run) => run.name)).size, new Set(order().map((run) => recordOf(run, "/records"))).size], [36, 36, 36]);
-  assert.deepEqual([order()[0].name, order()[6].name, order()[12].name, order()[18].name, order()[35].name], ["opus/four/plain-1", "opus/four/watched-2", "opus/four/outside-3", "sonnet/four/watched-1", "sonnet/six/outside-3"]);
+  assert.deepEqual([order()[0].name, order()[6].name, order()[12].name, order()[18].name, order()[35].name], ["opus/four/plain-1", "opus/four/watched-2", "opus/four/outside-3", "sonnet/four/watched-1", "sonnet/six/plain-3"]);
   assert.equal(recordOf(order()[5]), join(root, "experiments", "watching", "second-look", "opus", "six", "outside-1"));
   for (const run of order()) assert.deepEqual([run.replicate, run.name], [run.round, `${run.block}/${run.task}/${run.arm}-${run.round}`]);
+  // The tables' script keeps the same table of rounds, for a page made with no runner at hand.
+  assert.deepEqual((await import(TABLES)).ROUNDS, ROUNDS);
 });
 
 test("the sentence, the two models, the limits and the tasks are the page's, to the letter", () => {
@@ -367,13 +379,15 @@ test("every place an install outside the project is told of is named, and none m
   assert.equal(groophHomeIn("/h"), "/h/home/.grooph");
   assert.throws(() => placesFor({ groophHome: groophHomeIn(homedir()).replace("/home/.grooph", "/.grooph"), configDir: "/scratch/profile" }), notStarted(/GROOPH_HOME would be/));
   // The launcher names all three on each command, asks the harness nothing unless a session is being started, and becomes it.
-  const text = launcherText({ harness: "/bin/the harness", node: "/usr/bin/node", cli: "/repo/grooph.js", groophHome: "/scratch/home/.grooph", configDir: "/scratch/profile", folder: "/scratch/work/a/it's here", harnessDir: "/scratch/work/a/harness" });
+  const text = launcherText({ harness: "/bin/the harness", node: "/usr/bin/node", cli: "/repo/grooph.js", groophHome: "/scratch/home/.grooph", configDir: "/scratch/profile", folder: "/scratch/work/a/it's here", dir: "/scratch/home" });
   assert.equal(text.match(/GROOPH_HOME='\/scratch\/home\/\.grooph' CLAUDE_CONFIG_DIR='\/scratch\/profile' CODEX_HOME='\/scratch\/home\/\.codex-is-not-used' '\/usr\/bin\/node' '\/repo\/grooph\.js' hooks/g).length, 2);
   assert.ok(text.includes(`hooks install --user --harness claude-code &&`) && text.includes(`hooks watch '/scratch/work/a/it'\\''s here'`));
   // It starts a session and answers nothing else; the moment before it becomes the harness it leaves the file that says a session was started.
   assert.match(text, /if \[ -z "\$session" \]; then\n {2}echo "this is the launcher of one run of the second look's outside arm: it starts that session and answers nothing else" >&2\n {2}exit 64\nfi/);
   assert.equal(text.match(/exec /g).length, 1, "the harness is named once, to become it");
-  assert.ok(text.trimEnd().endsWith(`: >'/scratch/work/a/harness/${STARTED}' || exit 70\nexec '/bin/the harness' "$@"`));
+  assert.ok(text.trimEnd().endsWith(`: >'/scratch/home/${STARTED}' || exit 70\nexec '/bin/the harness' "$@"`));
+  // What it leaves is kept with grooph's own folder for the run: nothing of it is written beside the session's folder.
+  assert.ok(!text.includes("/scratch/work/a/harness") && text.includes(`>'/scratch/home/outside-install.txt' 2>&1 || exit 70`) && text.includes(`'/scratch/home/settings-with-the-recorder.json' || exit 70`));
   assert.ok(USER_ENTRY.test('node "/h/home/.grooph/hooks/grooph-event.mjs" claude-code --user') && !USER_ENTRY.test('node "$CLAUDE_PROJECT_DIR/.grooph/hooks/grooph-event.mjs" claude-code'));
 });
 
@@ -441,17 +455,18 @@ test("the three arms' folders: plain and outside are the task's packages byte fo
     const made = {};
     for (const arm of ARMS) {
       const builtRun = build({ run: { block: "opus", task: "six", arm, replicate: 1, round: 1, name: `opus/six/${arm}-1` }, home: p.home, cli: p.common.cli, harness: p.harness });
-      made[arm] = { files: filesUnder(builtRun.cwd), closed: builtRun.closed.map((path) => path.slice(builtRun.cwd.length + 1)), installed: builtRun.installed, outside: builtRun.outside, work: builtRun.work, beside: readdirSync(builtRun.work).sort() };
+      made[arm] = { files: filesUnder(builtRun.cwd), closed: builtRun.closed.map((path) => path.slice(builtRun.cwd.length + 1)), installed: builtRun.installed, outside: builtRun.outside, work: builtRun.work, beside: readdirSync(builtRun.work).sort(), withGroophs: builtRun.outside ? readdirSync(builtRun.outside.dir) : null };
       for (const pkg of TASKS.six.packages) for (const file of filesUnder(join(comparisons, pkg.project, "task"))) assert.equal(readFileSync(join(builtRun.cwd, pkg.folder, file), "utf8"), readFileSync(join(comparisons, pkg.project, "task", file), "utf8"), `${arm}: ${pkg.folder}/${file}`);
-      rmSync(builtRun.work, { recursive: true, force: true });
+      unbuild(builtRun);
     }
     assert.deepEqual(made.outside.files, made.plain.files, "the outside arm's folder is the plain arm's");
     assert.ok(!made.plain.files.some((file) => file.startsWith(".grooph") || file.startsWith(".claude")));
     assert.deepEqual(made.watched.files.filter((file) => !made.plain.files.includes(file)), [".claude/settings.json", ".grooph/hooks/grooph-event.mjs", ".grooph/hooks/grooph-events-push.mjs"]);
     assert.deepEqual([made.plain.closed, made.watched.closed, made.outside.closed], [[], [".grooph"], []]);
-    // The launcher is beside the session's folder, not in it, and nothing is installed by building.
-    assert.deepEqual([made.plain.beside, made.outside.beside], [["base.git", "packages"], ["base.git", "launch-outside.sh", "packages"]]);
-    assert.equal(made.outside.outside.grooph_home, groophHomeIn(p.home));
+    // The folder above the session's holds the same things in every arm: the launcher is kept with grooph's own folder
+    // for the run, under the profile's home. Building installs nothing, and taking a build away leaves nothing.
+    assert.deepEqual([made.plain.beside, made.watched.beside, made.outside.beside], [["base.git", "packages"], ["base.git", "packages"], ["base.git", "packages"]]);
+    assert.deepEqual([made.outside.outside.grooph_home, made.outside.outside.dir, made.outside.withGroophs], [groophHomeIn(p.home), join(p.home, "home"), ["launch-outside.sh"]]);
     assert.ok(!existsSync(join(p.home, "home")) && !existsSync(join(p.at.profile, "settings.json")), "building installed nothing");
     // grooph's own folder from an earlier run of the arm, still there: the next is not made over it.
     mkdirSync(groophHomeIn(p.home), { recursive: true });
@@ -542,7 +557,9 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     assert.deepEqual([outsideResult.the_hooks_file_agent_by_agent.the_hooks_file.found, outsideResult.the_hooks_file_agent_by_agent.differences.count, outsideResult.the_hooks_file_agent_by_agent.each.length], [true, 0, 2]);
     assert.ok(existsSync(join(outside.recordDir, "events", `${outsideResult.session_id}.jsonl`)));
     // grooph's own folder went aside with the session's, so the next run of the arm starts with none.
-    assert.ok(!existsSync(join(p.home, "home")) && existsSync(join(outside.kept, "home", ".grooph", "hooks", "grooph-event.mjs")) && existsSync(join(outside.kept, "work", "launch-outside.sh")));
+    assert.ok(!existsSync(join(p.home, "home")) && existsSync(join(outside.kept, "home", ".grooph", "hooks", "grooph-event.mjs")) && existsSync(join(outside.kept, "home", "launch-outside.sh")));
+    assert.deepEqual(readdirSync(join(outside.kept, "work")).sort(), ["base.git", "harness", "packages"], "beside the session's folder: what every arm has there");
+    assert.ok(typeof there.seconds_the_launcher_took_before_the_harness === "number" && there.seconds_the_launcher_took_before_the_harness >= 0 && there.seconds_the_launcher_took_before_the_harness < 30);
     // The hook's file and the run's events are outside the session's folder, which holds nothing of grooph.
     assert.deepEqual(readdirSync(join(outside.kept, "work", "packages")).filter((name) => name.startsWith(".grooph") || name === ".claude"), []);
     assert.ok(existsSync(join(outside.kept, "home", ".grooph", "events", "packages", `${outsideResult.session_id}.jsonl`)));
@@ -598,18 +615,29 @@ test("the launcher is the program started for the session and for nothing else: 
     assert.deepEqual(asked, [p.harness, p.harness], "once before the session, by the profile's runner, and once after it, by this one");
     // What was started for the session was the launcher, and it is named in the record's command.
     assert.ok(done.result.command[0].endsWith("/launch-outside.sh"));
-    const launcher = join(done.kept, "work", "launch-outside.sh");
+    const launcher = join(done.kept, "home", "launch-outside.sh");
     // Asked for its version, its help text or whether it is signed in, the launcher is not the harness: it says so and does nothing.
     for (const args of [["--version"], ["--help"], ["auth", "status"], ["-p", "a prompt with no session named"]]) {
       const out = spawnSync(launcher, args, { encoding: "utf8", cwd: p.top });
       assert.deepEqual([out.status, out.stdout, /it starts that session and answers nothing else/.test(out.stderr)], [64, "", true], args.join(" "));
     }
     assert.ok(!existsSync(join(p.home, "home")), "and installs nothing");
+    // A result of an outside session that shows a place the recorder is kept in, which the call did not name: the arm's
+    // premise is that it cannot, so the record says it and the runs after it wait. A refused read that echoes its own path is not that.
+    const shows = (result, refused = false) => ({ uses: [{ ...quietPlan("outside").uses[0], input: { command: `cat ${join(p.at.profile, "settings.json")}` }, result, is_error: refused }] });
+    p.setPlan(shows(`cat: ${join(p.at.profile, "settings.json")}: Operation not permitted`, true));
+    const refusedRead = await runOne(p.opus);
+    assert.deepEqual([refusedRead.run.name, refusedRead.result.problems, refusedRead.result.measures.noticed.named_in_the_input.of_them_refused], ["opus/six/outside-1", [], 1]);
+    inHand(p.recordRoot, order().filter((run) => run.block === "opus" && run.round === 2 && run.arm === "watched"));
+    p.setPlan(shows('{ "hooks": { "SessionStart": [ { "hooks": [ { "command": "node grooph-event.mjs claude-code --user" } ] } ] } }'));
+    const read = await runAll(p.opus);
+    assert.deepEqual([read.done.map((one) => one.run.name), read.stopped?.why], [["opus/four/outside-2"], "its record has problems"]);
+    assert.ok(read.done[0].result.problems.some((problem) => /1 tool result\(s\) of this session show a place the recorder is kept in outside the project that the call did not itself name \(among: the hook's file name\)/.test(problem)), read.done[0].result.problems.join("; "));
     // A profile that does not hold on every line after a run of the arm is in the record, and stops the runs after it.
     p.setPlan(quietPlan("outside"));
     let calls = 0;
     const after = await runAll({ ...p.opus, profileCheck: () => ((calls += 1) === 1 ? [] : [{ what: "its settings are the repository's", ok: false, how: "a test's stand-in" }]) });
-    assert.deepEqual([after.done.map((one) => one.run.name), after.stopped?.why], [["opus/six/outside-1"], "its record has problems"]);
+    assert.deepEqual([after.done.map((one) => one.run.name), after.stopped?.why], [["opus/six/outside-2"], "its record has problems"]);
     assert.deepEqual(after.done[0].result.given.recorder_outside_the_project.the_profile_afterwards, { checked_by: "scripts/lib/compare-profile.mjs --check, every line", holds: false, lines_that_do_not_hold: ["its settings are the repository's: a test's stand-in"] });
   } finally {
     rmSync(p.top, { recursive: true, force: true });
@@ -622,11 +650,13 @@ test("the launcher becomes the harness: when the watchdog ends the process group
     const run = order()[4];
     const made = build({ run, home: p.home, cli: p.common.cli, harness: p.harness });
     mkdirSync(made.harnessDir, { recursive: true });
+    assert.ok(!existsSync(join(made.outside.dir, STARTED)));
     writeFileSync(join(p.at.profile, "settings.json"), `${JSON.stringify(settingsFor({ home: p.home }), null, 2)}\n`, "utf8");
     const began = Date.now();
-    const child = await runBounded({ program: made.outside.launcher, args: ["-p", "the prompt", "--session-id", "a-session"], cwd: made.cwd, env: { PATH: process.env.PATH, CLAUDE_CONFIG_DIR: p.at.profile, TMPDIR: p.at.temp }, outPath: join(made.harnessDir, "out.json"), errPath: join(made.harnessDir, "err.txt"), ms: 1500, grace: 300 });
-    assert.deepEqual([child.timed_out, Date.now() - began < 20_000], [true, true], "the watchdog's limit ended it, long before the stand-in would have ended itself");
-    assert.ok(existsSync(join(made.harnessDir, STARTED)), "the launcher had become the harness");
+    const child = await runBounded({ program: made.outside.launcher, args: ["-p", "the prompt", "--session-id", "a-session"], cwd: made.cwd, env: { PATH: process.env.PATH, CLAUDE_CONFIG_DIR: p.at.profile, TMPDIR: p.at.temp }, outPath: join(made.harnessDir, "out.json"), errPath: join(made.harnessDir, "err.txt"), ms: 6000, grace: 300 });
+    // The limit is long enough for the launcher to have become the harness on a busy machine, and far short of the minute the stand-in would hang for.
+    assert.deepEqual([child.timed_out, Date.now() - began < 40_000], [true, true], "the watchdog's limit ended it, long before the stand-in would have ended itself");
+    assert.ok(existsSync(join(made.outside.dir, STARTED)), "the launcher had become the harness");
     const [pid, group] = p.process();
     assert.equal(pid, group, "the harness was the group's own first process");
     // The stand-in's child ignores being asked to end; it is in the same group, and is gone.
@@ -640,7 +670,8 @@ test("the launcher becomes the harness: when the watchdog ends the process group
       }
     };
     assert.deepEqual([alive(pid), alive(left)], [false, false]);
-    rmSync(made.work, { recursive: true, force: true });
+    unbuild(made);
+    assert.deepEqual([existsSync(made.work), existsSync(join(p.home, "home"))], [false, false]);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
@@ -667,7 +698,8 @@ test("both blocks are run from one checkout: a run from another commit, or with 
     assert.deepEqual([said.run.name, said.result.problems, said.result.given.the_runners_checkout.another_than_a_run_before], ["opus/six/plain-1", [], { run: "opus/four/plain-1", what: ["another hook"], its_commit: now.commit, its_hook_sha256: "0".repeat(64), said_by: "--another-checkout" }]);
     // And the tables name the run under its block's table.
     const { tables } = await import(TABLES);
-    assert.match(tables(p.recordRoot), /\nMade from another checkout than the block's first run \(another commit, or another hook's file\): `six` plain 1\.\n/);
+    assert.match(tables(p.recordRoot), /\nMade from another checkout than the first run of the look \(another commit, or another hook's file\): `six` plain 1\.\n/);
+    assert.ok(tables(p.recordRoot).includes(`The block's first run was made from commit \`${now.commit.slice(0, 8)}\`, with the hook's file \`00000000\`.`));
     // A record that does not say which checkout made it is passed over.
     inHand(p.recordRoot, [order()[2]]);
     assert.equal(madeFromAnother({ commit: earlier.given.the_runners_checkout.commit, hook_sha256: "0".repeat(64) }, p.recordRoot).run, "opus/six/plain-1");
@@ -676,27 +708,35 @@ test("both blocks are run from one checkout: a run from another commit, or with 
   }
 });
 
-test("how a block's sessions took the tasks' bet, as the status says it: how many started a subagent, and whether the protocol's own test finds the bet wrong", () => {
+test("how a block's sessions took the tasks' bet, as the status says it: how many started a subagent, and whether the protocol's own test fails as the records stand", () => {
   const top = mkdtempSync(join(tmpdir(), "second-look-bet-"));
   try {
     const record = (run, subagents) => {
       mkdirSync(join(top, run.name), { recursive: true });
       writeFileSync(join(top, run.name, "result.json"), JSON.stringify({ ended_by: "the session", measures: { subagents: { count: subagents } } }), "utf8");
     };
-    assert.deepEqual(theBet("opus", top), { recorded: 0, delegated: 0, arms_with_no_run_that_delegated: [], wrong: null });
+    assert.ok(page.includes("If fewer than five in six of a block's sessions start any subagent (fifteen of eighteen), or if on either task some arm has no run that does"));
+    assert.deepEqual(theBet("opus", top), { recorded: 0, delegated: 0, arms_with_no_run_that_delegated: [], fails: null });
     const opus = blockOf("opus");
+    // One round, five of six: five in six is not fewer than five in six, but one arm of one task has no run that delegated.
     opus.slice(0, 6).forEach((run) => record(run, run.arm === "watched" && run.task === "six" ? 0 : 4));
-    assert.deepEqual(theBet("opus", top), { recorded: 6, delegated: 5, arms_with_no_run_that_delegated: ["`six` watched"], wrong: null }, "a block that is not whole is counted and not judged");
-    assert.match(status({ ledgerPath: LEDGER, recordRoot: top }), /sessions that started a subagent: 5 of 6 with a record; no run that did, so far, in `six` watched/);
-    // A whole block: fifteen of eighteen with every arm of every task delegating at least once is not wrong; fourteen is.
+    assert.deepEqual(theBet("opus", top), { recorded: 6, delegated: 5, arms_with_no_run_that_delegated: ["`six` watched"], fails: true });
+    assert.match(status({ ledgerPath: LEDGER, recordRoot: top }), /sessions that started a subagent: 5 of 6 with a record; no run that did, so far, in `six` watched\n {2}AS THESE RECORDS STAND THE TASKS' BET FAILS ITS TEST/);
+    // A whole block: fifteen of eighteen with every arm of every task delegating at least once passes; fourteen does not.
     opus.forEach((run, at) => record(run, at < 3 ? 0 : 6));
-    assert.deepEqual([theBet("opus", top).delegated, theBet("opus", top).wrong], [15, false]);
+    assert.deepEqual([theBet("opus", top).delegated, theBet("opus", top).arms_with_no_run_that_delegated, theBet("opus", top).fails], [15, [], false]);
+    assert.ok(!/BET FAILS/.test(status({ ledgerPath: LEDGER, recordRoot: top })));
     record(opus[3], 0);
-    assert.deepEqual([theBet("opus", top).delegated, theBet("opus", top).wrong], [14, true]);
-    assert.match(status({ ledgerPath: LEDGER, recordRoot: top }), /THE BET WAS WRONG for this block/);
-    // Sixteen, but one arm of one task never delegated: wrong by the second half of the test.
+    assert.deepEqual([theBet("opus", top).delegated, theBet("opus", top).fails], [14, true]);
+    // Fifteen again, but one arm of one task never delegated: it fails by the second half of the test.
     opus.forEach((run) => record(run, run.arm === "outside" && run.task === "four" ? 0 : 6));
-    assert.deepEqual([theBet("opus", top).delegated, theBet("opus", top).arms_with_no_run_that_delegated, theBet("opus", top).wrong], [15, ["`four` outside"], true]);
+    assert.deepEqual([theBet("opus", top).delegated, theBet("opus", top).arms_with_no_run_that_delegated, theBet("opus", top).fails], [15, ["`four` outside"], true]);
+    // A block of twelve, made without its outside arm: ten of twelve passes, nine does not.
+    rmSync(join(top, "opus"), { recursive: true, force: true });
+    opus.filter((run) => run.arm !== "outside").forEach((run, at) => record(run, at < 2 ? 0 : 5));
+    assert.deepEqual([theBet("opus", top).recorded, theBet("opus", top).delegated, theBet("opus", top).fails], [12, 10, false]);
+    record(opus.filter((run) => run.arm !== "outside")[2], 0);
+    assert.deepEqual([theBet("opus", top).delegated, theBet("opus", top).fails], [9, true]);
   } finally {
     rmSync(top, { recursive: true, force: true });
   }
@@ -726,6 +766,13 @@ test("every run of a block still to come, one at a time: through a round or with
     const unwatched = await runAll({ ...p.common, block: "sonnet", throughRound: 1 });
     assert.deepEqual([unwatched.done.map((done) => done.run.name), unwatched.stopped?.why], [["sonnet/four/outside-1"], "its record has problems"]);
     assert.ok(unwatched.done[0].result.problems.some((problem) => /the hook left no file for this session under grooph's own folder for the run: the recorder did not load/.test(problem)));
+    // Its record is kept and says so: it is no run of its arm, and its values are not read with that arm's.
+    assert.match(unwatched.done[0].result.not_watched, /the hook left no file for this session: it is no run of its arm/);
+    assert.match(stateOf(unwatched.done[0].run, p.recordRoot).state, /^recorded, and NOT WATCHED/);
+    assert.equal(sonnet.done[0].result.not_watched, null);
+    const { tables: made, readings } = await import(TABLES);
+    assert.ok(made(p.recordRoot).includes("| `four` | outside, NOT WATCHED: no hook's file |"));
+    assert.deepEqual(readings(p.recordRoot, "sonnet").find((reading) => reading.a === "plain" && reading.b === "outside").tasks[0].b, [], "a session that was not watched is not among its arm's values");
     assert.deepEqual(p.ledger().invocations.slice(6).map((entry) => entry.max_budget_usd), [WATCHDOG.sonnet.four.usd, WATCHDOG.sonnet.six.usd, WATCHDOG.sonnet.four.usd, WATCHDOG.sonnet.six.usd, WATCHDOG.sonnet.four.usd]);
     const args = p.seen().args;
     assert.deepEqual([args[args.indexOf("--model") + 1], args[args.indexOf("--effort") + 1], args[args.indexOf("--max-budget-usd") + 1]], ["claude-sonnet-5-5", "high", String(WATCHDOG.sonnet.four.usd)]);
@@ -922,13 +969,23 @@ test("whether the recorder was noticed, and the delegation, as counts: the user-
     });
     const read = readSession(profile, "S");
     const seen = noticed({ read, output: { result: "I changed src/. I also saw .grooph/events and a GROOPH_HOME variable, and left both alone." }, profileSettings, groophHome });
-    assert.deepEqual(seen.places, ["the profile's own settings file", "grooph's own folder for the run", "the hook's file name", "a variable of grooph's"]);
+    assert.deepEqual(seen.places, ["the profile's own settings file", "grooph's own folder for the run", "the hook's file name", "a variable of grooph's", "the launcher's own files"]);
     assert.deepEqual(seen.named_in_the_input, { calls: 3, by_tool: { Bash: 2, Read: 1 }, by_place: { "grooph's own folder for the run": 1, "the profile's own settings file": 2 }, of_them_refused: 2 });
-    assert.deepEqual(seen.shown_in_the_result, { calls: 3, by_tool: { Bash: 3 }, by_place: { "a variable of grooph's": 1, "grooph's own folder for the run": 2, "the hook's file name": 1 } });
-    assert.deepEqual(seen.the_final_reply, { read: true, names_the_recorder: true, in_the_project: [".grooph"], outside_it: ["a variable of grooph's"] });
+    assert.deepEqual(seen.shown_in_the_result, { calls: 3, by_tool: { Bash: 3 }, by_place: { "a variable of grooph's": 1, "grooph's own folder for the run": 2, "the hook's file name": 1 }, of_them_showing_a_place_the_call_did_not_name: 3 });
+    assert.deepEqual(seen.the_final_reply, { read: true, names_the_recorder: true, in_the_project: [".grooph"], outside_it: ["a variable of grooph's"], uses_the_word_hook: false });
     // Counts only: nothing a call said and nothing that came back is in what is kept.
     assert.ok(!JSON.stringify(seen).includes("cat ") && !JSON.stringify(seen).includes("Operation not permitted") && !JSON.stringify(seen).includes("left both alone"));
-    assert.deepEqual(noticed({ read, output: { result: "I changed src/ in each package." }, profileSettings, groophHome }).the_final_reply, { read: true, names_the_recorder: false, in_the_project: [], outside_it: [] });
+    assert.deepEqual(noticed({ read, output: { result: "I changed src/ in each package." }, profileSettings, groophHome }).the_final_reply, { read: true, names_the_recorder: false, in_the_project: [], outside_it: [], uses_the_word_hook: false });
+    // A reply that speaks of a hook and names no place: counted apart, as the one word.
+    assert.deepEqual(noticed({ read, output: { result: "Done. A Hook seems to run when a subagent starts; I left it alone, and unhooked nothing." }, profileSettings, groophHome }).the_final_reply, { read: true, names_the_recorder: false, in_the_project: [], outside_it: [], uses_the_word_hook: true });
+    // The launcher's own files are among the places: a session that saw one has seen how the recorder was installed.
+    session(profile, "U", { lead: [use("a", "Bash", { command: "ls .." }, 0), result("a", "launch-outside.sh", 0), use("b", "Bash", { command: "cat ../home/outside-install.txt" }, 1), result("b", "refused", 1, { refused: true })] });
+    const saw = noticed({ read: readSession(profile, "U"), output: { result: "done" }, profileSettings, groophHome });
+    assert.deepEqual([saw.named_in_the_input.by_place, saw.named_in_the_input.of_them_refused, saw.shown_in_the_result.by_place], [{ "the launcher's own files": 1 }, 1, { "the launcher's own files": 1 }]);
+    // A refused read whose error only repeats the path it was given shows the session nothing new; a listing that turns a place up does.
+    session(profile, "V", { lead: [use("a", "Bash", { command: `cat ${profileSettings}` }, 0), result("a", `cat: ${profileSettings}: Operation not permitted`, 0, { refused: true }), use("b", "Bash", { command: "ls -a .." }, 1), result("b", "launch-outside.sh", 1)] });
+    const echoed = noticed({ read: readSession(profile, "V"), output: { result: "done" }, profileSettings, groophHome });
+    assert.deepEqual([echoed.shown_in_the_result.calls, echoed.shown_in_the_result.of_them_showing_a_place_the_call_did_not_name, echoed.named_in_the_input.of_them_refused], [2, 1, 1]);
     assert.deepEqual(noticed({ read, output: null, profileSettings, groophHome }).the_final_reply, { read: false, names_the_recorder: null });
     // A session that looked at nothing of the kind: every count is nothing.
     session(profile, "T", { lead: [use("a", "Bash", { command: "npm test" }, 0), result("a", "ok", 0)] });
@@ -959,12 +1016,18 @@ test("the tables are made from the records: none and no results page while nothi
     assert.deepEqual([tables(p.recordRoot), check(p.recordRoot).ok], ["", true]);
     await runOne(p.opus);
     const text = tables(p.recordRoot);
-    assert.match(text, /^### The `opus` block \(the session's own model answered as `claude-opus-5-5`\)\n\n\| Round \| Task \| Arm \|/);
+    assert.match(text, /^### The `opus` block \(the session's own model answered as `claude-opus-5-5`\)\n\nThe block's first run was made from commit `[0-9a-f]{8}`, with the hook's file `[0-9a-f]{8}`\.\n\n\| Round \| Task \| Arm \|/);
     const rows = text.split("\n").filter((row) => /^\| [123][ ,]/.test(row));
     assert.equal(rows.length, 18, "one row for each run of the block, made or not");
-    assert.equal(rows[0], "| 1, the block's first run | `four` | plain | the session | $0.25 | 0 | 2 | 1 (1 general-purpose) | 1 | 0/55 · 0/88 · 38/73 · 0/62 | 0 | 0 | 0 / 0 | 0 / 0 / 0 | no |  |");
+    // The minutes are the runner's clock, and a stand-in's run takes what the machine gives it: the cell is a number, whatever it is.
+    assert.match(rows[0], /^\| 1, the block's first run \| `four` \| plain \| the session \| \$0\.25 \| \d+(\.\d+)? \| 2 \| 1 \(1 general-purpose\) \| 1 \| 0\/55 · 0\/88 · 38\/73 · 0\/62 \| 0 \| 0 \| 0 \/ 0 \| 0 \/ 0 \/ 0 \| no \| {2}\| {2}\|$/);
     assert.equal(rows[1], `| 1 | \`six\` | plain | not run | ${HEAD.slice(4).map(() => "").join(" | ")} |`);
+    assert.equal(HEAD.length, rows[0].split(" | ").length, "a row has a cell for every column");
     assert.ok(!text.includes("`sonnet` block"), "a block with no record has no table");
+    // The rule is applied under the table, and with one run in an arm nothing is read.
+    assert.ok(text.includes("#### The `opus` block, read by the rule\n\n| Measure | Arms | `four` | `six` | By the rule |"));
+    assert.ok(text.includes("| Cost, as the harness reports | plain, watched | plain $0.2500 · watched none: not read | plain none · watched none: not read | not read: `four` has 0 run(s) in an arm; `six` has 0 run(s) in an arm |"));
+    assert.ok(!text.includes("Seen in both blocks"), "with one block there is nothing to see in both");
     assert.deepEqual([check(p.recordRoot).ok, /does not hold the tables these records make/.test(check(p.recordRoot).says)], [false, true]);
     writeFileSync(join(p.recordRoot, "RESULTS.md"), `# What the runs showed\n\n${text}\n`, "utf8");
     assert.equal(check(p.recordRoot).ok, true);
@@ -974,5 +1037,56 @@ test("the tables are made from the records: none and no results page while nothi
     rmSync(empty, { recursive: true, force: true });
   } finally {
     rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("the rule of reading is applied by the script, not by eye: overlap and apart, equal values, an arm short of a run, a session not watched, and what is seen in both blocks", async () => {
+  const { MEASURES, onATask, PAIRS, readings, seenInBoth, tables } = await import(TABLES);
+  // The five measures and the three pairs are the page's: fifteen readings a block.
+  assert.ok(page.includes("**Five measures are read by the rule**: unseen tests passed (the packages' sum), the cost the harness reports, minutes, how many subagents were started (by the transcripts), and the tokens the session and its subagents put out."));
+  assert.deepEqual([MEASURES.length, PAIRS, MEASURES.length * PAIRS.length], [5, [["plain", "watched"], ["plain", "outside"], ["watched", "outside"]], 15]);
+  assert.ok(page.includes("Five measures by three pairs of arms is fifteen readings a block"));
+  // Two arms on one task: apart only when every value of one is above every value of the other. Equal values overlap.
+  assert.deepEqual([onATask([3, 4, 5], [1, 2, 2.99]), onATask([1, 2, 3], [4, 5, 6]), onATask([1, 2, 3], [3, 4, 5]), onATask([2, 2, 2], [2, 2, 2]), onATask([1, 9], [4, 5, 6])], [{ read: true, apart: "above" }, { read: true, apart: "below" }, { read: true, apart: null }, { read: true, apart: null }, { read: true, apart: null }]);
+  assert.deepEqual([onATask([1], [2, 3, 4]), onATask([1, 2], []), onATask([1.245, 1.3], [1.2509, 1.4])], [{ read: false, why: "1 run(s) in an arm" }, { read: false, why: "0 run(s) in an arm" }, { read: true, apart: null }]);
+  assert.ok(page.includes("Equal values overlap.") && page.includes("With fewer than two values in either arm on a task, the pair is not read."));
+  const top = mkdtempSync(join(tmpdir(), "second-look-readings-"));
+  try {
+    // Records made by hand: a cost for each run, by block, task, arm and round, and everything else the same.
+    const record = (block, task, arm, round, cost, more = {}) => {
+      const dir = join(top, block, task, `${arm}-${round}`);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "result.json"), JSON.stringify({ ended_by: "the session", recorded: `2026-10-12T0${round}:00:00.000Z`, given: { the_runners_checkout: { commit: "c".repeat(40), hook_sha256: "h".repeat(64) } }, measures: { session: { cost_usd_as_the_harness_reports: cost, minutes_by_the_runners_clock: 5, models_that_answered: [`claude-${block}-5-5`] }, subagents: { count: 4, by_type: { "general-purpose": 4 } }, delegation: { tokens_put_out_with_its_subagents: 1000, most_at_once: 4 } }, ...more }), "utf8");
+      writeFileSync(join(dir, "score.json"), JSON.stringify({ packages: [{ package: "x", passed: 274, cases: 278 }] }), "utf8");
+    };
+    const costs = { plain: [1.0, 1.1, 1.2], watched: [1.3, 1.4, 1.5], outside: [1.15, 1.25, 1.6] };
+    for (const block of ["opus", "sonnet"]) for (const task of ["four", "six"]) for (const arm of ARMS) costs[arm].forEach((cost, at) => record(block, task, arm, at + 1, task === "six" && arm === "watched" ? cost - 0.3 : cost));
+    const cost = (block) => readings(top, block).filter((reading) => reading.measure.name === "Cost, as the harness reports");
+    // On `four` watched lies wholly above plain; on `six` the two overlap. A difference on one task is a difference.
+    assert.deepEqual(cost("opus").map((reading) => [`${reading.a}, ${reading.b}`, reading.says]), [["plain, watched", "a difference: on `four`, plain below watched"], ["plain, outside", "no difference seen"], ["watched, outside", "no difference seen"]]);
+    // Every other measure is the same in every run: equal values overlap, and nothing is said to differ.
+    assert.deepEqual([...new Set(readings(top, "opus").filter((reading) => reading.measure.name !== "Cost, as the harness reports").map((reading) => reading.says))], ["no difference seen"]);
+    assert.equal(readings(top, "opus").length, 15);
+    // The same pair, the same task, the same direction, the same measure, in both blocks.
+    assert.deepEqual(seenInBoth(top), ["Cost, as the harness reports: on `four`, plain below watched"]);
+    assert.ok(tables(top).includes("\n**Seen in both blocks:** Cost, as the harness reports: on `four`, plain below watched.\n"));
+    assert.ok(tables(top).includes("| Cost, as the harness reports | plain, watched | plain $1.0000, $1.1000, $1.2000 · watched $1.3000, $1.4000, $1.5000: plain below | plain $1.0000, $1.1000, $1.2000 · watched $1.0000, $1.1000, $1.2000: overlap | a difference: on `four`, plain below watched |"));
+    // In the other direction in the second block it is seen in each and not in both.
+    costs.plain.forEach((value, at) => record("sonnet", "four", "plain", at + 1, value + 1));
+    assert.deepEqual([cost("sonnet")[0].says, seenInBoth(top)], ["a difference: on `four`, plain above watched", []]);
+    assert.ok(tables(top).includes("\n**Seen in both blocks:** nothing.\n"));
+    // A run the harness ended, and a session that was not watched, are not among an arm's values: with one value left, the pair is not read.
+    record("opus", "four", "watched", 1, 1.3, { ended_by: "the harness" });
+    record("opus", "four", "watched", 2, 1.4, { not_watched: "the hook left no file for this session" });
+    assert.equal(cost("opus")[0].says, "not read: `four` has 1 run(s) in an arm");
+    assert.deepEqual(seenInBoth(top), []);
+    // A cost decided by less than a cent is decided by the record's own figure, not by the row's two decimals.
+    record("opus", "six", "plain", 1, 1.2409);
+    record("opus", "six", "plain", 2, 1.2449);
+    record("opus", "six", "plain", 3, 1.245);
+    for (const [at, value] of [1.2451, 1.2509, 1.3].entries()) record("opus", "six", "outside", at + 1, value);
+    assert.equal(cost("opus")[1].says, "a difference: on `six`, plain below outside");
+  } finally {
+    rmSync(top, { recursive: true, force: true });
   }
 });

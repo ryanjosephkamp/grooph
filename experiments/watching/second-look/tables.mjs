@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /**
- * The tables of the second look at watching, made from its records and from nothing else.
+ * The tables of the second look at watching, and its readings by the rule, made from its records and from nothing else.
  *
- *   node experiments/watching/second-look/tables.mjs            print the tables as Markdown, one for each block that has a record
- *   node experiments/watching/second-look/tables.mjs --check    exit 1 unless RESULTS.md holds exactly these tables;
+ *   node experiments/watching/second-look/tables.mjs            print them as Markdown, for each block that has a record
+ *   node experiments/watching/second-look/tables.mjs --check    exit 1 unless RESULTS.md holds exactly these;
  *                                                                while nothing has been run, exit 1 if a results page exists at all
  *
- * One row for each run, in the protocol's order (README.md, "Three rounds, in two blocks"). Every value is read from a
- * run's result.json and score.json. A run that was made once more is read from its rerun. The row of the run recorded
- * first in its block says so, and a run made from another checkout than that one is named under the table. No model,
- * no network.
+ * For each block: one row for each run, in the order the block makes them (README.md, "Three rounds, in two blocks"),
+ * and then the rule of reading applied to the five measures it is applied to, pair of arms by pair of arms ("How it
+ * will be read"). The rule is applied here, by this script, so that nobody applies it by eye. Every value is read from
+ * a run's result.json and score.json, at the precision the record holds and not as a row rounds it. A run that was
+ * made once more is read from its rerun. No model, no network.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -18,18 +19,25 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const BLOCKS = ["opus", "sonnet"];
 const TASKS = ["four", "six"];
-const ROUNDS = [
-  ["plain", "watched", "outside"],
-  ["watched", "outside", "plain"],
-  ["outside", "plain", "watched"],
-];
-/** A block's own three rounds: the first block takes them as they stand, the second starts from the second. */
-const roundsOf = (block) => ROUNDS.map((_, at) => ROUNDS[(at + BLOCKS.indexOf(block)) % ROUNDS.length]);
-export const HEAD = ["Round", "Task", "Arm", "Ended by", "Cost", "Minutes", "Turns", "Subagents", "Most at once", "Unseen tests passed", "Tokens put out", "Written to the cache", "In the project: calls naming / shown", "Outside it: calls naming / shown / refused", "Final reply names the recorder", "Hook beside the harness: starts / stops · differences"];
+/** The arms' places in each block's three rounds, as the block makes them: scripts/lib/watching-second-look-paid.mjs holds the same table, and a test holds the two to each other. */
+export const ROUNDS = {
+  opus: [
+    ["plain", "watched", "outside"],
+    ["watched", "outside", "plain"],
+    ["outside", "plain", "watched"],
+  ],
+  sonnet: [
+    ["watched", "plain", "outside"],
+    ["plain", "outside", "watched"],
+    ["outside", "watched", "plain"],
+  ],
+};
+export const HEAD = ["Round", "Task", "Arm", "Ended by", "Cost", "Minutes", "Turns", "Subagents", "Most at once", "Unseen tests passed", "Tokens put out", "Written to the cache", "In the project: calls naming / shown", "Outside it: calls naming / shown / refused", "Final reply names the recorder", "Handed to the session, of kinds no plain run of the block was", "Hook beside the harness: starts / stops · differences · expected"];
 
 const read = (path) => JSON.parse(readFileSync(path, "utf8"));
 const money = (usd) => (typeof usd === "number" ? `$${usd.toFixed(2)}` : "not reported");
 const number = (value) => (typeof value === "number" ? value.toLocaleString("en-US") : "");
+const short = (sha) => String(sha ?? "not recorded").slice(0, 8);
 
 /** A run's record: its own, or its rerun's when the harness ended its own or its own was never written. Null when it has none. */
 function recordOf(root, block, task, arm, round) {
@@ -40,7 +48,12 @@ function recordOf(root, block, task, arm, round) {
   return !first || first.result.ended_by === "the harness" ? (again ?? first) : first;
 }
 
-function row(record, task, arm, round, first) {
+/** Every run of a block in the order it makes them, each with its record or null. */
+const runsOf = (root, block) => ROUNDS[block].flatMap((arms, at) => arms.flatMap((arm) => TASKS.map((task) => ({ block, task, arm, round: at + 1, record: recordOf(root, block, task, arm, at + 1) }))));
+const checkoutOf = (record) => record?.result.given?.the_runners_checkout ?? {};
+const kindsOf = (record) => Object.keys(record?.result.measures?.given?.entries_of_what_it_was_given ?? {});
+
+function row({ task, arm, round, record }, first, plainKinds) {
   if (!record) return [String(round), `\`${task}\``, arm, "not run", ...HEAD.slice(4).map(() => "")];
   const { result, score } = record;
   const m = result.measures ?? {};
@@ -52,10 +65,12 @@ function row(record, task, arm, round, first) {
   const each = result.the_hooks_file_agent_by_agent;
   const starts = each ? each.each.reduce((sum, agent) => sum + agent.runs.start_lines, 0) : null;
   const stops = each ? each.each.reduce((sum, agent) => sum + agent.runs.stop_lines, 0) : null;
+  const expected = each ? Object.values(each.expected?.by_kind ?? {}).reduce((sum, agents) => sum + agents.length, 0) : null;
+  const handed = kindsOf(record).filter((kind) => !plainKinds.has(kind));
   return [
     record === first ? `${round}, the block's first run` : String(round),
     `\`${task}\``,
-    arm,
+    result.not_watched ? `${arm}, NOT WATCHED: no hook's file` : arm,
     result.ended_by ?? "",
     money(m.session?.cost_usd_as_the_harness_reports),
     String(m.session?.minutes_by_the_runners_clock ?? ""),
@@ -68,29 +83,102 @@ function row(record, task, arm, round, first) {
     `${inside.named_in_the_input?.calls ?? 0} / ${inside.shown_in_the_result?.calls ?? 0}`,
     `${outside.named_in_the_input?.calls ?? 0} / ${outside.shown_in_the_result?.calls ?? 0} / ${outside.named_in_the_input?.of_them_refused ?? 0}`,
     reply.read ? (reply.names_the_recorder ? "yes" : "no") : "not read",
-    arm === "plain" ? "" : each ? (each.the_hooks_file.found ? `${starts} / ${stops} · ${each.differences.count}` : "no file") : "not compared",
+    arm === "plain" ? "" : handed.length > 0 ? handed.map((kind) => `\`${kind}\``).join(", ") : "none",
+    arm === "plain" ? "" : each ? (each.the_hooks_file.found ? `${starts} / ${stops} · ${each.differences.count} · ${expected}` : "no file") : "not compared",
   ];
 }
 
-/** The tables, one for each block that has at least one record; an empty string while nothing has been run. */
+// ── the rule of reading, applied ─────────────────────────────────────────
+
+/**
+ * The five measures the rule is applied to, each read from a run's record at the precision the record holds. The count
+ * of subagents is the transcripts'. A value that is not there is no value: the run is left out of that measure.
+ */
+export const MEASURES = [
+  { name: "Unseen tests passed, the packages' sum", of: ({ score }) => (score ? score.packages.reduce((sum, pkg) => sum + (pkg.passed ?? 0), 0) : null), show: (value) => String(value) },
+  { name: "Cost, as the harness reports", of: ({ result }) => result.measures?.session?.cost_usd_as_the_harness_reports ?? null, show: (value) => `$${value.toFixed(4)}` },
+  { name: "Minutes, by the runner's clock", of: ({ result }) => result.measures?.session?.minutes_by_the_runners_clock ?? null, show: (value) => String(value) },
+  { name: "Subagents started", of: ({ result }) => result.measures?.subagents?.count ?? null, show: (value) => String(value) },
+  { name: "Tokens put out, with its subagents", of: ({ result }) => result.measures?.delegation?.tokens_put_out_with_its_subagents ?? null, show: (value) => value.toLocaleString("en-US") },
+];
+export const PAIRS = [["plain", "watched"], ["plain", "outside"], ["watched", "outside"]];
+
+/** A run whose value is read with its arm: it has a record, the harness did not end it, and it was watched if its arm is a watched one. */
+const isRead = (run) => Boolean(run.record) && run.record.result.ended_by !== "the harness" && !run.record.result.not_watched;
+
+/**
+ * Two arms on one task and one measure. They OVERLAP when neither arm's values all lie above the other's: equal values
+ * overlap. With fewer than two values in either arm there is nothing to read.
+ */
+export function onATask(a, b) {
+  if (a.length < 2 || b.length < 2) return { read: false, why: `${Math.min(a.length, b.length)} run(s) in an arm` };
+  if (Math.min(...a) > Math.max(...b)) return { read: true, apart: "above" };
+  if (Math.max(...a) < Math.min(...b)) return { read: true, apart: "below" };
+  return { read: true, apart: null };
+}
+
+/** Every reading of a block: each measure, for each pair of arms, on each task, and what the rule says of the pair. */
+export function readings(root, block) {
+  const runs = runsOf(root, block).filter(isRead);
+  return MEASURES.flatMap((measure) =>
+    PAIRS.map(([a, b]) => {
+      const tasks = TASKS.map((task) => {
+        const values = (arm) => runs.filter((run) => run.task === task && run.arm === arm).map((run) => measure.of(run.record)).filter((value) => typeof value === "number");
+        const [va, vb] = [values(a), values(b)];
+        return { task, a: va, b: vb, ...onATask(va, vb) };
+      });
+      const unread = tasks.filter((task) => !task.read);
+      const apart = tasks.filter((task) => task.read && task.apart);
+      const says = unread.length > 0 ? `not read: ${unread.map((task) => `\`${task.task}\` has ${task.why}`).join("; ")}` : apart.length === 0 ? "no difference seen" : `a difference: ${apart.map((task) => `on \`${task.task}\`, ${a} ${task.apart} ${b}`).join("; ")}`;
+      return { measure, a, b, tasks, says, apart: unread.length > 0 ? [] : apart.map((task) => ({ task: task.task, way: task.apart })) };
+    }),
+  );
+}
+
+function readingsTable(root, block) {
+  const head = ["Measure", "Arms", ...TASKS.map((task) => `\`${task}\``), "By the rule"];
+  const out = [`#### The \`${block}\` block, read by the rule`, "", `| ${head.join(" | ")} |`, `|${head.map(() => "---").join("|")}|`];
+  for (const reading of readings(root, block)) {
+    const cell = (task) => `${reading.a} ${task.a.map(reading.measure.show).join(", ") || "none"} · ${reading.b} ${task.b.map(reading.measure.show).join(", ") || "none"}: ${task.read ? (task.apart ? `${reading.a} ${task.apart}` : "overlap") : "not read"}`;
+    out.push(`| ${[reading.measure.name, `${reading.a}, ${reading.b}`, ...reading.tasks.map(cell), reading.says].join(" | ")} |`);
+  }
+  out.push("");
+  return out;
+}
+
+/** A difference seen in both blocks: the same two arms, apart on the same task, in the same direction, on the same measure. */
+export function seenInBoth(root) {
+  const [first, second] = BLOCKS.map((block) => readings(root, block));
+  return first.flatMap((reading, at) => reading.apart.filter((one) => second[at].apart.some((other) => other.task === one.task && other.way === one.way)).map((one) => `${reading.measure.name}: on \`${one.task}\`, ${reading.a} ${one.way} ${reading.b}`));
+}
+
+// ── the page's tables ────────────────────────────────────────────────────
+
+/** The tables and the readings, for each block that has at least one record; an empty string while nothing has been run. */
 export function tables(root = here) {
   const out = [];
-  for (const block of BLOCKS) {
-    const runs = roundsOf(block).flatMap((arms, at) => arms.flatMap((arm) => TASKS.map((task) => [task, arm, at + 1])));
-    const records = runs.map(([task, arm, round]) => recordOf(root, block, task, arm, round));
-    const made = records.filter(Boolean);
-    if (made.length === 0) continue;
+  const made = BLOCKS.map((block) => runsOf(root, block)).filter((runs) => runs.some((run) => run.record));
+  const earliest = (runs) => runs.filter((run) => run.record).reduce((first, run) => (String(run.record.result.recorded ?? "") < String(first.record.result.recorded ?? "") ? run : first)).record;
+  // One checkout for both blocks: every run is held to the checkout of the first run of the whole look.
+  const looksFirst = made.length > 0 ? made.map(earliest).reduce((first, record) => (String(record.result.recorded ?? "") < String(first.result.recorded ?? "") ? record : first)) : null;
+  for (const runs of made) {
+    const block = runs[0].block;
     // The block's first run is the one recorded first: whatever a block's first run pays, it is this row's.
-    const first = made.reduce((earliest, record) => (String(record.result.recorded ?? "") < String(earliest.result.recorded ?? "") ? record : earliest));
+    const first = earliest(runs);
     const lead = first.result.measures?.session?.models_that_answered ?? [];
+    const plainKinds = new Set(runs.filter((run) => run.arm === "plain").flatMap((run) => kindsOf(run.record)));
     out.push(`### The \`${block}\` block (the session's own model answered as ${lead.map((model) => `\`${model}\``).join(", ") || "not recorded"})`, "");
+    out.push(`The block's first run was made from commit \`${short(checkoutOf(first).commit)}\`, with the hook's file \`${short(checkoutOf(first).hook_sha256)}\`.`, "");
     out.push(`| ${HEAD.join(" | ")} |`, `|${HEAD.map(() => "---").join("|")}|`);
-    runs.forEach(([task, arm, round], at) => out.push(`| ${row(records[at], task, arm, round, first).join(" | ")} |`));
+    for (const run of runs) out.push(`| ${row(run, first, plainKinds).join(" | ")} |`);
     out.push("");
-    // One checkout for both blocks: a run made from another commit, or with another hook, than the block's first is named.
-    const from = (record) => record.result.given?.the_runners_checkout ?? {};
-    const others = runs.filter((_, at) => records[at] && (from(records[at]).commit !== from(first).commit || from(records[at]).hook_sha256 !== from(first).hook_sha256)).map(([task, arm, round]) => `\`${task}\` ${arm} ${round}`);
-    if (others.length > 0) out.push(`Made from another checkout than the block's first run (another commit, or another hook's file): ${others.join(", ")}.`, "");
+    const others = runs.filter((run) => run.record && (checkoutOf(run.record).commit !== checkoutOf(looksFirst).commit || checkoutOf(run.record).hook_sha256 !== checkoutOf(looksFirst).hook_sha256)).map((run) => `\`${run.task}\` ${run.arm} ${run.round}`);
+    if (others.length > 0) out.push(`Made from another checkout than the first run of the look (another commit, or another hook's file): ${others.join(", ")}.`, "");
+    out.push(...readingsTable(root, block));
+  }
+  if (made.length === BLOCKS.length) {
+    const both = seenInBoth(root);
+    out.push(`**Seen in both blocks:** ${both.length > 0 ? both.join("; ") : "nothing"}.`, "");
   }
   return out.join("\n");
 }
