@@ -21,7 +21,16 @@ Smaller: a file left by a stopped command under the next command's process numbe
 
 ## The fuzz, again (`out-11-fuzz-*.txt`; `model.mjs` is the reader's own, and imports nothing of grooph's)
 
-Three seeds of 400 cases: 4,400 runs of grooph and 1,650 files checked after an install in each. In all three: 0 files that did not parse, 0 where anything of the person's outside `hooks` changed, 0 where an entry of theirs changed, 0 where grooph's entries were wrong or doubled, 0 refusals, and a second identical install left every file as it was. What remove did not give back to the letter, all of kinds now stated: a `hooks` that was there and empty (131, 131 and 126 base cases); an event's list that was there and empty (94, 87 and 85, counted again where an earlier install's entries were in the file, and as "an event that should be there is not" where the list had been filled by `--tools` and that option was then dropped); an empty object written with space in it (1 to 2 a seed).
+Three seeds of 400 cases, 4,400 runs of grooph each, and 1,650, 1,566 and 1,584 files checked after an install; the small set, 1,892 runs and 516 files. In every one of the four: no refusal, and "install run again left every file as it was" in every sequence (1,200 of 1,200 in each seed, 516 of 516 in the small set). The script names no file that did not parse, none where an entry of the person's changed and none where grooph's entries were wrong or doubled. The kinds it does name, with its own counts over the three sequences of each seed (seeds 1, 2, 3):
+
+| Kind, in the script's words | Seeds 1, 2, 3 | What it is |
+|---|---|---|
+| (6) hooks was there and empty | 393, 393, 378 | stated: it goes with the entries that filled it |
+| (6) an event grooph adds to was there with an empty list, and is gone | 282, 262, 256; and 42, 39, 30 more where an earlier install's entries were in the file | now stated |
+| (3) an event that should be there is not | 4, 3, 4 | the same thing by another road: the empty list was filled by `--tools`, and that option was then dropped |
+| (6) the file was an empty object with space in it, and (2) hooks was missing and the file changed in more than one place | 3, 3, 6 each | one case under two names: `{ }` has its space replaced when `hooks` goes in, and comes back `{}`. Now stated |
+
+The small set shows the same kinds and no other (132, 96, 36 and 12).
 
 ## The first reader's scripts once more (`out-r1-*.txt`)
 
