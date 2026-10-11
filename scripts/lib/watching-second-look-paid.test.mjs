@@ -669,7 +669,13 @@ test("the launcher becomes the harness: when the watchdog ends the process group
         return false;
       }
     };
-    assert.deepEqual([alive(pid), alive(left)], [false, false]);
+    // A process that was killed may be listed for a moment more, until whoever took it over has collected it: it is
+    // looked for until it is gone, for a few seconds at most.
+    const gone = async (id) => {
+      for (let tries = 0; tries < 100 && alive(id); tries += 1) await new Promise((later) => setTimeout(later, 50));
+      return !alive(id);
+    };
+    assert.deepEqual([await gone(pid), await gone(left)], [true, true], "the harness and the child it left running are both gone");
     unbuild(made);
     assert.deepEqual([existsSync(made.work), existsSync(join(p.home, "home"))], [false, false]);
   } finally {
