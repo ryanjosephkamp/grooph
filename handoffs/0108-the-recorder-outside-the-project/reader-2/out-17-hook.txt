@@ -1,0 +1,9 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r2/packages/cli/bin/grooph.js
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[HELD] what stands at <grooph's folder>/watched.json when the hook runs | tries: 9 | not as expected: 0 of 9. a folder: exit 0 in 68 ms, silent, nothing recorded; a named pipe: exit 0 in 69 ms, silent, nothing recorded; a link to a named pipe: exit 0 in 63 ms, silent, nothing recorded; a link to /dev/zero: exit 0 in 65 ms, silent, nothing recorded; a link to a folder: exit 0 in 68 ms, silent, nothing recorded; a link to nothing: exit 0 in 71 ms, silent, nothing recorded; a link to itself: exit 0 in 75 ms, silent, nothing recorded; a file nobody may read (000): exit 0 in 68 ms, silent, nothing recorded; a link to the list kept elsewhere (a file): exit 0 in 71 ms, silent, recorded
+[HELD] GROOPH_EVENTS_DIR set for the hook at the user's level | tries: 5 | not ignored: 0 of 5. a whole path: one line, in the record; a relative name, the hook started in the project: one line, in the record; a path inside the project: one line, in the record; grooph's own events folder itself: one line, in the record; an empty value: one line, in the record
+[HELD] GROOPH_EVENTS_DIR set for the hook installed in a project | tries: 1 | the line went to the folder the variable names: true; into the project's own .grooph/events/: false; exit 0
+[LIMIT] hooks status with GROOPH_EVENTS_DIR set, in a listed folder | tries: 1 | it says a line about the variable: false
+
+4 attacks: 3 held, 0 broke, 1 a limit worth saying

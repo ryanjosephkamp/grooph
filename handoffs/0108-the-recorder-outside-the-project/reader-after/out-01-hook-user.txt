@@ -1,0 +1,46 @@
+build: /Users/noir/Documents/grooph/.claude/worktrees/slice-0108-recorder-4a4073/packages/cli/bin/grooph.js
+       hooks.js 8ca5893e7c22 · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[HELD] a session in a listed folder | tries: 1 | quiet=true; changed: + p/gh/events d; + p/gh/events/alpha-317ebfe6 d; + p/gh/events/alpha-317ebfe6/s1.jsonl f 202; line keys: v,t,harness,event,session,cwd
+[HELD] modes of what the hook makes | tries: 1 | events 700, record folder 700, session file 600
+[HELD] a payload full of what was said (prompt, tool input, tool result, last message, transcript_path...) | tries: 1 | quiet=true; the secret is in the line: false; line: {"v":1,"t":"2026-10-11T19:14:52.080Z","harness":"claude-code","event":"tool","session":"s2","tool":"Agent","spawned":"agent-9","cwd":"<S>/projects/alpha"}
+[LIMIT] free text in the fields the hook keeps (a subagent's type, a tool's name, a model, a transcript path, a folder's name) | tries: 7 | kept whole, at any length, in: agent_type, agent_id, tool_name, model, agent_transcript_path, session_id, cwd. A session names its own subagent types (a file in .claude/agents/), its MCP tools and its folders
+[HELD] tool_response.agentId that is not an id | tries: 1 | in the line: false
+[HELD] field values with line breaks, NUL, U+2028, a forged second line, 70,000 characters, a lone surrogate | tries: 50 | 0 left something other than one whole JSON line
+[LIMIT] a subagent type of 6,000,000 characters | tries: 1 | quiet=true; the "one short line" is 6000127 bytes; grooph sessions then shows session s61: false (exit 0)
+[HELD] hostile session ids (paths, dots, NUL, line breaks, shell words, 100,000 characters) | tries: 24 | 0 wrote outside the record folder, wrote more than one file, or were heard; files made: 2e2e2f2e2e2f2e2e2f656c736577686572652f78.jsonl ...jsonl ..jsonl 612f62.jsonl 2f6574632f706173737764.jsonl 2e2e5c2e2e5c78.jsonl ...
+[HELD] a session id that is not a non-empty string | tries: 8 | 8 left nothing and were quiet
+[LIMIT] two sessions, one file: id "a/b" and id "612f62" (its hex) | tries: 2 | file 612f62.jsonl holds sessions: ["a/b","612f62"] (also so in the project layout; each line still names its own session)
+[LIMIT] two sessions whose ids differ only in case ("CaseId", "caseid") on this disk | tries: 2 | files: CaseId.jsonl
+[HELD] payloads that are not an event (empty, not JSON, null, a list, 200,000 open brackets, 30 MB of x, a made-up event name, no folder) | tries: 19 | 0 were heard, failed, hung or left something
+[HELD] odd arguments to the hook | tries: 8 | 0 heard or failed. Wrote: ["claude-code","--user","extra"] => + p/gh/events/alpha-317ebfe6/s65.jsonl | ["","--user"] => + p/gh/events/alpha-317ebfe6/s67.jsonl | ["a\nb","--user"] => + p/gh/events/alpha-317ebfe6/s68.jsonl | ["xxxxxxxxxxxx","--user"] => + p/gh/events/alpha-317ebfe6/s69.jsonl
+[HELD] sessions outside every listed folder (a sibling with the same first letters, the parent, /, a link leading out, ..) | tries: 9 | 0 left a line
+[HELD] a list that is empty, missing, a folder, not JSON, not a list, with a byte-order mark, or with entries that lack a path or a name | tries: 17 | 0 left a line or were heard
+[HELD] a list whose record names are paths, dots, empty, 129 characters, with a space or a line break | tries: 17 | 0 wrote anything at all
+[HELD] a list whose record names pass the pattern ("hooks", "events", "A..", 128 characters) | tries: 6 | 0 wrote outside <home>/events/<that name>/
+[HELD] a hand-written list that names "/" | tries: 1 | a session in another folder left: nothing (the hook compares with "/" + "/", so only a session in / itself matches)
+[LIMIT] a hand-written list where the outer folder's path is written longer than the inner one's (/./././.) | tries: 1 | the hook wrote p/gh/events/outer-rec, p/gh/events/outer-rec/s120.jsonl; grooph sessions in the inner folder says: no sessions recorded for <S>/projects/alpha/inner yet, in <S>/p/gh/events/inner-rec/. The event hook outside the project writes them, for a 
+[HELD] a list of 200,000 folders (18 MB), a session in none of them | tries: 1 | quiet=true, 573 ms for the call with two listings of the scratch folder around it
+[HELD] a named pipe at <home>/watched.json | tries: 1 | hung until killed after 4 s: false. (Only someone who can write in grooph's own folder can put it there.)
+[HELD] GROOPH_HOME, HOME, CLAUDE_CONFIG_DIR, CODEX_HOME, PWD, TMPDIR all naming another folder | tries: 1 | changed: p/gh/events/alpha-317ebfe6/s123.jsonl
+[HELD] GROOPH_EVENTS_DIR set in the hook's environment, --user layout | tries: 2 | quiet=true; wrote p/gh/events/alpha-317ebfe6/s124.jsonl, p/gh/events/beta-8ab65153, p/gh/events/beta-8ab65153/s125.jsonl: outside <home>/events/, folders made on the way (mode -), and two listed projects' sessions in one folder. grooph sessions in alpha shows s124: true
+[HELD] the same, for a session in no listed folder | tries: 1 | changed: nothing
+[HELD] GROOPH_EVENTS_DIR=rel-events (a relative name), the hook started in the listed project | tries: 1 | changed: + p/gh/events/alpha-317ebfe6/s127.jsonl: a folder of grooph's inside the watched project
+[HELD] CLAUDE_PROJECT_DIR names listed beta, the payload's folder is listed alpha | tries: 1 | recorded in beta-8ab65153 (the variable is asked first, as the code says)
+[HELD] Claude Code session of alpha working in alpha/link-to-beta (a link it made to listed beta) | tries: 1 | recorded in alpha's record
+[LIMIT] Codex session (no CLAUDE_PROJECT_DIR) working in alpha/link-to-beta | tries: 1 | recorded in BETA's record; its line's cwd says <S>/projects/alpha/link-to-beta
+[LIMIT] a session with no CLAUDE_PROJECT_DIR whose folder moves alpha -> beta -> unlisted (start, subagent start | subagent stop | turn end) | tries: 4 | 2 lines in alpha's record, 1 in beta's, 1 nowhere. grooph sessions in alpha says: codex · working · 1 running, 0 done · session s131 · alpha / ● builder  ag1  running 1 s
+[LIMIT] nested listed folders; a Claude Code session started in the outer, working in the inner | tries: 1 | watch said: "It is inside <S>/projects/alpha, and both are listed. A session is recorded under the inner of the two that holds the folder it was started in, where its harness says which that is (Claude Code does), and otherwise the folder it is working in.". The line went to the OUTER one's record. grooph sessions in the inner folder shows it: false
+[HELD] nested listed folders; a session started in the inner | tries: 1 | recorded in the inner one's record
+[HELD] the session's folder typed in other letters (ALPHA, PROJECTS) on this case-insensitive disk | tries: 1 | recorded in alpha's record: true
+[HELD] a folder named café listed in one Unicode form, the session's folder given in the other | tries: 1 | recorded in its record: true
+[HELD] a link, a link to nothing, a file, a second name, a pipe or a folder standing at <home>/events, at <home>/events/<name>, or at the session's file | tries: 16 | 0 changed something elsewhere, hung, or were heard
+[HELD] a session file with other contents, write-only, or read-only | tries: 3 | 0 had a line added or were heard
+[LIMIT] a record folder that already stands with mode 777 | tries: 1 | after a call its mode is 777; the session file's is 600
+[HELD] 300 hooks started at once for one session, each line about 3,100 bytes | tries: 300 | 300 quiet and exit 0; 300 lines, 300 whole, 300 different
+[LIMIT] nothing listed, and a payload of 100 MB (the hook's file says "With nothing listed it leaves before it reads what it was sent") | tries: 5 | 111 ms with 200 bytes, 759 ms with 100 MB: it reads all of standard input into memory before it looks at the list
+[LIMIT] a whole event written to the hook's standard input, which is then left open | tries: 2 | nothing listed: still waiting after 3 s (stopped by this script); a folder listed: still waiting after 3 s (stopped by this script). The hook does nothing, not even look at the list, until its input ends: a harness that did not close it would wait out the entry's timeout (10, 5 or 3 s) at every event of every session on the machine
+
+212 hook calls made one at a time
+
+39 attacks: 28 held, 0 broke, 11 a limit worth saying

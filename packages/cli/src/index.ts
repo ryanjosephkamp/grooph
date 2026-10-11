@@ -388,8 +388,10 @@ export async function run(
 
       case "hooks": {
         const [sub, ...args] = rest;
-        const { values } = parseArgs({ args, allowPositionals: true, options: { dir: { type: "string" }, harness: { type: "string" }, tools: { type: "boolean" }, local: { type: "boolean" }, push: { type: "boolean" }, "push-branch": { type: "string" } } });
+        const { values, positionals } = parseArgs({ args, allowPositionals: true, options: { dir: { type: "string" }, harness: { type: "string" }, tools: { type: "boolean" }, local: { type: "boolean" }, push: { type: "boolean" }, "push-branch": { type: "string" }, user: { type: "boolean" } } });
         return hooksCommand(io, sub, {
+          user: values["user"] === true,
+          ...(positionals.length > 0 ? { folders: positionals } : {}),
           ...(values["dir"] !== undefined ? { dir: values["dir"] } : {}),
           ...(values["harness"] !== undefined ? { harness: values["harness"] } : {}),
           tools: values["tools"] === true,
@@ -406,12 +408,12 @@ export async function run(
         const [sub, ...args] = rest;
         const at = args.indexOf("--dir");
         const dir = at >= 0 ? args[at + 1] : undefined;
-        return eventsCommand(io, sub, at >= 0 ? [...args.slice(0, at), ...args.slice(at + 2)] : args, dir);
+        return eventsCommand(io, sub, at >= 0 ? [...args.slice(0, at), ...args.slice(at + 2)] : args, dir, env.env);
       }
 
       case "sessions": {
         const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { json: { type: "boolean" } } });
-        return sessionsCommand(io, positionals, { json: values["json"] === true });
+        return sessionsCommand(io, positionals, { json: values["json"] === true, ...(env.env !== undefined ? { env: env.env } : {}), ...(env.cwd !== undefined ? { cwd: env.cwd } : {}) });
       }
 
       case "mcp": {

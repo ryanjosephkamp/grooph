@@ -1,0 +1,21 @@
+// A look at exact words, by hand: prints what commands say in a few of the cases above.
+import { writeFileSync } from "node:fs";
+import { S, g, hook, installed, made, read } from "./lib.mjs";
+const sh = (s) => s.replaceAll(S, "<S>");
+const q = installed("n2");
+const a = made("shared", "a");
+const b = made("shared", "b");
+writeFileSync(q.list, JSON.stringify({ groophWatched: 1, folders: [{ path: a, events: "same-record" }, { path: b, events: "same-record" }] }, null, 2));
+console.log("--- status with a shared record name\n" + sh(g(q.env, ["hooks", "status"], { cwd: a }).all));
+console.log("--- watch c\n" + sh(g(q.env, ["hooks", "watch", made("shared", "c")]).all));
+const outer = made("tree", "outer");
+const inner = made("tree", "outer", "inner");
+console.log("--- watch outer\n" + sh(g(q.env, ["hooks", "watch", outer]).all));
+console.log("--- watch inner\n" + sh(g(q.env, ["hooks", "watch", inner]).all));
+console.log("--- unwatch inner\n" + sh(g(q.env, ["hooks", "unwatch", inner]).all));
+console.log("--- unwatch something not listed\n" + sh(g(q.env, ["hooks", "unwatch", made("never")]).all));
+console.log("--- watch <home>/events\n" + sh(g(q.env, ["hooks", "watch", q.events]).all));
+console.log("--- events push in a listed folder\n" + sh(g(q.env, ["events", "push"], { cwd: outer }).all));
+console.log("--- sessions --json in a listed folder (stderr)\n" + sh(g(q.env, ["sessions", "--json"], { cwd: outer }).err));
+console.log("--- sessions in a listed folder, nothing recorded\n" + sh(g(q.env, ["sessions"], { cwd: outer }).all));
+console.log("--- hooks status in an unlisted folder\n" + sh(g(q.env, ["hooks", "status"], { cwd: made("never") }).all));

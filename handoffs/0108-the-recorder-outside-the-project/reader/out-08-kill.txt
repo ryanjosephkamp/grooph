@@ -1,0 +1,8 @@
+build: <TMP>/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+       node v26.10.0, darwin arm64
+[LIMIT] install --user killed at a random moment of its 155 ms, settings of 3 MB, the ordinary case | tries: 250 | 186 killed before the end, 64 finished first. Settings afterward: 185 as they were, 65 whole with grooph's entries, 0 broken. The hook's file half-written: 0. Files named *.grooph-tmp left in the person's Claude folder or beside the hook: 1
+[BROKE] the same where the folder takes no new file (mode 555) and the settings file can be written: install writes it where it stands | tries: 250 | 199 killed before the end. Settings afterward: 192 as they were, 56 whole with grooph's entries, 2 BROKEN ({"empty":2})
+[HELD] grooph hooks watch killed at a random moment | tries: 250 | the list broken or shorter afterward: 0; *.grooph-tmp files left in grooph's folder: 0; a lock left behind: 0; the next watch then took 108 ms and exited 0
+
+3 attacks: 1 held, 1 broke, 1 a limit worth saying

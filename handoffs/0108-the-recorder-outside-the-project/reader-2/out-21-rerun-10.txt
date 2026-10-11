@@ -1,0 +1,14 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r3/packages/cli/bin/grooph.js
+       hooks.js 0c22565e5253 · events-io.js cafc5778c08d · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[HELD] install --user, a key is added after hooks, install --user --tools | tries: 1 | second install exit 0; file changed
+[HELD] install --user --tools, a key is added after hooks, install --user (no --tools) | tries: 1 | second install exit 0; file changed
+[HELD] install --user, a key is added after hooks, install --user again unchanged (control) | tries: 1 | second install exit 0; file unchanged
+[HELD] hooks first of three keys from the start; install; install --tools | tries: 1 | second install exit 0; file changed
+[HELD] hooks in the middle, already holding only grooph's from another GROOPH_HOME; install | tries: 1 | second install exit 0; file changed
+[HELD] the same, codex | tries: 1 | second install exit 0; file changed
+[HELD] hooks last (control): install; install --tools | tries: 1 | second install exit 0; file changed
+[HELD] hooks not last but somebody else's entry is in it too (control): install; install --tools | tries: 1 | second install exit 0; file changed
+[LIMIT] the way out: remove --user, then install --user --tools | tries: 1 | stuck install exit 0; remove exit 0; install after it exit 0; hooks is now the 2. of 2 keys
+
+9 attacks: 8 held, 0 broke, 1 a limit worth saying

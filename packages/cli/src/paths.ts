@@ -11,6 +11,7 @@
  */
 
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -41,4 +42,38 @@ export function appDir(): string | undefined {
   if (resolve(clone, "packages", "cli", "dist") !== resolve(base())) return undefined;
   const built = join(clone, "apps", "web", "dist");
   return existsSync(join(built, "index.html")) ? built : undefined;
+}
+
+/**
+ * A person's own places, outside any project: grooph's folder and each harness's user-level hook settings.
+ * `GROOPH_HOME` names the first (default `.grooph` in their home; the user's templates are kept there too),
+ * `CLAUDE_CONFIG_DIR` and `CODEX_HOME` the folders the two harnesses themselves read those names for. A test, or a
+ * profile kept apart, points all three at folders of its own.
+ */
+export type UserPlaces = {
+  /** grooph's own folder */
+  home: string;
+  /** the event hook, one copy for the machine */
+  hook: string;
+  /** the folders whose sessions are recorded: `grooph hooks watch` writes it and the hook reads it */
+  list: string;
+  /** the record: one folder per listed folder, one file per session */
+  events: string;
+  /** the settings files `install --user` has put entries in: a person may have more than one account's, and the hook is kept while any of them names it */
+  installs: string;
+  /** where each harness reads its user-level hooks */
+  settings: { "claude-code": string; codex: string };
+};
+
+export function userPlaces(env: NodeJS.ProcessEnv = process.env): UserPlaces {
+  const named = (name: string, fallback: string): string => resolve(env[name] || join(homedir(), fallback));
+  const home = named("GROOPH_HOME", ".grooph");
+  return {
+    home,
+    hook: join(home, "hooks", "grooph-event.mjs"),
+    list: join(home, "watched.json"),
+    events: join(home, "events"),
+    installs: join(home, "installed.json"),
+    settings: { "claude-code": join(named("CLAUDE_CONFIG_DIR", ".claude"), "settings.json"), codex: join(named("CODEX_HOME", ".codex"), "hooks.json") },
+  };
 }

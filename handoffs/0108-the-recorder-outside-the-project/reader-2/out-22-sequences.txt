@@ -1,0 +1,8 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r3/packages/cli/bin/grooph.js
+       hooks.js 0c22565e5253 · events-io.js cafc5778c08d · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[HELD] an entry that joins grooph's command with somebody's: install, install, install --tools, remove | tries: 36 | cases with something wrong: 0 of 36. 
+[LIMIT] a joined entry that writes its "hooks" key twice (a harness reads the second) | tries: 1 | install exit 1: "grooph: cannot change <S>/q37/claude/settings.json: grooph could not change it and be sure of the result. Nothing was changed."; file unchanged: true
+[HELD] install --user, a change by hand, install --user (with and without --tools), the same again, remove | tries: 48 | cases with something wrong: 0 of 48. 
+
+3 attacks: 2 held, 0 broke, 1 a limit worth saying

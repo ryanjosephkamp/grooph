@@ -1,0 +1,7 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r2/packages/cli/bin/grooph.js
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[HELD] grooph hooks install in a project, origin/main's build against this one: 11 sets of options on 4 starting settings; install, status, install again, remove | tries: 44 | 44 of 44 the same byte for byte in what is written (the hook's own file apart) and in what is printed. 
+[HELD] the two hook files run in the project layout over the same 68 calls (every event, sessions in and out of the project, hostile ids, GROOPH_EVENTS_DIR, payloads that are no event) | tries: 68 | the same files made: true; the same lines but for their times: true (42 lines in 6 files); heard: main 0, this build 0
+
+2 attacks: 2 held, 0 broke, 0 a limit worth saying

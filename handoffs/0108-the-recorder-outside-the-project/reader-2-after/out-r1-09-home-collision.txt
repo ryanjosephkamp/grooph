@@ -1,0 +1,7 @@
+build: /Users/noir/Documents/grooph/.claude/worktrees/slice-0108-recorder-4a4073/packages/cli/bin/grooph.js
+       hooks.js 0c22565e5253 · events-io.js cafc5778c08d · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[HELD] install --user, a folder listed, then grooph hooks install typed in the home folder (an install 'in a project' whose project is ~) | tries: 1 | entries in ~/.claude/settings.json before: 7 of the user's kind; after: 7 of the user's kind, 0 of a project's kind. install's words name the user-level install: false. A session in the listed project: before, 1 entry ran, 0 heard; after, 1 ran, 0 heard (). Session files: events/project-d7f09512/after.jsonl, events/project-d7f09512/before.jsonl. status in the listed project: claude-code: no entries in .claude/settings.json / codex: no entries in .codex/hooks.json / claude-code: 7 hook entries in ~/.claude/settings.json / codex: no entries in ~/.codex/hooks.json
+[HELD] grooph hooks install in ~, then install --user, then remove --user | tries: 1 | both kinds of entry stand: 0 of a project's kind, 7 of the user's. A session started in ~ then writes  straight into ~/.grooph/events/, beside the listed folders' own folders. remove --user: ".../settings.json; .../grooph-event.mjs"; entries left: 0 of a project's kind, and the file they run is GONE. A session started in ~ after that: 0 ran, 0 heard ()
+
+2 attacks: 2 held, 0 broke, 0 a limit worth saying
