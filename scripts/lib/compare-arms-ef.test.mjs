@@ -44,7 +44,7 @@ for (const task of TASKS) {
   });
 }
 
-test("arm F's kept prompts are what the rule derives today", { skip: !existsSync(join(root, "packages", "cli", "dist")) }, () => {
+test("arm F's kept prompts are what the rule derives today", { skip: !existsSync(join(root, "packages", "cli", "dist")) || !existsSync(join(root, "lab", "dist", "src", "main.js")) }, () => {
   for (const task of TASKS) {
     const f = deriveF(task);
     assert.equal(readFileSync(join(HOME, task, "prompt-F.md"), "utf8"), f.prompt, task);

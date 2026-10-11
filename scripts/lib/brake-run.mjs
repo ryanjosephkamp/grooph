@@ -21,7 +21,8 @@ import { derive, readPackage } from "./compare-prompt.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const experiment = join(root, "experiments", "brakes", "budget");
-const grooph = join(root, "packages", "cli", "bin", "grooph.js");
+// The lab's command (lab/README.md): it does everything `grooph` does, `export` included.
+const grooph = join(root, "lab", "bin", "grooph-lab.js");
 
 const fail = (message) => {
   console.error(message);
@@ -87,7 +88,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.error("usage: brake-run.mjs --dry-run [--write] | --check\nThis script starts no model session. The paid runs are not built: they wait for the owner's yes.");
     process.exit(64);
   }
-  if (!existsSync(grooph) || !existsSync(join(root, "packages", "cli", "dist"))) fail("build the tool first: pnpm -r build");
+  if (!existsSync(grooph) || !existsSync(join(root, "packages", "cli", "dist")) || !existsSync(join(root, "lab", "dist", "src", "main.js"))) fail("build the tool first: pnpm -r build");
   const expect = JSON.parse(readFileSync(join(experiment, "expect.json"), "utf8"));
   const work = mkdtempSync(join(tmpdir(), "brake-"));
   try {
