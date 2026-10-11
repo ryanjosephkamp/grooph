@@ -391,7 +391,7 @@ export async function run(
         const { values, positionals } = parseArgs({ args, allowPositionals: true, options: { dir: { type: "string" }, harness: { type: "string" }, tools: { type: "boolean" }, local: { type: "boolean" }, push: { type: "boolean" }, "push-branch": { type: "string" }, user: { type: "boolean" } } });
         return hooksCommand(io, sub, {
           user: values["user"] === true,
-          ...(positionals[0] !== undefined ? { folder: positionals[0] } : {}),
+          ...(positionals.length > 0 ? { folders: positionals } : {}),
           ...(values["dir"] !== undefined ? { dir: values["dir"] } : {}),
           ...(values["harness"] !== undefined ? { harness: values["harness"] } : {}),
           tools: values["tools"] === true,

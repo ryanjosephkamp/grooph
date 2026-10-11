@@ -275,10 +275,11 @@ export async function watchCommand(io: Output, arg: string | undefined, flags: {
   const working = live.sessions.filter((s) => s.state === "working" && !isQuiet(s, live.at)).length;
   io.out(
     live.sessions.length === 0
-      ? `sessions: none recorded under ${shown(own.store?.dir ?? join(projectRoot(target.path), EVENTS_DIR))}/ yet (grooph hooks install records them)`
+      ? `sessions: none recorded under ${shown(own.store?.dir ?? join(projectRoot(target.path), EVENTS_DIR))}/ yet (grooph hooks install${own.store ? " --user" : ""} records them)`
       : `sessions: ${live.sessions.length} recorded, ${working} working${live.sessions.length === 1 ? ` (${sessionLine(live.sessions[0]!, live.at)})` : ""}`,
   );
   if (own.store) io.out(storeLine(own.store));
+  if (own.problem !== undefined) io.err(own.problem);
   io.out(`open ${watcher.url}`);
   const route = watcher.url.slice(watcher.url.indexOf("#"));
   if (!isLoopback(flags.host)) {
