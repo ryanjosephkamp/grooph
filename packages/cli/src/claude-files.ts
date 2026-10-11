@@ -27,8 +27,8 @@
  * - A foreground subagent's run is taken to have ended when the call that started it returned: as completed unless
  *   the result is marked an error, which is read as ended with no more said.
  * - Which run an ending is of is a matter of time, as it is in `seen.ts`: a notice names the subagent and not the
- *   run. It is the earliest run with no ending that had written its last line within half a minute before, and
- *   otherwise the latest that had written its last line at all. Where a subagent has two runs that close it is a
+ *   run. It is the earliest run with no ending that had written its last line within half a minute before (or up
+ *   to a second after, for two clocks), and otherwise the latest that had written its last line at all. Where a subagent has two runs that close it is a
  *   judgment; in the records its runs were never less than 130 s apart.
  * - A session whose id is in two project folders: each subagent is read whole from the first folder that holds
  *   any file of it. A line longer than 64 MB is passed over, and so is a first line that follows a byte-order mark.

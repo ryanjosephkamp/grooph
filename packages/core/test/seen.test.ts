@@ -435,7 +435,7 @@ test("an agent or a run that only one record holds", () => {
     line(30, "subagent-stop", { agent: "mid", type: "general-purpose" }),
     line(100, "subagent-start", { agent: "mid", type: "general-purpose" }),
     line(120, "subagent-stop", { agent: "mid", type: "general-purpose" }),
-    // The hook saw this one run twice; the harness's files hold one run.
+    // The hook saw this one stop and start again; the harness's files hold one run, still writing all the while.
     line(200, "subagent-start", { agent: "twice", type: "general-purpose" }),
     line(210, "subagent-stop", { agent: "twice", type: "general-purpose" }),
     line(400, "subagent-start", { agent: "twice", type: "general-purpose" }),
@@ -453,14 +453,16 @@ test("an agent or a run that only one record holds", () => {
     { agent: "mid", what: "run-not-in-hook", run: 0 },
     { agent: "mid", what: "no-start-line", run: 1 },
     { agent: "seen-only", what: "not-in-harness" },
-    { agent: "twice", what: "run-not-in-harness", run: 1 },
+    // The files hold one long run of it; the hook wrote a stop and a start in the middle of that run, which are no run's.
+    { agent: "twice", what: "line-of-no-run", lines: 2 },
   ]);
   assert.deepEqual(agentsOf(g).map((a) => [a.id, a.source, a.state, a.runs.map((r) => r.source)]), [
     ["gone", "harness", "done", ["harness"]],
     ["mid", "both", "stopped", ["harness", "both", "both"]],
     ["seen-only", "hook", "done", ["hook"]],
-    ["twice", "both", "done", ["both", "hook"]],
+    ["twice", "both", "done", ["both"]],
   ]);
+  assert.deepEqual(agentOf(g, "twice").runs, [{ from: t(200), to: t(410), end: "completed", source: "both" }]);
   // The run the hook saw only the end of begins when the harness's files say, and ends when the hook said.
   assert.deepEqual(agentOf(g, "mid").runs[1], { from: t(-50), to: t(30), end: "completed", source: "both" });
   // Resumed twice, by the one the harness's files say started it: the session, for an agent at depth 1.
@@ -628,9 +630,31 @@ test("which run a line is of, where one agent's runs are seconds apart", () => {
   assert.deepEqual(runsOf(before), [[t(1.9), t(10), "completed", "harness"], [t(25.8), t(114.9), "killed", "both"]]);
   assert.deepEqual(before.differs, [{ agent: "a1", what: "run-not-in-hook", run: 0 }, { agent: "a1", what: "no-stop-line", run: 1 }]);
 
-  // Two stop lines for one run: the second adds nothing.
+  // Two stop lines for one run: the one nearer the run's last line is its stop, and the other is no run's, which is said.
   const twice = seenGraph([line(0, "turn-start"), start(10.1), stop(12.1), stop(13.1)], { harness: files([10, 12, "completed"]) });
-  assert.deepEqual([runsOf(twice), twice.differs, twice.moments], [[[t(10.1), t(12.1), "completed", "both"]], [], [t(0), t(10.1), t(12.1)]]);
+  assert.deepEqual([runsOf(twice), twice.differs, twice.moments], [[[t(10.1), t(12.1), "completed", "both"]], [{ agent: "a1", what: "line-of-no-run", lines: 1 }], [t(0), t(10.1), t(12.1), t(13.1)]]);
+  // The harness can fire a stop twice for one run, minutes apart, when another hook sends the subagent back to work:
+  // the run goes on to the stop the files bear out.
+  const sentBack = seenGraph([line(0, "turn-start"), start(10.3), line(50, "tool", { agent: "a1", type: "general-purpose", tool: "Read" }), stop(100), line(150, "tool", { agent: "a1", type: "general-purpose", tool: "Read" }), stop(200.3)], { harness: files([10, 200, "completed"]) });
+  assert.deepEqual([runsOf(sentBack), sentBack.differs], [[[t(10.3), t(200.3), "completed", "both"]], [{ agent: "a1", what: "line-of-no-run", lines: 1 }]]);
+  assert.equal(agentOf(seenGraph([line(0, "turn-start"), start(10.3), stop(100), stop(200.3)], { harness: files([10, 200, "completed"]), at: t(150) }), "a1").state, "running");
+  // A stop written long after its run's last line is still its own, while the agent has not begun again: the run
+  // ends there whether or not the files yet say how it ended.
+  for (const end of ["killed", undefined] as const) assert.deepEqual([runsOf(seenGraph([line(0, "turn-start"), start(10.3), stop(300.2)], { harness: files([10, 100, end]) })), seenGraph([line(0, "turn-start"), start(10.3), stop(300.2)], { harness: files([10, 100, end]) }).differs], [[[t(10.3), t(300.2), end ?? "open", "both"]], []]);
+  // A tool line written late, after its run has ended and been stopped, begins nothing.
+  const lateLine = seenGraph([line(0, "turn-start"), start(10.3), stop(100.3), line(101.6, "tool", { agent: "a1", type: "general-purpose", tool: "Read" })], { harness: files([10, 100, "completed"]) });
+  assert.deepEqual([runsOf(lateLine), agentOf(lateLine, "a1").state, lateLine.nodes[0]!.state, lateLine.differs], [[[t(10.3), t(100.3), "completed", "both"]], "done", "working", []]);
+  // A tool line from inside a run whose start line is still to come is that run's, not the one before's, which the
+  // hook never wrote a line of (it was installed later) and the files give no ending for.
+  const laterRun = seenGraph([line(400, "turn-start"), line(500.9, "tool", { agent: "a1", type: "general-purpose", tool: "Read" }), start(501.5)], { harness: files([10, 100], [500, 510]) });
+  assert.deepEqual(runsOf(laterRun), [[t(10), undefined, "not seen to finish", "harness"], [t(500.9), undefined, "open", "both"]]);
+  assert.deepEqual(laterRun.differs, [{ agent: "a1", what: "run-not-in-hook", run: 0 }]);
+  // A run over before its start line was written, with its stop line after: drawn from the files' first line of it.
+  const short = seenGraph([line(0, "turn-start"), start(11), stop(11.3)], { harness: files([10, 10.5, "completed"]) });
+  assert.deepEqual([runsOf(short), short.differs, short.edges.map((x) => [x.at, x.knownAt])], [[[t(10), t(11.3), "completed", "both"]], [], [[t(10), t(11)]]]);
+  // A run the hook was installed in the middle of: a tool line from inside it later makes it the hook's too, and it is said to be from its first moment.
+  const inside = [line(30, "turn-start"), line(60, "tool", { agent: "a1", type: "general-purpose", tool: "Read" })];
+  assert.deepEqual([10, 60].map((at) => [runsOf(seenGraph(inside, { harness: files([10, 70]), at: t(at) })), seenGraph(inside, { harness: files([10, 70]), at: t(at) }).differs.map((d) => d.what)]), [[[[t(10), undefined, "open", "both"]], ["no-start-line"]], [[[t(10), undefined, "open", "both"]], ["no-start-line"]]]);
   // A stop long after the last line of a run the files do not say is over is still that run's: a subagent can wait on a long command.
   const waited = seenGraph([line(0, "turn-start"), start(10.1), stop(12.1), start(100.1), stop(200)], { harness: files([10, 12, "completed"], [100, 110]) });
   assert.deepEqual(runsOf(waited), [[t(10.1), t(12.1), "completed", "both"], [t(100.1), t(200), "open", "both"]]);
