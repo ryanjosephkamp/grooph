@@ -101,12 +101,14 @@ export const ROUNDS = {
 export const roundsOf = (block) => ROUNDS[block];
 const ROUND_COUNT = 3;
 /**
- * The runner's watchdog for one run, which no session is told of, and where the whole look stops (the protocol,
- * "Limits"). The minutes go by the task and are the same in every block; the dollars go by the block.
+ * The limits of one run, and where the whole look stops (the protocol, "Limits"). THIS IS THE ONE TABLE: the ledger and
+ * the page are held to it by a test. The dollars are the harness's own ceiling, and the harness tells a session what
+ * it has used of it at each step: so a block has one figure for both its tasks, the first check's own for `four`. The
+ * minutes are the runner's clock, and no session is told of them.
  */
 export const WATCHDOG = {
-  opus: { four: { usd: 12, minutes: 40 }, six: { usd: 18, minutes: 60 } },
-  sonnet: { four: { usd: 5, minutes: 40 }, six: { usd: 8, minutes: 60 } },
+  opus: { four: { usd: 15, minutes: 60 }, six: { usd: 15, minutes: 60 } },
+  sonnet: { four: { usd: 6, minutes: 60 }, six: { usd: 6, minutes: 60 } },
 };
 export const STOPS_AT_USD = 200;
 
@@ -806,6 +808,9 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
     the_sessions_model: { block: run.block, asked_for: LEAD[run.block].model, effort: LEAD[run.block].effort },
     short_names_of_a_model: shortNamesIn(call.environment),
     the_prompt_ends_with: SENTENCE,
+    // The harness tells a session what it has used of its dollar ceiling at each step: the ceiling is part of what
+    // every session was given. The minutes are the runner's clock, and no session is told of them.
+    told_by_the_harness: { its_dollar_ceiling_usd: call.watchdog?.usd ?? null, in_this_many_reminders: measured?.given?.entries_of_what_it_was_given?.budget_usd ?? null, the_minutes: "not told: the runner's clock alone" },
     hook_installed_in_the_project: built.installed,
     closed_to_the_session: built.closed.map((path) => path.slice(built.cwd.length + 1)),
     recorder_outside_the_project: outside,

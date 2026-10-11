@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { layout, settingsFor } from "./compare-profile.mjs";
 import { scoreHeldOut } from "./compare-score.mjs";
 import { NotStarted, runBounded } from "./study-three-paid.mjs";
-import { CLI, promptFor as firstChecksPromptFor, SUBAGENTS_SENTENCE } from "./watching-check-paid.mjs";
+import { CLI, promptFor as firstChecksPromptFor, SUBAGENTS_SENTENCE, WATCHDOG as FIRST_CHECKS } from "./watching-check-paid.mjs";
 import { agentByAgent, delegation, DIFFERENCES, EXPECTED, mostAtOnce, noticed, readSession } from "./watching-second-look-measures.mjs";
 import {
   ARMS,
@@ -205,16 +205,21 @@ test("the sentence, the two models, the limits and the tasks are the page's, to 
   // STOPS_AT_USD in the runner, and these two lines, which are that table written out once more. Everything else here,
   // and in every other test, is made from the runner's numbers: the page's rows and sums, and the ledger's (the next
   // test but three). Until the page and the ledger say the same, those lines fail and say which.
-  assert.deepEqual(WATCHDOG, { opus: { four: { usd: 12, minutes: 40 }, six: { usd: 18, minutes: 60 } }, sonnet: { four: { usd: 5, minutes: 40 }, six: { usd: 8, minutes: 60 } } });
+  assert.deepEqual(WATCHDOG, { opus: { four: { usd: 15, minutes: 60 }, six: { usd: 15, minutes: 60 } }, sonnet: { four: { usd: 6, minutes: 60 }, six: { usd: 6, minutes: 60 } } });
   assert.equal(STOPS_AT_USD, 200);
   const usd = (amount) => `$${amount.toFixed(2)}`;
   for (const block of BLOCKS) assert.ok(page.includes(`| \`${block}\` | ${usd(WATCHDOG[block].four.usd)}, ${WATCHDOG[block].four.minutes} minutes | ${usd(WATCHDOG[block].six.usd)}, ${WATCHDOG[block].six.minutes} minutes |`), `the page's row for ${block}`);
   assert.ok(page.includes(`The whole look stops at **${usd(STOPS_AT_USD)}** on a ledger of its own`));
   const at = (block) => blockOf(block).reduce((sum, run) => sum + WATCHDOG[run.block][run.task].usd, 0);
-  assert.ok(page.includes(`the thirty-six runs would come to **${usd(at("opus") + at("sonnet"))}**: ${usd(at("opus"))} for the \`opus\` block (nine runs at ${usd(WATCHDOG.opus.four.usd)} and nine at ${usd(WATCHDOG.opus.six.usd)}) and ${usd(at("sonnet"))} for \`sonnet\` (nine at ${usd(WATCHDOG.sonnet.four.usd)} and nine at ${usd(WATCHDOG.sonnet.six.usd)})`), "the page's sums are the ceilings' sums");
+  // The harness tells a session its dollar ceiling, so a block has one figure for both its tasks, and it is the first check's own for `four`.
+  for (const block of BLOCKS) assert.equal(WATCHDOG[block].four.usd, WATCHDOG[block].six.usd, `${block}: one figure for both tasks`);
+  assert.deepEqual([WATCHDOG.opus.four, WATCHDOG.sonnet.four], [FIRST_CHECKS.opus.four, FIRST_CHECKS.sonnet.four], "the first check's own limits for `four`");
+  assert.ok(page.includes(`it is the first check's own for \`four\` (${usd(FIRST_CHECKS.opus.four.usd)} on Opus, ${usd(FIRST_CHECKS.sonnet.four.usd)} on Sonnet, with ${FIRST_CHECKS.opus.four.minutes} minutes)`));
+  assert.ok(page.includes("**The harness tells a session its dollar ceiling at each step. The minutes are the runner's alone.**"));
+  assert.ok(page.includes(`the thirty-six runs would come to **${usd(at("opus") + at("sonnet"))}**: ${usd(at("opus"))} for the \`opus\` block (eighteen runs at ${usd(WATCHDOG.opus.four.usd)}) and ${usd(at("sonnet"))} for \`sonnet\` (eighteen at ${usd(WATCHDOG.sonnet.four.usd)})`), "the page's sums are the ceilings' sums");
   assert.ok(at("opus") + at("sonnet") > STOPS_AT_USD, "the ceilings add up to more than the cap, on purpose");
   const hours = blockOf("opus").reduce((sum, run) => sum + WATCHDOG.opus[run.task].minutes, 0) / 60;
-  assert.ok(page.includes(`At the minute limits a block would take ${{ 12: "twelve", 15: "fifteen", 18: "eighteen" }[hours] ?? hours} hours`), `${hours} hours at the minute limits`);
+  assert.ok(page.includes(`At the minute limits a block would take ${{ 12: "twelve", 15: "fifteen", 18: "eighteen" }[hours] ?? hours} hours, and the two ${{ 24: "twenty-four", 30: "thirty", 36: "thirty-six" }[2 * hours] ?? 2 * hours}`), `${hours} hours at the minute limits`);
   for (const block of BLOCKS) assert.deepEqual([WATCHDOG[block].four.minutes, WATCHDOG[block].six.minutes], [WATCHDOG.opus.four.minutes, WATCHDOG.opus.six.minutes], `${block}: the minutes go by the task, the same in every block`);
   // Each package is the task of the project the page names for it, under the name its own package.json gives it.
   for (const pkg of TASKS.six.packages) {
@@ -313,7 +318,7 @@ test("the ledger as the repository keeps it: the protocol's cap and ceilings, no
   try {
     const path = join(top, "ledger.json");
     writeFileSync(path, JSON.stringify({ ...kept, cap_usd: 500, per_invocation_ceiling_usd: 50, watchdog: { ...kept.watchdog, opus: { ...kept.watchdog.opus, six: { usd: 40, minutes: 60 } } } }), "utf8");
-    assert.throws(() => readLedger(path), notStarted(/its cap is 500, and the protocol's is 200.*run of `six` in the `opus` block.*the most it gives one session is 50, and the protocol's largest ceiling is 18/s));
+    assert.throws(() => readLedger(path), (error) => error instanceof NotStarted && [`its cap is 500, and the protocol's is ${STOPS_AT_USD}`, "its limits for a run of `six` in the `opus` block are", `the most it gives one session is 50, and the protocol's largest ceiling is ${Math.max(...ceilings)}`].every((part) => error.message.includes(part)));
     assert.throws(() => readLedger(join(top, "none.json")), notStarted(/the second look's ledger could not be read/));
     assert.deepEqual([room({ cap_usd: 200, invocations: [{ cost_usd: 185 }] }, 12).ok, room({ cap_usd: 200, invocations: [{ cost_usd: 185 }] }, 18).ok, room({ cap_usd: 200, invocations: [{ cost_usd: null, max_budget_usd: 18, status: "running" }, { cost_usd: 170 }] }, 18).ok], [true, false, false]);
   } finally {
@@ -493,6 +498,8 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     assert.equal(plainResult.the_hooks_file_agent_by_agent, null, "the plain arm has no hook's file to set beside anything");
     assert.equal(plainResult.measures.the_two_tools, undefined, "no arm of this look offers the two tools");
     assert.deepEqual(plainResult.given.the_prompt_ends_with, SENTENCE);
+    // What the session was told its ceiling was is in its record. (The stand-in writes no reminder of the harness's, so none is counted.)
+    assert.deepEqual(plainResult.given.told_by_the_harness, { its_dollar_ceiling_usd: WATCHDOG.opus.four.usd, in_this_many_reminders: null, the_minutes: "not told: the runner's clock alone" });
     assert.deepEqual([plainResult.given.hook_installed_in_the_project, plainResult.given.closed_to_the_session, plainResult.given.recorder_outside_the_project], [[], [], null]);
     assert.deepEqual(plainResult.scored_outside_the_sandbox_on, DECISION);
     const score = JSON.parse(readFileSync(join(plain.recordDir, "score.json"), "utf8"));
