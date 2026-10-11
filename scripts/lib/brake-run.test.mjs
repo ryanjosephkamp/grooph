@@ -42,7 +42,7 @@ test("the pre-registration and the graph agree", () => {
   assert.ok(!/fable|astra/i.test(JSON.stringify({ lead: expect.lead, tiers: expect.tier_map })));
 });
 
-test("the two compiled packages differ in the budget and in nothing else", { skip: !existsSync(join(root, "packages", "cli", "dist")) }, () => {
+test("the two compiled packages differ in the budget and in nothing else", { skip: !existsSync(join(root, "packages", "cli", "dist")) || !existsSync(join(root, "lab", "dist", "src", "main.js")) }, () => {
   const work = mkdtempSync(join(tmpdir(), "brake-test-"));
   try {
     const built = compileBoth(work, expect);

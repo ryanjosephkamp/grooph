@@ -67,7 +67,8 @@ GRAPH="$REPO_ROOT/fixtures/valid/review-loop.grooph.json"
 GRAPH_ID="review-loop"
 LOOP_ID="review-cycle"
 CRITIC_ID="critic"
-CLI="$REPO_ROOT/packages/cli/bin/grooph.js"
+# The lab's command (lab/README.md): it does everything `grooph` does, `export` included.
+CLI="$REPO_ROOT/lab/bin/grooph-lab.js"
 CORE="$REPO_ROOT/packages/core/dist/src/index.js"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
@@ -86,7 +87,7 @@ fail() { printf '\n\033[31mFAIL\033[0m %s\n' "$*" >&2; exit 1; }
 
 # ---------------------------------------------------------------- preflight
 
-[ -f "$CORE" ] && [ -f "$REPO_ROOT/packages/cli/dist/src/index.js" ] || fail "build the repo first: pnpm install && pnpm -r build"
+[ -f "$CORE" ] && [ -f "$REPO_ROOT/packages/cli/dist/src/index.js" ] && [ -f "$REPO_ROOT/lab/dist/src/main.js" ] || fail "build the repo first: pnpm install && pnpm -r build"
 command -v claude >/dev/null 2>&1 || [ "$CHECK_ONLY" = "1" ] || fail "claude is not on PATH; install Claude Code first"
 
 if [ "$DRY_RUN" = "0" ] && [ "$CHECK_ONLY" = "0" ]; then

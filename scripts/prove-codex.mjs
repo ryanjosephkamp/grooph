@@ -15,7 +15,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const CLI = join(ROOT, "packages", "cli", "bin", "grooph.js");
+// The lab's command (lab/README.md): it does everything `grooph` does, `export` included.
+const CLI = join(ROOT, "lab", "bin", "grooph-lab.js");
 const CORE = join(ROOT, "packages", "core", "dist", "src", "index.js");
 const EXPERIMENT = join(ROOT, "experiments", "patterns", "review-gate");
 const DESTINATION = join(ROOT, "experiments", "patterns-codex", "review-gate");
@@ -69,7 +70,7 @@ function command(commandName, args, options = {}) {
 }
 
 function loadCore() {
-  if (!existsSync(CORE) || !existsSync(CLI)) fail("build the repository first: pnpm install && pnpm -r build");
+  if (!existsSync(CORE) || !existsSync(CLI) || !existsSync(join(ROOT, "lab", "dist", "src", "main.js"))) fail("build the repository first: pnpm install && pnpm -r build");
   return import(CORE);
 }
 
