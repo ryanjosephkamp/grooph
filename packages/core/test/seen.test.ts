@@ -267,8 +267,9 @@ const ran = (id: string, from: number, to: number, extra: Partial<HarnessAgent> 
 test("no line, no graph; and the lines of another session, or what a lead said, are passed over", () => {
   const empty = seenGraph([]);
   assert.deepEqual(empty, { groophSeen: 0, at: "", nodes: [], edges: [], differs: [], moments: [], record: { hook: { lines: 0, stopsNotDrawn: 0 } } });
-  // The harness's files alone do not make a graph: the hook's lines are what names the session.
-  assert.deepEqual(seenGraph([], { harness: [ran("a1", 0, 5)] }).nodes, []);
+  // The harness's files alone do not make a graph: the hook's lines are what names the session. What was read is still said.
+  assert.deepEqual(seenGraph([], { harness: [ran("a1", 0, 5)] }), { groophSeen: 0, at: "", nodes: [], edges: [], differs: [], moments: [], record: { hook: { lines: 0, stopsNotDrawn: 0 }, harness: { agents: 1 } } });
+  assert.deepEqual(seenGraph([line(0, "note", { text: "only what a lead said" })], { harness: [ran("a1", 0, 5), ran("a2", 0, 5), ran("a1", 6, 7)] }).record, { hook: { lines: 0, stopsNotDrawn: 0 }, harness: { agents: 2 } });
   const mine = [line(0, "session-start"), line(1, "turn-start"), line(2, "subagent-start", { agent: "a1", type: "Explore" }), line(9, "subagent-stop", { agent: "a1", type: "Explore" }), line(10, "turn-end")];
   const mixed = [mine[0]!, { ...line(1, "subagent-start", { agent: "zz", type: "Plan" }), session: "s2" }, line(1, "plan", { text: "a plan", agents: [{ type: "Explore" }] }), ...mine.slice(1), line(11, "note", { text: "done" })];
   assert.deepEqual(seenGraph(mixed), seenGraph(mine));
@@ -520,8 +521,9 @@ test("with the harness's files a stop ends the run it was written for, though th
   ];
   const twoRuns = (second: "completed" | "failed"): HarnessAgent[] => [{ id: "a1", type: "general-purpose", depth: 1, runs: [{ first: t(0.9), last: t(20), end: "completed" }, { first: t(20.9), last: t(39.9), end: second }] }];
   const g = seenGraph(lines, { harness: twoRuns("failed") });
-  assert.deepEqual(agentOf(g, "a1").runs, [{ from: t(1), to: t(22), end: "completed", source: "both" }, { from: t(21), to: t(40), end: "failed", source: "both" }]);
-  assert.deepEqual([agentOf(g, "a1").state, g.differs], ["failed", []]);
+  // The first run ends where the files say it wrote its last line, not at the late stop: an agent's runs do not overlap.
+  assert.deepEqual(agentOf(g, "a1").runs, [{ from: t(1), to: t(20), end: "completed", source: "both" }, { from: t(21), to: t(40), end: "failed", source: "both" }]);
+  assert.deepEqual([agentOf(g, "a1").state, g.differs, agentOf(seenGraph(lines, { harness: twoRuns("failed"), at: t(21.5) }), "a1").runs[0]], ["failed", [], { from: t(1), notSeenToFinish: true, source: "both" }]);
   // From the hook alone a stop ends the run that is open, as the list of sessions reads it: the lines cannot say more.
   assert.deepEqual(agentOf(seenGraph(lines), "a1").runs.map((r) => [r.from, r.to, r.notSeenToFinish]), [[t(1), undefined, true], [t(21), t(22), undefined], [undefined, t(40), undefined]]);
 
@@ -532,7 +534,7 @@ test("with the harness's files a stop ends the run it was written for, though th
   assert.deepEqual(oneStop.differs, [{ agent: "a1", what: "no-stop-line", run: 0 }]);
   // With a stop line for each, written late and in order, each run has its own.
   const bothLate = seenGraph([...quick, line(9.5, "subagent-stop", { agent: "a1", type: "general-purpose" })], { harness: [{ id: "a1", depth: 1, runs: [{ first: t(0.9), last: t(5), end: "completed" }, { first: t(5.9), last: t(8.9), end: "completed" }] }] });
-  assert.deepEqual([agentOf(bothLate, "a1").runs.map((r) => [r.from, r.to]), bothLate.differs], [[[t(1), t(9)], [t(6), t(9.5)]], []]);
+  assert.deepEqual([agentOf(bothLate, "a1").runs.map((r) => [r.from, r.to]), bothLate.differs], [[[t(1), t(5)], [t(6), t(9.5)]], []]);
 });
 
 test("a start line belongs to the earliest run near it that has none; and a hook's clock may run a little ahead", () => {
@@ -725,4 +727,69 @@ test("whether the record has gone quiet is asked with a clock: half an hour with
   // A session that ended is never quiet, however long ago; and with no line there is nothing to be quiet.
   assert.equal(seenQuiet(seenGraph([...lines, line(3, "subagent-stop", { agent: "a1", type: "Explore" }), line(4, "session-end")]), t(99999)), false);
   assert.equal(seenQuiet(seenGraph([]), t(99999)), false);
+});
+
+test("a start line of the hook's own between a run and a stop: the stop is that start's, and nothing is left running", () => {
+  const start = (at: number): SessionEvent => line(at, "subagent-start", { agent: "a1", type: "general-purpose" });
+  const stop = (at: number): SessionEvent => line(at, "subagent-stop", { agent: "a1", type: "general-purpose" });
+  const runsOf = (g: SeenGraph): unknown[] => agentOf(g, "a1").runs.map((r) => [r.from, r.to, r.end ?? (r.notSeenToFinish ? "not seen to finish" : "open"), r.source]);
+  // The files hold one run, long over; the hook wrote a start and a stop minutes later, of a run the files do not hold.
+  const later = seenGraph([line(90, "turn-start"), start(500), stop(600)], { harness: [ran("a1", 100, 200)] });
+  assert.deepEqual([runsOf(later), agentOf(later, "a1").state], [[[t(100), t(200), "completed", "harness"], [t(500), t(600), "open", "hook"]], "done"]);
+  assert.deepEqual(later.differs, [{ agent: "a1", what: "run-not-in-hook", run: 0 }, { agent: "a1", what: "run-not-in-harness", run: 1 }]);
+  // The same within the half minute: a start line too late to be the run's own, and a stop a second after it.
+  const near = seenGraph([line(90, "turn-start"), start(145), stop(146)], { harness: [ran("a1", 100, 140)] });
+  assert.deepEqual([runsOf(near), agentOf(near, "a1").state], [[[t(100), t(140), "completed", "harness"], [t(145), t(146), "open", "hook"]], "done"]);
+  // With no line of the hook's between, a stop is its last run's however late: a subagent can wait on one command
+  // for as long as it takes and write no line meanwhile, so there is no limit that would be the right one.
+  const late = seenGraph([line(90, "turn-start"), start(100.2), stop(10_199)], { harness: [ran("a1", 100, 200, {}, "killed")] });
+  assert.deepEqual([runsOf(late), late.differs], [[[t(100.2), t(10_199), "killed", "both"]], []]);
+});
+
+test("a line written twice is one line; of two lines as near a run as each other, the first is the run's", () => {
+  const lines = [
+    line(0, "turn-start"),
+    line(10, "subagent-start", { agent: "a1", type: "Explore" }),
+    line(10, "subagent-start", { agent: "a1", type: "Explore" }),
+    line(10.01, "tool", { tool: "Agent", spawned: "a1" }),
+    line(20, "subagent-stop", { agent: "a1", type: "Explore" }),
+    line(20, "subagent-stop", { agent: "a1", type: "Explore" }),
+  ];
+  // From the hook alone: one run, and no second or third one made of the copies.
+  const alone = seenGraph(lines);
+  assert.deepEqual([agentOf(alone, "a1").runs, alone.edges.map((x) => x.kind), alone.record.hook.lines], [[{ from: t(10), to: t(20), source: "hook" }], ["started"], 6]);
+  // With the files: the same, with nothing that differs.
+  const both = seenGraph(lines, { harness: [ran("a1", 9.9, 19.9, { type: "Explore" })] });
+  assert.deepEqual([agentOf(both, "a1").runs, both.edges.map((x) => x.kind), both.differs], [[{ from: t(10), to: t(20), end: "completed", source: "both" }], ["started"], []]);
+  // Two start lines as near the run's first line as each other, one a little before it and one a little after: the
+  // first is the run's, and the second, written while the files show the run going on, is no run's.
+  const two = seenGraph([line(0, "turn-start"), line(9.5, "subagent-start", { agent: "a1", type: "Explore" }), line(10.5, "subagent-start", { agent: "a1", type: "Explore" })], { harness: [{ id: "a1", type: "Explore", depth: 1, runs: [{ first: t(10), last: t(30) }] }] });
+  assert.deepEqual([agentOf(two, "a1").runs, two.differs], [[{ from: t(9.5), source: "both" }], [{ agent: "a1", what: "line-of-no-run", lines: 1 }]]);
+});
+
+test("a time is read only with its zone, on a line and in the harness's files as for a moment", () => {
+  const lines = [line(0, "turn-start"), line(1, "subagent-start", { agent: "a1", type: "Explore" }), line(5, "subagent-stop", { agent: "a1", type: "Explore" })];
+  const end = seenGraph(lines);
+  // A line dated with no zone would fall at a different moment on each machine: it is passed over, and not counted.
+  const noZone: SessionEvent = { ...line(3, "subagent-start", { agent: "a2", type: "Plan" }), t: "2026-02-01T10:00:03.000" };
+  assert.deepEqual(seenGraph([...lines, noZone, { ...noZone, t: "Feb 1 2026 10:00:03 GMT" }]), end);
+  // And a run in the harness's files dated so is no run that can be placed.
+  const g = seenGraph(lines, { harness: [{ id: "a1", type: "Explore", depth: 1, runs: [{ first: "2026-02-01T10:00:00.900", last: "2026-02-01T10:00:04.900", end: "failed" }] }] });
+  assert.deepEqual([agentOf(g, "a1").state, g.differs], ["done", [{ agent: "a1", what: "run-not-in-harness", run: 0 }]]);
+  // A zone written as an offset is one.
+  assert.equal(agentOf(seenGraph([{ ...lines[0]!, t: "2026-02-01T19:00:00.000+09:00" }, ...lines.slice(1)]), "a1").state, "done");
+});
+
+test("a stop that is no run's, written before the agent is drawn, draws nothing then and is counted when the agent is drawn", () => {
+  const lines = [line(0, "turn-start"), line(50, "subagent-stop", { agent: "a1", type: "Explore" }), line(100.2, "subagent-start", { agent: "a1", type: "Explore" })];
+  const harness = [ran("a1", 100, 200, { type: "Explore" })];
+  // (From the hook alone the same stop is a run whose beginning was not seen.)
+  assert.deepEqual(agentOf(seenGraph(lines), "a1").runs, [{ to: t(50), source: "hook" }, { from: t(100.2), source: "hook" }]);
+  const before = seenGraph(lines, { harness, at: t(60) });
+  assert.deepEqual([before.nodes.map((n) => n.id), before.edges], [["s1"], []]);
+  const g = seenGraph(lines, { harness });
+  // Its edge is dated when its run began, not when the stray stop was written.
+  assert.deepEqual(edgeTo(g, "a1"), { from: "s1", to: "a1", kind: "started", at: t(100.2), knownAt: t(100.2), source: "harness" });
+  assert.deepEqual([agentOf(g, "a1").runs, g.differs], [[{ from: t(100.2), to: t(200), end: "completed", source: "both" }], [{ agent: "a1", what: "line-of-no-run", lines: 1 }, { agent: "a1", what: "no-stop-line", run: 0 }]]);
+  assert.ok(!g.moments.includes(t(50)));
 });

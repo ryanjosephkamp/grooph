@@ -25,8 +25,11 @@
  *   written up to a few seconds after its run's first line, a stop line up to ten after its last): a difference
  *   listed then may be gone at the next reading.
  * - **Which run a line is of is a matter of time.** A start line is written a little after its run's first line and
- *   a stop line a little after its last. A line is taken for a run within half a minute of it; a stop line later
- *   than that too, while the agent has not begun again. In the records an agent's runs were never less than
+ *   a stop line a little after its last. A line is taken for a run within half a minute of it. A stop line later
+ *   than that is still the stop of the run that had last begun, where that run has no stop line nearer, and
+ *   however much later: a subagent can wait on one command for as long as the command takes and write no line
+ *   meanwhile, so no limit would be the right one. A stop is not taken for a run where the hook wrote a start
+ *   line of its own in between (one that is no run of the files'): it is then that start's. In the records an agent's runs were never less than
  *   130 s apart, and then there is no choice to make. Where two runs of one agent are closer than half a minute
  *   it is a judgment, made the same way each time (`pair`): as many lines as can be given a run, in order, each
  *   as near its run as can be (for an agent with thousands of runs, a plainer rule). It can be wrong; nothing in
@@ -44,11 +47,16 @@
  * From the hook's lines alone a stop ends whichever run of that agent is open, as the list of sessions has always
  * read it; and so it is where the files were read and hold no run of that agent that can be dated. With the
  * files' runs to go by, a line is of the run it is taken for: a stop written after the same agent began again, or
- * before its own start line, is still that run's. A start or a stop line taken for none of them begins or ends
+ * before its own start line, is still that run's (and a run stopped after the agent began again ends where the
+ * files say it wrote its last line, so that an agent's runs do not overlap). A start or a stop line taken for none of them begins or ends
  * a run only where the files do not show otherwise (no run of theirs still writing, for a start; an open run with
  * no stop line of its own that had written its last line, for a stop). One that does neither is counted, as a
  * difference (`line-of-no-run`): a harness can fire a stop twice for one run when another hook sends the subagent
  * back to work. A tool line written late, after its run ended, is nothing new.
+ *
+ * A time is read only with its zone, as the hook writes it and as the reader of the harness's files gives it: a
+ * line or a run dated without one would fall at a different moment on each machine, and is passed over. A start or
+ * a stop line written twice, the same to the millisecond, is one line.
  *
  * What a session says of its own plan (`plan` and `note` lines) is not drawn here: that is slice 0105's, set beside
  * this graph and never in it.
@@ -271,7 +279,8 @@ function pair(lines: number, runs: number, fits: (i: number, k: number) => boole
       if (fits(i - 1, k - 1)) {
         const paired = count[k - 1]! + 1;
         const weighed = cost[k - 1]! + apart(i - 1, k - 1);
-        if (paired > c || (paired === c && weighed <= w)) {
+        // (Of two ways as good as each other, the one that leaves the later line out: of a line written twice, the first is the run's.)
+        if (paired > c || (paired === c && weighed < w)) {
           c = paired;
           w = weighed;
           h = 2;
@@ -301,8 +310,9 @@ const ENDS: readonly string[] = ["completed", "failed", "killed", "ended"];
 /** A time with its zone, as the hook writes one. A time with no zone would mean a different moment on each machine. */
 const MOMENT = /^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d(\.\d+)?)?(Z|[+-]\d\d:?\d\d)$/;
 
+/** A time, where it is one with its zone: on a line, in the harness's files, or given as a moment. Any other is not read as a time. */
 const ms = (t: unknown): number | undefined => {
-  if (typeof t !== "string") return undefined;
+  if (typeof t !== "string" || !MOMENT.test(t)) return undefined;
   const n = Date.parse(t);
   return Number.isNaN(n) ? undefined : n;
 };
@@ -325,18 +335,25 @@ type Fact = { t: number; rank: 1; i: number; kind: "line"; e: SessionEvent } | {
  */
 export function seenGraph(events: readonly SessionEvent[], options: SeenOptions = {}): SeenGraph {
   const given = options.harness !== undefined;
-  const atGiven = typeof options.at === "string" && MOMENT.test(options.at) ? ms(options.at) : undefined;
+  const atGiven = ms(options.at);
   const drawn = (e: SessionEvent | null | undefined): e is SessionEvent => typeof e === "object" && e !== null && e.event !== "plan" && e.event !== "note" && ms(e.t) !== undefined && typeof e.session === "string";
   const first = events.find(drawn);
-  const lines = first
+  const read = first
     ? events
         .map((e, i) => ({ e, i, t: ms(e?.t) }))
         .filter((x): x is { e: SessionEvent; i: number; t: number } => drawn(x.e) && x.e.session === first.session && x.e.harness === first.harness)
         .sort((a, b) => a.t - b.t || a.i - b.i)
     : [];
-  const record: SeenGraph["record"] = { hook: { lines: lines.length, ...(lines.length > 0 ? { last: iso(lines[lines.length - 1]!.t) } : {}), stopsNotDrawn: 0 }, ...(given ? { harness: { agents: 0 } } : {}) };
-  if (!first) return { groophSeen: 0, at: atGiven !== undefined ? iso(atGiven) : "", nodes: [], edges: [], differs: [], moments: [], record };
-  const sessionId = first.session;
+  // A start or a stop line written twice, the same to the millisecond, is one line (a file read twice, or joined to a copy of itself).
+  const once = new Set<string>();
+  const lines = read.filter(({ e, t }) => {
+    if (e.event !== "subagent-start" && e.event !== "subagent-stop") return true;
+    const key = `${e.event}\u0000${String(e.agent)}\u0000${t}`;
+    return !once.has(key) && once.add(key) !== undefined;
+  });
+  const record: SeenGraph["record"] = { hook: { lines: read.length, ...(read.length > 0 ? { last: iso(read[read.length - 1]!.t) } : {}), stopsNotDrawn: 0 }, ...(given ? { harness: { agents: 0 } } : {}) };
+  // With no line of the hook's there is no session to name, and so none whose id a subagent could not have.
+  const sessionId = first?.session;
   /** A subagent's id as a line or a file gives it: a name, and not the session's own. */
   const agentId = (v: unknown): string | undefined => {
     const id = name(v, 128);
@@ -359,6 +376,7 @@ export function seenGraph(events: readonly SessionEvent[], options: SeenOptions 
     harness.set(id, { agent, runs, started: runs.map(() => false), stopped: runs.map(() => false), touched: runs.map(() => false) });
   }
   if (record.harness) record.harness.agents = harness.size;
+  if (first === undefined || sessionId === undefined) return { groophSeen: 0, at: atGiven !== undefined ? iso(atGiven) : "", nodes: [], edges: [], differs: [], moments: [], record };
   /** The run a time falls in: the last one that had begun by then. */
   const slot = (h: Held, t: number): number => {
     let low = 0;
@@ -421,16 +439,32 @@ export function seenGraph(events: readonly SessionEvent[], options: SeenOptions 
       startIs.set(starts[i]!.i, k);
     });
     const stops = stopsOf.get(id) ?? [];
-    // A stop line is written after its run's last line: within half a minute of it, or later than that while the
-    // agent has not begun again (a subagent can wait on a long command and then be stopped).
-    pair(
+    // The start lines that are no run of the files': each begins a run only the hook saw, and the stop that follows
+    // one is that run's before it is an earlier one's.
+    const loose = starts.filter((line) => !startIs.has(line.i)).map((line) => line.t);
+    const beganBetween = (after: number, by: number): boolean => loose.some((t) => t > after && t <= by);
+    // A stop line is written after its run's last line, within half a minute of it; and not where the hook wrote a
+    // start line of its own between the two.
+    const paired = pair(
       stops.length,
       count,
-      (i, k) => stops[i]!.t >= h.runs[k]!.last - START_SLACK_MS && (stops[i]!.t <= h.runs[k]!.last + NEAR_MS || k === count - 1 || stops[i]!.t < h.runs[k + 1]!.first),
+      (i, k) => stops[i]!.t >= h.runs[k]!.last - START_SLACK_MS && stops[i]!.t <= h.runs[k]!.last + NEAR_MS && !beganBetween(h.runs[k]!.last, stops[i]!.t),
       // A run that failed fires no stop (the one in the records did not): its stop line it is only if no other run fits.
       (i, k) => Math.abs(stops[i]!.t - h.runs[k]!.last) + (h.runs[k]!.end === "failed" ? NEAR_MS : 0),
-    ).forEach((k, i) => {
+    );
+    paired.forEach((k, i) => {
       if (k < 0) return;
+      h.stopped[k] = true;
+      stopIs.set(stops[i]!.i, k);
+    });
+    // A stop line left over, later than that: it is the stop of the run that had last begun, where that run has no
+    // stop line of its own, had written its last line, and the hook wrote no start line of its own since. However
+    // much later: a subagent can wait on one command for as long as the command takes, write no line in that time,
+    // and then be stopped, so no limit would be the right one.
+    paired.forEach((tied, i) => {
+      if (tied >= 0) return;
+      const k = slot(h, stops[i]!.t);
+      if (k < 0 || h.stopped[k] || h.runs[k]!.last > stops[i]!.t + START_SLACK_MS || beganBetween(h.runs[k]!.last, stops[i]!.t)) return;
       h.stopped[k] = true;
       stopIs.set(stops[i]!.i, k);
     });
@@ -452,6 +486,8 @@ export function seenGraph(events: readonly SessionEvent[], options: SeenOptions 
   const edges: Edge[] = [];
   const edgeKeys = new Set<string>();
   const running = new Set<string>();
+  /** Stop lines that were no run's, of agents not drawn yet: how many, to be counted when each is. */
+  const strays = new Map<string, number>();
   /** Endings the files hold for runs not drawn yet: each is given to its run when the run is. */
   const pending = new Map<string, Set<number>>();
   let session: { started: number; ended?: number; model?: string; turnOpen?: boolean } | undefined;
@@ -587,7 +623,7 @@ export function seenGraph(events: readonly SessionEvent[], options: SeenOptions 
   const agent = (id: string, t: number, began = t): Agent => {
     const known = agents.get(id);
     if (known) return known;
-    const a: Agent = { id, firstAt: t, runs: [], byH: new Map(), hookParents: [], starters: [], children: [], loose: 0 };
+    const a: Agent = { id, firstAt: t, runs: [], byH: new Map(), hookParents: [], starters: [], children: [], loose: strays.get(id) ?? 0 };
     agents.set(id, a);
     grew = true;
     // The harness's files know who started it from its first moment; and who started that one, as far up as they say.
@@ -648,10 +684,14 @@ export function seenGraph(events: readonly SessionEvent[], options: SeenOptions 
     touch(a);
     a.loose += 1;
   };
-  /** A run ends at a line of the hook's. */
+  /**
+   * A run ends at a line of the hook's: when the line was written, or, where the same agent had begun again by
+   * then (the stop was written late), when the files say the run wrote its last line. An agent's runs do not overlap.
+   */
   const close = (a: Agent, r: Run, t: number): void => {
     touch(a, r);
-    r.to = Math.max(t, r.from ?? t);
+    const last = r.h === undefined || a.runs[a.runs.length - 1] === r ? undefined : harness.get(a.id)?.runs[r.h]?.last;
+    r.to = Math.max(last === undefined ? t : Math.min(t, last), r.from ?? t);
     r.hook = true;
     delete r.unseen;
     delete r.awaiting;
@@ -760,6 +800,12 @@ export function seenGraph(events: readonly SessionEvent[], options: SeenOptions 
         }
         const k = stopIs.get(f.i);
         const h = harness.get(from);
+        // Tied to none of the runs the files hold of an agent that is not drawn yet: it draws nothing now (an edge
+        // would be dated before the agent's first run), and is counted as no run's when the agent is drawn.
+        if (k === undefined && h !== undefined && h.runs.length > 0 && !agents.has(from)) {
+          strays.set(from, (strays.get(from) ?? 0) + 1);
+          break;
+        }
         const a = own(from, k !== undefined ? Math.min(h!.runs[k]!.first, t) : t);
         if (k !== undefined) {
           // Tied to one of the harness's runs, it is that run's stop. A run not drawn yet (its start line is still to
