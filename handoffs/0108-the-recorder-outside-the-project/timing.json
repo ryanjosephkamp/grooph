@@ -1,6 +1,6 @@
 {
   "what": "one call of the shipped event hook, in each layout, beside Node starting and doing nothing (slice 0108)",
-  "hook_sha256": "d2701dfd1a8e94b5d77a971e6312475eed0626022e201251c91d965d673ac9b5",
+  "hook_sha256": "332b2e1dbe1f76fc26ff3a72613c595ed5e5176ad85c8bc073df6833dc56ac17",
   "node": "v26.10.0",
   "machine": "darwin arm64, Apple M3 Pro",
   "times": 300,
@@ -24,41 +24,41 @@
   "lines_as_expected": true,
   "timing": {
     "node_starting_and_doing_nothing": {
-      "median_ms": 49.9,
-      "p95_ms": 55.6,
-      "max_ms": 61.1
+      "median_ms": 57.9,
+      "p95_ms": 68.2,
+      "max_ms": 267.5
     },
     "in_a_project": {
-      "median_ms": 53.4,
-      "p95_ms": 60.2,
-      "max_ms": 67.3
+      "median_ms": 62.1,
+      "p95_ms": 75.3,
+      "max_ms": 210.4
     },
     "outside_the_project_listed_folder": {
-      "median_ms": 53.5,
-      "p95_ms": 60.8,
-      "max_ms": 116.9
+      "median_ms": 62.7,
+      "p95_ms": 78,
+      "max_ms": 155.6
     },
     "outside_the_project_folder_not_listed": {
-      "median_ms": 53,
-      "p95_ms": 59.3,
-      "max_ms": 108.3
+      "median_ms": 61.7,
+      "p95_ms": 71.9,
+      "max_ms": 562.7
     },
     "outside_the_project_folder_not_listed_fifty_on_the_list": {
-      "median_ms": 53,
-      "p95_ms": 58.9,
-      "max_ms": 93.3
+      "median_ms": 62,
+      "p95_ms": 74.1,
+      "max_ms": 210.7
     },
     "outside_the_project_nothing_listed": {
-      "median_ms": 52.6,
-      "p95_ms": 58.6,
-      "max_ms": 74.6
+      "median_ms": 61.6,
+      "p95_ms": 73.1,
+      "max_ms": 402.7
     }
   },
   "over_node_alone_median_ms": {
-    "in_a_project": 3.5,
-    "outside_the_project_listed_folder": 3.6,
-    "outside_the_project_folder_not_listed": 3.1,
-    "outside_the_project_folder_not_listed_fifty_on_the_list": 3.1,
-    "outside_the_project_nothing_listed": 2.7
+    "in_a_project": 4.2,
+    "outside_the_project_listed_folder": 4.8,
+    "outside_the_project_folder_not_listed": 3.8,
+    "outside_the_project_folder_not_listed_fifty_on_the_list": 4.1,
+    "outside_the_project_nothing_listed": 3.7
   }
 }
