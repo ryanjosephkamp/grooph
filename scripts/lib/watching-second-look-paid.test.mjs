@@ -372,6 +372,20 @@ test("no run starts without the first call's yes, the owner's decision for this 
     await assert.rejects(runOne({ ...p.common, block: "haiku" }), notStarted(/"haiku" is not a block of the second look/));
     await assert.rejects(runOne({ ...p.common, block: "sonnet" }), notStarted(/the `sonnet` block is not started while the `opus` block, which comes before it, has no whole round/));
     await assert.rejects(runOne({ ...p.opus, go: "" }), notStarted(/no word from the driver/));
+    // With no harness to be found, in every arm, the refusal comes before anything is made: no folder is built to be taken away again.
+    const none = () => {
+      throw new NotStarted("the harness was not found on this shell's path");
+    };
+    for (const arm of ARMS) {
+      const q = place();
+      try {
+        inHand(q.recordRoot, blockOf("opus").slice(0, blockOf("opus").findIndex((one) => one.arm === arm)));
+        await assert.rejects(runOne({ ...q.opus, claude: undefined, findProgram: none }), notStarted(/the harness was not found/), arm);
+        assert.deepEqual([readdirSync(q.at.work), q.ledger().invocations.length, existsSync(join(q.home, "home"))], [[], 0, false], `${arm}: nothing was made or opened`);
+      } finally {
+        rmSync(q.top, { recursive: true, force: true });
+      }
+    }
     const undecided = place({ uses: [] }, { decided: false });
     try {
       await assert.rejects(runOne(undecided.opus), notStarted(/no decision of his is recorded \(experiments\/watching\/second-look\/ledger\.json, scoring_outside_the_sandbox/));
@@ -400,6 +414,14 @@ test("on the command line: a paid run without both flags or a block, a flag it d
   assert.throws(() => findHarness((program, args, options) => spawnSync(program, args, { ...options, env: noHarness })), (error) => error instanceof NotStarted && /the harness was not found/.test(error.message), "the runners' own lookup finds no harness on the path this runner is given");
   const run = (...args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: "utf8", env: noHarness });
   const refused = (out, pattern) => assert.deepEqual([out.status, pattern.test(out.stderr)], [64, true], out.stderr);
+  // With every flag as a paid run has it, and no harness to be found: refused, with nothing opened on the look's own
+  // ledger and no folder of a record made. The flags are then not all that stands between this test and a paid run.
+  const ledgerBefore = readFileSync(LEDGER, "utf8");
+  for (const flags of [["--next", "--block", "opus"], ["--all", "--block", "opus"], ["--all", "--block", "opus", "--without-outside", "--through-round", "1"], ["--rerun", "opus/four/plain-1"]]) {
+    const whole = run(...flags, "--spend", "--go", "the driver's words");
+    assert.deepEqual([whole.status, whole.stdout, /harness/.test(whole.stderr)], [1, "", true], `${flags.join(" ")}: ${whole.stderr}`);
+  }
+  assert.deepEqual([readFileSync(LEDGER, "utf8") === ledgerBefore, order().filter((one) => existsSync(recordOf(one))).length], [true, order().filter((one) => existsSync(join(recordOf(one), "result.json"))).length], "nothing was opened, and no folder of a record was made");
   refused(run("--all", "--block", "opus"), /will not without --spend and --go/);
   refused(run("--all", "--block", "opus", "--spend"), /will not without --go/);
   refused(run("--all", "--spend", "--go", "the driver's words"), /say which block: --block opus or --block sonnet/);
