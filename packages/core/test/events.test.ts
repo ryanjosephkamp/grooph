@@ -115,8 +115,10 @@ test("several files merge into one list; a waiting session, a resumed subagent a
   assert.deepEqual(late.agents.map((a) => `${a.type}:${a.state}`), ["critic:done"]);
   // The harness's own helper agents stop with no type and were never seen starting: they are not the session's subagents.
   assert.deepEqual(summarizeSessions([e(0, "session-start"), e(2, "subagent-stop", { agent: "internal" })])[0]!.agents, []);
-  // A closed session whose subagent is still going is still working.
-  assert.equal(summarizeSessions([e(0, "subagent-start", { agent: "a" }), e(1, "session-end")])[0]!.state, "working");
+  // A session that closed has ended, and a subagent it left with no stop on record is not running: it was not seen
+  // to finish (slice 0104; before it, such a session read `working` for good. `events-reading.test.ts` has the rest).
+  const closed = summarizeSessions([e(0, "subagent-start", { agent: "a" }), e(1, "session-end")])[0]!;
+  assert.deepEqual([closed.state, closed.agents[0]!.state], ["ended", "not-seen-to-finish"]);
 });
 
 test("an events file is read line by line: a half-written or foreign line is an issue, never a throw", () => {
