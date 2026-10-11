@@ -2,6 +2,12 @@
 
 Each version of grooph, newest first: its date and what changed for a person using it. A version is a [tag on the repository](https://github.com/ryanjosephkamp/grooph/tags). The site and the app are published from `main`, so they are at least as new as the newest version here. To install or update, follow the [quickstart](quickstart.md).
 
+## Not yet released
+
+On `main`; in the command from npm with the next version.
+
+- **The event hook writes through no link.** A harness runs a hook outside its sandbox, and a session can write inside its project. In 0.4.1 and before, the hook made `.grooph/events` and appended its line through whatever stood there. It now steps into each folder without following a link and checks where it stands, opens the session's file by its name there, and writes nothing where a link stands at either folder or at the file, where the file has a second name (a hard link), or where the file is not empty and does not begin as one of its own. A folder named by `GROOPH_EVENTS_DIR` must itself be a folder. **A project gets this when `grooph hooks install` is run in it again**: the copy in the project is the one that runs. `grooph hooks status` now says when that copy is not the one this grooph ships, when a link stands at `.grooph` or at `.grooph/events`, and how many session files the hook will add nothing to; the hook itself says nothing. It also no longer writes a line for an event named `constructor` or the like, which is no event. What it does not cover, with the counts from trying, is in [subagents](subagents.md), section 5.
+
 ## 0.4.1 · October 7, 2026
 
 A repair and corrected words, a day after 0.4.0. (Until the release this section stood as "Not yet released"; the dated notes under 0.4.0 name it so.)

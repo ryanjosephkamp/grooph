@@ -141,7 +141,7 @@ grooph hooks install --harness codex          # Codex
 grooph hooks install --harness claude-code,codex --tools    # both, and each tool call's name
 ```
 
-It writes three things and says so: `.grooph/hooks/grooph-event.mjs` (the hook, about a hundred lines, readable), `.grooph/hooks/grooph-events-push.mjs` (the script a lane runs to send its events, below), and the harness's settings (`.claude/settings.json`, or `.codex/hooks.json`), touching nothing else in them. Add `.grooph/events/` to the repository's `.gitignore`. `grooph hooks status` shows what is installed; `grooph hooks remove` takes it out.
+It writes three things and says so: `.grooph/hooks/grooph-event.mjs` (the hook, under two hundred lines, readable), `.grooph/hooks/grooph-events-push.mjs` (the script a lane runs to send its events, below), and the harness's settings (`.claude/settings.json`, or `.codex/hooks.json`), touching nothing else in them. Add `.grooph/events/` to the repository's `.gitignore`. `grooph hooks status` shows what is installed; `grooph hooks remove` takes it out.
 
 - **Claude Code**: commit all three. Claude Code's documentation says a repository's `.claude/settings.json` hooks run in a cloud session **that has one repository**. Sessions started after that record themselves. A session already running when the hooks arrive (it merges the branch that has them) normally takes them up at once, and now and then does not (section 17).
 - If the project has a format or lint check, leave `.grooph/hooks/` out of it, as you did: the two scripts are grooph's, and `grooph hooks status` says when a copy is not the shipped one.

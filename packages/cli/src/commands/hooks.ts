@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, copyFileSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -274,6 +274,26 @@ export function pushLines(r: PushRecord, now: string): string[] {
   return lines;
 }
 
+/** Whether the event hook would append to this session file, by the hook's own rules (packages/cli/hooks/grooph-event.mjs): a plain file with one name, empty or beginning as its lines do. */
+function hookWouldAddTo(file: string): boolean {
+  try {
+    const is = lstatSync(file);
+    if (!is.isFile() || is.nlink !== 1) return false;
+    if (is.size === 0) return true;
+    const head = Buffer.alloc(OURS.length);
+    const fd = openSync(file, "r");
+    try {
+      return readSync(fd, head, 0, head.length, 0) === head.length && head.toString() === OURS;
+    } finally {
+      closeSync(fd);
+    }
+  } catch {
+    return false;
+  }
+}
+/** How every line the hook has written begins. The hook's own copy of this is `OURS` in its file; a test holds the two together. */
+export const OURS = '{"v":1,"t":"';
+
 /** `grooph hooks install | status | remove`. */
 export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFlags = {}): number {
   const dir = resolve(flags.dir ?? ".");
@@ -430,11 +450,42 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
         if (n > 0 || !local) io.out(`${harness}: ${n > 0 ? `${plural(n, "hook entry", "hook entries")} in ${shownPath(path)}${sends}` : `no entries in ${shownPath(path)}`}`);
       }
     }
-    if (existsSync(join(dir, PUSH_REL)) && readFileSync(join(dir, PUSH_REL), "utf8") !== readFileSync(pushSource(), "utf8")) {
-      io.out(`${PUSH_REL} is not this grooph's version: run grooph hooks install again (with the same options) and commit it`);
+    // The copy in a project is the one that runs: a project installed by another grooph keeps that grooph's hook until it is installed again.
+    const differs = (copy: string, shipped: string): boolean => {
+      try {
+        return existsSync(copy) && readFileSync(copy, "utf8") !== readFileSync(shipped, "utf8");
+      } catch {
+        // Something by that name that cannot be read as a file is not this grooph's hook either.
+        return true;
+      }
+    };
+    if (differs(hookFile, hookSource())) io.out(`${HOOK_REL} is not this grooph's version: run grooph hooks install again (with the same options)`);
+    if (differs(join(dir, PUSH_REL), pushSource())) io.out(`${PUSH_REL} is not this grooph's version: run grooph hooks install again (with the same options) and commit it`);
+    let files: string[] = [];
+    try {
+      files = eventFiles(dir);
+      io.out(`${plural(files.length, "session file")} in ${EVENTS_DIR}/`);
+    } catch {
+      io.out(`${EVENTS_DIR.split(sep).join("/")}/ could not be read`);
     }
-    const files = eventFiles(dir);
-    io.out(`${plural(files.length, "session file")} in ${EVENTS_DIR}/`);
+    // The hook writes through no link and says nothing when it will not write: this is where a person hears of it.
+    // (With GROOPH_EVENTS_DIR set the hook writes there, and what stands in the project's own folder is nothing to it.)
+    if (!(flags.env ?? process.env)["GROOPH_EVENTS_DIR"]) {
+      try {
+        for (const rel of [dirname(EVENTS_DIR), EVENTS_DIR]) {
+          const is = lstatSync(join(dir, rel), { throwIfNoEntry: false });
+          if (is === undefined || is.isDirectory()) continue;
+          io.out(`${rel.split(sep).join("/")} is ${is.isSymbolicLink() ? "a link, not a folder" : "not a folder"}: the hook records nothing while it is`);
+          break;
+        }
+        // Among the files in the events folder itself: a link, a file with a second name, or a file that does not begin as the hook's lines do.
+        const events = join(resolve(dir), EVENTS_DIR);
+        const left = files.filter((file) => dirname(file) === events && !hookWouldAddTo(file)).length;
+        if (left > 0) io.out(`${plural(left, "session file")} the hook adds nothing to: each is a link, has a second name (a hard link), or does not begin as a file of the hook's lines does`);
+      } catch {
+        // A folder that cannot be looked into: the lines above already say what could be read.
+      }
+    }
     // Run from inside a session, the harness says which one: whether that session itself has recorded anything.
     // Only when that session is working in this project: asked about another project (--dir), "nothing recorded"
     // would be about the wrong session.
