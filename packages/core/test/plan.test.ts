@@ -68,7 +68,7 @@ test("a document with nothing in error says a harness could run it, and warnings
   const doc = green();
   assert.deepEqual(validate(doc, { forExport: true }).filter((issue) => issue.severity === "error"), []);
   const md = planBundle(doc).files["PLAN.md"]!;
-  assert.equal(md.split("\n")[4], "As a plan for people to read and follow, this is whole. A coding harness could run it as it is: nothing in it is in error. `grooph export` writes its package for claude-code.");
+  assert.equal(md.split("\n")[4], "As a plan for people to read and follow, this is whole. A coding harness could run it as it is: nothing in it is in error.");
   assert.match(under(md, "To fix before a harness can run this"), /^\nNothing\.\n/);
 
   // A warning alone: nothing has to be fixed, and the warning is listed as one.
@@ -429,10 +429,15 @@ test("a command is shown only as it is written: one of several lines, or with a 
 });
 
 test("what else the reader's changed copies of the code got past the tests: the harness named, errors apart from warnings, the count of what must be fixed", () => {
-  // The harness the package would be for is the document's.
-  const codex = green();
-  codex.target = { harness: "codex" };
-  assert.match(planBundle(codex).files["PLAN.md"]!, /`grooph export` writes its package for codex\./);
+  // The sentence that named the harness a package would be for went with `grooph export` (decision 0032): whichever
+  // harness the document names, the line ends where it says a harness could run it, and the plan names no such command.
+  for (const harness of ["codex", "claude-code"]) {
+    const named = green();
+    named.target = { harness };
+    const md = planBundle(named).files["PLAN.md"]!;
+    assert.equal(md.split("\n")[4], "As a plan for people to read and follow, this is whole. A coding harness could run it as it is: nothing in it is in error.", harness);
+    assert.doesNotMatch(md, /grooph export/, harness);
+  }
   // One error and a warning: the count is of errors, each kind is under its own sentence, and a message is one line.
   const mixed = green();
   delete mixed.target;

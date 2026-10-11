@@ -1,15 +1,20 @@
 /**
  * The lab's command (handoff 0103, criteria 1 and 2): started as a program from the clone, it answers what `grooph`
- * answers, and what it compiles is, byte for byte, what the golden packages and the frozen game experiment hold.
+ * answers for every command that is still grooph's, answers itself for the ones that left grooph (where grooph now
+ * says one line), and what it compiles is, byte for byte, what the golden packages and the frozen game experiment hold.
  */
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { test } from "node:test";
+
+import { canonicalize, parseGraphText } from "@grooph/core";
+
+import { gone } from "@grooph/cli/commands/help";
 
 import { root } from "./root.js";
 
@@ -45,33 +50,48 @@ function sameTree(made: string, kept: string, what: string): void {
 
 const REAL_RUN = join("fixtures", "runs", "slice-0007-sandwich", "runs", "20260919-0057-66c8");
 
-test("started as a program, the lab's command answers what grooph answers", () => {
+test("started as a program, the lab's command answers what grooph answers, and answers itself for what has left grooph", () => {
   // Each with the exit code it must give and a word it must say, so that the two cannot agree by failing alike
   // (a fixture that moved, say: "no such file" is exit 1 too).
-  const asked: { status: number; says: RegExp; args: string[] }[] = [
-    { status: 0, says: /^\d+\.\d+\.\d+\n$/, args: ["--version"] },
-    { status: 0, says: /^grooph \d+\.\d+\.\d+: /, args: ["--help"] },
-    { status: 1, says: /^grooph \d+\.\d+\.\d+: /, args: [] },
-    { status: 0, says: /^grooph export <file> --target <harness> --into <dir>/, args: ["help", "export"] },
-    { status: 0, says: /^grooph adopt <run dir>/, args: ["help", "adopt"] },
-    { status: 0, says: /^grooph runs list \[<dir>\]/, args: ["help", "runs"] },
-    { status: 0, says: /^grooph watch \[<run dir> \| <graph dir>\]/, args: ["help", "watch"] },
-    { status: 1, says: /unknown command "nonsense"/, args: ["nonsense"] },
-    { status: 0, says: /W_HOMOGENEOUS_CRITICS[^]*0 errors, 1 warning/, args: ["validate", "--for-export", "fixtures/valid/review-loop.grooph.json"] },
-    { status: 1, says: /E_CYCLE_NO_STOP/, args: ["validate", "fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json"] },
-    { status: 0, says: /Loop "Build-review cycle": at most 4 rounds/, args: ["explain", "fixtures/valid/review-loop.grooph.json"] },
-    { status: 1, says: /export needs a file/, args: ["export"] },
-    { status: 1, says: /unknown target "nowhere"[^]*No package was written\. A plan can still be/, args: ["export", "fixtures/valid/review-loop.grooph.json", "--target", "nowhere", "--into", "never-made"] },
-    { status: 0, says: /20260919-0057-66c8 +slice-0007-sandwich +ended · pass/, args: ["runs", "list", "fixtures/runs"] },
-    { status: 0, says: /^Run 20260919-0057-66c8 · Slice 0007 sandwich/, args: ["runs", "show", REAL_RUN] },
-    { status: 0, says: /version 2 of slice-0007-sandwich[^]*dry run: --write writes it/, args: ["adopt", REAL_RUN] },
-  ];
-  for (const { status, says, args } of asked) {
+  type Asked = { status: number; says: RegExp; args: string[] };
+  const answers = ({ status, says, args }: Asked): Answer => {
     const ours = lab(args);
     const what = `grooph-lab ${args.join(" ")}\n${ours.stdout}${ours.stderr}`;
     assert.equal(ours.status, status, what);
     assert.match(`${ours.stdout}${ours.stderr}`, says, what);
-    assert.deepEqual(ours, start(GROOPH, args), `grooph-lab ${args.join(" ")}`);
+    return ours;
+  };
+
+  // What is still the product's: handed on as typed, and the two commands answer alike, byte for byte.
+  const handedOn: Asked[] = [
+    { status: 0, says: /^\d+\.\d+\.\d+\n$/, args: ["--version"] },
+    { status: 0, says: /W_HOMOGENEOUS_CRITICS[^]*0 errors, 1 warning/, args: ["validate", "--for-export", "fixtures/valid/review-loop.grooph.json"] },
+    { status: 1, says: /E_CYCLE_NO_STOP/, args: ["validate", "fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json"] },
+    { status: 0, says: /Loop "Build-review cycle": at most 4 rounds/, args: ["explain", "fixtures/valid/review-loop.grooph.json"] },
+  ];
+  for (const asked of handedOn) assert.deepEqual(answers(asked), start(GROOPH, asked.args), `grooph-lab ${asked.args.join(" ")}`);
+
+  // What is the lab's own since export, adopt, runs and a run to watch left the product (slice 0103): the overview
+  // with them in it, their pages, the suggestion that names them, and the commands. There is no comparison to make:
+  // the words are what grooph said through 0.4.1. Where grooph has its one line for the command (`left`), it says it.
+  const own: (Asked & { left?: string })[] = [
+    { status: 0, says: /^grooph \d+\.\d+\.\d+: author, check and compile multi-agent loop graphs\. It never runs them\.\n[^]*\nCompile\n {2}export {2,}\S[^]*\n {2}adopt {2,}\S[^]*\n {2}runs {2,}\S/, args: ["--help"] },
+    { status: 1, says: /^grooph \d+\.\d+\.\d+: author, check and compile multi-agent loop graphs\. It never runs them\.\n[^]*\nCompile\n {2}export {2,}\S/, args: [] },
+    { status: 0, says: /^grooph export <file> --target <harness> --into <dir>/, args: ["help", "export"], left: "export" },
+    { status: 0, says: /^grooph adopt <run dir>/, args: ["help", "adopt"], left: "adopt" },
+    { status: 0, says: /^grooph runs list \[<dir>\]/, args: ["help", "runs"], left: "runs" },
+    { status: 0, says: /^grooph watch \[<run dir> \| <graph dir>\]/, args: ["help", "watch"] },
+    { status: 1, says: /^grooph: unknown command "nonsense"\.\ngrooph --help lists the commands\.\n$/, args: ["nonsense"] },
+    { status: 1, says: /^grooph: unknown command "exprot"\. Did you mean "export"\?\ngrooph --help lists the commands\.\n$/, args: ["exprot"] },
+    { status: 1, says: /export needs a file/, args: ["export"], left: "export" },
+    { status: 1, says: /unknown target "nowhere"[^]*No package was written\. A plan can still be/, args: ["export", "fixtures/valid/review-loop.grooph.json", "--target", "nowhere", "--into", "never-made"], left: "export" },
+    { status: 0, says: /20260919-0057-66c8 +slice-0007-sandwich +ended · pass/, args: ["runs", "list", "fixtures/runs"], left: "runs" },
+    { status: 0, says: /^Run 20260919-0057-66c8 · Slice 0007 sandwich/, args: ["runs", "show", REAL_RUN], left: "runs" },
+    { status: 0, says: /version 2 of slice-0007-sandwich[^]*dry run: --write writes it/, args: ["adopt", REAL_RUN], left: "adopt" },
+  ];
+  for (const asked of own) {
+    answers(asked);
+    if (asked.left !== undefined) assert.deepEqual(start(GROOPH, asked.args), { status: 1, stdout: "", stderr: `${gone(asked.left)}\n` }, `grooph ${asked.args.join(" ")}`);
   }
   // The command says which grooph it stands on.
   assert.deepEqual(lab(["--version"]), { status: 0, stdout: `${JSON.parse(readFileSync(join(root, "packages", "cli", "package.json"), "utf8")).version}\n`, stderr: "" });
@@ -144,19 +164,45 @@ test("the frozen game experiment's package is what the lab's command compiles to
   }
 });
 
-test("adopt --write through the lab's command writes what grooph's writes", () => {
-  const dirs = [scratch(), scratch()];
+test("adopt --write through the lab's command, started as a program, writes version 2 in the words grooph's had, and leaves the source and the run as they were", () => {
+  // This compared the words and the file with what `grooph adopt --write` wrote, while grooph had the command. It has
+  // none now (packages/cli/test/gone.test.ts), so the lab's own are pinned: every line it prints, and the file. That
+  // the file is the same in meaning as the one the driver made by hand is in runs.test.ts, through run().
+  const dir = realpathSync(scratch());
   try {
-    const [theirs, ours] = dirs.map((dir, i) => {
-      cpSync(join(root, "fixtures", "runs", "slice-0007-sandwich"), join(dir, ".grooph", "slice-0007-sandwich"), { recursive: true });
-      const args = ["adopt", join(dir, ".grooph", "slice-0007-sandwich", "runs", "20260919-0057-66c8"), "--write"];
-      const answer = i === 0 ? start(GROOPH, args) : lab(args);
-      return { ...answer, stdout: answer.stdout.split(dir).join("<project>"), written: readFileSync(join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json"), "utf8") };
-    }) as [Answer & { written: string }, Answer & { written: string }];
-    assert.equal(ours.status, 0, ours.stderr);
-    assert.deepEqual(ours, theirs);
-    assert.equal(JSON.parse(ours.written).version, 2);
+    const graphDir = join(dir, ".grooph", "slice-0007-sandwich");
+    cpSync(join(root, "fixtures", "runs", "slice-0007-sandwich"), graphDir, { recursive: true });
+    const target = join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json");
+    const kept = files(dir).map((file) => [file, readFileSync(join(dir, file), "utf8")]);
+
+    const answer = lab(["adopt", join(graphDir, "runs", "20260919-0057-66c8"), "--write"]);
+    assert.deepEqual(
+      { ...answer, stdout: answer.stdout.split(dir).join("<project>") },
+      {
+        status: 0,
+        stdout: [
+          "Run 20260919-0057-66c8 · Slice 0007 sandwich: what it changed in its working copy",
+          "  Changed the graph's other limits (constraints.other)  ← n-0002",
+          "  Changed the outputs of Builder (builder)  ← n-0002",
+          "  Changed the outputs of Critic (critic)  ← n-0002",
+          "",
+          "version 2 of slice-0007-sandwich, from slice-0007-sandwich@1 and run 20260919-0057-66c8, would go to <project>/.grooph/graphs/slice-0007-sandwich.grooph.json",
+          "wrote <project>/.grooph/graphs/slice-0007-sandwich.grooph.json (version 2); the source <project>/.grooph/slice-0007-sandwich/graph.grooph.json is unchanged",
+          "place it for the next run with: grooph export <project>/.grooph/graphs/slice-0007-sandwich.grooph.json --target claude-code --into <project>",
+          "",
+        ].join("\n"),
+        stderr: "",
+      },
+    );
+    const written = readFileSync(target, "utf8");
+    const adopted = parseGraphText(written).doc!;
+    assert.equal(adopted.version, 2);
+    assert.equal(adopted.lineage?.from, "slice-0007-sandwich@1");
+    assert.equal(written, canonicalize(adopted), "written in canonical form");
+    // One file more than there was, and every other as it was.
+    assert.deepEqual(files(dir), [...kept.map(([file]) => file), ".grooph/graphs/slice-0007-sandwich.grooph.json"].sort());
+    for (const [file, text] of kept) assert.equal(readFileSync(join(dir, file!), "utf8"), text, file);
   } finally {
-    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
   }
 });

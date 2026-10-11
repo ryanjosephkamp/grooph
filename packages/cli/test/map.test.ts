@@ -1,7 +1,8 @@
 /**
  * Operation maps at the command line (docs/operation-map.md; amendment A-011):
  * `validate`, `canonicalize`, `shape`, `image` and `share` know a map from a
- * graph by its `groophMap` key, and a graph command given a map says so.
+ * graph by its `groophMap` key, and a graph command given a map says so
+ * (`export`, which left this command line for the lab's, in lab/test/map.test.ts).
  */
 
 import assert from "node:assert/strict";
@@ -233,9 +234,3 @@ test("share makes a link that opens to the same map, rule errors and all, and --
   });
 });
 
-test("a graph command given a map says what it is; export never takes one", async () => {
-  const io = capture();
-  assert.equal(await grooph(["export", sample, "--target", "claude-code", "--into", tmpdir()], io), 1);
-  assert.match(text(io.stderr), /operation map/);
-  assert.match(text(io.stderr), /never compiled/);
-});

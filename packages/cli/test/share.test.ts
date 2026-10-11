@@ -206,7 +206,7 @@ test("share --open hands the link to the browser opener, and a failing opener is
 
 // ─── pick ─────────────────────────────────────────────────────────────────
 
-test("pick by id or by label, any case, writes the candidate's graph in canonical form and says what to run next", async () => {
+test("pick by id or by label, any case, writes the candidate's graph in canonical form, and names no next step for a graph that is no plan", async () => {
   await withScratch(async (dir) => {
     for (const [query, id] of [["reviewed", "reviewed"], ["RIGOROUS", "rigorous"], ["Lean", "lean"]] as const) {
       const out = join(dir, ".grooph", "graphs", `${id}.grooph.json`);
@@ -214,7 +214,9 @@ test("pick by id or by label, any case, writes the candidate's graph in canonica
       assert.equal(await grooph(["pick", csvSet, query, "--out", out], io), 0, query);
       assert.equal(readFileSync(out, "utf8"), readFileSync(join(csvDir, `${id}.grooph.json`), "utf8"));
       assert.match(text(io.stdout), new RegExp(`^picked "\\w+" \\(${id}\\) from csv-export → `, "m"));
-      assert.match(text(io.stdout), /^next: grooph export .* --target claude-code --into \.$/m);
+      // A graph a harness could run has no next step of grooph's: it writes no package (decision 0032). A plan's is `grooph plan`, below.
+      assert.ok(!io.stdout.concat(io.stderr).some((line) => line.startsWith("next:")), text(io.stdout));
+      assert.doesNotMatch(text(io.stdout.concat(io.stderr)), /grooph export/);
     }
   });
 });
@@ -393,7 +395,8 @@ test("every command answers --help with exit 0; share's page carries the proposa
   io = capture();
   assert.equal(await grooph(["mermaid", "--help"], io), 0);
   assert.match(text(io.stdout), /One way only/);
-  for (const command of ["pick", "shape", "glyph", "mermaid", "validate", "export", "new", "apply"]) {
+  // (`export` was in this list; its page is the lab's now, and is asked for in lab/test/friction.test.ts.)
+  for (const command of ["pick", "shape", "glyph", "mermaid", "validate", "new", "apply"]) {
     io = capture();
     assert.equal(await grooph([command, "--help"], io), 0, command);
     assert.ok(io.stdout.length > 0 && io.stderr.length === 0, command);

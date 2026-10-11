@@ -11,7 +11,7 @@ import { appDir } from "../paths.js";
 import type { Output } from "../print.js";
 import { LoadError, shown, type OpenUrl } from "../share-io.js";
 
-export const WATCH_HELP = `grooph watch [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]
+export const WATCH_HELP = `grooph watch [--sessions] [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]
 
 Watch from a browser, on this machine or a phone on the same network. Serves the built
 grooph app and one read-only endpoint, read again from disk on every request:
@@ -19,6 +19,8 @@ grooph app and one read-only endpoint, read again from disk on every request:
   the sessions  what the event hook has recorded (grooph hooks install): each session
                 and its subagents as they start and stop, in Claude Code and in Codex
 
+  --sessions    taken and not needed: the sessions are what watch serves. A line written
+                for grooph 0.4.1 still runs.
   --events <s>  more events to merge in, as often as wanted: a file, a folder of files,
                 another project's folder, or git:<ref> for a branch that carries its
                 .grooph/events/ (read from the watched project's repository, no checkout).

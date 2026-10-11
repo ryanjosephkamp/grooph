@@ -223,9 +223,8 @@ test("use writes an instantiated graph, asks for unfilled slots on stderr, and n
     const sets = ["--set", "task=Add a slugify function.", "--set", "test-command=pnpm test", "--set", "checklist=docs/REVIEW-CHECKLIST.md"];
     assert.equal(await grooph(box, ["template", "use", "review-gate", "--name", "Try it", ...sets, "--out", out, "--force"], forced), 0);
     assert.deepEqual(forced.stderr, [], "nothing left to ask");
+    // (That export then places its package is in lab/test/template.test.ts.)
     assert.equal(await grooph(box, ["validate", "--for-export", out], capture()), 0);
-    assert.equal(await grooph(box, ["export", out, "--target", "claude-code", "--into", join(box.dir, "pkg")], capture()), 0);
-    assert.ok(existsSync(join(box.dir, "pkg", ".grooph", "try-it", "LEAD.md")));
   } finally {
     box.cleanup();
   }

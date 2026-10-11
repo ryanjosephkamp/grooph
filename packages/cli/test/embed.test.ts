@@ -3,6 +3,7 @@
  * is decoded with core's own decoder and this package's zlib codec, so what is
  * asserted is what the app will receive. The browser half (the printed address
  * opens and shows the graph's name) is apps/web/e2e/embed.spec.ts.
+ * A run folder is read by the lab's `embed` (slice 0103): lab/test/embed.test.ts.
  */
 
 import assert from "node:assert/strict";
@@ -110,10 +111,8 @@ test("without --height the frame is as tall as the picture at a phone's width, w
   });
 });
 
-test("a run folder and an operation map embed too", () => {
-  const folder = embed(join(repoRoot, "fixtures/runs/run-gate/runs/20260919-1200-gate"));
-  assert.equal(folder.code, 0);
-  assert.equal((decodeSharePayload(folder.payload, inflateRaw) as { envelope: { kind: string } }).envelope.kind, "run");
+// (A run folder embeds through the lab's command, which reads it: lab/test/embed.test.ts. A run's bundle is a file, above.)
+test("an operation map embeds too", () => {
   const map = embed(sampleMap);
   assert.equal(map.code, 0);
   assert.equal((decodeSharePayload(map.payload, inflateRaw) as { envelope: { kind: string } }).envelope.kind, "map");
