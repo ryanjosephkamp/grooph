@@ -103,6 +103,16 @@ const isFile = (path: string): boolean => {
   }
 };
 
+/** A file that is no link and has no second name. */
+const isOwnFile = (path: string): boolean => {
+  try {
+    const is = lstatSync(path);
+    return is.isFile() && is.nlink === 1;
+  } catch {
+    return false;
+  }
+};
+
 /** The event files a source names: the file itself, the `*.jsonl` in a folder, or a project's `.grooph/events/`. */
 export function eventFiles(path: string): string[] {
   const full = resolve(path);
@@ -247,8 +257,10 @@ export function readLive(sources: EventSource[], now: () => Date = () => new Dat
   const kept = new Map<string, number>();
   const held = new Map<string, number[]>();
   sources.forEach((source, at) => {
-    const files = source.ref !== undefined ? refFiles(source.ref, cwd) : eventFiles(resolve(cwd, source.path)).filter(isFile).map((file) => ({ name: basename(file), text: readTail(file) }));
     const behind = source.ref === undefined && source.behind === true;
+    // A folder that stands behind a record is read for its own files only: a link there, or a second name for a
+    // file kept elsewhere, may lead to another folder's record.
+    const files = source.ref !== undefined ? refFiles(source.ref, cwd) : eventFiles(resolve(cwd, source.path)).filter(behind ? isOwnFile : isFile).map((file) => ({ name: basename(file), text: readTail(file) }));
     const here = new Map<string, number>();
     for (const file of files) {
       const parsed = parseEvents(file.text);

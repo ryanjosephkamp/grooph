@@ -1,0 +1,84 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r3/packages/cli/bin/grooph.js
+       hooks.js 0c22565e5253 · events-io.js cafc5778c08d · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+
+seed 1, 400 cases: 550 settings texts, 1200 sequences, 4400 runs of grooph in 118 s
+sequences with nothing to say: 555 of 1200
+files checked after an install, (1) to (4): 1650
+(5) install run again left every file as it was: 1200 of 1200
+(6) remove gave back the bytes: 822 files; the expected tokens without an earlier install's entries: 108 files; of 1200 removes
+refusals (exit not 0): 0
+
+kinds, most first, each with the smallest text that showed it:
+
+  131 × base: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        seed 1 case 244 --tools claude-code:only/spaced codex:first/pretty2
+        "{\"hooks\": {}}"
+
+  131 × switch: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        seed 1 case 244 --tools claude-code:only/spaced codex:first/pretty2
+        "{\"hooks\": {}}"
+
+  131 × moved: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        seed 1 case 244 --tools claude-code:only/spaced codex:first/pretty2
+        "{\"hooks\": {}}"
+
+   94 × base: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 1 case 34 --tools claude-code:only/pretty2/ours codex:only/pretty2
+        "{\n  \"hooks\": {\n    \"Sto\\u0070\": []\n  }\n}\n"
+
+   94 × switch: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 1 case 34 --tools claude-code:only/pretty2/ours codex:only/pretty2
+        "{\n  \"hooks\": {\n    \"Sto\\u0070\": []\n  }\n}\n"
+
+   94 × moved: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 1 case 34 --tools claude-code:only/pretty2/ours codex:only/pretty2
+        "{\n  \"hooks\": {\n    \"Sto\\u0070\": []\n  }\n}\n"
+
+   14 × base: (6) an earlier install's entries were in the file; install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 1 case 125 --tools claude-code:only/mixedcrlf/ours codex:last/pretty2/ours
+        "{\r\n    \"hooks\": {\r\n        \"UserPromptSubmit\": [],\r\n        \"Stop\": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"/x/hooks/hooks/grooph-event.mjs\\\" codex --user\", \"timeout\": 9007199254740993}]}, {\"hooks\": [{\"type\": \"command\", \"command\": \"printf '%s\\\\n' \\\"}]\\\"\"}, {\"timeout\": 10, \"command\": \"echo \\\"a\\\\\\\\b\\\"\", \"type\": \"command\"}]}, {\"matcher\": \"*\", \"hooks\": [{\"type\": \"command\", \"command\": \"echo é 日本 😀\", \"timeout\": 3, \"timeout\": 7}]}]\r\n    }\r\n}"
+
+   14 × switch: (6) an earlier install's entries were in the file; install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 1 case 125 --tools claude-code:only/mixedcrlf/ours codex:last/pretty2/ours
+        "{\r\n    \"hooks\": {\r\n        \"UserPromptSubmit\": [],\r\n        \"Stop\": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"/x/hooks/hooks/grooph-event.mjs\\\" codex --user\", \"timeout\": 9007199254740993}]}, {\"hooks\": [{\"type\": \"command\", \"command\": \"printf '%s\\\\n' \\\"}]\\\"\"}, {\"timeout\": 10, \"command\": \"echo \\\"a\\\\\\\\b\\\"\", \"type\": \"command\"}]}, {\"matcher\": \"*\", \"hooks\": [{\"type\": \"command\", \"command\": \"echo é 日本 😀\", \"timeout\": 3, \"timeout\": 7}]}]\r\n    }\r\n}"
+
+   14 × moved: (6) an earlier install's entries were in the file; install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 1 case 125 --tools claude-code:only/mixedcrlf/ours codex:last/pretty2/ours
+        "{\r\n    \"hooks\": {\r\n        \"UserPromptSubmit\": [],\r\n        \"Stop\": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"/x/hooks/hooks/grooph-event.mjs\\\" codex --user\", \"timeout\": 9007199254740993}]}, {\"hooks\": [{\"type\": \"command\", \"command\": \"printf '%s\\\\n' \\\"}]\\\"\"}, {\"timeout\": 10, \"command\": \"echo \\\"a\\\\\\\\b\\\"\", \"type\": \"command\"}]}, {\"matcher\": \"*\", \"hooks\": [{\"type\": \"command\", \"command\": \"echo é 日本 😀\", \"timeout\": 3, \"timeout\": 7}]}]\r\n    }\r\n}"
+
+    4 × switch: (3) an event that should be there is not
+        seed 1 case 301 --tools codex:last/crlftab
+        "{\r\n\t\" hooks\": \"\\u005c\",\r\n\t\"hooks\": {\r\n\t\t\"PostToolUse\": [],\r\n\t\t\"sessionStart\": [\r\n\t\t\t{\r\n\t\t\t\t\"hooks\": [\r\n\t\t\t\t\t{\r\n\t\t\t\t\t\t\"timeout\": 3,\r\n\t\t\t\t\t\t\"command\": \"python3 -c \\\"print('{')\\\"\",\r\n\t\t\t\t\t\t\"type\": \"command\"\r\n\t\t\t\t\t},\r\n\t\t\t\t\t{\r\n\t\t\t\t\t\t\"type\": \"command\",\r\n\t\t\t\t\t\t\"command\": \"bash -c 'echo \\\"{}\\\"'\",\r\n\t\t\t\t\t\t\"timeout\": 9007199254740993\r\n\t\t\t\t\t}\r\n\t\t\t\t]\r\n\t\t\t}\r\n\t\t]\r\n\t}\r\n}"
+
+    1 × base: (2) hooks was missing and the file changed in more than one place
+        seed 1 case 194 claude-code:none/chaos/ours
+        "\r{  }  "
+
+    1 × base: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        seed 1 case 194 claude-code:none/chaos/ours
+        "\r{  }  "
+
+    1 × switch: (2) hooks was missing and the file changed in more than one place
+        seed 1 case 194 claude-code:none/chaos/ours
+        "\r{  }  "
+
+    1 × switch: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        seed 1 case 194 claude-code:none/chaos/ours
+        "\r{  }  "
+
+    1 × moved: (2) hooks was missing and the file changed in more than one place
+        seed 1 case 194 claude-code:none/chaos/ours
+        "\r{  }  "
+
+    1 × moved: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        seed 1 case 194 claude-code:none/chaos/ours
+        "\r{  }  "
+
+the same kinds, the three sequences together:
+  393 × (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+  282 × (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+   42 × (6) an earlier install's entries were in the file; install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+    4 × (3) an event that should be there is not
+    3 × (2) hooks was missing and the file changed in more than one place
+    3 × (6) install then remove did not give the bytes back: the file was an empty object with space in it

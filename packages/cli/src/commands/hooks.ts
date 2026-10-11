@@ -711,6 +711,13 @@ function installUserHeld(io: Output, flags: HooksFlags, list: Harness[], places:
     io.err(`grooph: could not write ${tilde(at)}: ${(err as Error).message}. ${written.length > 0 ? `Written before that: ${written.map(tilde).join(", ")}.` : "Nothing was changed."}`);
     return 1;
   }
+  // Kept for remove: which settings files run this hook, whatever CLAUDE_CONFIG_DIR and CODEX_HOME name by then.
+  const noted = new Set([...(installsNoted(places) ?? []), ...plans.map((plan) => plan.path)]);
+  try {
+    if ([...noted].join("\n") !== (installsNoted(places) ?? []).join("\n")) noteInstalls(places, [...noted]);
+  } catch (err) {
+    io.err(`grooph: could not write ${tilde(places.installs)}: ${(err as Error).message}. The install is in place; grooph hooks remove --user will know only the settings files named when it is run.`);
+  }
   for (const plan of plans) {
     if (plan.strangers > 0) io.out(`${plural(plan.strangers, "entry", "entries")} in ${tilde(plan.path)} ${plan.strangers === 1 ? "names" : "name"} grooph's hook and ${plan.strangers === 1 ? "is" : "are"} not as this command writes them: left as ${plan.strangers === 1 ? "it is" : "they are"}. If ${plan.strangers === 1 ? "it runs" : "they run"} this hook too, an event is recorded twice.`);
   }
@@ -742,10 +749,26 @@ function removeUser(io: Output, flags: HooksFlags, list: Harness[], places: User
   }
 }
 
-/** Every settings file that could name the hook kept in grooph's own folder: the harnesses' own, and those of the folder that holds grooph's folder, read as a project. */
+/**
+ * The settings files `install --user` has put entries in, as grooph's own folder keeps them. A person may have more
+ * than one account's (CLAUDE_CONFIG_DIR names another folder for each), all running the one hook: taking grooph out
+ * of one must not take the hook's file from the others. Undefined when the note is there and cannot be read.
+ */
+function installsNoted(places: UserPlaces): string[] | undefined {
+  if (!existsSync(places.installs)) return [];
+  try {
+    const json = JSON.parse(readFileSync(places.installs, "utf8")) as { settings?: unknown };
+    return Array.isArray(json.settings) ? json.settings.filter((path): path is string => typeof path === "string" && isAbsolute(path)) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+const noteInstalls = (places: UserPlaces, settings: string[]): void => writeWhole(places.installs, `${JSON.stringify({ groophInstalled: 1, settings }, null, 2)}\n`, 0o600);
+
+/** Every settings file that could name the hook kept in grooph's own folder: the harnesses' own, those an install was made into before, and those of the folder that holds grooph's folder, read as a project. */
 function mayRun(places: UserPlaces): string[] {
   const above = dirname(places.home);
-  return [...new Set([places.settings["claude-code"], places.settings.codex, settingsPath(above, "claude-code", false), settingsPath(above, "claude-code", true), settingsPath(above, "codex", false)])];
+  return [...new Set([places.settings["claude-code"], places.settings.codex, ...(installsNoted(places) ?? []), settingsPath(above, "claude-code", false), settingsPath(above, "claude-code", true), settingsPath(above, "codex", false)])];
 }
 /** Those of them that name the hook now, or cannot be read and so may. */
 function stillNaming(places: UserPlaces): string[] {
@@ -787,7 +810,13 @@ function removeUserHeld(io: Output, flags: HooksFlags, list: Harness[], places: 
   // The hook's file goes when no harness's settings name it any more: not an entry of this install's, and not one
   // somebody wrote or changed by hand, which would then be heard from at every event. A settings file that cannot
   // be read may still name it.
-  const naming = stillNaming(places);
+  // A note of earlier installs that cannot be read may name settings that still run the hook.
+  const naming = installsNoted(places) === undefined ? [places.installs] : stillNaming(places);
+  if (installsNoted(places) !== undefined && existsSync(places.installs)) {
+    const still = (installsNoted(places) ?? []).filter((path) => naming.includes(path));
+    if (still.length > 0) noteInstalls(places, still);
+    else rmSync(places.installs, { force: true });
+  }
   if (naming.length === 0 && existsSync(places.hook)) {
     rmSync(places.hook);
     io.out(`removed ${tilde(places.hook)}`);
@@ -833,25 +862,27 @@ function holding<T>(places: UserPlaces, fn: () => T): T {
       } catch (err) {
         if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
       }
-      let held: string | undefined;
+      const is = lstatSync(lock, { throwIfNoEntry: false });
+      // Gone again in that moment.
+      if (is === undefined) continue;
+      // A folder, a link, a pipe: no lock grooph makes, and nobody's. Taken away itself, never what it leads to.
+      if (!is.isFile()) {
+        rmSync(lock, { recursive: true, force: true });
+        continue;
+      }
+      let holder: number | undefined;
       try {
-        held = readFileSync(lock, "utf8");
-      } catch {
-        // Gone again in that moment, or not a file at all.
-        if (lstatSync(lock, { throwIfNoEntry: false })?.isDirectory() === true) rmSync(lock, { recursive: true, force: true });
-        continue;
-      }
-      const holder = Number(held.split(" ")[0]);
-      if (!alive(holder)) {
-        // Nobody's: taken away, if it is still the one that was read.
-        try {
+        const held = readFileSync(lock, "utf8");
+        holder = Number(held.split(" ")[0]);
+        if (!alive(holder)) {
+          // Nobody's: taken away, if it is still the one that was read.
           if (readFileSync(lock, "utf8") === held) rmSync(lock, { force: true });
-        } catch {
-          // gone already
+          continue;
         }
-        continue;
+      } catch {
+        // Gone in that moment, or a file that cannot be read: waited for like one that is held.
       }
-      if (Date.now() > until) throw new Error(`another grooph command (process ${holder}) has been changing ${tilde(places.home)} for ten seconds. If none is running, remove ${tilde(lock)}. Nothing was changed.`);
+      if (Date.now() > until) throw new Error(`another grooph command${holder !== undefined ? ` (process ${holder})` : ""} has been changing ${tilde(places.home)} for ten seconds. If none is running, remove ${tilde(lock)}. Nothing was changed.`);
       Atomics.wait(wait, 0, 0, 25);
     }
   } finally {
@@ -1198,6 +1229,15 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
       }
     }
     io.out(`The events in ${EVENTS_DIR}/ are kept.`);
+    for (const harness of list) {
+      const path = settingsPath(dir, harness, false);
+      if (exactNearest(path) !== exactNearest(places.settings[harness])) continue;
+      try {
+        if (userEntries(readSettings(path)).length > 0) io.out(`${shownPath(path)} here is ${harness === "claude-code" ? "Claude Code" : "Codex"}'s own settings for every project, and the install outside the project is in it still: grooph hooks remove --user takes that one out.`);
+      } catch {
+        // said above
+      }
+    }
     return 0;
   }
 

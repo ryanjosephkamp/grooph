@@ -59,6 +59,8 @@ export type UserPlaces = {
   list: string;
   /** the record: one folder per listed folder, one file per session */
   events: string;
+  /** the settings files `install --user` has put entries in: a person may have more than one account's, and the hook is kept while any of them names it */
+  installs: string;
   /** where each harness reads its user-level hooks */
   settings: { "claude-code": string; codex: string };
 };
@@ -71,6 +73,7 @@ export function userPlaces(env: NodeJS.ProcessEnv = process.env): UserPlaces {
     hook: join(home, "hooks", "grooph-event.mjs"),
     list: join(home, "watched.json"),
     events: join(home, "events"),
+    installs: join(home, "installed.json"),
     settings: { "claude-code": join(named("CLAUDE_CONFIG_DIR", ".claude"), "settings.json"), codex: join(named("CODEX_HOME", ".codex"), "hooks.json") },
   };
 }
