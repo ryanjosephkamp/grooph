@@ -14,7 +14,8 @@ import { digestTranscripts, projectDiff, readNotes, redactHome, runFolders, sess
 import { describe, gate, loadLedger, openEntry, saveLedger, settleEntry } from "./prove-ledger.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const CLI = join(root, "packages", "cli", "bin", "grooph.js");
+// The lab's command (lab/README.md): it does everything `grooph` does, `export` included.
+const CLI = join(root, "lab", "bin", "grooph-lab.js");
 const CORE = join(root, "packages", "core", "dist", "src", "index.js");
 const EXPERIMENTS = join(root, "experiments", "patterns");
 const HOME = process.env.HOME ?? "";
@@ -536,7 +537,7 @@ async function main() {
     return 0;
   }
   if (!args.template) fail("usage: scripts/prove-pattern.sh <template id> [--dry-run | --check <dir> | --retry <reason>] (see its header)");
-  if (!existsSync(CORE) || !existsSync(join(root, "packages", "cli", "dist", "src", "index.js"))) fail("build the repo first: pnpm install && pnpm -r build");
+  if (!existsSync(CORE) || !existsSync(join(root, "packages", "cli", "dist", "src", "index.js")) || !existsSync(join(root, "lab", "dist", "src", "main.js"))) fail("build the repo first: pnpm install && pnpm -r build");
   const core = await import(CORE);
 
   if (args.check) {

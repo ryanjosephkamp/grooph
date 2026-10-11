@@ -110,7 +110,7 @@ export function problems(task, e, f) {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const flags = process.argv.slice(2);
-  if (!existsSync(join(root, "packages", "cli", "dist"))) {
+  if (!existsSync(join(root, "packages", "cli", "dist")) || !existsSync(join(root, "lab", "dist", "src", "main.js"))) {
     console.error("build the tool first: pnpm -r build");
     process.exit(1);
   }

@@ -16,6 +16,7 @@
     "grooph": "grooph"
   },
   "devDependencies": {
-    "@grooph/cli": "workspace:*"
+    "@grooph/cli": "workspace:*",
+    "@grooph/lab": "workspace:*"
   }
 }
