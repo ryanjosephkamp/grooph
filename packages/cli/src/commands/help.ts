@@ -3,17 +3,7 @@
  * "did you mean" for a mistyped command. The longer pages live beside their commands.
  */
 
-import { KNOWN_TARGETS, getProfile } from "@grooph/core";
-
-/** Each target's own tier map, as its profile has it, for the export's help. */
-const ownTiers = (target: string): string =>
-  Object.entries(getProfile(target).models)
-    .map(([tier, model]) => `${tier} → ${model}`)
-    .join(", ");
-const OWN_TIERS = ownTiers("claude-code");
-const OWN_TIERS_CODEX = ownTiers("codex");
-
-export const overview = (version: string): string => `grooph ${version}: author, check and compile multi-agent loop graphs. It never runs them.
+export const overview = (version: string): string => `grooph ${version}: author and check multi-agent loop graphs. It never runs them.
 
 Usage: grooph <command> [options]      grooph help <command> for one command in full
 
@@ -30,10 +20,6 @@ Check
   shape        counts and brakes at a glance
   canonicalize print or rewrite a document in canonical form
 
-Compile
-  export       write the prompt package for a harness (${KNOWN_TARGETS.join(", ")})
-  adopt        take a run's working copy as the graph's next version
-
 See
   plan         a plan for people to follow: PLAN.md, the picture and the document
   image        a picture of a graph or map, SVG or PNG
@@ -43,8 +29,7 @@ See
   mermaid      a one-way Mermaid flowchart
 
 Watch
-  watch        serve the app and the live run to this machine's browser
-  runs         list, show or bundle what runs left behind
+  watch        serve the app and the live sessions to this machine's browser
   hooks        install the event hook (it records and never steers)
   sessions     what the hook has seen
   events       push or inspect recorded events
@@ -58,9 +43,20 @@ First time? https://ryanjosephkamp.github.io/grooph/docs/quickstart/   grooph --
 
 /** Commands the overview lists, for the "did you mean" and the unknown-command check. */
 export const COMMANDS = [
-  "new", "template", "sub", "apply", "pick", "validate", "explain", "shape", "canonicalize", "export", "adopt",
-  "plan", "image", "outline", "page", "glyph", "mermaid", "watch", "runs", "hooks", "sessions", "events", "mcp", "share", "embed",
+  "new", "template", "sub", "apply", "pick", "validate", "explain", "shape", "canonicalize",
+  "plan", "image", "outline", "page", "glyph", "mermaid", "watch", "hooks", "sessions", "events", "mcp", "share", "embed",
 ] as const;
+
+/**
+ * What grooph had through 0.4.1 and has no longer (decision 0032: it draws workflows and watches them, and does not
+ * direct a session). Each answers with one line and exit code 1, has no help page, and is never a "did you mean".
+ */
+export const GONE: readonly string[] = ["export", "adopt", "runs"];
+export const gone = (command: string): string =>
+  `grooph: ${command} is no longer part of grooph, which draws workflows and watches them and no longer directs a session. Version 0.4.1 on npm still has it, and the repository keeps it as a lab (lab/README.md: grooph-lab ${command}).`;
+/** `grooph watch <run dir | graph dir>`: the one part of a command that stays which left. */
+export const WATCH_GONE =
+  "grooph: watch no longer takes a run or a graph folder: grooph no longer directs a session, so it has no run to follow. Version 0.4.1 on npm still does, and the repository keeps that as a lab (lab/README.md: grooph-lab watch <run dir>). With no folder, grooph watch serves the sessions the event hook has seen.";
 
 /** Edit distance with transposition counted as one edit. */
 function distance(a: string, b: string): number {
@@ -77,10 +73,10 @@ function distance(a: string, b: string): number {
 }
 
 /** The nearest command to what was typed, when one is close enough to be a typo. */
-export function nearestCommand(typed: string): string | undefined {
+export function nearestCommand(typed: string, commands: readonly string[] = COMMANDS): string | undefined {
   const lower = typed.toLowerCase();
   let best: { name: string; score: number } | undefined;
-  for (const name of COMMANDS) {
+  for (const name of commands) {
     // A prefix of a command ("valid") is as good as a one-edit typo.
     const score = name.startsWith(lower) && lower.length >= 3 ? 1 : distance(lower, name);
     if (best === undefined || score < best.score) best = { name, score };
@@ -106,8 +102,8 @@ that cannot apply is named and nothing is written. Prints the resulting issues; 
 the result in canonical form (never one that fails the schema). Exits 1 while errors remain.
 
 The graph a package keeps (.grooph/<id>/graph.grooph.json) is not written by apply, or by any
-command but export: an export compares the next graph with it (grooph export --help). Work on a
-copy of your own, .grooph/graphs/<id>.grooph.json by habit, and export that.
+command of grooph's: what placed the package compares the next graph with it. Work on a copy of
+your own, .grooph/graphs/<id>.grooph.json by habit.
 
 Example
   echo '[{"op":"addNode","kind":"agent","name":"Builder"}]' | grooph apply g.grooph.json --ops - --write`;
@@ -129,82 +125,6 @@ Print the document in canonical form (docs/graph-ir.md §7), or rewrite the file
 
 Example
   grooph canonicalize g.grooph.json --write`;
-
-export const EXPORT_HELP = `grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...] [--change-models] [--allow <change>]... [--uncompared]
-
-Validate for export, then write the harness package into <dir> and print the kickoff prompt.
-Refuses, with the reasons, when the document has errors. Targets: ${KNOWN_TARGETS.join(", ")}.
-It says what each tier means in the package every time, and names each pin.
-A package is one harness's files: --target is the harness the document names (target.harness),
-and a document that names another is refused (E_NO_TARGET) until it names this one:
-  echo '[{"op":"setTarget","harness":"codex"}]' | grooph apply flaky.grooph.json --ops - --write
-  grooph export flaky.grooph.json --target codex --into <a project that does not hold its claude-code package>
-Two packages of one graph in one folder are a mixed package: export does not yet notice the other's files.
-It does read the graph the package there keeps: where that names the other harness, it says so, writes
-nothing, and waits for --uncompared.
-
-  --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
-                                A tier not named keeps the target's own; a pin on a node still wins.
-                                GROOPH_MODELS in the environment says the same for every export
-                                for claude-code on a machine, and GROOPH_MODELS_CODEX for every
-                                export for codex: a model's name is one harness's, so neither is
-                                read for the other target. The flag wins. The graph does not change.
-  --change-models               go ahead when the export would change the model of an agent file
-                                already in <dir>, or cannot read one for its model (a header not in
-                                the plain form grooph writes). Without it such an export stops, lists
-                                each file with its model before and after, and writes nothing.
-  --allow <change>              place a change that may remove or loosen a brake of the graph the
-                                package in <dir> keeps, by the name a refused export lists it under
-                                (loop:review.stops); repeatable
-  --uncompared                  place the graph where a package is in <dir> and nothing can be
-                                compared (see below)
-
-The brakes. A package keeps the graph it was written from (.grooph/<id>/graph.grooph.json). Over a
-package already in <dir> for the same graph id, the graph coming in is held to that graph's brakes,
-by the comparison grooph adopt makes (grooph adopt --help): a loop's round cap or budget raised, a
-gate or an approval gone, a bar's acceptance changed, a critic's isolation dropped, a check changed
-or removed. Each such change
-is listed with its reason, nothing is written, and the exit code is 1, until each is asked for with
---allow. The comparison cannot tell a stricter wording or a renamed part from a looser one, so it
-lists those too. A brake is removed or loosened only on a person's word: an agent that meets the
-refusal puts each listed change to the person, and adds --allow only for the ones they said yes to.
-
-The kept graph is a baseline only while it can be read as a graph, is this package's own, and the
-lead's brief and the mapping notes in the package are what it compiles to. Where it is gone, cannot
-be read as this package's graph, or does not match those two files (it was changed by hand, one of
-them was, or another version of grooph wrote the package), nothing is called compared: the export
-writes nothing and says why, and --uncompared places the graph on a person's word. What still reads
-as loosened against a changed kept graph is held by name as well. A first export, and a graph under
-a new id (a second package beside the first), compare nothing and need no flag. No command of
-grooph's but export writes a kept graph: apply and the others refuse it.
-
-The last line of the output opens "brakes:" and says which of these happened. The kickoff is the
-graph's own words and may hold any line: it runs from the line after "Kickoff" to the line before
-that last line, which is always grooph's own.
-
-What the comparison holds and what it does not is in docs/runs.md, "What adoption does not hold";
-it does not see the graph's own constraints (its budget line among them) or an edge's retry and
-concurrency. "None of the brakes it compares" is all the last line says after a comparison. And the
-baseline is not a seal: a hand that rewrites
-the kept graph together with the brief and the mapping notes is not seen, nor is one that takes an
-irreversible marker off the kept graph, which neither file shows.
-
-An agent's file is named <graph id>--<node id>. Where this graph would write one that another
-package in <dir> has as its own, nothing is written.
-
-Every file is written inside <dir> by where it really is, never through a link at the file's own
-place, and the package is placed whole or not at all.
-
-A graph whose id is graphs, proposals, templates, events or hooks is not exported: a package lives in
-.grooph/<id>/, and grooph keeps those folders for something else.
-
-The targets' own tiers, for claude-code: ${OWN_TIERS}; for codex: ${OWN_TIERS_CODEX}.
-In each, two of them are one model, so a critic on one over a builder on the other is the same model:
-the export says so when a graph has agents on both.
-
-Example
-  grooph export flaky.grooph.json --target claude-code --into .
-  grooph export flaky.grooph.json --target claude-code --into . --models frontier=opus,strong=sonnet,fast=haiku`;
 
 export const EXPLAIN_HELP = `grooph explain <file> [--json]
 

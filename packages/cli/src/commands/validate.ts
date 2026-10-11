@@ -67,8 +67,7 @@ export function validateCommand(io: Output, file: string, flags: ValidateFlags =
     // in the way, it is nothing to repair, and the next thing is the plan (as the tools say it).
     if (parsed.doc && onlyAPlansLacks(issues)) printNext(io, `this graph has a step that is a person's, so it is a plan, and none of that is a fault of one: grooph plan ${file}`);
     else if (hasErrors(issues)) printNext(io, `fix what is listed (docs/rules.md explains each code), then grooph validate ${flags.forExport === true ? "--for-export " : ""}${file}`);
-    else if (flags.forExport === true) printNext(io, `grooph export ${file} --target <harness> --into .`);
-    else printNext(io, `grooph validate --for-export ${file}`);
+    else if (flags.forExport !== true) printNext(io, `grooph validate --for-export ${file}`);
   }
   return hasErrors(issues) ? 1 : 0;
 }

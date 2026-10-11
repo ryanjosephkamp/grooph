@@ -77,7 +77,7 @@ function askForSlots(io: Output, doc: Graph, template: Graph): void {
     const slot = slots.find((s) => s.key === use.key);
     io.err(`  ${`{{${use.key}}}`.padEnd(width)}${slot ? `${slot.ask}  (e.g. ${slot.example})` : "(the template gives no question for it)"}`);
   }
-  io.err(`Fill ${unfilled.length === 1 ? "it" : "them"} with --set key=value, by editing the file, or with grooph apply; export refuses unfilled slots (E_UNFILLED_SLOT).`);
+  io.err(`Fill ${unfilled.length === 1 ? "it" : "them"} with --set key=value, by editing the file, or with grooph apply; grooph validate --for-export refuses unfilled slots (E_UNFILLED_SLOT).`);
 }
 
 /** A document as grooph would write it, or the schema issues that stop it being written. */

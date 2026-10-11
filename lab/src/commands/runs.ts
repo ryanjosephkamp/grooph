@@ -2,10 +2,11 @@ import { resolve } from "node:path";
 
 import { canonicalizeRunBundle, describePatch, diffGraphs, explainChanges, runStateLine } from "@grooph/core";
 
-import { writeText } from "../io.js";
-import { plural, type Output } from "../print.js";
+import { writeText } from "@grooph/cli/io";
+import { plural, type Output } from "@grooph/cli/print";
+import { shown } from "@grooph/cli/share-io";
+
 import { listRuns, readRun, roundsLine, stopLine, stopWords, type LoadedRun } from "../run-io.js";
-import { shown } from "../share-io.js";
 
 export const RUNS_HELP = `grooph runs list [<dir>]
 grooph runs show <run dir> [--json]

@@ -15,7 +15,6 @@ import {
 } from "@grooph/core";
 
 import type { Output } from "../print.js";
-import { isRunDir, readRun } from "../run-io.js";
 import { LoadError, deflateRaw, loadShareable, type Loaded } from "../share-io.js";
 
 /**
@@ -28,12 +27,12 @@ export type EmbedFlags = { theme?: EmbedTheme; height?: number; base?: string; f
 
 export const EMBED_HELP = `grooph embed <file> [--theme <name>] [--height <px>] [--frame] [--play] [--base <url>]
 
-<file> is a graph, a run folder or *.grooph-run.json bundle, an operation map, or a proposal set.
+<file> is a graph, a recorded run (a *.grooph-run.json bundle), an operation map, or a proposal set.
 
 Print the HTML that puts a live, read-only picture of the document in any web page: an
 <iframe> on the first line, and on the second a one-line script that sizes the frame to the
 picture. A reader can pan and zoom it, tap a node for its brief, and open it in grooph. A
-run (a run folder or a *.grooph-run.json bundle) plays: play, step and a scrubber.
+recorded run (a *.grooph-run.json bundle) plays: play, step and a scrubber.
 
 The document travels in the frame's address after the #, as in grooph share, so the host
 page's server never sees it. Nothing about the reader is sent anywhere.
@@ -121,8 +120,11 @@ export function embedHtml(envelope: ShareEnvelope, flags: EmbedFlags = {}): { fr
  * `grooph embed <file> [--theme <name>] [--height <px>] [--frame] [--play] [--base <url>]`
  * (docs/exports.md, "Embedding"). Prints two lines, the frame and the script; exit 1 when
  * the document cannot be shared.
+ *
+ * `given` is a document already read, in place of the file: the lab's `embed` reads a run folder into a bundle and
+ * hands it here (lab/README.md). grooph's own command gives none, and reads no folder.
  */
-export function embedCommand(io: Output, file: string, flags: EmbedFlags = {}): number {
+export function embedCommand(io: Output, file: string, flags: EmbedFlags = {}, given?: Loaded): number {
   if (flags.height !== undefined && !(Number.isInteger(flags.height) && flags.height >= 120 && flags.height <= 4000)) {
     io.err(`grooph: --height takes a whole number of pixels from 120 to 4000, not ${flags.height}`);
     return 1;
@@ -137,10 +139,9 @@ export function embedCommand(io: Output, file: string, flags: EmbedFlags = {}): 
   }
   let loaded: Loaded;
   try {
-    if (existsSync(file) && statSync(file).isDirectory()) {
-      if (!isRunDir(file)) throw new LoadError(`${file} is a folder but not a run folder; embed takes a graph, a run folder (.grooph/<graph-id>/runs/<run-id>/), a run bundle, an operation map or a proposal set`);
-      loaded = { kind: "run", doc: readRun(file).bundle };
-    } else loaded = loadShareable(file);
+    if (given !== undefined) loaded = given;
+    else if (existsSync(file) && statSync(file).isDirectory()) throw new LoadError(`${file} is a folder; embed takes a file: a graph, a run bundle (*.grooph-run.json), an operation map or a proposal set`);
+    else loaded = loadShareable(file);
   } catch (err) {
     if (!(err instanceof LoadError)) throw err;
     io.err(`grooph: ${err.message}`);

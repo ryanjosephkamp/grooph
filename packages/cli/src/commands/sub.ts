@@ -142,7 +142,7 @@ export async function subAdd(io: Output, env: RegistryEnv, name: string, flags: 
   if (contents.exits.length === 0 && placed.dropped.length === 0 && flags.then === undefined) io.out(`  it leads on to nothing: its own stop ends the run. Pass --then <node> to go on from it`);
 
   const unfilled = [...new Set(findSlots(checked.doc).map((use) => use.key))];
-  if (unfilled.length > 0) io.err(`${plural(unfilled.length, "slot")} still unfilled (${unfilled.map((key) => `{{${key}}}`).join(", ")}): fill with --set key=value; export refuses unfilled slots (E_UNFILLED_SLOT).`);
+  if (unfilled.length > 0) io.err(`${plural(unfilled.length, "slot")} still unfilled (${unfilled.map((key) => `{{${key}}}`).join(", ")}): fill with --set key=value; grooph validate --for-export refuses unfilled slots (E_UNFILLED_SLOT).`);
   for (const open of placed.opens) io.err(`  "${open.node}" was reached only by passing ${open.past}; the subgrooph now leads to it without. Put a gate or an approval on the way if that is not meant.`);
   return finish(io, flags.into, checked.doc, checked.issues, flags.write === true, host);
 }

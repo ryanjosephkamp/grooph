@@ -3,29 +3,22 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { networkInterfaces } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 
-import { canonicalizeRunBundle, isQuiet, parseMapText, runStateLine, sessionLine, type LiveView } from "@grooph/core";
+import { isQuiet, parseMapText, sessionLine, type LiveView } from "@grooph/core";
 
 import { EVENTS_DIR, readLive, type EventSource } from "../events-io.js";
 import { readText } from "../io.js";
 import { appDir } from "../paths.js";
 import type { Output } from "../print.js";
-import { isGraphDir, isRunDir, newestRun, readRun, type LoadedRun } from "../run-io.js";
 import { LoadError, shown, type OpenUrl } from "../share-io.js";
 
-export const WATCH_HELP = `grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]
+export const WATCH_HELP = `grooph watch [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]
 
 Watch from a browser, on this machine or a phone on the same network. Serves the built
-grooph app and two read-only endpoints, read again from disk on every request:
+grooph app and one read-only endpoint, read again from disk on every request:
 
-  the run       its notes, working copy and progress, so the run view updates while the
-                lead writes
   the sessions  what the event hook has recorded (grooph hooks install): each session
                 and its subagents as they start and stop, in Claude Code and in Codex
 
-  <run dir>     .grooph/<graph-id>/runs/<run-id>/: that run
-  <graph dir>   .grooph/<graph-id>/: whichever of its runs is newest, followed as new ones start
-  (nothing)     the newest run of any graph under ./.grooph/; if there is none, the sessions
-  --sessions    open on the sessions even when there is a run
   --events <s>  more events to merge in, as often as wanted: a file, a folder of files,
                 another project's folder, or git:<ref> for a branch that carries its
                 .grooph/events/ (read from the watched project's repository, no checkout).
@@ -33,40 +26,38 @@ grooph app and two read-only endpoints, read again from disk on every request:
                 .grooph/events/ is always read.
   --map <file>  an operation map to draw above the sessions, each of its sessions marked
                 with what the hook has seen. Name each --events source for the map session
-                it belongs to: --events operator=git:origin/operator. Opens on the sessions.
+                it belongs to: --events operator=git:origin/operator.
   --port <n>    default 4174; 0 picks a free one
   --host <h>    default 127.0.0.1, this machine only. Another address (0.0.0.0 for every
                 interface) lets anyone on that network read all of it while watch runs.
   --open        open the view in the default browser
 
 It writes nothing, needs no credentials, and stops with Ctrl-C. It is a local viewer, not a
-backend: the app it serves makes no request except to this server. A run whose package's
-subagents the hook has seen shows them running at once, before the lead has noted anything.`;
+backend: the app it serves makes no request except to this server.`;
 
 /** Where the app is served, as the production build expects (vite base `/grooph/`). */
 export const APP_BASE = "/grooph/";
-/** The one endpoint: the current run bundle. */
-export const ENDPOINT = `${APP_BASE}api/run.json`;
-/** The other endpoint: every session the event hook has recorded (docs/subagents.md §6). */
+/** The endpoint: every session the event hook has recorded (docs/subagents.md §6). */
 export const LIVE_ENDPOINT = `${APP_BASE}api/live.json`;
-/** The route the app opens for a live run. */
-export const LIVE_ROUTE = "#/run?live";
 /** The route the app opens for the sessions. */
 export const SESSIONS_ROUTE = "#/live";
+/** Where a followed run is served, and the route the app opens for it (see `Follow`). */
+export const ENDPOINT = `${APP_BASE}api/run.json`;
+export const LIVE_ROUTE = "#/run?live";
 
-export type WatchTarget = { kind: "run" | "graph" | "project"; path: string };
-
-/** What the argument names: one run, a graph's runs, or a project's. */
-export function watchTarget(arg: string | undefined, cwd = process.cwd()): WatchTarget {
-  const path = resolve(cwd, arg ?? ".");
-  if (!existsSync(path) || !statSync(path).isDirectory()) throw new LoadError(`${arg} is not a folder; watch takes a run folder or a graph folder under .grooph/`);
-  if (isRunDir(path)) return { kind: "run", path };
-  if (isGraphDir(path)) return { kind: "graph", path };
-  return { kind: "project", path };
-}
-
-/** The run the target means right now. */
-export const currentRun = (target: WatchTarget): LoadedRun => (target.kind === "run" ? readRun(target.path) : newestRun(target.path));
+/**
+ * A run to serve beside the sessions. grooph's own command follows none: it reads no run folder, and its server
+ * answers the run's endpoint with "not found". The lab's `watch` gives one (lab/README.md); the app's run view,
+ * which stays as a reader of what was recorded, is fed by it.
+ */
+export type Follow = {
+  /** the folder the run is under: the events served are its project's */
+  path: string;
+  /** the run as its canonical bundle, read again on every request; throws a LoadError while there is none */
+  bundle: () => string;
+  /** the first line the command prints: what is followed and how it stands now */
+  line: () => string;
+};
 
 /**
  * The built web app: `GROOPH_WEB_DIST` when it is set, else the copy the npm
@@ -104,7 +95,7 @@ export type Watcher = { url: string; port: number; host: string; close: () => Pr
  * nothing is written. Bound to loopback, it also refuses requests whose Host
  * is not this machine, so a web page cannot reach the run by DNS rebinding.
  */
-export function startWatch(options: { target: WatchTarget; webDist: string; port: number; host: string; sessions?: boolean; events?: EventSource[]; map?: string }): Promise<Watcher> {
+export function startWatch(options: { root: string; webDist: string; port: number; host: string; sessions?: boolean; events?: EventSource[]; map?: string; follow?: Follow }): Promise<Watcher> {
   /** The sessions now, and the operation map they belong on when one was given: read again each time, so an edit to the map shows. */
   const liveNow = (): LiveView => {
     const view = readLive(sources, undefined, root);
@@ -117,13 +108,13 @@ export function startWatch(options: { target: WatchTarget; webDist: string; port
     }
   };
   const dist = resolve(options.webDist);
-  const root = projectRoot(options.target.path);
+  const root = projectRoot(options.root);
   const sources: EventSource[] = [{ path: root }, ...(options.events ?? [])];
-  /** Where a visit to the bare address lands: the run when there is one, unless the sessions were asked for. */
+  /** Where a visit to the bare address lands: the sessions, or a followed run when there is one and the sessions were not asked for. */
   const home = (): string => {
-    if (options.sessions) return SESSIONS_ROUTE;
+    if (options.follow === undefined || options.sessions) return SESSIONS_ROUTE;
     try {
-      currentRun(options.target);
+      options.follow.bundle();
       return LIVE_ROUTE;
     } catch {
       return SESSIONS_ROUTE;
@@ -152,10 +143,9 @@ export function startWatch(options: { target: WatchTarget; webDist: string; port
       return;
     }
     if (path === LIVE_ENDPOINT) return send(res, 200, TYPES[".json"]!, `${JSON.stringify(liveNow())}\n`, head, { "Cache-Control": "no-store" });
-    if (path === ENDPOINT) {
+    if (path === ENDPOINT && options.follow !== undefined) {
       try {
-        const run = currentRun(options.target);
-        return send(res, 200, TYPES[".json"]!, canonicalizeRunBundle(run.bundle), head, { "Cache-Control": "no-store" });
+        return send(res, 200, TYPES[".json"]!, options.follow.bundle(), head, { "Cache-Control": "no-store" });
       } catch (err) {
         if (!(err instanceof LoadError)) throw err;
         return send(res, 404, TYPES[".json"]!, `${JSON.stringify({ error: err.message })}\n`, head, { "Cache-Control": "no-store" });
@@ -206,7 +196,7 @@ export function startWatch(options: { target: WatchTarget; webDist: string; port
 }
 
 /** The addresses a phone on the same network can use. */
-export function lanUrls(host: string, port: number, route: string = LIVE_ROUTE): string[] {
+export function lanUrls(host: string, port: number, route: string = SESSIONS_ROUTE): string[] {
   if (host !== "0.0.0.0" && host !== "::") return [`http://${host.includes(":") ? `[${host}]` : host}:${port}${APP_BASE}${route}`];
   return Object.values(networkInterfaces())
     .flat()
@@ -228,8 +218,8 @@ export function projectRoot(path: string): string {
 
 export type WatchEnv = { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv };
 
-/** `grooph watch [<run dir> | <graph dir>] [--port 4174] [--host 127.0.0.1] [--open]` (docs/runs.md §3). */
-export async function watchCommand(io: Output, arg: string | undefined, flags: { port: number; host: string; open: boolean; sessions?: boolean; events?: EventSource[]; map?: string }, env: WatchEnv): Promise<number> {
+/** `grooph watch [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]` (docs/subagents.md §6). `follow` is the lab's: see `Follow`. */
+export async function watchCommand(io: Output, flags: { port: number; host: string; open: boolean; sessions?: boolean; events?: EventSource[]; map?: string }, env: WatchEnv, follow?: Follow): Promise<number> {
   if (flags.map !== undefined) {
     const parsed = parseMapText(readText(flags.map));
     if (!parsed.map) {
@@ -237,7 +227,7 @@ export async function watchCommand(io: Output, arg: string | undefined, flags: {
       return 1;
     }
   }
-  const target = watchTarget(arg);
+  const root = projectRoot(follow?.path ?? process.cwd());
   const webDist = findWebDist(env.env);
   if (!webDist) {
     io.err("grooph: the web app is not built, so there is nothing to serve. Build it with pnpm --filter @grooph/web build (or set GROOPH_WEB_DIST to a built app)");
@@ -246,7 +236,7 @@ export async function watchCommand(io: Output, arg: string | undefined, flags: {
 
   let watcher: Watcher;
   try {
-    watcher = await startWatch({ target, webDist, port: flags.port, host: flags.host, ...(flags.sessions ? { sessions: true } : {}), ...(flags.events ? { events: flags.events } : {}), ...(flags.map !== undefined ? { map: flags.map } : {}) });
+    watcher = await startWatch({ root, webDist, port: flags.port, host: flags.host, ...(flags.sessions ? { sessions: true } : {}), ...(flags.events ? { events: flags.events } : {}), ...(flags.map !== undefined ? { map: flags.map } : {}), ...(follow ? { follow } : {}) });
   } catch (err) {
     const error = err as NodeJS.ErrnoException;
     if (error.code === "EADDRINUSE") {
@@ -260,29 +250,22 @@ export async function watchCommand(io: Output, arg: string | undefined, flags: {
     throw err;
   }
 
-  const what = target.kind === "run" ? shown(target.path) : target.kind === "graph" ? `the newest run under ${shown(target.path)}/runs/` : `the newest run under ${shown(target.path)}`;
-  try {
-    const run = currentRun(target);
-    io.out(`watching ${what}${target.kind === "run" ? "" : ` (now ${run.runId})`}: ${runStateLine(run.summary)}`);
-  } catch (err) {
-    if (!(err instanceof LoadError)) throw err;
-    io.out(`watching ${what}: nothing to show yet (${err.message}); the view waits for it`);
-  }
-  const live = readLive([{ path: projectRoot(target.path) }, ...(flags.events ?? [])], undefined, projectRoot(target.path));
+  if (follow) io.out(follow.line());
+  const live = readLive([{ path: root }, ...(flags.events ?? [])], undefined, root);
   const working = live.sessions.filter((s) => s.state === "working" && !isQuiet(s, live.at)).length;
   io.out(
     live.sessions.length === 0
-      ? `sessions: none recorded under ${shown(join(projectRoot(target.path), EVENTS_DIR))}/ yet (grooph hooks install records them)`
+      ? `sessions: none recorded under ${shown(join(root, EVENTS_DIR))}/ yet (grooph hooks install records them)`
       : `sessions: ${live.sessions.length} recorded, ${working} working${live.sessions.length === 1 ? ` (${sessionLine(live.sessions[0]!, live.at)})` : ""}`,
   );
   io.out(`open ${watcher.url}`);
   const route = watcher.url.slice(watcher.url.indexOf("#"));
   if (!isLoopback(flags.host)) {
     io.err("");
-    io.err(`warning: listening on ${flags.host}, so anyone on this network can read this run and these sessions while watch runs; there is no password.`);
+    io.err(`warning: listening on ${flags.host}, so anyone on this network can read ${follow ? "this run and these sessions" : "these sessions"} while watch runs; there is no password.`);
     for (const url of lanUrls(flags.host, watcher.port, route)) io.err(`from a phone on the same network: ${url}`);
   }
-  io.out("read-only: re-reads the run folder and the events on every request and writes nothing. Ctrl-C stops it.");
+  io.out(`read-only: re-reads ${follow ? "the run folder and the events" : "the events"} on every request and writes nothing. Ctrl-C stops it.`);
 
   if (flags.open) {
     try {

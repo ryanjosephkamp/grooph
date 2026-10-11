@@ -16,10 +16,9 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { KNOWN_TARGETS, isMapLike, isPlan, parseGraphText, planBundle, planSteps, validate, type Graph, type Issue } from "@grooph/core";
 
 import { isKeptGraph, keptGraphRefusal, readText } from "../io.js";
-import { shellWord } from "./export.js";
 import { isGroophPicture, putAll, within, type Place } from "../place.js";
 import { plural, type Output } from "../print.js";
-import { Refusal, oneLine } from "../reply.js";
+import { Refusal, oneLine, shellWord } from "../reply.js";
 
 export type PlanFlags = { into?: string; force?: boolean };
 
@@ -40,7 +39,7 @@ harness can run this". The exit code is 0 when the files were written. Only a do
 not match the schema gets none, since nothing can draw it.
 
 A plan is not a package: it has no lead's brief, no agent files and no kickoff, and nothing in
-it is handed to a harness. grooph export writes a package, and only for a graph with no error.
+it is handed to a harness.
 
   --into <dir>   the folder to write into. Default: <id>-plan in the current folder.
                  No part of the way to it may begin with a dot: a plan is for people to
@@ -193,7 +192,7 @@ export function wholeness(doc: Graph, own: number): string {
 
 /** The second sentence: a harness could run it, or how many things are to be fixed first. */
 export function forAHarness(doc: Graph, errors: number, own: number): string {
-  if (errors === 0) return `A coding harness could run it as it is: nothing in it is in error.${doc.target?.harness ? ` grooph export writes its package for ${doc.target.harness}.` : ""}`;
+  if (errors === 0) return "A coding harness could run it as it is: nothing in it is in error.";
   return `To run it in a coding harness, ${errors === 1 ? "1 thing is" : `${errors} things are`} to be fixed first${own > 0 && own < errors ? ` (${own === 1 ? "that one" : `those ${own}`} among them)` : ""}`;
 }
 
