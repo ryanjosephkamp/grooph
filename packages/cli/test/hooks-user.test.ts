@@ -9,7 +9,7 @@
 
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, linkSync, lstatSync, mkdirSync, renameSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
@@ -263,11 +263,22 @@ test("remove --user takes grooph's entries out whatever folder they were install
     assert.equal(readFileSync(h.claude, "utf8"), "{}");
 
     // Commands that only look like grooph's are somebody's own: another file whose name ends the same way, words that end the same way, grooph's file run another way.
-    const theirs = [`node "/opt/tools/my-own-grooph-event.mjs" claude-code --user`, `echo "remember: grooph-event.mjs" claude-code --user`, `node '${h.hook}' claude-code --user`, `node "${h.hook}" claude-code --user || true`, `sh -c 'node "${h.hook}" claude-code --user'`];
+    const theirs = [
+      `node "/opt/tools/my-own-grooph-event.mjs" claude-code --user`,
+      `echo "remember: grooph-event.mjs" claude-code --user`,
+      `node '${h.hook}' claude-code --user`,
+      `node "${h.hook}" claude-code --user || true`,
+      `sh -c 'node "${h.hook}" claude-code --user'`,
+      // And ones that begin and end as grooph's does, with something else between the quotes.
+      `node "/opt/tools/notify.js" && echo "/hooks/grooph-event.mjs" claude-code --user`,
+      `node "/opt/tools/wrap.mjs" "${h.hook}" claude-code --user`,
+      `node "--no-warnings" "${h.hook}" claude-code --user`,
+      `node "/Users/a"b/hooks/grooph-event.mjs" claude-code --user`,
+    ];
     const lookAlikes = { hooks: { Stop: theirs.map((command) => ({ hooks: [{ type: "command", command }] })) } };
     writeFileSync(h.claude, JSON.stringify(lookAlikes, null, 2));
     const beside = await h.grooph(["hooks", "install", "--user"]);
-    assert.match(beside.out, /5 entries in .* name grooph's hook and are not as this command writes them: left as they are\. If they run this hook too, an event is recorded twice\./);
+    assert.match(beside.out, /9 entries in .* name grooph's hook and are not as this command writes them: left as they are\. If they run this hook too, an event is recorded twice\./);
     assert.deepEqual((JSON.parse(readFileSync(h.claude, "utf8")) as typeof lookAlikes).hooks.Stop.map((e) => e.hooks[0]!.command), [...theirs, `node "${h.hook}" claude-code --user`]);
     assert.equal((await h.grooph(["hooks", "remove", "--user"])).code, 0);
     assert.equal(readFileSync(h.claude, "utf8"), JSON.stringify(lookAlikes, null, 2));
@@ -493,6 +504,47 @@ test("a settings file is changed where it stands: every character that is not gr
       assert.equal(readFileSync(h.claude, "utf8"), what === "an empty hooks" ? "{}\n" : before, `${what}: install and then remove did not give the file back`);
     }
 
+    // An install run again, whatever stands after "hooks" in the file and whatever its options were the time before:
+    // the entries go where the old ones were, and the same command twice writes nothing the second time.
+    const again: Record<string, string> = {
+      "an empty list for an event, and a key after hooks": '{"hooks": {"Stop": []}, "model": "opus"}',
+      "an empty hooks first": '{"hooks":{},"a":1}',
+      "hooks in the middle": `${JSON.stringify({ a: 1, hooks: { PreCompact: [] }, z: 2 }, null, 2)}\n`,
+    };
+    for (const [what, before] of Object.entries(again)) {
+      writeFileSync(h.claude, before);
+      const texts: string[] = [];
+      for (const [argv, env] of [[["--tools"], {}], [["--tools"], {}], [[], {}], [[], {}], [[], { GROOPH_HOME: join(h.root, "another grooph") }], [["--tools"], {}]] as const) {
+        const r = await h.grooph(["hooks", "install", "--user", ...argv], { env });
+        assert.equal(r.code, 0, `${what}, install ${argv.join(" ")}: ${r.err}`);
+        texts.push(readFileSync(h.claude, "utf8"));
+        const parsed = JSON.parse(texts.at(-1)!) as Record<string, unknown> & { hooks: Record<string, { hooks: { command: string }[] }[]> };
+        assert.deepEqual(Object.keys(parsed), Object.keys(JSON.parse(before) as object), `${what}: the file's keys changed places`);
+        assert.equal(parsed.hooks["Stop"]!.length, 1, `${what}: grooph's entry is there more than once, or not at all`);
+        assert.equal(parsed.hooks["PostToolUse"]![0]!.hooks.length, 1);
+      }
+      assert.equal(texts[1], texts[0], `${what}: the same install twice wrote the file again`);
+      assert.equal(texts[3], texts[2], `${what}: the same install twice wrote the file again`);
+      assert.equal((await h.grooph(["hooks", "remove", "--user"])).code, 0);
+    }
+
+    // A command of somebody's own, joined into one entry with grooph's: theirs keeps every character.
+    const joined = `{\n  "hooks": {\n    "Stop": [\n      { "hooks": [ { "type": "command", "command": "./mine.sh", "timeout": 10.0, "big": 9007199254740993, "far": 1e400 }, { "type": "command", "command": "node \\"${h.hook}\\" claude-code --user", "timeout": 5 } ] }\n    ]\n  }\n}\n`;
+    writeFileSync(h.claude, joined);
+    assert.equal((await h.grooph(["hooks", "install", "--user"])).code, 0);
+    const theirs = '{ "type": "command", "command": "./mine.sh", "timeout": 10.0, "big": 9007199254740993, "far": 1e400 }';
+    assert.ok(readFileSync(h.claude, "utf8").includes(`{ "hooks": [ ${theirs} ] }`), "somebody's own command, joined with grooph's, was written again");
+    assert.equal((await h.grooph(["hooks", "remove", "--user"])).code, 0);
+    assert.ok(readFileSync(h.claude, "utf8").includes(`"Stop": [\n      { "hooks": [ ${theirs} ] }\n    ]`));
+
+    // Text that is not UTF-8 would be read wrongly and written back changed: it is not changed.
+    const latin = Buffer.concat([Buffer.from('{"name":"caf'), Buffer.from([0xe9]), Buffer.from('"}')]);
+    writeFileSync(h.claude, latin);
+    const notText = await h.grooph(["hooks", "install", "--user"]);
+    assert.equal(notText.code, 1);
+    assert.match(notText.err, /cannot read .*settings\.json: it is not UTF-8 text\. Nothing was changed\./);
+    assert.ok(readFileSync(h.claude).equals(latin));
+
     // What cannot be put back whole is not changed: a read-only file, a file with a second name, a folder that takes no new file.
     const fine = `${JSON.stringify({ model: "opus" }, null, 2)}\n`;
     if (process.platform !== "win32" && process.getuid?.() !== 0) {
@@ -508,7 +560,7 @@ test("a settings file is changed where it stands: every character that is not gr
       };
       writeFileSync(h.claude, fine);
       chmodSync(h.claude, 0o444);
-      await refused(/cannot read .*settings\.json: it is read-only/);
+      await refused(/cannot change .*settings\.json: it is read-only/);
       chmodSync(h.claude, 0o644);
       linkSync(h.claude, join(h.root, "second-name.json"));
       await refused(/it has a second name \(a hard link\)/);
@@ -522,6 +574,59 @@ test("a settings file is changed where it stands: every character that is not gr
       }
     }
   });
+});
+
+test("commands that change grooph's own folder take turns: a lock left by a command that is gone is taken at once, and one held by a command that is there is never taken", async () => {
+  await withHome(async (h) => {
+    const [a, b] = [h.project("a"), h.project("b")];
+    assert.equal((await h.grooph(["hooks", "watch", a])).code, 0);
+    const lock = join(h.env.GROOPH_HOME, "grooph.lock");
+    // Left by a process that is gone (no process has this number): nobody's.
+    writeFileSync(lock, "2147483646 left-behind");
+    const started = Date.now();
+    assert.equal((await h.grooph(["hooks", "watch", b])).code, 0);
+    assert.ok(Date.now() - started < 3000, "a lock nobody holds was waited for");
+    assert.deepEqual(readList(h.list).folders.map((f) => f.path), [a, b]);
+    assert.equal(existsSync(lock), false);
+    // Held by a process that is there (this one): the command waits its ten seconds, says so, and changes nothing.
+    writeFileSync(lock, `${process.pid} held`);
+    const cli = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "grooph.js");
+    const waited = spawnSync(process.execPath, [cli, "hooks", "unwatch", a], { env: { PATH: process.env["PATH"] ?? "", ...scratchEnv, ...h.env }, encoding: "utf8", timeout: 30_000 });
+    assert.equal(waited.status, 1);
+    assert.match(waited.stderr, new RegExp(`another grooph command \\(process ${process.pid}\\) has been changing .* for ten seconds\\. If none is running, remove .*grooph\\.lock\\. Nothing was changed\\.`));
+    assert.deepEqual(readList(h.list).folders.map((f) => f.path), [a, b]);
+    assert.equal(readFileSync(lock, "utf8"), `${process.pid} held`, "a lock that is held was taken away");
+    rmSync(lock);
+  });
+});
+
+test("the hook's file is kept while any settings that could run it still name it: a project's remove in the folder that holds grooph's own, and remove --user", async () => {
+  // A second account's settings folder, and grooph's folder where it is by default: in the home folder.
+  const home = realpathSync(mkdtempSync(join(tmpdir(), "grooph-two-accounts-")));
+  try {
+    const env = { ...scratchEnv, GROOPH_HOME: join(home, ".grooph"), CLAUDE_CONFIG_DIR: join(home, "second-account"), CODEX_HOME: join(home, "second-codex") };
+    const grooph = async (argv: string[]) => {
+      const io = capture();
+      const code = await run(argv, io, () => "", { openUrl: async () => {}, env });
+      return { code, out: text(io.stdout), err: text(io.stderr) };
+    };
+    const hook = join(home, ".grooph", "hooks", "grooph-event.mjs");
+    assert.equal((await grooph(["hooks", "install", "--user"])).code, 0);
+    // The home folder's own settings are not that account's, so it can be installed in as a project; the two then run one hook file.
+    assert.equal((await grooph(["hooks", "install", "--dir", home, "--local"])).code, 0);
+    const removedUser = await grooph(["hooks", "remove", "--user"]);
+    assert.match(removedUser.out, /kept .*grooph-event\.mjs: .*settings\.local\.json still names it/);
+    assert.equal(existsSync(hook), true, "remove --user took the hook a project's entries still run");
+    assert.equal((await grooph(["hooks", "install", "--user"])).code, 0);
+    const removedProject = await grooph(["hooks", "remove", "--dir", home]);
+    assert.match(removedProject.out, /kept \.grooph\/hooks\/grooph-event\.mjs: the install outside the project runs it/);
+    assert.equal(existsSync(hook), true, "a project's remove took the hook the install outside the project runs");
+    // With both taken out, it goes.
+    assert.match((await grooph(["hooks", "remove", "--user"])).out, /removed .*grooph-event\.mjs/);
+    assert.equal(existsSync(hook), false);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
 });
 
 test("a person's home folder is no project to install in: an install there is refused, and a project's remove leaves the install outside the project alone", async () => {
@@ -598,7 +703,7 @@ test("the hook and the commands hold one rule for the list: an entry with no who
 
     // A list written by hand in which two folders share a name for their events: said, since their sessions land together.
     writeFileSync(h.list, JSON.stringify({ folders: [{ path: a, events: "one-name" }, { path: h.project("b"), events: "One-Name" }] }));
-    assert.match((await h.grooph(["hooks", "status", "--dir", a])).out, /two of its folders keep their events under one name \(one-name\)/);
+    assert.match((await h.grooph(["hooks", "status", "--dir", a])).out, /two of its folders keep their events under one name \(one-name\)/i);
     // The readers say that the list could not be read, and do not call the folder's record empty without it.
     writeFileSync(h.list, "{ not json");
     const unread = await h.grooph(["sessions"], { cwd: a });
@@ -836,12 +941,38 @@ test("in a listed folder with no events of its own, sessions, hooks status and w
     assert.deepEqual(view.sessions.map((s) => [s.id, s.agents.length]).sort(), [["s-own", 0], ["s1", 1]]);
     const saidBoth = storeLine({ dir: h.store(a), listed: a, beside: join(a, ".grooph", "events") });
     assert.equal(both.err, saidBoth);
-    assert.equal(saidBoth, `read from ${h.store(a)}/, where the sessions of ${a} are recorded outside the project, and from ${join(a, ".grooph", "events")}/ for the sessions only that folder holds (grooph hooks status)`);
+    assert.equal(saidBoth, `read from ${h.store(a)}/, where the sessions of ${a} are recorded outside the project, and from ${join(a, ".grooph", "events")}/ for sessions that record does not hold and for what a session said (grooph hooks status)`);
     // The install in the project is removed and its files stay: a session that goes on is read as it goes on.
     assert.equal((await h.grooph(["hooks", "remove", "--dir", a])).code, 0);
     quiet(fire(h.hook, { ...s1, hook_event_name: "SessionEnd" }), "the session ends, after the project's install is gone");
     assert.deepEqual((JSON.parse((await h.grooph(["sessions", "--json"], { cwd: a })).out) as LiveView).sessions.map((s) => [s.id, s.state, s.agents.length]).sort(), [["s-own", "working", 0], ["s1", "ended", 1]]);
+    // A session cannot change what is shown of itself by a file under another name: what a hook saw of a session
+    // the record holds is read from the record alone. What the session itself said is still read from the project.
+    const forged = (event: string, more: Record<string, unknown> = {}): string => `${JSON.stringify({ v: 1, t: new Date().toISOString(), harness: "claude-code", event, session: "s1", ...more })}\n`;
+    writeFileSync(join(a, ".grooph", "events", "notes.jsonl"), forged("session-start", { model: "a-model-it-is-not", cwd: "/somewhere/harmless" }) + forged("subagent-start", { agent: "x9", type: "never-ran" }) + forged("subagent-stop", { agent: "x9", type: "never-ran" }));
+    writeFileSync(join(a, ".grooph", "events", "said-s1.jsonl"), forged("note", { text: "what the session itself said" }));
+    const seen = (JSON.parse((await h.grooph(["sessions", "--json"], { cwd: a })).out) as LiveView).sessions.find((s) => s.id === "s1")!;
+    assert.deepEqual([seen.state, seen.agents.map((x) => x.type), seen.model, seen.cwd], ["ended", ["Explore"], undefined, a]);
+    assert.deepEqual((seen.notes ?? []).map((n) => n.text), ["what the session itself said"]);
+    rmSync(join(a, ".grooph", "events", "notes.jsonl"));
+    rmSync(join(a, ".grooph", "events", "said-s1.jsonl"));
+    // A pipe under an event file's name in the project does not hold the readers.
+    if (process.platform !== "win32" && spawnSync("mkfifo", [join(a, ".grooph", "events", "pipe.jsonl")]).status === 0) {
+      const cli = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "grooph.js");
+      const read = spawnSync(process.execPath, [cli, "sessions", "--json"], { cwd: a, env: { PATH: process.env["PATH"] ?? "", ...scratchEnv, ...h.env }, encoding: "utf8", timeout: 20_000 });
+      assert.deepEqual([read.status, read.signal], [0, null], "a pipe in the project's events folder held grooph sessions");
+      rmSync(join(a, ".grooph", "events", "pipe.jsonl"));
+    }
+    // A project's events folder that is a link is not read: it may lead to another folder's record.
+    renameSync(join(a, ".grooph", "events"), join(a, ".grooph", "events-kept"));
+    symlinkSync(h.store(b), join(a, ".grooph", "events"));
+    assert.deepEqual((JSON.parse((await h.grooph(["sessions", "--json"], { cwd: a })).out) as LiveView).sessions.map((s) => s.id), ["s1"], "another folder's sessions were shown through a link");
+    rmSync(join(a, ".grooph", "events"));
+    renameSync(join(a, ".grooph", "events-kept"), join(a, ".grooph", "events"));
+
     assert.equal((await h.grooph(["hooks", "install", "--dir", a])).code, 0);
+    // Run from inside the session, status counts its lines in the record outside, where they go on being added.
+    assert.match((await h.grooph(["hooks", "status", "--dir", a], { cwd: a, env: { CLAUDE_CODE_SESSION_ID: "s1" } })).out, /this session \(s1\): 4 lines recorded/);
     const two = await h.grooph(["hooks", "status", "--dir", a]);
     assert.match(two.out, new RegExp(`\\n2 session files in \\.grooph/events/\\n1 session file in ${literally(h.store(a))}/, outside the project: this folder is listed`));
     const again = await h.grooph(["hooks", "watch", a]);

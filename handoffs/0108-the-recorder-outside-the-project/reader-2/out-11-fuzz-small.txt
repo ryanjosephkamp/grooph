@@ -1,0 +1,102 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r2/packages/cli/bin/grooph.js
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+
+small cases: 43 texts × 4 option sets: 172 settings texts, 516 sequences, 1796 runs of grooph in 181 s
+sequences with nothing to say: 252 of 516
+files checked after an install, (1) to (4): 468
+(5) install run again left every file as it was: 436 of 468
+(6) remove gave back the bytes: 252 files; the expected tokens without an earlier install's entries: 0 files; of 468 removes
+refusals (exit not 0): 56
+
+kinds, most first, each with the smallest text that showed it:
+
+   44 × base: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        small #6 claude-code
+        "{\"hooks\":{}}"
+
+   32 × base: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        small #10 claude-code
+        "{\"hooks\":{\"Stop\":[]}}"
+
+   28 × switch: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        small #6 claude-code
+        "{\"hooks\":{}}"
+
+   28 × moved: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        small #6 claude-code
+        "{\"hooks\":{}}"
+
+   24 × switch: (2) the text before hooks' value is not the same
+        small #6 claude-code
+        "{\"hooks\":{}}"
+
+   24 × moved: (2) the text before hooks' value is not the same
+        small #6 claude-code
+        "{\"hooks\":{}}"
+
+   24 × base: (5) the install run again changed the file
+        small #10 claude-code
+        "{\"hooks\":{\"Stop\":[]}}"
+
+   24 × switch: (3) soft: the events are all there, in another order
+        small #10 claude-code
+        "{\"hooks\":{\"Stop\":[]}}"
+
+   24 × switch: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        small #10 claude-code
+        "{\"hooks\":{\"Stop\":[]}}"
+
+   24 × moved: (3) soft: the events are all there, in another order
+        small #10 claude-code
+        "{\"hooks\":{\"Stop\":[]}}"
+
+   24 × moved: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        small #10 claude-code
+        "{\"hooks\":{\"Stop\":[]}}"
+
+   24 × switch: the install with --tools the other way REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+        small #16 claude-code
+        "{\"hooks\":{},\"a\":1}"
+
+   24 × moved: the install with GROOPH_HOME moved REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+        small #16 claude-code
+        "{\"hooks\":{},\"a\":1}"
+
+   12 × base: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        small #1 codex
+        "{ }"
+
+   12 × switch: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        small #1 codex
+        "{ }"
+
+   12 × moved: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        small #1 codex
+        "{ }"
+
+    8 × base: the install run again REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+        small #31 claude-code
+        "{\"hooks\":{\"Stop\":[]},\"a\":1}"
+
+    4 × base: (2) hooks was missing and the file changed in more than one place
+        small #1 codex
+        "{ }"
+
+    4 × switch: (2) hooks was missing and the file changed in more than one place
+        small #1 codex
+        "{ }"
+
+    4 × moved: (2) hooks was missing and the file changed in more than one place
+        small #1 codex
+        "{ }"
+
+the same kinds, the three sequences together:
+  100 × (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+   80 × (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+   56 × an install REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+   48 × (2) the text before hooks' value is not the same
+   48 × (3) soft: the events are all there, in another order
+   36 × (6) install then remove did not give the bytes back: the file was an empty object with space in it
+   24 × (5) the install run again changed the file
+   12 × (2) hooks was missing and the file changed in more than one place

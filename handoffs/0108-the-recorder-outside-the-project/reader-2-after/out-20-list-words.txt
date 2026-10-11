@@ -1,0 +1,7 @@
+build: /Users/noir/Documents/grooph/.claude/worktrees/slice-0108-recorder-4a4073/packages/cli/bin/grooph.js
+       hooks.js 0c22565e5253 · events-io.js cafc5778c08d · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[LIMIT] grooph sessions in a listed folder whose list is not JSON, the record holding a session | tries: 1 | exit 0; standard output: "no sessions recorded in .. A record kept outside the project was not looked for, since the list that names it could not be read: grooph hooks status"; standard error: "the list of folders recorded outside their projects (<S>/a/gh/watched.json) could not be read whole: Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+[HELD] a list written by hand in which two folders keep their events under one name | tries: 2 | status says: "the list (<S>/b/gh/watched.json) is read in part: two of its folders keep their events under one name (a-32498478), so their sessions are recorded together"; sessions says on standard error: "the list of folders recorded outside their projects (<S>/b/gh/watched.json) could not be read whole: two of its folders keep their events under one name (a-32498478), so their sessions are recorded together"
+
+2 attacks: 1 held, 0 broke, 1 a limit worth saying

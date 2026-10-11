@@ -1,0 +1,9 @@
+build: /Users/noir/Documents/grooph/.claude/worktrees/slice-0108-recorder-4a4073/packages/cli/bin/grooph.js
+       hooks.js 0c22565e5253 · events-io.js cafc5778c08d · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[LIMIT] remove: `grooph hooks remove --user` killed at a random moment of its 146 ms | tries: 200 | 199 killed before the end. Settings afterward: all as they were 191; all whole and as meant 9; one harness's done and the other's not 0; BROKEN 0. Entries left running a hook file that is missing or cut short: 0. The hook's file cut short: 0. *.grooph-tmp files left: 2
+[LIMIT] install, both harnesses: `grooph hooks install --user --harness claude-code,codex` killed at a random moment of its 304 ms | tries: 200 | 178 killed before the end. Settings afterward: all as they were 175; all whole and as meant 24; one harness's done and the other's not 1; BROKEN 0. Entries left running a hook file that is missing or cut short: 0. The hook's file cut short: 0. *.grooph-tmp files left: 1
+[LIMIT] remove, both harnesses: `grooph hooks remove --user --harness claude-code,codex` killed at a random moment of its 179 ms | tries: 200 | 196 killed before the end. Settings afterward: all as they were 153; all whole and as meant 15; one harness's done and the other's not 32; BROKEN 0. Entries left running a hook file that is missing or cut short: 0. The hook's file cut short: 0. *.grooph-tmp files left: 4
+[HELD] install --tools over an install without: `grooph hooks install --user --tools` killed at a random moment of its 200 ms | tries: 200 | 196 killed before the end. Settings afterward: all as they were 191; all whole and as meant 9; one harness's done and the other's not 0; BROKEN 0. Entries left running a hook file that is missing or cut short: 0. The hook's file cut short: 0. *.grooph-tmp files left: 0
+
+4 attacks: 1 held, 0 broke, 3 a limit worth saying

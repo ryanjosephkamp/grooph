@@ -1,0 +1,6 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r2/packages/cli/bin/grooph.js
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[HELD] a listed git project after 3 sessions recorded outside it and every reader run inside it | tries: 20 | 20 hook commands run through sh -c (0 heard or failed); 3 sessions shown by grooph sessions; then: hooks watch .: exit 0; sessions: exit 0; sessions --json: exit 0; sessions .: exit 0; hooks status: exit 0; hooks status --dir: exit 0; events push: exit 1; events push --no-push: exit 1; watch --sessions: said "sessions: 3 recorded, 0 working"; hooks unwatch .: exit 0; hooks watch . again: exit 0; hooks install --user again: exit 0; hooks remove --user: exit 0. git status --porcelain --ignored before: "", after: "". Every path, size and time of change in the project is as it was: true
+
+1 attacks: 1 held, 0 broke, 0 a limit worth saying

@@ -1,0 +1,66 @@
+build: /Users/noir/Documents/grooph/.claude/worktrees/slice-0108-recorder-4a4073/packages/cli/bin/grooph.js
+       hooks.js f15af4fd20f3 · events-io.js cafc5778c08d · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+
+small cases: 43 texts × 4 option sets: 172 settings texts, 516 sequences, 1892 runs of grooph in 103 s
+sequences with nothing to say: 252 of 516
+files checked after an install, (1) to (4): 516
+(5) install run again left every file as it was: 516 of 516
+(6) remove gave back the bytes: 252 files; the expected tokens without an earlier install's entries: 0 files; of 516 removes
+refusals (exit not 0): 0
+
+kinds, most first, each with the smallest text that showed it:
+
+   44 × base: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        small #6 claude-code
+        "{\"hooks\":{}}"
+
+   44 × switch: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        small #6 claude-code
+        "{\"hooks\":{}}"
+
+   44 × moved: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        small #6 codex --tools
+        "{\"hooks\":{}}"
+
+   32 × base: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        small #10 claude-code
+        "{\"hooks\":{\"Stop\":[]}}"
+
+   32 × switch: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        small #10 claude-code
+        "{\"hooks\":{\"Stop\":[]}}"
+
+   32 × moved: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        small #10 claude-code
+        "{\"hooks\":{\"Stop\":[]}}"
+
+   12 × base: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        small #1 codex --tools
+        "{ }"
+
+   12 × switch: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        small #1 codex --tools
+        "{ }"
+
+   12 × moved: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        small #1 codex --tools
+        "{ }"
+
+    4 × base: (2) hooks was missing and the file changed in more than one place
+        small #1 claude-code --tools
+        "{ }"
+
+    4 × switch: (2) hooks was missing and the file changed in more than one place
+        small #1 codex --tools
+        "{ }"
+
+    4 × moved: (2) hooks was missing and the file changed in more than one place
+        small #1 codex --tools
+        "{ }"
+
+the same kinds, the three sequences together:
+  132 × (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+   96 × (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+   36 × (6) install then remove did not give the bytes back: the file was an empty object with space in it
+   12 × (2) hooks was missing and the file changed in more than one place

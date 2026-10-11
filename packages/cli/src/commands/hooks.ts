@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { accessSync, chmodSync, closeSync, constants, copyFileSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import { accessSync, chmodSync, closeSync, constants, copyFileSync, existsSync, linkSync, lstatSync, mkdirSync, openSync, readFileSync, readSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -353,7 +353,7 @@ const userCommand = (hook: string, harness: Harness): string => `node "${sep ===
  * like one (another file whose name ends the same way, the same file run another way) is somebody's own, and is
  * never taken out.
  */
-const USER_COMMAND = /^node "(.*[/\\]hooks[/\\]grooph-event\.mjs)" (?:claude-code|codex) --user$/;
+const USER_COMMAND = /^node "([^"]*[/\\]hooks[/\\]grooph-event\.mjs)" (?:claude-code|codex) --user$/;
 const isUserCommand = (h: unknown): boolean => typeof (h as { command?: unknown } | null)?.command === "string" && USER_COMMAND.test((h as { command: string }).command);
 const userCommands = (entry: unknown): string[] =>
   typeof entry === "object" && entry !== null && Array.isArray((entry as Entry).hooks) ? (entry as Entry).hooks.filter(isUserCommand).map((h) => h.command) : [];
@@ -363,6 +363,11 @@ const userEntries = (settings: Settings): unknown[] => Object.values(settings.ho
 const ranBy = (command: string): string | undefined => USER_COMMAND.exec(command)?.[1];
 /** An entry that names grooph's hook and is not one `install --user` wrote: a project's kind copied here, or one changed by hand. Left alone, and said. */
 const strangers = (settings: Settings): number => Object.values(settings.hooks ?? {}).reduce((n, list) => n + (Array.isArray(list) ? list.filter((entry) => namesOurs(entry) && !isUserEntry(entry)).length : 0), 0);
+
+/** A settings file that was read and understood, and could not be put back whole: said as what it is. */
+class CannotChange extends Error {}
+/** What a command says of a settings file it will not touch: that it could not read it, or that it could not change it. */
+const whyNot = (path: string, err: unknown): string => `cannot ${err instanceof CannotChange ? "change" : "read"} ${tilde(path)}: ${(err as Error).message}`;
 
 /**
  * A harness's user-level settings. Anything that cannot be read whole and understood is an error, and a caller
@@ -374,7 +379,10 @@ function readUserSettings(path: string, toChange = false): { settings: Settings;
   const is = lstatSync(path, { throwIfNoEntry: false });
   if (is === undefined) return { settings: {}, text: undefined };
   if (is.isSymbolicLink() && !existsSync(path)) throw new Error("it is a link to a file that is not there");
-  const text = readFileSync(path, "utf8");
+  const bytes = readFileSync(path);
+  const text = bytes.toString("utf8");
+  // Text in another encoding would be read wrongly here and written back changed.
+  if (!Buffer.from(text, "utf8").equals(bytes)) throw new Error("it is not UTF-8 text");
   const json: unknown = JSON.parse(text);
   if (typeof json !== "object" || json === null || Array.isArray(json)) throw new Error("it is not a JSON object");
   const hooks = (json as Settings).hooks as unknown;
@@ -382,16 +390,16 @@ function readUserSettings(path: string, toChange = false): { settings: Settings;
   for (const [event, list] of Object.entries(hooks ?? {})) if (!Array.isArray(list)) throw new Error(`its hooks for ${event} are not a list`);
   if (toChange) {
     const real = realpathSync(path);
-    if (statSync(real).nlink > 1) throw new Error("it has a second name (a hard link), and replacing it whole would leave that other name with the settings as they were");
+    if (statSync(real).nlink > 1) throw new CannotChange("it has a second name (a hard link), and replacing it whole would leave that other name with the settings as they were");
     try {
       accessSync(real, constants.W_OK);
     } catch {
-      throw new Error("it is read-only");
+      throw new CannotChange("it is read-only");
     }
     try {
       accessSync(dirname(real), constants.W_OK);
     } catch {
-      throw new Error("its folder takes no new file, so it cannot be replaced whole");
+      throw new CannotChange("its folder takes no new file, so it cannot be replaced whole");
     }
   }
   return { settings: json as Settings, text };
@@ -401,7 +409,8 @@ function readUserSettings(path: string, toChange = false): { settings: Settings;
  * The settings with grooph's user-level entries taken out and, when `add` is given, put in again at the end of
  * each event's list. Everything else stays as it was and where it was: every other key, every other entry, an
  * event's list that was already empty, and the other commands of an entry that somebody joined ours into. An
- * entry or an event that held only ours goes with them.
+ * entry that held only ours goes with them; so does an event that held only ours, and "hooks" itself, unless
+ * entries are being put in again, which then go where the old ones were.
  */
 function userSettings(settings: Settings, add?: Record<string, Entry[]>): Settings {
   const hooks = new Map<string, unknown[]>();
@@ -412,11 +421,11 @@ function userSettings(settings: Settings, add?: Record<string, Entry[]>): Settin
       return others.length > 0 ? [{ ...(entry as Entry), hooks: others }] : [];
     });
     if (!list.some(isUserEntry)) hooks.set(event, list);
-    else if (kept.length > 0) hooks.set(event, kept);
+    else if (kept.length > 0 || add?.[event] !== undefined) hooks.set(event, kept);
   }
   for (const [event, entries] of Object.entries(add ?? {})) hooks.set(event, [...(hooks.get(event) ?? []), ...entries]);
-  // "hooks" goes only when taking ours out is what emptied it.
-  const gone = hooks.size === 0 && userEntries(settings).length > 0;
+  // "hooks" goes only when taking ours out is what emptied it, and nothing is being put in.
+  const gone = add === undefined && hooks.size === 0 && userEntries(settings).length > 0;
   const pairs: [string, unknown][] = Object.entries(settings).flatMap(([key, value]): [string, unknown][] => (key !== "hooks" ? [[key, value]] : gone ? [] : [[key, Object.fromEntries(hooks)]]));
   if (!Object.hasOwn(settings, "hooks") && hooks.size > 0) pairs.push(["hooks", Object.fromEntries(hooks)]);
   return Object.fromEntries(pairs) as Settings;
@@ -506,15 +515,18 @@ function layoutOf(text: string, root: Shape): { eol: string; unit: string | unde
   return { eol, unit: unit === "" ? "  " : unit, gap };
 }
 
-/** The settings' text with grooph's user-level entries taken out, as `userSettings` takes them out of the object. */
-function takenOut(text: string, settings: Settings): string {
+/**
+ * The settings' text with grooph's user-level entries taken out, as `userSettings` takes them out of the object.
+ * `staying` names the events entries are about to be put into again: those keep their place, emptied, and so does
+ * "hooks" itself.
+ */
+function takenOut(text: string, settings: Settings, staying?: ReadonlySet<string>): string {
   const root = shape(text);
   const members = root.items.filter((item) => item.key === "hooks");
   if (members.length === 0) return text;
-  if (members.length > 1) throw new Error('it has "hooks" twice');
+  if (members.length > 1) throw new CannotChange('it has "hooks" twice');
   const hooks = members[0]!.node;
-  if (new Set(hooks.items.map((item) => item.key)).size !== hooks.items.length) throw new Error("its hooks name one event twice");
-  const { eol, unit } = layoutOf(text, root);
+  if (new Set(hooks.items.map((item) => item.key)).size !== hooks.items.length) throw new CannotChange("its hooks name one event twice");
   const patches: Patch[] = [];
   const emptied = new Set<Item>();
   for (const member of hooks.items) {
@@ -522,20 +534,20 @@ function takenOut(text: string, settings: Settings): string {
     if (!entries.some(isUserEntry)) continue;
     const others = entries.map((entry) => (isUserEntry(entry) ? (entry as Entry).hooks.filter((h) => !isUserCommand(h)) : undefined));
     const goes = (at: number): boolean => others[at] !== undefined && others[at]!.length === 0;
-    if (entries.every((_, at) => goes(at))) {
+    if (entries.every((_, at) => goes(at)) && staying?.has(member.key!) !== true) {
       emptied.add(member);
       continue;
     }
     patches.push(...without(member.node, (_, at) => goes(at)));
-    // An entry somebody joined ours into is written again without ours.
+    // An entry somebody joined ours into loses ours from its own list of commands, and keeps every character of the rest.
     member.node.items.forEach((item, at) => {
       if (others[at] === undefined || others[at]!.length === 0) return;
-      const rest = { ...(entries[at] as Entry), hooks: others[at]! };
-      patches.push({ start: item.node.start, end: item.node.end, text: unit === undefined ? JSON.stringify(rest) : JSON.stringify(rest, null, unit).split("\n").join(eol + unit.repeat(3)) });
+      const commands = item.node.items.find((inner) => inner.key === "hooks")?.node;
+      if (commands !== undefined) patches.push(...without(commands, (_, k) => isUserCommand((entries[at] as Entry).hooks[k])));
     });
   }
-  // Every event emptied: "hooks" itself goes, as it came.
-  if (emptied.size > 0 && emptied.size === hooks.items.length) return patched(text, without(root, (item) => item.key === "hooks"));
+  // Every event emptied, and nothing to be put in: "hooks" itself goes, as it came.
+  if (staying === undefined && emptied.size > 0 && emptied.size === hooks.items.length) return patched(text, without(root, (item) => item.key === "hooks"));
   return patched(text, [...patches, ...without(hooks, (item) => emptied.has(item))]);
 }
 
@@ -573,9 +585,9 @@ function putIn(text: string, add: Record<string, Entry[]>): string {
  */
 function settingsText(was: string | undefined, settings: Settings, next: Settings, add?: Record<string, Entry[]>): string {
   if (was === undefined) return `${JSON.stringify(next, null, 2)}\n`;
-  const out = takenOut(was, settings);
+  const out = takenOut(was, settings, add !== undefined ? new Set(Object.keys(add)) : undefined);
   const text = add !== undefined ? putIn(out, add) : out;
-  if (JSON.stringify(JSON.parse(text)) !== JSON.stringify(next)) throw new Error("grooph could not change it and be sure of the result");
+  if (JSON.stringify(JSON.parse(text)) !== JSON.stringify(next)) throw new CannotChange("grooph could not change it and be sure of the result");
   return text;
 }
 
@@ -593,7 +605,8 @@ function writeWhole(path: string, contents: string | Uint8Array, mode?: number):
     target = realpathSync(path);
     keep = statSync(target).mode & 0o777;
   } else mkdirSync(dirname(path), { recursive: true });
-  const beside = `${target}.${process.pid}.grooph-tmp`;
+  // A name of its own each time: a file left by a command that was stopped is never met, and never taken for this one's.
+  const beside = `${target}.${process.pid}.${randomBytes(4).toString("hex")}.grooph-tmp`;
   try {
     writeFileSync(beside, contents, { flag: "wx", ...(keep !== undefined ? { mode: keep } : {}) });
     if (keep !== undefined) chmodSync(beside, keep);
@@ -639,6 +652,18 @@ function userInstalled(places: UserPlaces): boolean {
 }
 
 function installUser(io: Output, flags: HooksFlags, list: Harness[], places: UserPlaces): number {
+  // Looked at first with nothing held and nothing made: what is refused is refused with grooph's folder as it was.
+  const refused = installUserHeld(io, flags, list, places, true);
+  if (refused !== 0) return refused;
+  try {
+    return holding(places, () => installUserHeld(io, flags, list, places, false));
+  } catch (err) {
+    io.err(`grooph: ${(err as Error).message}`);
+    return 1;
+  }
+}
+
+function installUserHeld(io: Output, flags: HooksFlags, list: Harness[], places: UserPlaces, lookOnly: boolean): number {
   if (flags.push === true || flags.pushBranch !== undefined || flags.local === true || flags.dir !== undefined) {
     io.err("grooph: --dir, --local, --push and --push-branch are for an install in a project. With --user, install takes --harness and --tools. Nothing was changed.");
     return 1;
@@ -658,10 +683,11 @@ function installUser(io: Output, flags: HooksFlags, list: Harness[], places: Use
       // Entries that are already as they would be written: the file is not touched.
       plans.push({ path, text: text !== undefined && JSON.stringify(next) === JSON.stringify(settings) ? undefined : settingsText(text, settings, next, add), strangers: strangers(settings) });
     } catch (err) {
-      io.err(`grooph: cannot read ${tilde(path)}: ${(err as Error).message}. Nothing was changed.`);
+      io.err(`grooph: ${whyNot(path, err)}. Nothing was changed.`);
       return 1;
     }
   }
+  if (lookOnly) return 0;
   const shipped = readFileSync(hookSource());
   const written: string[] = [];
   let at = places.hook;
@@ -706,6 +732,33 @@ function installUser(io: Output, flags: HooksFlags, list: Harness[], places: Use
 }
 
 function removeUser(io: Output, flags: HooksFlags, list: Harness[], places: UserPlaces): number {
+  // With no folder of grooph's there is nothing another command could be changing, and none is made to find out.
+  if (!existsSync(places.home)) return removeUserHeld(io, flags, list, places);
+  try {
+    return holding(places, () => removeUserHeld(io, flags, list, places));
+  } catch (err) {
+    io.err(`grooph: ${(err as Error).message}`);
+    return 1;
+  }
+}
+
+/** Every settings file that could name the hook kept in grooph's own folder: the harnesses' own, and those of the folder that holds grooph's folder, read as a project. */
+function mayRun(places: UserPlaces): string[] {
+  const above = dirname(places.home);
+  return [...new Set([places.settings["claude-code"], places.settings.codex, settingsPath(above, "claude-code", false), settingsPath(above, "claude-code", true), settingsPath(above, "codex", false)])];
+}
+/** Those of them that name the hook now, or cannot be read and so may. */
+function stillNaming(places: UserPlaces): string[] {
+  return mayRun(places).filter((path) => {
+    try {
+      return existsSync(path) && countNaming(readSettings(path)) > 0;
+    } catch {
+      return true;
+    }
+  });
+}
+
+function removeUserHeld(io: Output, flags: HooksFlags, list: Harness[], places: UserPlaces): number {
   if (flags.dir !== undefined || flags.local === true) {
     io.err("grooph: --dir and --local are for an install in a project. With --user, remove takes --harness. Nothing was changed.");
     return 1;
@@ -727,20 +780,14 @@ function removeUser(io: Output, flags: HooksFlags, list: Harness[], places: User
       writeWhole(path, settingsText(text, settings, userSettings(settings)));
       io.out(`removed grooph's entries from ${tilde(path)}`);
     } catch (err) {
-      io.err(`grooph: cannot read ${tilde(path)}: ${(err as Error).message}. Left as it is.`);
+      io.err(`grooph: ${whyNot(path, err)}. Left as it is.`);
       failed = true;
     }
   }
   // The hook's file goes when no harness's settings name it any more: not an entry of this install's, and not one
   // somebody wrote or changed by hand, which would then be heard from at every event. A settings file that cannot
   // be read may still name it.
-  const naming = (["claude-code", "codex"] as Harness[]).flatMap((harness) => {
-    try {
-      return countNaming(readUserSettings(places.settings[harness]).settings) > 0 ? [places.settings[harness]] : [];
-    } catch {
-      return [places.settings[harness]];
-    }
-  });
+  const naming = stillNaming(places);
   if (naming.length === 0 && existsSync(places.hook)) {
     rmSync(places.hook);
     io.out(`removed ${tilde(places.hook)}`);
@@ -750,30 +797,74 @@ function removeUser(io: Output, flags: HooksFlags, list: Harness[], places: User
   return failed ? 1 : 0;
 }
 
+/** Whether a process is there to be signaled: one that left a lock and is gone holds nothing. */
+const alive = (pid: number): boolean => {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    return (err as NodeJS.ErrnoException).code === "EPERM";
+  }
+};
+
 /**
- * Hold the list while it is read, changed and written, so that two commands at once (an agent listing several
- * projects) do not each write a list without the other's folder. A folder beside the list is the lock: made by
- * one command at a time, and taken over when it is older than any command could be.
+ * Hold grooph's own folder while something in it, or a settings entry that runs its hook, is read, changed and
+ * written, so that two commands at once (an agent listing several projects, an install beside a remove) do not
+ * each work from what the other is about to replace. The lock is a file that names the process holding it. It
+ * is taken from a process that is gone (a command stopped part way), at once; it is never taken from one that
+ * is there. A command that cannot have it in ten seconds says so and changes nothing.
  */
-function holdingList<T>(places: UserPlaces, fn: () => T): T {
-  const lock = `${places.list}.lock`;
-  mkdirSync(dirname(lock), { recursive: true });
+function holding<T>(places: UserPlaces, fn: () => T): T {
+  const lock = join(places.home, "grooph.lock");
+  mkdirSync(places.home, { recursive: true });
+  const mine = `${process.pid} ${randomBytes(6).toString("hex")}`;
   const wait = new Int32Array(new SharedArrayBuffer(4));
-  for (let tries = 0; ; tries += 1) {
-    try {
-      mkdirSync(lock);
-      break;
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
-      const age = Date.now() - (lstatSync(lock, { throwIfNoEntry: false })?.mtimeMs ?? Date.now());
-      if (age > 10_000 || tries > 200) rmSync(lock, { recursive: true, force: true });
-      else Atomics.wait(wait, 0, 0, 25);
+  const until = Date.now() + 10_000;
+  // The lock is put in place already saying whose it is: written under a name of its own and then given the lock's
+  // name, which fails where a lock stands. A lock is never met half written, to be taken for one nobody holds.
+  const written = `${lock}.${mine.replace(" ", ".")}`;
+  writeFileSync(written, mine, { flag: "wx" });
+  try {
+    for (;;) {
+      try {
+        linkSync(written, lock);
+        break;
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+      }
+      let held: string | undefined;
+      try {
+        held = readFileSync(lock, "utf8");
+      } catch {
+        // Gone again in that moment, or not a file at all.
+        if (lstatSync(lock, { throwIfNoEntry: false })?.isDirectory() === true) rmSync(lock, { recursive: true, force: true });
+        continue;
+      }
+      const holder = Number(held.split(" ")[0]);
+      if (!alive(holder)) {
+        // Nobody's: taken away, if it is still the one that was read.
+        try {
+          if (readFileSync(lock, "utf8") === held) rmSync(lock, { force: true });
+        } catch {
+          // gone already
+        }
+        continue;
+      }
+      if (Date.now() > until) throw new Error(`another grooph command (process ${holder}) has been changing ${tilde(places.home)} for ten seconds. If none is running, remove ${tilde(lock)}. Nothing was changed.`);
+      Atomics.wait(wait, 0, 0, 25);
     }
+  } finally {
+    rmSync(written, { force: true });
   }
   try {
     return fn();
   } finally {
-    rmSync(lock, { recursive: true, force: true });
+    try {
+      if (readFileSync(lock, "utf8") === mine) rmSync(lock, { force: true });
+    } catch {
+      // gone already
+    }
   }
 }
 
@@ -784,7 +875,14 @@ function listCommand(io: Output, sub: "watch" | "unwatch", flags: HooksFlags, pl
     return 1;
   }
   let worst = 0;
-  for (const folder of flags.folders) worst = Math.max(worst, listOne(io, sub, folder, flags, places));
+  for (const folder of flags.folders) {
+    try {
+      worst = Math.max(worst, listOne(io, sub, folder, flags, places));
+    } catch (err) {
+      io.err(`grooph: ${(err as Error).message}`);
+      worst = 1;
+    }
+  }
   return worst;
 }
 
@@ -797,7 +895,7 @@ function listOne(io: Output, sub: "watch" | "unwatch", folder: string, flags: Ho
   }
   // The list is read again under the lock and changed as it then stands: what was read above is for the words and the refusals.
   const change = (to: (now: Listed[]) => Listed[]): Listed[] =>
-    holdingList(places, () => {
+    holding(places, () => {
       const now = readList(places.list);
       if (now.problem !== undefined) throw new Error(`cannot use the list in ${tilde(places.list)}: ${now.problem}. Nothing was changed.`);
       const next = to(now.folders);
@@ -1089,6 +1187,12 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
     if (!stillUsed) {
       for (const file of [hookFile, join(dir, PUSH_REL)]) {
         if (!existsSync(file)) continue;
+        // This folder's .grooph may be grooph's own folder (a home folder read as a project): the hook in it is then
+        // the one an install outside the project runs, from settings that are not this folder's.
+        if (file === hookFile && exactNearest(hookFile) === exactNearest(places.hook) && stillNaming(places).length > 0) {
+          io.out(`kept ${shownPath(file)}: the install outside the project runs it (grooph hooks remove --user takes that one out)`);
+          continue;
+        }
         rmSync(file);
         io.out(`removed ${shownPath(file)}`);
       }
@@ -1139,7 +1243,10 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
         return true;
       }
     };
-    if (differs(hookFile, hookSource())) io.out(`${HOOK_REL} is not this grooph's version: run grooph hooks install again (with the same options)`);
+    // Where this folder's settings are the harness's own for every project, an install in a project is refused, so "install again" is no way out.
+    const noProject = (["claude-code", "codex"] as Harness[]).some((harness) => exactNearest(settingsPath(dir, harness, false)) === exactNearest(places.settings[harness]));
+    if (differs(hookFile, hookSource()) && !noProject) io.out(`${HOOK_REL} is not this grooph's version: run grooph hooks install again (with the same options)`);
+    if (noProject && existsSync(hookFile)) io.out("this folder's settings are a harness's own for every project, so it is no project to install in: grooph hooks remove takes a project's entries out of them, and grooph hooks install --user records from outside the projects");
     if (differs(join(dir, PUSH_REL), pushSource())) io.out(`${PUSH_REL} is not this grooph's version: run grooph hooks install again (with the same options) and commit it`);
     // Where this folder is in a listed one, its sessions are recorded outside the project, and are counted there.
     let store: Store | undefined;
@@ -1202,8 +1309,9 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
     if (session !== undefined && session !== "" && here && (existsSync(hookFile) || (store !== undefined && existsSync(places.hook)))) {
       const name = /^[A-Za-z0-9._-]{1,128}$/.test(session) ? session : Buffer.from(session).toString("hex").slice(0, 64);
       // Outside the project a session is recorded under the listed folder it was started in, which may be one that holds this one.
-      const elsewhere = store === undefined ? [] : readList(places.list).folders.map((f) => join(places.events, f.events, `${name}.jsonl`)).filter((file) => existsSync(file));
-      const own = files.find((file) => file.endsWith(`${sep}${name}.jsonl`)) ?? elsewhere[0];
+      // That record is asked before the project's own folder: it is the one still added to when both hold the session.
+      const outside = store === undefined ? [] : [join(store.dir, `${name}.jsonl`), ...readList(places.list).folders.map((f) => join(places.events, f.events, `${name}.jsonl`))].filter((file) => existsSync(file));
+      const own = outside[0] ?? files.find((file) => file.endsWith(`${sep}${name}.jsonl`));
       const lines = own ? readFileSync(own, "utf8").split("\n").filter((line) => line.trim() !== "").length : 0;
       io.out(
         lines > 0
@@ -1311,6 +1419,7 @@ export function sessionsCommand(io: Output, args: string[], flags: { json?: bool
   };
   if (view.sessions.length === 0) {
     if (own?.store !== undefined) io.out(`no sessions recorded for ${own.store.listed} yet, in ${sources.map((s) => (s.path === own.store!.dir ? `${tilde(s.path)}${sep}` : s.path)).join(" or in ")}. The event hook outside the project writes them, for a session working in that folder: grooph hooks status says whether it is installed`);
+    else if (own?.problem !== undefined) io.out(`no sessions recorded in ${sources.map((s) => s.path ?? `git:${s.ref}`).join(", ")}. A record kept outside the project was not looked for, since the list that names it could not be read: grooph hooks status`);
     else io.out(`no sessions recorded in ${sources.map((s) => s.path ?? `git:${s.ref}`).join(", ")}. The event hook writes them: grooph hooks install`);
     unsent();
     return 0;

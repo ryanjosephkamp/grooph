@@ -6,7 +6,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { closeSync, existsSync, fstatSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { closeSync, existsSync, fstatSync, lstatSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 
 import { parseEvents, summarizeSessions, type LiveView, type SessionEvent } from "@grooph/core";
@@ -23,7 +23,17 @@ export const EVENTS_DIR = join(".grooph", "events");
  * so nothing has to be checked out to read it).
  */
 export type EventSource =
-  | { name?: string; path: string; ref?: undefined; /** file names in a folder that are not read from it: sessions another source already holds whole */ without?: ReadonlySet<string> }
+  | {
+      name?: string;
+      path: string;
+      ref?: undefined;
+      /**
+       * This source stands behind the ones named before it: of a session one of those holds, it adds only what the
+       * session itself said (a plan, a note), and nothing of what a hook saw. A project's own events folder is
+       * read this way beside the record kept for it outside the project, which a session in the project cannot write.
+       */
+      behind?: true;
+    }
   | { name?: string; ref: string; path?: undefined };
 
 /** `lane-a=path/to/events` names a source; `git:<ref>` reads a ref; a bare path is shown without a name. */
@@ -84,6 +94,15 @@ function readTail(file: string): string {
   }
 }
 
+/** A file, or a link to one. A pipe or a folder under an event file's name is listed (status counts it) and never read: a pipe would hold the reader. */
+const isFile = (path: string): boolean => {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+};
+
 /** The event files a source names: the file itself, the `*.jsonl` in a folder, or a project's `.grooph/events/`. */
 export function eventFiles(path: string): string[] {
   const full = resolve(path);
@@ -143,8 +162,13 @@ export function readList(file: string): { folders: Listed[]; problem?: string } 
     });
     if (folders.length !== entries.length) return { folders, problem: `${entries.length - folders.length} of its ${entries.length} entries cannot be used (each needs a whole path and a plain folder name for its events)` };
     // Two folders under one name would have their sessions in one record. `grooph hooks watch` never writes that.
-    const shared = folders.find((f) => folders.some((other) => other.path !== f.path && other.events.toLowerCase() === f.events.toLowerCase()));
-    return shared === undefined ? { folders } : { folders, problem: `two of its folders keep their events under one name (${shared.events}), so their sessions are recorded together` };
+    const named = new Map<string, string>();
+    for (const f of folders) {
+      const other = named.get(f.events.toLowerCase());
+      if (other !== undefined && other !== f.path) return { folders, problem: `two of its folders keep their events under one name (${f.events}), so their sessions are recorded together` };
+      named.set(f.events.toLowerCase(), f.path);
+    }
+    return { folders };
   } catch (err) {
     return { folders: [], problem: (err as Error).message };
   }
@@ -165,11 +189,13 @@ export type Store = { dir: string; listed: string; beside?: string };
  *
  *   - a folder that is not listed: its own `.grooph/events/`, or the event files in it. Unchanged.
  *   - a listed folder with no `.grooph/events/` of its own: the record outside the project, and nothing else.
- *   - a listed folder that has both: the record outside the project, and from the project's own folder every
- *     session that record does not hold. One session is one file under one name in both places, so a session
- *     recorded twice (an install in the project beside the listing) is read once. It is read from the record
- *     outside: that is the one a session working in the project cannot write, and the one still being added to
- *     when an install in the project has been removed and its files left behind.
+ *   - a listed folder that has both: the record outside the project, and behind it the project's own folder. A
+ *     session the record holds is read from the record: that is the one a session working in the project cannot
+ *     write, and the one still being added to when an install in the project has been removed and its files
+ *     left behind. Of such a session the project's folder adds only what the session itself said (a plan, a
+ *     note, which `grooph mcp` writes there); a session the record does not hold is read from the project whole.
+ *     A project's events folder that is a link, or is reached through one, is not read: it may lead to another
+ *     folder's record.
  *
  * `from` is the folder that was asked about, when `dir` was found by walking up from it: the listing is looked up
  * for `from`, and a `dir` whose `.grooph` is grooph's own folder (a person's home) is no project, so `from` is read.
@@ -184,21 +210,22 @@ export function ownSources(dir: string, env: NodeJS.ProcessEnv = process.env, fr
   if (listed === undefined) return { sources: [{ path: project }], ...problem };
   const store: Store = { dir: join(places.events, listed.events), listed: listed.path };
   const nested = join(resolve(project), EVENTS_DIR);
-  if (!(existsSync(nested) && statSync(nested).isDirectory())) return { sources: [{ path: store.dir }], store, ...problem };
-  let held: string[] = [];
-  try {
-    held = eventFiles(store.dir).map((file) => basename(file));
-  } catch {
-    // A record that cannot be looked into: the reader that opens it says so.
-  }
-  return { sources: [{ path: store.dir }, { path: project, without: new Set(held) }], store: { ...store, beside: nested }, ...problem };
+  const folder = (path: string): boolean => {
+    try {
+      return lstatSync(path).isDirectory();
+    } catch {
+      return false;
+    }
+  };
+  if (!(folder(dirname(nested)) && folder(nested))) return { sources: [{ path: store.dir }], store, ...problem };
+  return { sources: [{ path: store.dir }, { path: nested, behind: true }], store: { ...store, beside: nested }, ...problem };
 }
 
 /** The one line a reader says when it read the record kept outside the project. */
 export const storeLine = (store: Store): string =>
   store.beside === undefined
     ? `read from ${store.dir}${sep}: the sessions of ${store.listed} are recorded there, outside the project (grooph hooks status)`
-    : `read from ${store.dir}${sep}, where the sessions of ${store.listed} are recorded outside the project, and from ${store.beside}${sep} for the sessions only that folder holds (grooph hooks status)`;
+    : `read from ${store.dir}${sep}, where the sessions of ${store.listed} are recorded outside the project, and from ${store.beside}${sep} for sessions that record does not hold and for what a session said (grooph hooks status)`;
 
 /**
  * Several sources as one live view: every event read, tagged with its
@@ -220,17 +247,15 @@ export function readLive(sources: EventSource[], now: () => Date = () => new Dat
   const kept = new Map<string, number>();
   const held = new Map<string, number[]>();
   sources.forEach((source, at) => {
-    const files =
-      source.ref !== undefined
-        ? refFiles(source.ref, cwd)
-        : eventFiles(resolve(cwd, source.path))
-            .filter((file) => source.without?.has(basename(file)) !== true)
-            .map((file) => ({ name: basename(file), text: readTail(file) }));
+    const files = source.ref !== undefined ? refFiles(source.ref, cwd) : eventFiles(resolve(cwd, source.path)).filter(isFile).map((file) => ({ name: basename(file), text: readTail(file) }));
+    const behind = source.ref === undefined && source.behind === true;
     const here = new Map<string, number>();
     for (const file of files) {
       const parsed = parseEvents(file.text);
       for (const e of parsed.events) {
         const session = `${e.harness}\u0000${e.session}`;
+        // Of a session a source named before this one holds, a source that stands behind adds only what was said.
+        if (behind && e.event !== "plan" && e.event !== "note" && (held.get(session) ?? []).some((n, i) => i < at && n > 0)) continue;
         const counts = held.get(session) ?? held.set(session, sources.map(() => 0)).get(session)!;
         counts[at]! += 1;
         // The same line twice in one source is two events (two tool calls in one millisecond); in two sources, one.

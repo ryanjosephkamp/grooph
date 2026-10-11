@@ -1,0 +1,266 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r2/packages/cli/bin/grooph.js
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+
+seed 2, 400 cases: 522 settings texts, 1200 sequences, 4036 runs of grooph in 619 s
+sequences with nothing to say: 566 of 1200
+files checked after an install, (1) to (4): 1300
+(5) install run again left every file as it was: 928 of 1019
+(6) remove gave back the bytes: 757 files; the expected tokens without an earlier install's entries: 42 files; of 1019 removes
+refusals (exit not 0): 196
+
+kinds, most first, each with the smallest text that showed it:
+
+  130 × base: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        seed 2 case 15 --tools claude-code:only/padded
+        "{ \"hooks\": {} }"
+
+  130 × switch: the install with --tools the other way REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+        seed 2 case 139 claude-code:first/pretty12 codex:none/compact/ours
+        "{}"
+
+  130 × moved: the install with GROOPH_HOME moved REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+        seed 2 case 139 claude-code:first/pretty12 codex:none/compact/ours
+        "{}"
+
+   86 × base: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 2 case 365 claude-code:first/pretty2 codex:only/noindent/ours
+        "{\n\"hooks\": {\n\"UserPromptSubmit\": []\n}\n}\n"
+
+   75 × moved: (3) soft: the events are all there, in another order
+        seed 2 case 365 claude-code:first/pretty2 codex:only/noindent/ours
+        "{\n\"hooks\": {\n\"UserPromptSubmit\": []\n}\n}\n"
+
+   73 × base: (5) the install run again changed the file
+        seed 2 case 364 --tools claude-code:only/chaos codex:middle/padded
+        "  {\n\"hooks\" \n\t :\t{  }  }\n"
+
+   72 × switch: (3) soft: the events are all there, in another order
+        seed 2 case 365 claude-code:first/pretty2 codex:only/noindent/ours
+        "{\n\"hooks\": {\n\"UserPromptSubmit\": []\n}\n}\n"
+
+   67 × switch: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 2 case 103 claude-code:none/crlftab codex:only/noindent
+        "{\n\"hooks\": {\n\"PostToolUse\": []\n}\n}\n"
+
+   63 × moved: (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 2 case 365 claude-code:first/pretty2 codex:only/noindent/ours
+        "{\n\"hooks\": {\n\"UserPromptSubmit\": []\n}\n}\n"
+
+   48 × switch: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        seed 2 case 15 --tools claude-code:only/padded
+        "{ \"hooks\": {} }"
+
+   48 × moved: (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+        seed 2 case 15 --tools claude-code:only/padded
+        "{ \"hooks\": {} }"
+
+   36 × switch: (2) the text before hooks' value is not the same
+        seed 2 case 15 --tools claude-code:only/padded
+        "{ \"hooks\": {} }"
+
+   36 × moved: (2) the text before hooks' value is not the same
+        seed 2 case 15 --tools claude-code:only/padded
+        "{ \"hooks\": {} }"
+
+   19 × base: the install run again REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+        seed 2 case 163 --tools claude-code:middle/pretty12 codex:none/crlf/ours
+        "{}\r\n"
+
+   18 × switch: (2) the text after hooks' value is not the same
+        seed 2 case 15 --tools claude-code:only/padded
+        "{ \"hooks\": {} }"
+
+   18 × moved: (2) the text after hooks' value is not the same
+        seed 2 case 15 --tools claude-code:only/padded
+        "{ \"hooks\": {} }"
+
+   11 × switch: (2) hooks is not where it was among the keys
+        seed 2 case 389 codex:first/noindent/ours
+        "{\n\"hooks\": {},\n\"10\": [],\n\"10\": 1,\n\"0\": 1.0\n}\n"
+
+   11 × moved: (2) hooks is not where it was among the keys
+        seed 2 case 389 codex:first/noindent/ours
+        "{\n\"hooks\": {},\n\"10\": [],\n\"10\": 1,\n\"0\": 1.0\n}\n"
+
+    8 × base: (6) an earlier install's entries were in the file; install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 2 case 124 claude-code:first/pretty2/ours codex:first/pretty1/ours
+        "{\n \"hooks\": {\n  \"Stop\": [\n   {\n    \"hooks\": [\n     {\n      \"type\": \"command\",\n      \"command\": \"node \\\"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/g0108-reader-e51Rbg/s371/gh/hooks/grooph-event.mjs\\\" codex --user\"\n     }\n    ]\n   }\n  ],\n  \"SessionEnd\": []\n },\n \"includeCoAuthoredBy\": \"\\\"hooks\\\"\",\n \"a b\": {\n  \"hook\": {},\n  \",\": \"\\u00e9\"\n }\n}"
+
+    8 × base: (3) soft: the events are all there, in another order
+        seed 2 case 124 claude-code:first/pretty2/ours codex:first/pretty1/ours
+        "{\n \"hooks\": {\n  \"Stop\": [\n   {\n    \"hooks\": [\n     {\n      \"type\": \"command\",\n      \"command\": \"node \\\"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/g0108-reader-e51Rbg/s371/gh/hooks/grooph-event.mjs\\\" codex --user\"\n     }\n    ]\n   }\n  ],\n  \"SessionEnd\": []\n },\n \"includeCoAuthoredBy\": \"\\\"hooks\\\"\",\n \"a b\": {\n  \"hook\": {},\n  \",\": \"\\u00e9\"\n }\n}"
+
+    7 × switch: (6) an earlier install's entries were in the file; install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 2 case 208 claude-code:middle/mixed2/ours codex:last/pretty2
+        "{\n  \"__proto__\": true,\n  \"a\\\"b\": {\n    \"$schema\": {},\n    \"model\": \"tab\\there\",\n    \"toString\": {\"\\u00e9\": [-1e400], \"__proto__\": {}, \"\": \",\", \"statusLine\": {\"é\": null, \":\": 1E+2}},\n    \"deny\": [false, null, 1.0]\n  },\n  \"hooks\": {\n    \"SessionEnd\": [{\"a\\\"b\": [\"\\u00e9\", \"\\u0022\", 5e0, true]}],\n    \"PostToolUse\": [],\n    \"SessionStart \": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"printf '%s\\\\n' \\\"}]\\\"\", \"timeout\": 10.0, \"timeout\": 7}]}],\n    \"Stop \": [{\"matcher\": \"Edit|Write\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"\\/x\\/hooks\\/hooks\\/grooph-event.mjs\\\" claude-code --user\", \"timeout\": 3}]}]\n  },\n  \"[\": {\n    \"Stop\": {}\n  },\n  \"x\": [{}, {\"apiKeyHelper\": [], \"allow\":… (720 characters)"
+
+    7 × moved: (6) an earlier install's entries were in the file; install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+        seed 2 case 208 claude-code:middle/mixed2/ours codex:last/pretty2
+        "{\n  \"__proto__\": true,\n  \"a\\\"b\": {\n    \"$schema\": {},\n    \"model\": \"tab\\there\",\n    \"toString\": {\"\\u00e9\": [-1e400], \"__proto__\": {}, \"\": \",\", \"statusLine\": {\"é\": null, \":\": 1E+2}},\n    \"deny\": [false, null, 1.0]\n  },\n  \"hooks\": {\n    \"SessionEnd\": [{\"a\\\"b\": [\"\\u00e9\", \"\\u0022\", 5e0, true]}],\n    \"PostToolUse\": [],\n    \"SessionStart \": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"printf '%s\\\\n' \\\"}]\\\"\", \"timeout\": 10.0, \"timeout\": 7}]}],\n    \"Stop \": [{\"matcher\": \"Edit|Write\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"\\/x\\/hooks\\/hooks\\/grooph-event.mjs\\\" claude-code --user\", \"timeout\": 3}]}]\n  },\n  \"[\": {\n    \"Stop\": {}\n  },\n  \"x\": [{}, {\"apiKeyHelper\": [], \"allow\":… (720 characters)"
+
+    7 × base: (3) an entry grooph's command was joined into: of somebody's own commands in it, a number was spelled anew
+        seed 2 case 183 --tools claude-code:first/mixed2/ours codex:only/crlf
+        "{\n  \"hooks\": {\n    \"SessionStart\": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/g0108-reader-e51Rbg/s548/gh\\/hooks\\/grooph-event.mjs\\\" claude-code --user\", \"async\": true, \"timeout\": 60}, {\"timeout\": 7, \"command\": \"\", \"type\": \"command\"}], \"includeCoAuthoredBy\": 1.0}],\n    \"1\": [{\"hooks\": [{\"type\": \"command\", \"command\": \"echo \\\"a\\\\\\\\b\\\"\", \"async\": true}]}]\n  },\n  \"hasOwnProperty\": \"\\u00e9\",\n  \"__proto__\": []\n}\n"
+
+    6 × base: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: a number was spelled anew
+        seed 2 case 183 --tools claude-code:first/mixed2/ours codex:only/crlf
+        "{\n  \"hooks\": {\n    \"SessionStart\": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/g0108-reader-e51Rbg/s548/gh\\/hooks\\/grooph-event.mjs\\\" claude-code --user\", \"async\": true, \"timeout\": 60}, {\"timeout\": 7, \"command\": \"\", \"type\": \"command\"}], \"includeCoAuthoredBy\": 1.0}],\n    \"1\": [{\"hooks\": [{\"type\": \"command\", \"command\": \"echo \\\"a\\\\\\\\b\\\"\", \"async\": true}]}]\n  },\n  \"hasOwnProperty\": \"\\u00e9\",\n  \"__proto__\": []\n}\n"
+
+    5 × switch: (3) an entry grooph's command was joined into: of somebody's own commands in it, a number was spelled anew
+        seed 2 case 183 --tools claude-code:first/mixed2/ours codex:only/crlf
+        "{\n  \"hooks\": {\n    \"SessionStart\": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/g0108-reader-e51Rbg/s551/gh\\/hooks\\/grooph-event.mjs\\\" claude-code --user\", \"async\": true, \"timeout\": 60}, {\"timeout\": 7, \"command\": \"\", \"type\": \"command\"}], \"includeCoAuthoredBy\": 1.0}],\n    \"1\": [{\"hooks\": [{\"type\": \"command\", \"command\": \"echo \\\"a\\\\\\\\b\\\"\", \"async\": true}]}]\n  },\n  \"hasOwnProperty\": \"\\u00e9\",\n  \"__proto__\": []\n}\n"
+
+    5 × switch: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: a number was spelled anew
+        seed 2 case 183 --tools claude-code:first/mixed2/ours codex:only/crlf
+        "{\n  \"hooks\": {\n    \"SessionStart\": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/g0108-reader-e51Rbg/s551/gh\\/hooks\\/grooph-event.mjs\\\" claude-code --user\", \"async\": true, \"timeout\": 60}, {\"timeout\": 7, \"command\": \"\", \"type\": \"command\"}], \"includeCoAuthoredBy\": 1.0}],\n    \"1\": [{\"hooks\": [{\"type\": \"command\", \"command\": \"echo \\\"a\\\\\\\\b\\\"\", \"async\": true}]}]\n  },\n  \"hasOwnProperty\": \"\\u00e9\",\n  \"__proto__\": []\n}\n"
+
+    5 × moved: (3) an entry grooph's command was joined into: of somebody's own commands in it, a number was spelled anew
+        seed 2 case 183 --tools claude-code:first/mixed2/ours codex:only/crlf
+        "{\n  \"hooks\": {\n    \"SessionStart\": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/g0108-reader-e51Rbg/s554/gh\\/hooks\\/grooph-event.mjs\\\" claude-code --user\", \"async\": true, \"timeout\": 60}, {\"timeout\": 7, \"command\": \"\", \"type\": \"command\"}], \"includeCoAuthoredBy\": 1.0}],\n    \"1\": [{\"hooks\": [{\"type\": \"command\", \"command\": \"echo \\\"a\\\\\\\\b\\\"\", \"async\": true}]}]\n  },\n  \"hasOwnProperty\": \"\\u00e9\",\n  \"__proto__\": []\n}\n"
+
+    5 × moved: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: a number was spelled anew
+        seed 2 case 183 --tools claude-code:first/mixed2/ours codex:only/crlf
+        "{\n  \"hooks\": {\n    \"SessionStart\": [{\"matcher\": \"Bash\", \"hooks\": [{\"type\": \"command\", \"command\": \"node \\\"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/g0108-reader-e51Rbg/s554/gh\\/hooks\\/grooph-event.mjs\\\" claude-code --user\", \"async\": true, \"timeout\": 60}, {\"timeout\": 7, \"command\": \"\", \"type\": \"command\"}], \"includeCoAuthoredBy\": 1.0}],\n    \"1\": [{\"hooks\": [{\"type\": \"command\", \"command\": \"echo \\\"a\\\\\\\\b\\\"\", \"async\": true}]}]\n  },\n  \"hasOwnProperty\": \"\\u00e9\",\n  \"__proto__\": []\n}\n"
+
+    3 × base: (3) an entry grooph's command was joined into: of somebody's own commands in it, 1e400 became null
+        seed 2 case 216 --tools codex:last/crlf/ours
+        "{\r\n  \"a\\\"b\": \"\\\\\\\\\",\r\n  \"a b\": [\r\n    null\r\n  ],\r\n  \"constructor\": {},\r\n  \"hasOwnProperty\": {\r\n    \"z\": \"{\\\"hooks\\\": {}}\"\r\n  },\r\n  \"hooks\": {\r\n    \"0\": [\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true\r\n          },\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true,\r\n            \"timeout\": 7\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"~/bin/notify.sh\",\r\n            \"timeout\": 3\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"matcher\": \"Edit|Write\",\r\n       … (1972 characters)"
+
+    3 × switch: (3) an entry grooph's command was joined into: of somebody's own commands in it, 1e400 became null
+        seed 2 case 216 --tools codex:last/crlf/ours
+        "{\r\n  \"a\\\"b\": \"\\\\\\\\\",\r\n  \"a b\": [\r\n    null\r\n  ],\r\n  \"constructor\": {},\r\n  \"hasOwnProperty\": {\r\n    \"z\": \"{\\\"hooks\\\": {}}\"\r\n  },\r\n  \"hooks\": {\r\n    \"0\": [\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true\r\n          },\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true,\r\n            \"timeout\": 7\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"~/bin/notify.sh\",\r\n            \"timeout\": 3\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"matcher\": \"Edit|Write\",\r\n       … (1972 characters)"
+
+    3 × moved: (3) an entry grooph's command was joined into: of somebody's own commands in it, 1e400 became null
+        seed 2 case 216 --tools codex:last/crlf/ours
+        "{\r\n  \"a\\\"b\": \"\\\\\\\\\",\r\n  \"a b\": [\r\n    null\r\n  ],\r\n  \"constructor\": {},\r\n  \"hasOwnProperty\": {\r\n    \"z\": \"{\\\"hooks\\\": {}}\"\r\n  },\r\n  \"hooks\": {\r\n    \"0\": [\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true\r\n          },\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true,\r\n            \"timeout\": 7\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"~/bin/notify.sh\",\r\n            \"timeout\": 3\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"matcher\": \"Edit|Write\",\r\n       … (1972 characters)"
+
+    3 × switch: (5) the install run again changed the file
+        seed 2 case 21 codex:last/compact/ours
+        "{\"0\":[[],{\"constructor\":[],\"10\":true,\"hooks \":[\"{\\\"hooks\\\": {}}\"]},{\"\\u0068ooks\":[],\"constructor\":1e-400,\"x\":{\"deny\":\"}],\\\"hooks\\\":{\\\"Stop\\\":[{\"},\"hooks \":[\" \",\"[\",\"a,b\",\"grooph-event.mjs\"],\"\\u0068ooks\":[\"line1\\nline2\",\"null\"]}],\"1\":false,\"hooks \":null,\"\":false,\"hooks\":{\"PostToolUse\":[]}}"
+
+    3 × base: (3) an entry grooph's command was joined into: of somebody's own commands in it, tokens are missing or added (a key written twice, or another value)
+        seed 2 case 39 claude-code:middle/pretty2 codex:first/chaos/ours
+        "\r{\r\"hooks\"\r:\n    { \n\t \"Stop\"\t:\r[\n\n]\n, \n\t \"SessionEnd\"\r\n:[\n\n]\n, \n\t \"\\u0050reToolUse2\":[\n    {\"matcher\"\t:\n\"*\"\n,\"hooks\": [\n\n{\n    \"type\" \n\t : \"command\"\n\n,\"command\"\r: \n\t \"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    }\r]} , \n\t {\"hooks\": [{\n\n\"type\"\n:\r\n\"command\",  \"command\"\r\n:\n\"bash -c 'echo \\\"{}\\\"'\",  \"async\"\r\n:   \ttrue }] ,  \"é\"\n:   \t{\n\n\",\" :\n100   \t}\r\n}\r\n, \n\t {\n    \"hooks\":\r[\rnull,   \t\"x\"   \t,   \t1\n]\r\n}\n]\t, \n\t \"Notification\" :  [\r\n{\r\n\"hooks\":   \t[\r\n{\n\n\"type\"  :\t\"command\"   \t,\n    \"command\"\n:\"node \\\"\\/Users\\/é\\/.grooph\\/hooks\\/grooph-event.mjs\\\" claude-code --user\"\n    }\r, {\n\n\"type\": \"command\" , \n\t \"command\"  :\"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    , \n\t \"timeout\"\r:\r\n1E1\r\n, \n\t \"timeout\"\r\n:7  } , {\"async\"\r\n:true\n\n,\"comma… (829 characters)"
+
+    3 × base: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: tokens are missing or added (a key written twice, or another value)
+        seed 2 case 39 claude-code:middle/pretty2 codex:first/chaos/ours
+        "\r{\r\"hooks\"\r:\n    { \n\t \"Stop\"\t:\r[\n\n]\n, \n\t \"SessionEnd\"\r\n:[\n\n]\n, \n\t \"\\u0050reToolUse2\":[\n    {\"matcher\"\t:\n\"*\"\n,\"hooks\": [\n\n{\n    \"type\" \n\t : \"command\"\n\n,\"command\"\r: \n\t \"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    }\r]} , \n\t {\"hooks\": [{\n\n\"type\"\n:\r\n\"command\",  \"command\"\r\n:\n\"bash -c 'echo \\\"{}\\\"'\",  \"async\"\r\n:   \ttrue }] ,  \"é\"\n:   \t{\n\n\",\" :\n100   \t}\r\n}\r\n, \n\t {\n    \"hooks\":\r[\rnull,   \t\"x\"   \t,   \t1\n]\r\n}\n]\t, \n\t \"Notification\" :  [\r\n{\r\n\"hooks\":   \t[\r\n{\n\n\"type\"  :\t\"command\"   \t,\n    \"command\"\n:\"node \\\"\\/Users\\/é\\/.grooph\\/hooks\\/grooph-event.mjs\\\" claude-code --user\"\n    }\r, {\n\n\"type\": \"command\" , \n\t \"command\"  :\"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    , \n\t \"timeout\"\r:\r\n1E1\r\n, \n\t \"timeout\"\r\n:7  } , {\"async\"\r\n:true\n\n,\"comma… (829 characters)"
+
+    3 × switch: (3) an entry grooph's command was joined into: of somebody's own commands in it, tokens are missing or added (a key written twice, or another value)
+        seed 2 case 39 claude-code:middle/pretty2 codex:first/chaos/ours
+        "\r{\r\"hooks\"\r:\n    { \n\t \"Stop\"\t:\r[\n\n]\n, \n\t \"SessionEnd\"\r\n:[\n\n]\n, \n\t \"\\u0050reToolUse2\":[\n    {\"matcher\"\t:\n\"*\"\n,\"hooks\": [\n\n{\n    \"type\" \n\t : \"command\"\n\n,\"command\"\r: \n\t \"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    }\r]} , \n\t {\"hooks\": [{\n\n\"type\"\n:\r\n\"command\",  \"command\"\r\n:\n\"bash -c 'echo \\\"{}\\\"'\",  \"async\"\r\n:   \ttrue }] ,  \"é\"\n:   \t{\n\n\",\" :\n100   \t}\r\n}\r\n, \n\t {\n    \"hooks\":\r[\rnull,   \t\"x\"   \t,   \t1\n]\r\n}\n]\t, \n\t \"Notification\" :  [\r\n{\r\n\"hooks\":   \t[\r\n{\n\n\"type\"  :\t\"command\"   \t,\n    \"command\"\n:\"node \\\"\\/Users\\/é\\/.grooph\\/hooks\\/grooph-event.mjs\\\" claude-code --user\"\n    }\r, {\n\n\"type\": \"command\" , \n\t \"command\"  :\"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    , \n\t \"timeout\"\r:\r\n1E1\r\n, \n\t \"timeout\"\r\n:7  } , {\"async\"\r\n:true\n\n,\"comma… (829 characters)"
+
+    3 × switch: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: tokens are missing or added (a key written twice, or another value)
+        seed 2 case 39 claude-code:middle/pretty2 codex:first/chaos/ours
+        "\r{\r\"hooks\"\r:\n    { \n\t \"Stop\"\t:\r[\n\n]\n, \n\t \"SessionEnd\"\r\n:[\n\n]\n, \n\t \"\\u0050reToolUse2\":[\n    {\"matcher\"\t:\n\"*\"\n,\"hooks\": [\n\n{\n    \"type\" \n\t : \"command\"\n\n,\"command\"\r: \n\t \"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    }\r]} , \n\t {\"hooks\": [{\n\n\"type\"\n:\r\n\"command\",  \"command\"\r\n:\n\"bash -c 'echo \\\"{}\\\"'\",  \"async\"\r\n:   \ttrue }] ,  \"é\"\n:   \t{\n\n\",\" :\n100   \t}\r\n}\r\n, \n\t {\n    \"hooks\":\r[\rnull,   \t\"x\"   \t,   \t1\n]\r\n}\n]\t, \n\t \"Notification\" :  [\r\n{\r\n\"hooks\":   \t[\r\n{\n\n\"type\"  :\t\"command\"   \t,\n    \"command\"\n:\"node \\\"\\/Users\\/é\\/.grooph\\/hooks\\/grooph-event.mjs\\\" claude-code --user\"\n    }\r, {\n\n\"type\": \"command\" , \n\t \"command\"  :\"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    , \n\t \"timeout\"\r:\r\n1E1\r\n, \n\t \"timeout\"\r\n:7  } , {\"async\"\r\n:true\n\n,\"comma… (829 characters)"
+
+    3 × moved: (3) an entry grooph's command was joined into: of somebody's own commands in it, tokens are missing or added (a key written twice, or another value)
+        seed 2 case 39 claude-code:middle/pretty2 codex:first/chaos/ours
+        "\r{\r\"hooks\"\r:\n    { \n\t \"Stop\"\t:\r[\n\n]\n, \n\t \"SessionEnd\"\r\n:[\n\n]\n, \n\t \"\\u0050reToolUse2\":[\n    {\"matcher\"\t:\n\"*\"\n,\"hooks\": [\n\n{\n    \"type\" \n\t : \"command\"\n\n,\"command\"\r: \n\t \"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    }\r]} , \n\t {\"hooks\": [{\n\n\"type\"\n:\r\n\"command\",  \"command\"\r\n:\n\"bash -c 'echo \\\"{}\\\"'\",  \"async\"\r\n:   \ttrue }] ,  \"é\"\n:   \t{\n\n\",\" :\n100   \t}\r\n}\r\n, \n\t {\n    \"hooks\":\r[\rnull,   \t\"x\"   \t,   \t1\n]\r\n}\n]\t, \n\t \"Notification\" :  [\r\n{\r\n\"hooks\":   \t[\r\n{\n\n\"type\"  :\t\"command\"   \t,\n    \"command\"\n:\"node \\\"\\/Users\\/é\\/.grooph\\/hooks\\/grooph-event.mjs\\\" claude-code --user\"\n    }\r, {\n\n\"type\": \"command\" , \n\t \"command\"  :\"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    , \n\t \"timeout\"\r:\r\n1E1\r\n, \n\t \"timeout\"\r\n:7  } , {\"async\"\r\n:true\n\n,\"comma… (829 characters)"
+
+    3 × moved: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: tokens are missing or added (a key written twice, or another value)
+        seed 2 case 39 claude-code:middle/pretty2 codex:first/chaos/ours
+        "\r{\r\"hooks\"\r:\n    { \n\t \"Stop\"\t:\r[\n\n]\n, \n\t \"SessionEnd\"\r\n:[\n\n]\n, \n\t \"\\u0050reToolUse2\":[\n    {\"matcher\"\t:\n\"*\"\n,\"hooks\": [\n\n{\n    \"type\" \n\t : \"command\"\n\n,\"command\"\r: \n\t \"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    }\r]} , \n\t {\"hooks\": [{\n\n\"type\"\n:\r\n\"command\",  \"command\"\r\n:\n\"bash -c 'echo \\\"{}\\\"'\",  \"async\"\r\n:   \ttrue }] ,  \"é\"\n:   \t{\n\n\",\" :\n100   \t}\r\n}\r\n, \n\t {\n    \"hooks\":\r[\rnull,   \t\"x\"   \t,   \t1\n]\r\n}\n]\t, \n\t \"Notification\" :  [\r\n{\r\n\"hooks\":   \t[\r\n{\n\n\"type\"  :\t\"command\"   \t,\n    \"command\"\n:\"node \\\"\\/Users\\/é\\/.grooph\\/hooks\\/grooph-event.mjs\\\" claude-code --user\"\n    }\r, {\n\n\"type\": \"command\" , \n\t \"command\"  :\"C:\\\\tools\\\\run.exe \\\"x\\\"\"\n    , \n\t \"timeout\"\r:\r\n1E1\r\n, \n\t \"timeout\"\r\n:7  } , {\"async\"\r\n:true\n\n,\"comma… (829 characters)"
+
+    3 × switch: (3) an event that should be there is not
+        seed 2 case 364 --tools claude-code:only/chaos codex:middle/padded
+        "{ \"__proto__\": 1, \"hooks\": { \"PostToolUse\": [], \"\\u0053top\": [], \"SubagentStop\": [ { \"matcher\": \"\", \"hooks\": [ { \"type\": \"command\", \"command\": \"true\" } ] } ], \"SessionStart \": [] }, \"model\": { \"10\": true, \"theme\": \"]\" }, \",\": [] }"
+
+    2 × base: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: 1e400 became null
+        seed 2 case 216 --tools codex:last/crlf/ours
+        "{\r\n  \"a\\\"b\": \"\\\\\\\\\",\r\n  \"a b\": [\r\n    null\r\n  ],\r\n  \"constructor\": {},\r\n  \"hasOwnProperty\": {\r\n    \"z\": \"{\\\"hooks\\\": {}}\"\r\n  },\r\n  \"hooks\": {\r\n    \"0\": [\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true\r\n          },\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true,\r\n            \"timeout\": 7\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"~/bin/notify.sh\",\r\n            \"timeout\": 3\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"matcher\": \"Edit|Write\",\r\n       … (1972 characters)"
+
+    2 × switch: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: 1e400 became null
+        seed 2 case 216 --tools codex:last/crlf/ours
+        "{\r\n  \"a\\\"b\": \"\\\\\\\\\",\r\n  \"a b\": [\r\n    null\r\n  ],\r\n  \"constructor\": {},\r\n  \"hasOwnProperty\": {\r\n    \"z\": \"{\\\"hooks\\\": {}}\"\r\n  },\r\n  \"hooks\": {\r\n    \"0\": [\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true\r\n          },\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true,\r\n            \"timeout\": 7\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"~/bin/notify.sh\",\r\n            \"timeout\": 3\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"matcher\": \"Edit|Write\",\r\n       … (1972 characters)"
+
+    2 × moved: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: 1e400 became null
+        seed 2 case 216 --tools codex:last/crlf/ours
+        "{\r\n  \"a\\\"b\": \"\\\\\\\\\",\r\n  \"a b\": [\r\n    null\r\n  ],\r\n  \"constructor\": {},\r\n  \"hasOwnProperty\": {\r\n    \"z\": \"{\\\"hooks\\\": {}}\"\r\n  },\r\n  \"hooks\": {\r\n    \"0\": [\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true\r\n          },\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"echo hi\",\r\n            \"async\": true,\r\n            \"timeout\": 7\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"hooks\": [\r\n          {\r\n            \"type\": \"command\",\r\n            \"command\": \"~/bin/notify.sh\",\r\n            \"timeout\": 3\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"matcher\": \"Edit|Write\",\r\n       … (1972 characters)"
+
+    2 × base: the first install REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+        seed 2 case 170 claude-code:first/pretty2/ours codex:middle/crlf
+        "{\n  \"hooks\": {\n    \"Stop \": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"node \\\"/Users/é/.grooph/hooks/grooph-event.mjs\\\" claude-code --user\",\n            \"timeout\": 1e400\n          }\n        ]\n      }\n    ]\n  },\n  \"toString\": {},\n  \"toString\": []\n}\n"
+
+    2 × switch: the first install REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+        seed 2 case 170 claude-code:first/pretty2/ours codex:middle/crlf
+        "{\n  \"hooks\": {\n    \"Stop \": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"node \\\"/Users/é/.grooph/hooks/grooph-event.mjs\\\" claude-code --user\",\n            \"timeout\": 1e400\n          }\n        ]\n      }\n    ]\n  },\n  \"toString\": {},\n  \"toString\": []\n}\n"
+
+    2 × moved: the first install REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+        seed 2 case 170 claude-code:first/pretty2/ours codex:middle/crlf
+        "{\n  \"hooks\": {\n    \"Stop \": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"node \\\"/Users/é/.grooph/hooks/grooph-event.mjs\\\" claude-code --user\",\n            \"timeout\": 1e400\n          }\n        ]\n      }\n    ]\n  },\n  \"toString\": {},\n  \"toString\": []\n}\n"
+
+    1 × base: (3) an entry grooph's command was joined into: of somebody's own commands in it, a string was spelled anew
+        seed 2 case 68 codex:middle/chaos/ours
+        "\r\n{\n\n\"statusLine\"  :{\r}\n\n,\r\n\"hooks\":{ \"SessionEnd\"   \t:\n[\n{\n    \"matcher\"  : \"Bash\" ,\t\"hooks\" :[\n{\"type\" \n\t : \n\t \"command\"\r,\"command\"\r:\"\\u006eode \\\"/opt/tools/lint.mjs\\\" --fix\"\t,\"timeout\"  :60   \t}\r]\r}\n    ,{\"matcher\"\n    :  \"*\"\n    ,\"hooks\"\n\n: [{\t\"type\":\r\n\"command\"\n, \n\t \"command\"\n:\"python3 -c \\\"print('{')\\\"\"\t}]} ]\n    ,  \"Sto\\u0070\":[\n\n]  ,  \"PreToolUse\" \n\t :  [  {\n    \"matcher\"\r:\n    \"Bash\" \n\t ,\r\"hooks\"\r\n: [   \t{   \t\"type\"  :\t\"command\"\n, \"command\"\n:   \t\"\\u006eode \\\"/Users/é/.grooph/hooks/grooph-event.mjs\\\" codex --user\"\r\n}\t]\n    }\r\n, { \n\t \"hooks\"\r\n:[\r\n{\n\n\"command\" :\n\n\"echo \\\"a\\\\\\\\b\\\"\"\r, \"type\"\n:   \t\"command\"\n    }]\r\n}\r\n],  \"PostToolUse\"\n:[\n    {\t\"hooks\" \n\t :\r[ {   \t\"type\"\r:  \"command\"\n\n,\r\n… (1519 characters)"
+
+    1 × base: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: a string was spelled anew
+        seed 2 case 68 codex:middle/chaos/ours
+        "\r\n{\n\n\"statusLine\"  :{\r}\n\n,\r\n\"hooks\":{ \"SessionEnd\"   \t:\n[\n{\n    \"matcher\"  : \"Bash\" ,\t\"hooks\" :[\n{\"type\" \n\t : \n\t \"command\"\r,\"command\"\r:\"\\u006eode \\\"/opt/tools/lint.mjs\\\" --fix\"\t,\"timeout\"  :60   \t}\r]\r}\n    ,{\"matcher\"\n    :  \"*\"\n    ,\"hooks\"\n\n: [{\t\"type\":\r\n\"command\"\n, \n\t \"command\"\n:\"python3 -c \\\"print('{')\\\"\"\t}]} ]\n    ,  \"Sto\\u0070\":[\n\n]  ,  \"PreToolUse\" \n\t :  [  {\n    \"matcher\"\r:\n    \"Bash\" \n\t ,\r\"hooks\"\r\n: [   \t{   \t\"type\"  :\t\"command\"\n, \"command\"\n:   \t\"\\u006eode \\\"/Users/é/.grooph/hooks/grooph-event.mjs\\\" codex --user\"\r\n}\t]\n    }\r\n, { \n\t \"hooks\"\r\n:[\r\n{\n\n\"command\" :\n\n\"echo \\\"a\\\\\\\\b\\\"\"\r, \"type\"\n:   \t\"command\"\n    }]\r\n}\r\n],  \"PostToolUse\"\n:[\n    {\t\"hooks\" \n\t :\r[ {   \t\"type\"\r:  \"command\"\n\n,\r\n… (1519 characters)"
+
+    1 × switch: (3) an entry grooph's command was joined into: of somebody's own commands in it, a string was spelled anew
+        seed 2 case 68 codex:middle/chaos/ours
+        "\r\n{\n\n\"statusLine\"  :{\r}\n\n,\r\n\"hooks\":{ \"SessionEnd\"   \t:\n[\n{\n    \"matcher\"  : \"Bash\" ,\t\"hooks\" :[\n{\"type\" \n\t : \n\t \"command\"\r,\"command\"\r:\"\\u006eode \\\"/opt/tools/lint.mjs\\\" --fix\"\t,\"timeout\"  :60   \t}\r]\r}\n    ,{\"matcher\"\n    :  \"*\"\n    ,\"hooks\"\n\n: [{\t\"type\":\r\n\"command\"\n, \n\t \"command\"\n:\"python3 -c \\\"print('{')\\\"\"\t}]} ]\n    ,  \"Sto\\u0070\":[\n\n]  ,  \"PreToolUse\" \n\t :  [  {\n    \"matcher\"\r:\n    \"Bash\" \n\t ,\r\"hooks\"\r\n: [   \t{   \t\"type\"  :\t\"command\"\n, \"command\"\n:   \t\"\\u006eode \\\"/Users/é/.grooph/hooks/grooph-event.mjs\\\" codex --user\"\r\n}\t]\n    }\r\n, { \n\t \"hooks\"\r\n:[\r\n{\n\n\"command\" :\n\n\"echo \\\"a\\\\\\\\b\\\"\"\r, \"type\"\n:   \t\"command\"\n    }]\r\n}\r\n],  \"PostToolUse\"\n:[\n    {\t\"hooks\" \n\t :\r[ {   \t\"type\"\r:  \"command\"\n\n,\r\n… (1519 characters)"
+
+    1 × switch: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: a string was spelled anew
+        seed 2 case 68 codex:middle/chaos/ours
+        "\r\n{\n\n\"statusLine\"  :{\r}\n\n,\r\n\"hooks\":{ \"SessionEnd\"   \t:\n[\n{\n    \"matcher\"  : \"Bash\" ,\t\"hooks\" :[\n{\"type\" \n\t : \n\t \"command\"\r,\"command\"\r:\"\\u006eode \\\"/opt/tools/lint.mjs\\\" --fix\"\t,\"timeout\"  :60   \t}\r]\r}\n    ,{\"matcher\"\n    :  \"*\"\n    ,\"hooks\"\n\n: [{\t\"type\":\r\n\"command\"\n, \n\t \"command\"\n:\"python3 -c \\\"print('{')\\\"\"\t}]} ]\n    ,  \"Sto\\u0070\":[\n\n]  ,  \"PreToolUse\" \n\t :  [  {\n    \"matcher\"\r:\n    \"Bash\" \n\t ,\r\"hooks\"\r\n: [   \t{   \t\"type\"  :\t\"command\"\n, \"command\"\n:   \t\"\\u006eode \\\"/Users/é/.grooph/hooks/grooph-event.mjs\\\" codex --user\"\r\n}\t]\n    }\r\n, { \n\t \"hooks\"\r\n:[\r\n{\n\n\"command\" :\n\n\"echo \\\"a\\\\\\\\b\\\"\"\r, \"type\"\n:   \t\"command\"\n    }]\r\n}\r\n],  \"PostToolUse\"\n:[\n    {\t\"hooks\" \n\t :\r[ {   \t\"type\"\r:  \"command\"\n\n,\r\n… (1519 characters)"
+
+    1 × moved: (3) an entry grooph's command was joined into: of somebody's own commands in it, a string was spelled anew
+        seed 2 case 68 codex:middle/chaos/ours
+        "\r\n{\n\n\"statusLine\"  :{\r}\n\n,\r\n\"hooks\":{ \"SessionEnd\"   \t:\n[\n{\n    \"matcher\"  : \"Bash\" ,\t\"hooks\" :[\n{\"type\" \n\t : \n\t \"command\"\r,\"command\"\r:\"\\u006eode \\\"/opt/tools/lint.mjs\\\" --fix\"\t,\"timeout\"  :60   \t}\r]\r}\n    ,{\"matcher\"\n    :  \"*\"\n    ,\"hooks\"\n\n: [{\t\"type\":\r\n\"command\"\n, \n\t \"command\"\n:\"python3 -c \\\"print('{')\\\"\"\t}]} ]\n    ,  \"Sto\\u0070\":[\n\n]  ,  \"PreToolUse\" \n\t :  [  {\n    \"matcher\"\r:\n    \"Bash\" \n\t ,\r\"hooks\"\r\n: [   \t{   \t\"type\"  :\t\"command\"\n, \"command\"\n:   \t\"\\u006eode \\\"/Users/é/.grooph/hooks/grooph-event.mjs\\\" codex --user\"\r\n}\t]\n    }\r\n, { \n\t \"hooks\"\r\n:[\r\n{\n\n\"command\" :\n\n\"echo \\\"a\\\\\\\\b\\\"\"\r, \"type\"\n:   \t\"command\"\n    }]\r\n}\r\n],  \"PostToolUse\"\n:[\n    {\t\"hooks\" \n\t :\r[ {   \t\"type\"\r:  \"command\"\n\n,\r\n… (1519 characters)"
+
+    1 × moved: (6) an earlier install's entries were in the file; after remove, beyond the empty lists: a string was spelled anew
+        seed 2 case 68 codex:middle/chaos/ours
+        "\r\n{\n\n\"statusLine\"  :{\r}\n\n,\r\n\"hooks\":{ \"SessionEnd\"   \t:\n[\n{\n    \"matcher\"  : \"Bash\" ,\t\"hooks\" :[\n{\"type\" \n\t : \n\t \"command\"\r,\"command\"\r:\"\\u006eode \\\"/opt/tools/lint.mjs\\\" --fix\"\t,\"timeout\"  :60   \t}\r]\r}\n    ,{\"matcher\"\n    :  \"*\"\n    ,\"hooks\"\n\n: [{\t\"type\":\r\n\"command\"\n, \n\t \"command\"\n:\"python3 -c \\\"print('{')\\\"\"\t}]} ]\n    ,  \"Sto\\u0070\":[\n\n]  ,  \"PreToolUse\" \n\t :  [  {\n    \"matcher\"\r:\n    \"Bash\" \n\t ,\r\"hooks\"\r\n: [   \t{   \t\"type\"  :\t\"command\"\n, \"command\"\n:   \t\"\\u006eode \\\"/Users/é/.grooph/hooks/grooph-event.mjs\\\" codex --user\"\r\n}\t]\n    }\r\n, { \n\t \"hooks\"\r\n:[\r\n{\n\n\"command\" :\n\n\"echo \\\"a\\\\\\\\b\\\"\"\r, \"type\"\n:   \t\"command\"\n    }]\r\n}\r\n],  \"PostToolUse\"\n:[\n    {\t\"hooks\" \n\t :\r[ {   \t\"type\"\r:  \"command\"\n\n,\r\n… (1519 characters)"
+
+    1 × base: (2) hooks was missing and the file changed in more than one place
+        seed 2 case 86 --tools claude-code:none/chaos
+        " {\t}\n    "
+
+    1 × base: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        seed 2 case 86 --tools claude-code:none/chaos
+        " {\t}\n    "
+
+    1 × switch: (2) hooks was missing and the file changed in more than one place
+        seed 2 case 86 --tools claude-code:none/chaos
+        " {\t}\n    "
+
+    1 × switch: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        seed 2 case 86 --tools claude-code:none/chaos
+        " {\t}\n    "
+
+    1 × moved: (2) hooks was missing and the file changed in more than one place
+        seed 2 case 86 --tools claude-code:none/chaos
+        " {\t}\n    "
+
+    1 × moved: (6) install then remove did not give the bytes back: the file was an empty object with space in it
+        seed 2 case 86 --tools claude-code:none/chaos
+        " {\t}\n    "
+
+    1 × switch: the install run again REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+        seed 2 case 396 codex:first/spaced/ours
+        "{\"hooks\": {\"PostToolUse\": []}, \"statusLine\": {\"\\u0068ooks\": [0e0], \"constructor\": [{\"x\": -0, \"z\": 0, \"hooks \": null, \"__proto__\": \"\\u0068ooks\"}, 1e-400, 5e0, [0.0, 0e0]], \"deny\": [1E400, [12345678901234567890123, 1.0, \"}],\\\"hooks\\\":{\\\"Stop\\\":[{\", 1E400], [\"😀\", \"}],\\\"hooks\\\":{\\\"Stop\\\":[{\"], 3.14159], \"command\": []}, \"1\": {\"hooks2\": [\"\\\\\", [-0, 0.1e-5, null], \"hooks\", \"  spaced  \"], \"__proto__\": 1, \"a\\\"b\": \"}\", \"hooks2\": \"]\"}, \"hook\": {\"10\": [], \",\": [[\"/hooks/grooph-event.mjs\", false, \"a\\\\\", null]]}, \"a\\\"b\": {}, \"\": {\"Stop\": -1, \"[\": \"é\", \"deny\": {\"hooks2\": false, \"allow\": {\"\\u0068ooks\": 1.10, \"$schema\": 1, \"a b\": true}}}}"
+
+the same kinds, the three sequences together:
+  286 × an install REFUSED: "grooph: cannot read <file>: grooph could not change it and be sure of the result. Nothing was changed."
+  226 × (6) install then remove did not give the bytes back: hooks was there and empty (the stated exception)
+  216 × (6) install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+  155 × (3) soft: the events are all there, in another order
+   76 × (5) the install run again changed the file
+   72 × (2) the text before hooks' value is not the same
+   36 × (2) the text after hooks' value is not the same
+   22 × (2) hooks is not where it was among the keys
+   22 × (6) an earlier install's entries were in the file; install then remove did not give the file back: an event grooph adds to was there with an EMPTY list, and is gone (not stated)
+   17 × (3) an entry grooph's command was joined into: of somebody's own commands in it, a number was spelled anew
+   16 × (6) an earlier install's entries were in the file; after remove, beyond the empty lists: a number was spelled anew
+    9 × (3) an entry grooph's command was joined into: of somebody's own commands in it, 1e400 became null
+    9 × (3) an entry grooph's command was joined into: of somebody's own commands in it, tokens are missing or added (a key written twice, or another value)
+    9 × (6) an earlier install's entries were in the file; after remove, beyond the empty lists: tokens are missing or added (a key written twice, or another value)
+    6 × (6) an earlier install's entries were in the file; after remove, beyond the empty lists: 1e400 became null
+    3 × (3) an entry grooph's command was joined into: of somebody's own commands in it, a string was spelled anew
+    3 × (6) an earlier install's entries were in the file; after remove, beyond the empty lists: a string was spelled anew
+    3 × (2) hooks was missing and the file changed in more than one place
+    3 × (6) install then remove did not give the bytes back: the file was an empty object with space in it
+    3 × (3) an event that should be there is not
