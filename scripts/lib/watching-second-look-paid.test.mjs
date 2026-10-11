@@ -201,10 +201,12 @@ test("the sentence, the two models, the limits and the tasks are the page's, to 
   assert.deepEqual(LEAD, { opus: { model: "claude-opus-5-5", effort: "high" }, sonnet: { model: "claude-sonnet-5-5", effort: "high" } });
   assert.deepEqual(Object.keys(LEAD), BLOCKS);
   for (const lead of Object.values(LEAD)) assert.ok(!/fable|astra/i.test(lead.model));
-  // THE LIMITS. They are a proposal until the first run, and the owner's answer to it changes one table: WATCHDOG and
-  // STOPS_AT_USD in the runner, and these two lines, which are that table written out once more. Everything else here,
-  // and in every other test, is made from the runner's numbers: the page's rows and sums, and the ledger's (the next
-  // test but three). Until the page and the ledger say the same, those lines fail and say which.
+  // THE LIMITS. The owner approved them on 2026-10-11 (the review desk, card q95), and the page says so in his words.
+  // They are one table: WATCHDOG and STOPS_AT_USD in the runner, and the two lines below, which are that table written
+  // out once more. Everything else here, and in every other test, is made from the runner's numbers: the page's rows
+  // and sums, and the ledger's (the next test but three). If the table ever changes, those lines fail until the page
+  // and the ledger say the same, and say which does not.
+  assert.ok(page.includes('he said yes on the review desk (card q95), in these words: "Yes: 36 runs and the limits as proposed"'));
   assert.deepEqual(WATCHDOG, { opus: { four: { usd: 15, minutes: 60 }, six: { usd: 15, minutes: 60 } }, sonnet: { four: { usd: 6, minutes: 60 }, six: { usd: 6, minutes: 60 } } });
   assert.equal(STOPS_AT_USD, 200);
   const usd = (amount) => `$${amount.toFixed(2)}`;

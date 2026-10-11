@@ -185,7 +185,7 @@ Every row is published, one table for each block, with every run's record. The t
 
 ## Limits
 
-These are a proposal until the first run: the driver and the owner may change them before it, and not after it without a dated note.
+These were a proposal, and the owner has answered it. On 2026-10-11 at 3:15 p.m. Eastern he said yes on the review desk (card q95), in these words: "Yes: 36 runs and the limits as proposed". The card then held the table below. After the first run nothing here changes without a dated note.
 
 | | A run of `four` | A run of `six` |
 |---|---|---|
