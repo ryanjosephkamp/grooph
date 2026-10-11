@@ -1,6 +1,6 @@
 # Handoff 0110 · A larger pilot of the old line, in Codex, on paper
 
-**Stage:** 25, on the lab's side · **Lane:** Opus 5.5 · **Effort:** extra high (high is the floor: an experiment designed carelessly is found out only after it has been paid for) · **Browser tests on port:** 4372 for the held-out checks' own server, and never 4361 · **Branch:** `slice/0110-a-pilot-on-paper` · **Drafted:** 2026-10-11 · **Confirmed by owner:** the wish, 2026-10-11 in the driver's chat; the game and the number of arms are on the review desk, and this is written for the driver's recommendation (nine-hole mini golf, three arms)
+**Stage:** 25, on the lab's side · **Lane:** Opus 5.5 · **Effort:** extra high (high is the floor: an experiment designed carelessly is found out only after it has been paid for) · **Browser tests on port:** 4372 for the held-out checks' own server, and never 4361 · **Branch:** `slice/0110-a-pilot-on-paper` · **Drafted:** 2026-10-11 · **Confirmed by owner:** 2026-10-11, on the review desk: three arms, yes (card q88). **The game is not chosen.** He turned down mini golf, tower defense and a kart time trial (card q88: "I don't really like those game ideas. Please come up with different ones."; in the chat: "Let's find something exciting! Action-packed?"); five are on card q93, and the driver tells this lane which before it starts. Where this page says mini golf, read the game he picks
 
 ## Objective
 

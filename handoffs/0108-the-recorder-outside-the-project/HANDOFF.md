@@ -1,6 +1,6 @@
 # Handoff 0108 · The recorder outside the project
 
-**Stage:** 25 · **Lane:** Opus 5.5 · **Effort:** high, either way (it writes in a person's own settings: a careless install is found on their machine, not in a test) · **Browser tests on port:** none (the command line only) · **Branch:** `slice/0108-the-recorder-outside-the-project` · **Drafted:** 2026-10-11 · **Confirmed by owner:** the page and the driver's recommendation on it, 2026-10-11 in the driver's chat; his choice among A, B and C on the review desk is pending, and this is written for A
+**Stage:** 25 · **Lane:** Opus 5.5 · **Effort:** high, either way (it writes in a person's own settings: a careless install is found on their machine, not in a test) · **Browser tests on port:** none (the command line only) · **Branch:** `slice/0108-the-recorder-outside-the-project` · **Drafted:** 2026-10-11 · **Confirmed by owner:** 2026-10-11, on the review desk (card q87: "A: user level, the folders I list"; card q86: one of the first four lanes)
 
 ## Objective
 
@@ -55,8 +55,8 @@ It is also what lets the owner watch his other projects without putting grooph's
 - **A listed folder covers what is inside it.** A worktree kept somewhere else is listed by its own path. The hook does not ask git anything: starting a process costs tens of milliseconds an event.
 - **One environment variable names grooph's home folder** (default: a `.grooph` folder in the person's home), so tests and a clean profile can point it at a scratch folder. `GROOPH_EVENTS_DIR` keeps its meaning.
 - **Sending events to another machine stays with installs in a project** in this slice. `grooph events push`, run where only a user-level record exists, says so in one line and sends nothing.
-- **The default list is empty** (option A). If the owner chooses B (every session on the machine) the change is one condition and its test; do not build it unasked.
-- It starts from the link fix (the driver's branch `fix/hook-refuses-a-link`, which also adds the section "Not yet released" to `docs/releases.md`). If that is not on `main` when you begin, branch from `origin/fix/hook-refuses-a-link`, and merge `main` in once it is.
+- **The default list is empty**: the owner chose option A. Do not build B (every session on the machine).
+- It starts from the link fix, which is on `main` since 2026-10-11 (#190) and also added the section "Not yet released" to `docs/releases.md`. Read that pull request's description first: the hook now steps into its folders and holds them, and this slice must keep that in both layouts.
 
 ## Implementer's choices
 

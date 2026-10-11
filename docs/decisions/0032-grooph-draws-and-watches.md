@@ -74,6 +74,7 @@ Each step is its own pull request. He has said yes to the third (card q78); each
 - Reading the harness's own short description of each subagent. Claude Code keeps one beside each subagent's transcript, with the model it runs on. The viewer would read it on the person's machine when they look, and neither store nor send it. The words for the privacy page come with that step and are the owner's to approve.
 - Whether the lessons of the old line are written up as a report, and when.
 - Whether any larger experiment is run. The owner has said none before 2026-10-12 but the watching check.
+  *Note, 2026-10-11:* he changed this answer that day. In the driver's chat he wrote that he is "still not fully convinced" that the old line "is inferior to standard prompts" and asked for a larger test to be prepared; on the review desk he agreed to three arms for a pilot in Codex (card q88; slice 0110 prepares it on paper and runs nothing) and said "Yes, if usage permits" to the Claude Code run of the game experiment frozen on 2026-10-04 (card q89). A second look at watching is prepared too (slice 0111). None of it changes this decision or says anything about the product.
 - Codex, where a hook is not told which agent started which; and agent teams and workflow scripts, each of which keeps a record of its own that could be drawn.
 
 ## Consequences
