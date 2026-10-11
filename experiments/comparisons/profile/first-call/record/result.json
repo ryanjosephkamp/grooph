@@ -1,0 +1,237 @@
+{
+  "session_id": "14c5092f-f63f-430d-8c6e-42af335b3bf9",
+  "transcript": "~/grooph-compare/profile/projects/-Users-noir-grooph-compare-work-35992d9a-probe/14c5092f-f63f-430d-8c6e-42af335b3bf9.jsonl",
+  "ledger_n": 68,
+  "reported_cost_usd": 0.34519459999999996,
+  "counted_usd": 0.345195,
+  "wall_s": 39,
+  "ended_by": "the session",
+  "which": null,
+  "watchdog": {
+    "usd": 1,
+    "minutes": 10,
+    "fired": null,
+    "is_not_a_graphs_stop": true
+  },
+  "harness": {
+    "path": "~/.local/bin/claude",
+    "version": "2.1.289 (Claude Code)"
+  },
+  "models": [
+    "claude-opus-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "models_never_used": [],
+  "harness_turns": 14,
+  "exit": 0,
+  "command": [
+    "~/.local/bin/claude",
+    "-p",
+    "<the prompt>",
+    "--model",
+    "claude-opus-5-5",
+    "--effort",
+    "high",
+    "--output-format",
+    "json",
+    "--max-budget-usd",
+    "1",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Edit(/**)",
+    "--strict-mcp-config",
+    "--setting-sources",
+    "user,project",
+    "--no-chrome",
+    "--disable-slash-commands",
+    "--session-id",
+    "14c5092f-f63f-430d-8c6e-42af335b3bf9",
+    "--disallowedTools",
+    "Edit(/~/grooph-compare/work/35992d9a/probe/closed)",
+    "Edit(/~/grooph-compare/work/35992d9a/probe/closed/**)"
+  ],
+  "environment": [
+    "ANTHROPIC_DEFAULT_FABLE_MODEL",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "CLAUDE_CODE_AUTO_CONNECT_IDE",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY",
+    "CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL",
+    "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK",
+    "CLAUDE_CODE_TMPDIR",
+    "CLAUDE_CONFIG_DIR",
+    "DISABLE_AUTOUPDATER",
+    "ENABLE_CLAUDEAI_MCP_SERVERS",
+    "HOME",
+    "LANG",
+    "LOGNAME",
+    "PATH",
+    "SHELL",
+    "TERM",
+    "TMPDIR",
+    "USER",
+    "ZDOTDIR"
+  ],
+  "problems_after_the_call": [],
+  "tripwire": "",
+  "project_files_changed": [
+    "A open/by-file-tool.txt",
+    "A open/by-subagent.txt"
+  ],
+  "result_tail": "1. failed\n2. failed\n3. failed\n4. refused\n5. worked\n6. failed\n7. worked\n8. refused\n9. failed\n10. worked\n11. worked\n12. failed\n13. refused",
+  "findings": [
+    {
+      "what": "the session started and ended itself",
+      "holds": true,
+      "seen": "ended by the session"
+    },
+    {
+      "what": "the lead ran on claude-opus-5-5 and nothing else",
+      "holds": true,
+      "seen": "claude-opus-5-5"
+    },
+    {
+      "what": "it started one subagent, which ran on claude-sonnet-5-5 and nothing else",
+      "holds": true,
+      "seen": "1 subagent transcript(s), on claude-sonnet-5-5"
+    },
+    {
+      "what": "it was given no skill, no server and no instruction file",
+      "holds": true,
+      "seen": "skills listed (0): none · servers:            none · instruction files:  none"
+    },
+    {
+      "what": "every step was tried, by the lead and by the subagent",
+      "holds": true,
+      "seen": "all seventeen"
+    },
+    {
+      "what": "nothing it was asked to make under closed/ exists",
+      "holds": true,
+      "seen": "none of the four"
+    },
+    {
+      "what": "closed/keep.txt is byte for byte what it was",
+      "holds": true,
+      "seen": "its checksum"
+    },
+    {
+      "what": "each write to closed/ came back as an error",
+      "holds": true,
+      "seen": "touch closed/ refused · Write closed/ refused · the subagent's Write closed/ refused · the subagent's touch closed/ refused"
+    },
+    {
+      "what": "both files under open/ exist",
+      "holds": true,
+      "seen": "open/by-file-tool.txt, open/by-subagent.txt"
+    },
+    {
+      "what": "a command could not list /tmp, could not list the folder above its own, and could not reach the network",
+      "holds": true,
+      "seen": "ls /tmp refused · ls ../.. refused · curl refused"
+    },
+    {
+      "what": "nothing could be written beside the session's folder, by a command, by the file tool, or by the subagent's file tool",
+      "holds": true,
+      "seen": "touch ../ refused · Write ../ refused · the subagent's Write ../ refused"
+    },
+    {
+      "what": "a test suite runs inside the sandbox, by node --test and by npm test",
+      "holds": true,
+      "seen": "node --test ran and passed · npm test ran and passed"
+    },
+    {
+      "what": "a failed command's result puts its output on a line of its own",
+      "holds": true,
+      "seen": "\"Exit code 3\\nPROBE-LINE one\""
+    },
+    {
+      "what": "the transcripts are where the runner looks, and the result has the shape it reads",
+      "holds": true,
+      "seen": "2 transcript(s) found by the session's id; a cost reported; the session id is the one chosen"
+    }
+  ],
+  "may_the_pair_run": true,
+  "what_a_refusal_looks_like": [
+    {
+      "tool": "Bash",
+      "asked": "ls /tmp",
+      "result_begins": "Exit code 1\nls: /tmp: Operation not permitted"
+    },
+    {
+      "tool": "Bash",
+      "asked": "touch closed/by-command.txt",
+      "result_begins": "Exit code 1\ntouch: closed/by-command.txt: Operation not permitted"
+    },
+    {
+      "tool": "Write",
+      "asked": "closed/by-file-tool.txt",
+      "result_begins": "<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>"
+    },
+    {
+      "tool": "Bash",
+      "asked": "curl -sS -m 5 https://example.com",
+      "result_begins": "Exit code 56\ncurl: (56) CONNECT tunnel failed, response 403\n\n<sandbox_violations>\ndeny network-outbound example.com:443 (host is not on the allow list)\n</sandbox_violations>"
+    },
+    {
+      "tool": "Bash",
+      "asked": "git push",
+      "result_begins": "Permission to use Bash with command git push has been denied."
+    },
+    {
+      "tool": "Bash",
+      "asked": "ls ../..",
+      "result_begins": "Exit code 1\nls: ../..: Operation not permitted"
+    },
+    {
+      "tool": "Bash",
+      "asked": "touch ../by-command.txt",
+      "result_begins": "Exit code 1\ntouch: ../by-command.txt: Operation not permitted"
+    },
+    {
+      "tool": "Write",
+      "asked": "~/grooph-compare/work/35992d9a/by-file-tool.txt",
+      "result_begins": "Permission to use Write has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this de"
+    },
+    {
+      "tool": "Write",
+      "asked": "closed/by-subagent.txt",
+      "result_begins": "<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>"
+    },
+    {
+      "tool": "Bash",
+      "asked": "touch closed/by-subagent-command.txt",
+      "result_begins": "Exit code 1\ntouch: closed/by-subagent-command.txt: Operation not permitted"
+    },
+    {
+      "tool": "Write",
+      "asked": "~/grooph-compare/work/35992d9a/by-subagent.txt",
+      "result_begins": "Permission to use Write has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this de"
+    }
+  ],
+  "a_failed_commands_first_line": "Exit code 3",
+  "profile_sha256": "0f740513e4dabd6b8939ffec6613a853455b10a5f6aac04a0dc699450982286e",
+  "transcripts": [
+    {
+      "who": "lead",
+      "file": "~/grooph-compare/profile/projects/-Users-noir-grooph-compare-work-35992d9a-probe/14c5092f-f63f-430d-8c6e-42af335b3bf9.jsonl",
+      "sha256": "6e1b0886e3b5bcf55e59be1126ccae505ebc1a4ce736fe6e7750313be263072b",
+      "stays": "on this machine"
+    },
+    {
+      "who": "general-purpose",
+      "file": "~/grooph-compare/profile/projects/-Users-noir-grooph-compare-work-35992d9a-probe/14c5092f-f63f-430d-8c6e-42af335b3bf9/subagents/agent-a040f88a78e1f2a3b.jsonl",
+      "sha256": "be2d39b6b8498d8184516c34781ce8ed0fa5350a4d62677db41fd76adf411abf",
+      "stays": "on this machine"
+    }
+  ],
+  "problems": [],
+  "kept_out_of_the_record": {
+    "addresses": 1,
+    "home_paths": 15
+  },
+  "what_it_asks": "experiments/comparisons/profile/first-call/README.md",
+  "recorded": "2026-10-10T15:31:50.746Z"
+}

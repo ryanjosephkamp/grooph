@@ -1,0 +1,59 @@
+[
+  {
+    "who": "lead",
+    "transcript": "5350c57e-448b-4c2d-917d-144ee4530654.jsonl",
+    "models": [
+      "claude-sonnet-5-5"
+    ],
+    "started": "2026-10-10T15:45:11.659Z",
+    "ended": "2026-10-10T15:45:41.097Z",
+    "assistant_messages": 13,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:45:13.493Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:45:13.772Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T15:45:14.094Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:45:15.846Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:45:16.116Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T15:45:24.923Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T15:45:29.946Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T15:45:32.237Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T15:45:34.139Z",
+        "refused": false
+      }
+    ]
+  }
+]

@@ -1,0 +1,94 @@
+[
+  {
+    "who": "lead",
+    "transcript": "73cd08ff-01a0-4731-be20-2bd8ed75b048.jsonl",
+    "models": [
+      "claude-haiku-4-5-20251001"
+    ],
+    "started": "2026-10-10T21:42:46.077Z",
+    "ended": "2026-10-10T21:43:49.543Z",
+    "assistant_messages": 35,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:42:49.317Z",
+        "refused": true
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:42:49.668Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:42:49.862Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T21:42:51.766Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T21:42:56.526Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:42:58.419Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:42:58.720Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T21:42:58.975Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T21:43:08.054Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T21:43:15.702Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T21:43:17.039Z",
+        "refused": true
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T21:43:24.586Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T21:43:27.461Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T21:43:35.055Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T21:43:38.158Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T21:43:42.218Z",
+        "refused": false
+      }
+    ]
+  }
+]

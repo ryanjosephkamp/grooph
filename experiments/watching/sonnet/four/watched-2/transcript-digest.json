@@ -1,0 +1,169 @@
+[
+  {
+    "who": "lead",
+    "transcript": "fa3942a7-0e1b-4b5e-9c8f-2ee6e9c13247.jsonl",
+    "models": [
+      "claude-sonnet-5-5"
+    ],
+    "started": "2026-10-10T15:53:28.144Z",
+    "ended": "2026-10-10T15:57:08.058Z",
+    "assistant_messages": 51,
+    "tool_uses": [
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T15:53:29.988Z",
+        "refused": true
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:31.904Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:32.347Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:32.559Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:32.819Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:34.399Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:34.722Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:35.045Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:35.434Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:35.663Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:35.986Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:36.354Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:36.698Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:37.053Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:37.346Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:39.462Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:39.633Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:53:39.888Z",
+        "refused": true
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T15:54:50.051Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T15:54:57.580Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T15:55:14.908Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T15:55:30.885Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T15:55:37.594Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T15:55:47.753Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T15:56:00.849Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T15:56:07.021Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T15:56:21.996Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T15:56:22.844Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T15:56:41.144Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T15:56:54.774Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T15:56:56.796Z",
+        "refused": false
+      }
+    ]
+  }
+]

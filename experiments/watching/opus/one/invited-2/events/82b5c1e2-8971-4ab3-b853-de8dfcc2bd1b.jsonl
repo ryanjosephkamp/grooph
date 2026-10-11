@@ -1,0 +1,4 @@
+{"v":1,"t":"2026-10-10T17:02:36.792Z","harness":"claude-code","event":"session-start","session":"82b5c1e2-8971-4ab3-b853-de8dfcc2bd1b","cwd":"~/grooph-compare/work/0c0678e0/printkit"}
+{"v":1,"t":"2026-10-10T17:02:37.343Z","harness":"claude-code","event":"turn-start","session":"82b5c1e2-8971-4ab3-b853-de8dfcc2bd1b","cwd":"~/grooph-compare/work/0c0678e0/printkit"}
+{"v":1,"t":"2026-10-10T17:03:18.575Z","harness":"claude-code","event":"turn-end","session":"82b5c1e2-8971-4ab3-b853-de8dfcc2bd1b","cwd":"~/grooph-compare/work/0c0678e0/printkit"}
+{"v":1,"t":"2026-10-10T17:03:18.691Z","harness":"claude-code","event":"session-end","session":"82b5c1e2-8971-4ab3-b853-de8dfcc2bd1b","cwd":"~/grooph-compare/work/0c0678e0/printkit"}

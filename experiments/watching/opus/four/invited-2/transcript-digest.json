@@ -1,0 +1,189 @@
+[
+  {
+    "who": "lead",
+    "transcript": "1fccd7fc-bf9d-4ac1-901c-89d2b45cabad.jsonl",
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "started": "2026-10-10T17:03:20.487Z",
+    "ended": "2026-10-10T17:08:55.275Z",
+    "assistant_messages": 44,
+    "tool_uses": [
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T17:03:22.413Z",
+        "refused": true
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T17:03:23.505Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:24.032Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:24.534Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:25.033Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:25.455Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:26.871Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:27.397Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:27.985Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:28.501Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:29.029Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:29.607Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:30.186Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:30.659Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:31.322Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:31.846Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:32.370Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:32.896Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:33.421Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T17:03:33.852Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T17:06:26.698Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T17:06:56.595Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T17:06:58.123Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T17:06:58.549Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T17:07:03.561Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T17:07:09.192Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T17:07:20.244Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T17:07:23.772Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T17:07:30.297Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T17:07:40.451Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T17:08:25.483Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T17:08:26.529Z",
+        "refused": false
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T17:08:33.113Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T17:08:36.618Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T17:08:40.245Z",
+        "refused": false
+      }
+    ]
+  }
+]

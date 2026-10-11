@@ -1,0 +1,69 @@
+[
+  {
+    "who": "lead",
+    "transcript": "c7bf87d6-18bd-4cdd-979a-c8b01bef8826.jsonl",
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "started": "2026-10-10T16:29:45.907Z",
+    "ended": "2026-10-10T16:31:01.806Z",
+    "assistant_messages": 17,
+    "tool_uses": [
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T16:29:47.699Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T16:29:49.800Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T16:30:11.583Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T16:30:23.799Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T16:30:28.053Z",
+        "refused": true
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-10T16:30:32.182Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T16:30:32.662Z",
+        "refused": false
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-10T16:30:43.143Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T16:30:43.498Z",
+        "refused": false
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-10T16:30:55.216Z",
+        "refused": false
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-10T16:30:56.310Z",
+        "refused": false
+      }
+    ]
+  }
+]

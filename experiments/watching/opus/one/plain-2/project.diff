@@ -1,0 +1,165 @@
+diff --git a/README.md b/README.md
+index c8aa9b8..cf7a032 100644
+--- a/README.md
++++ b/README.md
+@@ -16,3 +16,22 @@ that is not a string throws a `TypeError`.
+ 
+ The dialog also has a page box, where a person types which pages of the
+ document to print.
++
++```js
++import { parseRanges } from "./src/parse-ranges.mjs";
++
++parseRanges("1-3,5", 10); // [1, 2, 3, 5]
++parseRanges("7", 10);     // [7]
++```
++
++`parseRanges(text, pageCount)` reads the page box and gives the page numbers to
++print as an array. Pages are numbered from 1 to `pageCount`. The parts of the
++text are separated by commas, and a part is one page or a range written
++`first-last`; spaces around a page, a comma or a hyphen are ignored. The pages
++come back in ascending order, each one once, however they were typed.
++
++A `text` that is not a string throws a `TypeError`, and so does a `pageCount`
++that is not a positive integer. A text that cannot be read as pages of the
++document throws a `RangeError`: a page `0` or a page past the last one, a word,
++a part that is neither a page nor a range, an empty text or an empty part, or a
++range whose first page comes after its last, such as `5-3`.
+diff --git a/src/parse-ranges.mjs b/src/parse-ranges.mjs
+new file mode 100644
+index 0000000..986c522
+--- /dev/null
++++ b/src/parse-ranges.mjs
+@@ -0,0 +1,31 @@
++const PAGE = /^\d+$/;
++
++/**
++ * The pages a person asked for in the page box, in ascending order, each once.
++ * @param {string} text parts separated by commas, each one page or first-last, such as "1-3,5"
++ * @param {number} pageCount how many pages the document has; pages are numbered from 1
++ */
++export function parseRanges(text, pageCount) {
++  if (typeof text !== "string") throw new TypeError("parseRanges: text must be a string");
++  if (!Number.isSafeInteger(pageCount) || pageCount < 1) {
++    throw new TypeError("parseRanges: pageCount must be a positive integer");
++  }
++
++  const pages = new Set();
++  for (const part of text.split(",")) {
++    const ends = part.split("-").map((end) => end.trim());
++    if (ends.length > 2 || !ends.every((end) => PAGE.test(end))) {
++      throw new RangeError(`parseRanges: "${part.trim()}" is neither a page nor a range`);
++    }
++    const first = Number(ends[0]);
++    const last = Number(ends.at(-1));
++    if (first < 1 || last > pageCount) {
++      throw new RangeError(`parseRanges: "${part.trim()}" is outside pages 1-${pageCount}`);
++    }
++    if (first > last) {
++      throw new RangeError(`parseRanges: range "${part.trim()}" runs backwards`);
++    }
++    for (let page = first; page <= last; page++) pages.add(page);
++  }
++  return [...pages].sort((a, b) => a - b);
++}
+diff --git a/tests/parse-ranges.test.mjs b/tests/parse-ranges.test.mjs
+new file mode 100644
+index 0000000..4ce9c16
+--- /dev/null
++++ b/tests/parse-ranges.test.mjs
+@@ -0,0 +1,95 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { parseRanges } from "../src/parse-ranges.mjs";
++
++test("parseRanges reads ranges and single pages", () => {
++  assert.deepEqual(parseRanges("1-3,5", 10), [1, 2, 3, 5]);
++});
++
++test("parseRanges reads one page", () => {
++  assert.deepEqual(parseRanges("7", 10), [7]);
++});
++
++test("parseRanges reaches the first and the last page", () => {
++  assert.deepEqual(parseRanges("1", 10), [1]);
++  assert.deepEqual(parseRanges("10", 10), [10]);
++  assert.deepEqual(parseRanges("9-10", 10), [9, 10]);
++  assert.deepEqual(parseRanges("4-4", 10), [4]);
++  assert.deepEqual(parseRanges("1", 1), [1]);
++});
++
++test("parseRanges allows spaces around pages, commas and hyphens", () => {
++  assert.deepEqual(parseRanges(" 1 - 3 , 5 ", 10), [1, 2, 3, 5]);
++});
++
++test("parseRanges gives each page once, in ascending order", () => {
++  assert.deepEqual(parseRanges("5,1-3", 10), [1, 2, 3, 5]);
++  assert.deepEqual(parseRanges("2-4,3-5,4", 10), [2, 3, 4, 5]);
++});
++
++test("parseRanges reads leading zeros as the same page", () => {
++  assert.deepEqual(parseRanges("03", 10), [3]);
++});
++
++test("parseRanges refuses a text that is not a string", () => {
++  assert.throws(() => parseRanges(7, 10), TypeError);
++  assert.throws(() => parseRanges(undefined, 10), TypeError);
++  assert.throws(() => parseRanges(null, 10), TypeError);
++  assert.throws(() => parseRanges(["1-3"], 10), TypeError);
++});
++
++test("parseRanges refuses a pageCount of 0", () => {
++  assert.throws(() => parseRanges("1", 0), TypeError);
++});
++
++test("parseRanges refuses a negative pageCount", () => {
++  assert.throws(() => parseRanges("1", -1), TypeError);
++});
++
++test("parseRanges refuses a fractional pageCount", () => {
++  assert.throws(() => parseRanges("1", 2.5), TypeError);
++});
++
++test("parseRanges refuses a pageCount that is not a number", () => {
++  assert.throws(() => parseRanges("1", "10"), TypeError);
++  assert.throws(() => parseRanges("1"), TypeError);
++  assert.throws(() => parseRanges("1", NaN), TypeError);
++  assert.throws(() => parseRanges("1", Infinity), TypeError);
++});
++
++test("parseRanges checks the types before it reads the text", () => {
++  assert.throws(() => parseRanges("word", 0), TypeError);
++});
++
++test("parseRanges refuses a page past the last one", () => {
++  assert.throws(() => parseRanges("11", 10), RangeError);
++  assert.throws(() => parseRanges("8-11", 10), RangeError);
++  assert.throws(() => parseRanges("1,99999999999999999999", 10), RangeError);
++});
++
++test("parseRanges refuses page 0", () => {
++  assert.throws(() => parseRanges("0", 10), RangeError);
++  assert.throws(() => parseRanges("0-3", 10), RangeError);
++});
++
++test("parseRanges refuses a word", () => {
++  assert.throws(() => parseRanges("all", 10), RangeError);
++  assert.throws(() => parseRanges("1,two", 10), RangeError);
++});
++
++test("parseRanges refuses a part that is neither a page nor a range", () => {
++  for (const text of ["1-2-3", "-3", "3-", "-", "1 2", "1.5", "+3", "1e1", "0x3", "٣"]) {
++    assert.throws(() => parseRanges(text, 10), RangeError, text);
++  }
++});
++
++test("parseRanges refuses an empty text or an empty part", () => {
++  for (const text of ["", "   ", ",", "1,,3", "1,", ",1"]) {
++    assert.throws(() => parseRanges(text, 10), RangeError, JSON.stringify(text));
++  }
++});
++
++test("parseRanges refuses a range that runs backwards", () => {
++  assert.throws(() => parseRanges("5-3", 10), RangeError);
++});

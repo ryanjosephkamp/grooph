@@ -1361,9 +1361,29 @@
       "arm": "judge",
       "replicate": null,
       "iteration": null
+    },
+    {
+      "n": 68,
+      "template": "profile-first-call",
+      "kind": "kickoff",
+      "started": "2026-10-10T15:31:11.860Z",
+      "ended": "2026-10-10T15:31:50.529Z",
+      "status": "ok",
+      "cost_usd": 0.345195,
+      "reported_cost_usd": 0.34519459999999996,
+      "max_budget_usd": 1,
+      "session_id": "14c5092f-f63f-430d-8c6e-42af335b3bf9",
+      "run_id": null,
+      "retry": null,
+      "note": "the first paid call from the comparison profile; the driver's go: The owner said yes to the clean profile's first call on the review desk on 2026-10-10 (card q80); the driver allows this one call.; ended by the session",
+      "run": "profile-first-call/probe-1",
+      "project": "profile-first-call",
+      "arm": "probe",
+      "replicate": 1,
+      "iteration": null
     }
   ],
-  "spent_usd": 82.65621,
+  "spent_usd": 83.001405,
   "remaining_usd": null,
   "tripwire": {
     "notify_every_usd": 50,

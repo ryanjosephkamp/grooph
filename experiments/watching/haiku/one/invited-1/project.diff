@@ -1,0 +1,175 @@
+diff --git a/README.md b/README.md
+index c8aa9b8..e4df9a5 100644
+--- a/README.md
++++ b/README.md
+@@ -4,9 +4,13 @@ Small helpers behind a print dialog.
+ 
+ ```js
+ import { paperSize } from "./src/paper.mjs";
++import { parseRanges } from "./src/parse-ranges.mjs";
+ 
+ paperSize("A4");     // { width: 210, height: 297 }
+ paperSize("letter"); // { width: 215.9, height: 279.4 }
++
++parseRanges("1-3,5", 10); // [1, 2, 3, 5]
++parseRanges("7", 10);     // [7]
+ ```
+ 
+ `paperSize(name)` gives the width and height of a paper size in millimeters,
+@@ -14,5 +18,9 @@ portrait. It knows `A3`, `A4`, `A5`, `letter` and `legal`; the name is matched
+ without regard to letter case. An unknown name throws a `RangeError`; a name
+ that is not a string throws a `TypeError`.
+ 
+-The dialog also has a page box, where a person types which pages of the
+-document to print.
++`parseRanges(text, pageCount)` reads what a person typed into the print
++dialog's page box and returns the page numbers to print as an array. Pages are
++numbered from 1 to `pageCount`; parts are separated by commas, and a part is
++one page or a range written `first-last`. A `text` that is not a string throws
++a `TypeError`; a `pageCount` that is not a positive integer throws a `TypeError`;
++a text that cannot be read as pages of this document throws a `RangeError`.
+diff --git a/src/parse-ranges.mjs b/src/parse-ranges.mjs
+new file mode 100644
+index 0000000..c433725
+--- /dev/null
++++ b/src/parse-ranges.mjs
+@@ -0,0 +1,65 @@
++export function parseRanges(text, pageCount) {
++  if (typeof text !== "string") {
++    throw new TypeError("parseRanges: text must be a string");
++  }
++  if (!Number.isInteger(pageCount) || pageCount <= 0) {
++    throw new TypeError("parseRanges: pageCount must be a positive integer");
++  }
++
++  const pages = new Set();
++  const parts = text.split(",");
++
++  for (const part of parts) {
++    const trimmed = part.trim();
++    if (trimmed === "") continue;
++
++    if (trimmed.includes("-")) {
++      const [start, end] = trimmed.split("-");
++      const startStr = start.trim();
++      const endStr = end.trim();
++      const startNum = parseStrictInt(startStr);
++      const endNum = parseStrictInt(endStr);
++
++      if (
++        startNum === null ||
++        endNum === null ||
++        startNum < 1 ||
++        endNum < 1 ||
++        startNum > pageCount ||
++        endNum > pageCount ||
++        startNum > endNum
++      ) {
++        throw new RangeError(
++          `parseRanges: invalid page range "${trimmed}" for document with ${pageCount} pages`
++        );
++      }
++
++      for (let i = startNum; i <= endNum; i++) {
++        pages.add(i);
++      }
++    } else {
++      const pageNum = parseStrictInt(trimmed);
++
++      if (
++        pageNum === null ||
++        pageNum < 1 ||
++        pageNum > pageCount
++      ) {
++        throw new RangeError(
++          `parseRanges: invalid page number "${trimmed}" for document with ${pageCount} pages`
++        );
++      }
++
++      pages.add(pageNum);
++    }
++  }
++
++  return Array.from(pages).sort((a, b) => a - b);
++}
++
++function parseStrictInt(str) {
++  if (/^\d+$/.test(str)) {
++    return parseInt(str, 10);
++  }
++  return null;
++}
+diff --git a/tests/parse-ranges.test.mjs b/tests/parse-ranges.test.mjs
+new file mode 100644
+index 0000000..e4c007e
+--- /dev/null
++++ b/tests/parse-ranges.test.mjs
+@@ -0,0 +1,68 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { parseRanges } from "../src/parse-ranges.mjs";
++
++test("parseRanges parses simple page numbers", () => {
++  assert.deepEqual(parseRanges("7", 10), [7]);
++  assert.deepEqual(parseRanges("1", 10), [1]);
++  assert.deepEqual(parseRanges("10", 10), [10]);
++});
++
++test("parseRanges parses ranges", () => {
++  assert.deepEqual(parseRanges("1-3", 10), [1, 2, 3]);
++  assert.deepEqual(parseRanges("5-7", 10), [5, 6, 7]);
++});
++
++test("parseRanges parses multiple parts separated by commas", () => {
++  assert.deepEqual(parseRanges("1-3,5", 10), [1, 2, 3, 5]);
++  assert.deepEqual(parseRanges("1,3,5", 10), [1, 3, 5]);
++  assert.deepEqual(parseRanges("1-2,5-7,10", 10), [1, 2, 5, 6, 7, 10]);
++});
++
++test("parseRanges deduplicates and sorts results", () => {
++  assert.deepEqual(parseRanges("5,1,3,1", 10), [1, 3, 5]);
++  assert.deepEqual(parseRanges("3-5,1-2", 10), [1, 2, 3, 4, 5]);
++});
++
++test("parseRanges handles whitespace", () => {
++  assert.deepEqual(parseRanges(" 1 - 3 , 5 ", 10), [1, 2, 3, 5]);
++  assert.deepEqual(parseRanges("  7  ", 10), [7]);
++});
++
++test("parseRanges throws TypeError for non-string text", () => {
++  assert.throws(() => parseRanges(123, 10), TypeError);
++  assert.throws(() => parseRanges(null, 10), TypeError);
++  assert.throws(() => parseRanges(undefined, 10), TypeError);
++  assert.throws(() => parseRanges(["1", "3"], 10), TypeError);
++});
++
++test("parseRanges throws TypeError for non-positive-integer pageCount", () => {
++  assert.throws(() => parseRanges("1-3", 0), TypeError);
++  assert.throws(() => parseRanges("1-3", -1), TypeError);
++  assert.throws(() => parseRanges("1-3", 2.5), TypeError);
++  assert.throws(() => parseRanges("1-3", "10"), TypeError);
++  assert.throws(() => parseRanges("1-3", null), TypeError);
++  assert.throws(() => parseRanges("1-3", undefined), TypeError);
++});
++
++test("parseRanges throws RangeError for page 0", () => {
++  assert.throws(() => parseRanges("0", 10), RangeError);
++  assert.throws(() => parseRanges("0-3", 10), RangeError);
++});
++
++test("parseRanges throws RangeError for page past the last page", () => {
++  assert.throws(() => parseRanges("11", 10), RangeError);
++  assert.throws(() => parseRanges("1-11", 10), RangeError);
++});
++
++test("parseRanges throws RangeError for invalid ranges", () => {
++  assert.throws(() => parseRanges("5-3", 10), RangeError);
++  assert.throws(() => parseRanges("word", 10), RangeError);
++  assert.throws(() => parseRanges("1-3x", 10), RangeError);
++});
++
++test("parseRanges handles empty parts from extra commas gracefully", () => {
++  assert.deepEqual(parseRanges("1,,3", 10), [1, 3]);
++  assert.deepEqual(parseRanges(",1,3,", 10), [1, 3]);
++});

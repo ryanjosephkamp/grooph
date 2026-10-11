@@ -1,0 +1,4 @@
+{"v":1,"t":"2026-10-10T16:43:27.703Z","harness":"claude-code","event":"session-start","session":"77f42b4f-51dc-4602-ab0b-cbecd35661cf","cwd":"~/grooph-compare/work/01f730a9/packages"}
+{"v":1,"t":"2026-10-10T16:43:28.127Z","harness":"claude-code","event":"turn-start","session":"77f42b4f-51dc-4602-ab0b-cbecd35661cf","cwd":"~/grooph-compare/work/01f730a9/packages"}
+{"v":1,"t":"2026-10-10T16:48:26.277Z","harness":"claude-code","event":"turn-end","session":"77f42b4f-51dc-4602-ab0b-cbecd35661cf","cwd":"~/grooph-compare/work/01f730a9/packages/semver-mini"}
+{"v":1,"t":"2026-10-10T16:48:26.438Z","harness":"claude-code","event":"session-end","session":"77f42b4f-51dc-4602-ab0b-cbecd35661cf","cwd":"~/grooph-compare/work/01f730a9/packages/semver-mini"}

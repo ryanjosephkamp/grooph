@@ -4,7 +4,7 @@ Does watching a session change what it does?
 
 The owner asked for one kind of test before grooph is changed from something that directs agents into something that watches and draws them (decision 0032): that what grooph adds does not get in the way of how a session would work anyway. This page is that test, written before anything is run. It uses what grooph 0.4.1 already ships and builds nothing new into the product.
 
-**Status: written, not run.** Changed once before any run, on 2026-10-10 (the last section). The free checks at the end have been run and need no model. No model session has been started.
+**Status: run on 2026-10-10.** What the thirty-six runs showed is in [`RESULTS.md`](RESULTS.md); it has not been read by a second harness. This page was changed once before any run, on 2026-10-10, and has one note from after them (the last two sections). The free checks at the end need no model and were run the day before.
 
 ## What is asked
 
@@ -118,3 +118,11 @@ This shows what the hook does when it is run. It does not show what a harness do
 - **Three models where there was one.** The twelve runs are made on Sonnet 5.5 as written, and again on Opus 5.5 and on Haiku ("Three models").
 - **The limits.** Minutes went from 15 and 40 to 25 and 60, so that a run is not cut off for being slow. The dollar ceilings now go by block, and the cap went from $45.00 to $140.00 for thirty-six runs.
 - **`haiku` is no longer pinned for this check.** The profile pinned that short name to `claude-haiku-4-5-20251001`. A session in ordinary use has no such pin, and what a session does with subagents is one of the things watched, so the name is left to the harness and the model that answered is recorded.
+
+## After the runs
+
+**2026-10-10.** Nothing above was changed after the first run. Two things the runs settled that this page left open:
+
+- The harness did start a session on Haiku at high effort, so the `haiku` block was run.
+- The short name `haiku`, left to the harness, was answered by `claude-haiku-4-5-20251001` in every run of that block. The block is therefore a block on Haiku 4.5, which is what version 2.1.289 of the harness makes the name mean, and says nothing of Haiku 5.5.
+

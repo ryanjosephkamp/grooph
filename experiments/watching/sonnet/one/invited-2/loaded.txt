@@ -1,0 +1,13 @@
+what the session was given at its start, from ~/grooph-compare/profile/projects/-Users-noir-grooph-compare-work-0f96df21-printkit/bd617571-63da-40fc-90b4-93f4e3aa1d05.jsonl
+  its folder:         ~/grooph-compare/work/0f96df21/printkit
+  model:              You are powered by the model named Sonnet 5.5. The exact model ID is claude-sonnet-5-5. Assistant knowledge cutoff is June 2026.
+  instruction files:  none
+  skills listed (0): none
+  kinds of subagent (5): claude, Explore, general-purpose, Plan, statusline-setup
+  servers:            grooph
+  tools held back until asked for (13): CronCreate, CronDelete, CronList, DesignSync, EnterWorktree, ExitWorktree, Monitor, NotebookEdit, PushNotification, RemoteTrigger, TaskStop, mcp__grooph__grooph_note, mcp__grooph__grooph_plan
+  the repository as it was told: {"userEmail":"The user's email address is <an address, kept out>. Use it only to identify the user, such as for authorship, attribution, or filtering their own work. Never send it to an unrelated service, such as in a request header, URL, or payload, unless the user explicitly asks.","gitStatus":"This is the git status at the start of the conversation. Note that this status is a snapshot in time, and will not update during the conversation. |  | Current branch: main |  | Main branch (you will usually use this for PRs): main |  | Git user: dev |  | Status: | (clean) |  | Recent commits: | 654
+  other entries:      sandbox_instructions, environment, total_tokens_reminder, budget_usd, date, credential_org, remote_session_change, prompt_snapshot, deferred_tools_record
+  tools called, in 1 transcript(s): Read ×4, Bash ×2, Write ×2, Edit ×1
+  TO BE READ BY A PERSON:
+    - a server was connected or tried: grooph
