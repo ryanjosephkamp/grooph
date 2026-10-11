@@ -443,8 +443,7 @@ grooph app and one read-only endpoint, read again from disk on every request:
   the sessions  what the event hook has recorded (grooph hooks install): each session
                 and its subagents as they start and stop, in Claude Code and in Codex
 
-  --sessions    taken and not needed: the sessions are what watch serves. A line written
-                for grooph 0.4.1 still runs.
+  --sessions    taken and not needed: the sessions are what watch serves
   --events <s>  more events to merge in, as often as wanted: a file, a folder of files,
                 another project's folder, or git:<ref> for a branch that carries its
                 .grooph/events/ (read from the watched project's repository, no checkout).
@@ -458,6 +457,7 @@ grooph app and one read-only endpoint, read again from disk on every request:
                 interface) lets anyone on that network read all of it while watch runs.
   --open        open the view in the default browser
 
+It takes no folder: it serves the project it is started in, and --events adds another's.
 It writes nothing, needs no credentials, and stops with Ctrl-C. It is a local viewer, not a
 backend: the app it serves makes no request except to this server.
 ```
