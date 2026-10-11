@@ -21,7 +21,7 @@ The driver's own, on 2026-10-11, in a built checkout at `f35b8f42`. No command b
 | The gates | read in `runOne` and in the command line of `scripts/lib/watching-second-look-paid.mjs` | before any folder is made: a named block, the first call's record, the owner's decision for this look, the block before it, room under the cap, one hook and one build and one runner; then the lab's own `runSession`, unchanged |
 | The outside arm's guard | read: `placesFor`, `theOwnersOwn`, `installOutside`, `launcherText` | a place that is the owner's `~/.claude`, `~/.codex` or `~/.grooph`, by name, by casing or by which folder it really is, is a refusal; the tool is given a home of its own that has to stay empty; the launcher becomes the harness by `exec` |
 
-Not read line by line by the driver: the measures (`watching-second-look-measures.mjs`), the tables' code, and most of the 1,472 lines of tests. Two fresh readers read them for the lane, and their scripts are in `reader-protocol/` and `reader-runner/`.
+Not read line by line by the driver: the measures (`watching-second-look-measures.mjs`), the tables' code, and most of the tests (1,472 lines at the lane's head). Two fresh readers read them for the lane, and their scripts are in `reader-protocol/` and `reader-runner/`.
 
 ## The driver's commit on the lane's head (`f35b8f42`)
 
@@ -29,11 +29,11 @@ Not read line by line by the driver: the measures (`watching-second-look-measure
 - **The test that starts the runner as a program with the flags that spend is given a path that holds no harness**, and first asks the runners' own lookup, as #197 did on `main` for the four other paid runners. With the decision recorded and the first call on record, the flags were all that stood between that test and a paid run on this Mac. With this shell's path in its place the new assertion fails, as it should.
 - **The first check's test file no longer brings the new file in.** Since #193 the lab's test script runs every file under `scripts/lib`, so the new tests would have run twice in a job, in two processes at once.
 
-So two lines of the handback describe the head before this commit: that the scoring field is empty, and that three lines of the first check's test bring the new file in.
+So the handback describes the head before this commit wherever it speaks of the scoring field as empty or of the first check's test bringing the new file in: where it lists the ledger and the two touched files, in its count of 57 tests "in the one file CI names", in the status it quotes, in deviation 4 and in its item 13 for the driver.
 
 ## The follow-up, #200
 
-One commit of the lane's on top (`0b93a692`, two files), made after its head was reported and so sent as a pull request of its own: the runner looks for the harness before any folder is made, in every arm, and the command-line test starts the runner four times with every flag a paid run has and no harness on its path, and finds each refused, the ledger byte for byte what it was, and no folder of a record made. No fresh reader read it; the driver did (`build` uses the harness's path in the outside arm only, so the other arms run as before). It moves the runner's checksum, so it had to be merged before the checkout for the runs is made, or not until both blocks are done: it was merged at 4:33 p.m. (`3362d2f6`), before any checkout was made.
+One commit of the lane's on top (`0b93a692`, two files), made after its head was reported and so sent as a pull request of its own: the runner looks for the harness before any folder is made, in every arm, and the command-line test starts the runner in each of the four ways a paid run is asked for (`--next`, `--all`, `--all` with `--without-outside` and `--through-round`, `--rerun`), with both flags that spend and no harness on its path, and finds each refused, the ledger byte for byte what it was, and no folder of a record made. No fresh reader read it; the driver did (`build` uses the harness's path in the outside arm only, so the other arms run as before). It moves the runner's checksum, so it had to be merged before the checkout for the runs is made, or not until both blocks are done: it was merged at 4:33 p.m. (`3362d2f6`), before any checkout was made.
 
 ## Deviations
 
@@ -54,7 +54,7 @@ None that holds the merge. Four things to know before the first run:
 1. **Two things rest on a session nobody has started** (the handback's risks 1 and 2): whether the headless harness runs a hook from the clean profile's user-level settings, and whether a session there can read beside its folder. The runner stops at the first run that shows either is not so. The cost of finding out is that run.
 2. **An outside run keeps short checksums of the owner's own settings files, before and after**, to show they were not touched (`the_owners_own` in its record: sixteen characters of a checksum each, nothing of what the files hold). If he or the app changes his settings while a block runs, the block stops for a person to look. He is told before a block.
 3. **The checkout for the runs is made once**, after slice 0108 is merged if the outside arm is to run, and nothing is pulled or rebuilt in it between the first run and the last. Until 0108 is merged and built there, a block needs `--without-outside`.
-4. **`experiments/comparisons/profile/README.md`** names the first check's ledger as where a scorer's decision is kept. The second look is one more scorer with a ledger of its own. That page is the lab's (slice 0103): a line for it when that slice next touches the profile.
+4. **`experiments/comparisons/profile/README.md`** names the first check's ledger as where a scorer's decision is kept. The second look is one more scorer with a ledger of its own. No lane at work has that page among its allowed changes: a line for it is the driver's to propose, with the dated notes below.
 
 ## Decisions to promote
 
@@ -62,5 +62,5 @@ None to `docs/decisions/`. The protocol holds them, and it is the record: after 
 
 ## Owed after this
 
-- **Dated notes on the first check's pages**, the owner's to approve since they are evidence: that sessions were told their dollar ceiling, with each of the model's messages (thirty-six records of thirty-six), where the page says no session is told; and that the plain arm always went first, where on two of the three models a block's first run wrote 1.7 to 2.7 times as much to the cache as the later runs of the same narrow task. The handback lists eight more things the first check's records show and its results page does not; each is read before the notes are written.
+- **Dated notes on the first check's pages**, the owner's to approve since they are evidence: that sessions were told their dollar ceiling, with each of the model's messages (thirty-six records of thirty-six), where the page says no session is told; and that the plain arm always went first, where on two of the three models a block's first run wrote 1.7 to 2.7 times as much to the cache as the later runs of the same narrow task. The handback lists eight more things the lane learned from the first check and its runner; each is read before the notes are written.
 - **A results page for the second look** only once a run has a record: `tables.mjs --check` fails if one exists before.
