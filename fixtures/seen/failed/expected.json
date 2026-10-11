@@ -1,0 +1,47 @@
+{
+  "moments": ["2026-01-01T00:00:00.000Z","2026-01-01T00:00:34.069Z","2026-01-01T00:21:52.769Z"],
+  "record": {"hook":{"lines":18,"last":"2026-01-01T00:24:51.090Z","stopsNotDrawn":0},"harness":{"agents":1}},
+  "graphs": [
+    {
+      "at": "2026-01-01T00:00:34.069Z",
+      "nodes": [
+        {"id":"seen-failed","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z"},
+        {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-opus-5-5","modelAsked":"opus","runs":[{"from":"2026-01-01T00:00:34.069Z","source":"both"}],"source":"both"}
+      ],
+      "edges": [
+        {"from":"seen-failed","to":"a01","kind":"started","at":"2026-01-01T00:00:34.069Z","knownAt":"2026-01-01T00:00:34.069Z","source":"both"}
+      ],
+      "differs": []
+    },
+    {
+      "at": "2026-01-01T00:21:52.769Z",
+      "nodes": [
+        {"id":"seen-failed","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z"},
+        {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"failed","shape":"background","model":"claude-opus-5-5","modelAsked":"opus","runs":[{"from":"2026-01-01T00:00:34.069Z","to":"2026-01-01T00:21:52.769Z","end":"failed","source":"both"}],"source":"both"}
+      ],
+      "edges": [
+        {"from":"seen-failed","to":"a01","kind":"started","at":"2026-01-01T00:00:34.069Z","knownAt":"2026-01-01T00:00:34.069Z","source":"both"}
+      ],
+      "differs": [
+        {"agent":"a01","what":"no-stop-line","run":0}
+      ]
+    }
+  ],
+  "fromTheHookAlone": {
+    "moments": ["2026-01-01T00:00:00.000Z","2026-01-01T00:00:34.069Z","2026-01-01T00:00:34.079Z"],
+    "record": {"hook":{"lines":18,"last":"2026-01-01T00:24:51.090Z","stopsNotDrawn":0}},
+    "graphs": [
+      {
+        "at": "2026-01-01T00:00:34.079Z",
+        "nodes": [
+          {"id":"seen-failed","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z"},
+          {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"running","runs":[{"from":"2026-01-01T00:00:34.069Z","source":"hook"}],"source":"hook"}
+        ],
+        "edges": [
+          {"from":"seen-failed","to":"a01","kind":"started","at":"2026-01-01T00:00:34.069Z","knownAt":"2026-01-01T00:00:34.079Z","source":"hook"}
+        ],
+        "differs": []
+      }
+    ]
+  }
+}

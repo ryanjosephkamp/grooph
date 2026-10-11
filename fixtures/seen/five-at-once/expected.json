@@ -1,0 +1,97 @@
+{
+  "moments": ["2026-01-01T00:00:00.000Z","2026-01-01T00:07:47.567Z","2026-01-01T00:07:47.574Z","2026-01-01T00:07:47.628Z","2026-01-01T00:12:17.725Z","2026-01-01T00:13:12.868Z","2026-01-01T00:25:52.102Z","2026-01-01T00:35:46.583Z","2026-01-01T00:47:58.710Z","2026-01-01T00:48:54.835Z","2026-01-01T00:49:19.881Z","2026-01-01T00:56:10.484Z","2026-01-01T01:00:55.310Z","2026-01-01T01:03:38.147Z","2026-01-01T01:04:34.323Z","2026-01-01T01:18:58.665Z"],
+  "record": {"hook":{"lines":44,"last":"2026-01-01T01:18:58.665Z","stopsNotDrawn":6},"harness":{"agents":7}},
+  "graphs": [
+    {
+      "at": "2026-01-01T00:13:12.868Z",
+      "nodes": [
+        {"id":"seen-five-at-once","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z"},
+        {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-opus-5-5","modelAsked":"opus","runs":[{"from":"2026-01-01T00:07:47.567Z","source":"both"}],"source":"both"},
+        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-sonnet-5-5","modelAsked":"sonnet","runs":[{"from":"2026-01-01T00:07:47.574Z","source":"both"}],"source":"both"},
+        {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-sonnet-5-5","modelAsked":"sonnet","runs":[{"from":"2026-01-01T00:07:47.628Z","source":"both"}],"source":"both"},
+        {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-opus-5-5","modelAsked":"opus","runs":[{"from":"2026-01-01T00:12:17.725Z","source":"both"}],"source":"both"},
+        {"id":"a05","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-sonnet-5-5","modelAsked":"sonnet","runs":[{"from":"2026-01-01T00:13:12.868Z","source":"both"}],"source":"both"}
+      ],
+      "edges": [
+        {"from":"seen-five-at-once","to":"a03","kind":"started","at":"2026-01-01T00:07:47.567Z","knownAt":"2026-01-01T00:07:47.567Z","source":"both"},
+        {"from":"seen-five-at-once","to":"a02","kind":"started","at":"2026-01-01T00:07:47.574Z","knownAt":"2026-01-01T00:07:47.574Z","source":"both"},
+        {"from":"seen-five-at-once","to":"a01","kind":"started","at":"2026-01-01T00:07:47.628Z","knownAt":"2026-01-01T00:07:47.628Z","source":"both"},
+        {"from":"seen-five-at-once","to":"a04","kind":"started","at":"2026-01-01T00:12:17.725Z","knownAt":"2026-01-01T00:12:17.725Z","source":"both"},
+        {"from":"seen-five-at-once","to":"a05","kind":"started","at":"2026-01-01T00:13:12.868Z","knownAt":"2026-01-01T00:13:12.868Z","source":"both"}
+      ],
+      "differs": []
+    },
+    {
+      "at": "2026-01-01T01:18:58.665Z",
+      "nodes": [
+        {"id":"seen-five-at-once","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z","model":"claude-opus-5-5"},
+        {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-opus-5-5","modelAsked":"opus","runs":[{"from":"2026-01-01T00:07:47.567Z","to":"2026-01-01T01:00:55.310Z","end":"completed","source":"both"}],"source":"both"},
+        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-sonnet-5-5","modelAsked":"sonnet","runs":[{"from":"2026-01-01T00:07:47.574Z","to":"2026-01-01T00:48:54.835Z","end":"completed","source":"both"}],"source":"both"},
+        {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-sonnet-5-5","modelAsked":"sonnet","runs":[{"from":"2026-01-01T00:07:47.628Z","to":"2026-01-01T00:25:52.102Z","end":"completed","source":"both"}],"source":"both"},
+        {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-opus-5-5","modelAsked":"opus","runs":[{"from":"2026-01-01T00:12:17.725Z","to":"2026-01-01T01:18:58.665Z","end":"completed","source":"both"}],"source":"both"},
+        {"id":"a05","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-sonnet-5-5","modelAsked":"sonnet","runs":[{"from":"2026-01-01T00:13:12.868Z","to":"2026-01-01T00:56:10.484Z","end":"completed","source":"both"}],"source":"both"},
+        {"id":"a09","kind":"subagent","type":"general-purpose","depth":2,"state":"done","shape":"foreground","model":"claude-sonnet-5-5","runs":[{"from":"2026-01-01T00:35:46.583Z","to":"2026-01-01T00:47:58.710Z","end":"completed","source":"both"}],"source":"both"},
+        {"id":"a10","kind":"subagent","type":"general-purpose","depth":2,"state":"done","shape":"background","model":"claude-opus-5-5","runs":[{"from":"2026-01-01T00:49:19.881Z","to":"2026-01-01T01:03:38.147Z","end":"completed","source":"both"}],"source":"both"}
+      ],
+      "edges": [
+        {"from":"seen-five-at-once","to":"a03","kind":"started","at":"2026-01-01T00:07:47.567Z","knownAt":"2026-01-01T00:07:47.567Z","source":"both"},
+        {"from":"seen-five-at-once","to":"a02","kind":"started","at":"2026-01-01T00:07:47.574Z","knownAt":"2026-01-01T00:07:47.574Z","source":"both"},
+        {"from":"seen-five-at-once","to":"a01","kind":"started","at":"2026-01-01T00:07:47.628Z","knownAt":"2026-01-01T00:07:47.628Z","source":"both"},
+        {"from":"seen-five-at-once","to":"a04","kind":"started","at":"2026-01-01T00:12:17.725Z","knownAt":"2026-01-01T00:12:17.725Z","source":"both"},
+        {"from":"seen-five-at-once","to":"a05","kind":"started","at":"2026-01-01T00:13:12.868Z","knownAt":"2026-01-01T00:13:12.868Z","source":"both"},
+        {"from":"a05","to":"a09","kind":"started","at":"2026-01-01T00:35:46.583Z","knownAt":"2026-01-01T00:35:46.583Z","source":"both"},
+        {"from":"a04","to":"a10","kind":"started","at":"2026-01-01T00:49:19.881Z","knownAt":"2026-01-01T00:49:19.881Z","source":"both"}
+      ],
+      "differs": []
+    }
+  ],
+  "fromTheHookAlone": {
+    "moments": ["2026-01-01T00:00:00.000Z","2026-01-01T00:07:47.567Z","2026-01-01T00:07:47.571Z","2026-01-01T00:07:47.574Z","2026-01-01T00:07:47.581Z","2026-01-01T00:07:47.628Z","2026-01-01T00:07:47.643Z","2026-01-01T00:12:17.725Z","2026-01-01T00:12:17.733Z","2026-01-01T00:13:12.868Z","2026-01-01T00:13:12.872Z","2026-01-01T00:25:52.102Z","2026-01-01T00:35:46.583Z","2026-01-01T00:47:58.710Z","2026-01-01T00:47:58.713Z","2026-01-01T00:48:54.835Z","2026-01-01T00:49:19.881Z","2026-01-01T00:49:19.882Z","2026-01-01T00:56:10.484Z","2026-01-01T01:00:55.310Z","2026-01-01T01:03:38.147Z","2026-01-01T01:04:34.323Z","2026-01-01T01:18:58.665Z"],
+    "record": {"hook":{"lines":44,"last":"2026-01-01T01:18:58.665Z","stopsNotDrawn":6}},
+    "graphs": [
+      {
+        "at": "2026-01-01T00:35:46.583Z",
+        "nodes": [
+          {"id":"seen-five-at-once","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z"},
+          {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"running","runs":[{"from":"2026-01-01T00:07:47.567Z","source":"hook"}],"source":"hook"},
+          {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"running","runs":[{"from":"2026-01-01T00:07:47.574Z","source":"hook"}],"source":"hook"},
+          {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T00:07:47.628Z","to":"2026-01-01T00:25:52.102Z","source":"hook"}],"source":"hook"},
+          {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"running","runs":[{"from":"2026-01-01T00:12:17.725Z","source":"hook"}],"source":"hook"},
+          {"id":"a05","kind":"subagent","type":"general-purpose","depth":1,"state":"running","runs":[{"from":"2026-01-01T00:13:12.868Z","source":"hook"}],"source":"hook"},
+          {"id":"a09","kind":"subagent","type":"general-purpose","state":"running","runs":[{"from":"2026-01-01T00:35:46.583Z","source":"hook"}],"source":"hook"}
+        ],
+        "edges": [
+          {"from":"seen-five-at-once","to":"a03","kind":"started","at":"2026-01-01T00:07:47.567Z","knownAt":"2026-01-01T00:07:47.571Z","source":"hook"},
+          {"from":"seen-five-at-once","to":"a02","kind":"started","at":"2026-01-01T00:07:47.574Z","knownAt":"2026-01-01T00:07:47.581Z","source":"hook"},
+          {"from":"seen-five-at-once","to":"a01","kind":"started","at":"2026-01-01T00:07:47.628Z","knownAt":"2026-01-01T00:07:47.643Z","source":"hook"},
+          {"from":"seen-five-at-once","to":"a04","kind":"started","at":"2026-01-01T00:12:17.725Z","knownAt":"2026-01-01T00:12:17.733Z","source":"hook"},
+          {"from":"seen-five-at-once","to":"a05","kind":"started","at":"2026-01-01T00:13:12.868Z","knownAt":"2026-01-01T00:13:12.872Z","source":"hook"}
+        ],
+        "differs": []
+      },
+      {
+        "at": "2026-01-01T01:18:58.665Z",
+        "nodes": [
+          {"id":"seen-five-at-once","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z","model":"claude-opus-5-5"},
+          {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T00:07:47.567Z","to":"2026-01-01T01:00:55.310Z","source":"hook"}],"source":"hook"},
+          {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T00:07:47.574Z","to":"2026-01-01T00:48:54.835Z","source":"hook"}],"source":"hook"},
+          {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T00:07:47.628Z","to":"2026-01-01T00:25:52.102Z","source":"hook"}],"source":"hook"},
+          {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T00:12:17.725Z","to":"2026-01-01T01:18:58.665Z","source":"hook"}],"source":"hook"},
+          {"id":"a05","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T00:13:12.868Z","to":"2026-01-01T00:56:10.484Z","source":"hook"}],"source":"hook"},
+          {"id":"a09","kind":"subagent","type":"general-purpose","depth":2,"state":"done","runs":[{"from":"2026-01-01T00:35:46.583Z","to":"2026-01-01T00:47:58.710Z","source":"hook"}],"source":"hook"},
+          {"id":"a10","kind":"subagent","type":"general-purpose","depth":2,"state":"done","runs":[{"from":"2026-01-01T00:49:19.881Z","to":"2026-01-01T01:03:38.147Z","source":"hook"}],"source":"hook"}
+        ],
+        "edges": [
+          {"from":"seen-five-at-once","to":"a03","kind":"started","at":"2026-01-01T00:07:47.567Z","knownAt":"2026-01-01T00:07:47.571Z","source":"hook"},
+          {"from":"seen-five-at-once","to":"a02","kind":"started","at":"2026-01-01T00:07:47.574Z","knownAt":"2026-01-01T00:07:47.581Z","source":"hook"},
+          {"from":"seen-five-at-once","to":"a01","kind":"started","at":"2026-01-01T00:07:47.628Z","knownAt":"2026-01-01T00:07:47.643Z","source":"hook"},
+          {"from":"seen-five-at-once","to":"a04","kind":"started","at":"2026-01-01T00:12:17.725Z","knownAt":"2026-01-01T00:12:17.733Z","source":"hook"},
+          {"from":"seen-five-at-once","to":"a05","kind":"started","at":"2026-01-01T00:13:12.868Z","knownAt":"2026-01-01T00:13:12.872Z","source":"hook"},
+          {"from":"a05","to":"a09","kind":"started","at":"2026-01-01T00:35:46.583Z","knownAt":"2026-01-01T00:47:58.713Z","source":"hook"},
+          {"from":"a04","to":"a10","kind":"started","at":"2026-01-01T00:49:19.881Z","knownAt":"2026-01-01T00:49:19.882Z","source":"hook"}
+        ],
+        "differs": []
+      }
+    ]
+  }
+}

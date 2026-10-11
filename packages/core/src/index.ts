@@ -53,3 +53,4 @@ export { PICTURE_THEMES, THEME_VALUES, isPictureTheme, readTheme, themeParts, th
 export const mapWide = (map: OperationMap, options: MapPictureOptions = {}): string => mapWideWith(mapKit, map, options);
 /** An operation map as a sequence (docs/operation-map.md §4d): a row for each handoff, in the map's order. */
 export const mapSequence = (map: OperationMap, options: PictureOptions = {}): string => mapSequenceWith(mapKit, map, options);
+export * from "./seen.js"; // a watched session as a graph (`seen.ts`); nothing in the web app reads it yet
