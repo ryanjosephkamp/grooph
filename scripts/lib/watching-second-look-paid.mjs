@@ -801,21 +801,22 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
   const now = checkout();
   const other = madeFromAnother(now, recordRoot);
   if (other && !anotherCheckout) throw new NotStarted(`${withWhat(now)}, and ${other.run} was made with ${other.what.join(" and ")}: both blocks are run with one hook, one built tool and one runner (${PAGE}, "Three rounds, in two blocks"). To run with another on purpose, say so by name with --another-checkout: the record and the results page then say it`);
-  // The outside arm: the install is rehearsed in a scratch folder before anything is made or spent, and the harness
-  // is found now, because the launcher has to name it.
+  // The harness is found now, in every arm, before anything is made: with none to be found this is a refusal, and no
+  // folder is built to be taken away again. It is found one way only, by the profile's own lookup on the runner's
+  // path (or it is the program a test names); the launcher of the outside arm is handed what that lookup found.
+  const real = claude ? { path: claude, version: null } : findProgram();
+  // The outside arm: the install is rehearsed in a scratch folder before anything is made or spent.
   let rehearsed = null;
-  let real = null;
   let ownBefore = null;
   if (run.arm === "outside") {
     rehearsed = rehearsal({ cli, node, home });
     if (!rehearsed.ok) throw new NotStarted(`${run.name} is a run of the outside arm, and ${rehearsed.why}`);
-    real = claude ? { path: claude, version: null } : findProgram();
     ownBefore = theOwnersOwnAsFound();
   }
-  const built = build({ run, home, node, cli, harness: real?.path ?? null });
+  const built = build({ run, home, node, cli, harness: real.path });
   // In the outside arm the launcher is the program started for the session and for nothing else: the profile's check
   // asks the harness itself, whatever program it is handed.
-  const started = built.outside ? { findProgram: () => ({ path: built.outside.launcher, version: real.version }), profileCheck: (asked) => (profileCheck ?? checkProfile)({ ...asked, claude: real.path }) } : { claude, findProgram, profileCheck };
+  const started = built.outside ? { findProgram: () => ({ path: built.outside.launcher, version: real.version }), profileCheck: (asked) => (profileCheck ?? checkProfile)({ ...asked, claude: real.path }) } : { claude, findProgram: () => real, profileCheck };
   // From here until the run's record is kept, a signal does not end the runner. While the session runs, the profile's
   // own runner ends the session on a signal, as it always did; what is added is that the runner then goes on to keep
   // the record, and that a signal after the session is over (the lab's handlers are gone by then) does not kill it
