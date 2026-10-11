@@ -120,7 +120,7 @@ Counts only: what a call said and what came back are not kept.
 | Who started it | the file beside its transcript: the session, or the subagent it names | the line the hook writes for the call that started it |
 | Its type | the file beside its transcript | its start and stop lines |
 
-Every difference is written into the run's result by its kind, with the agent's id: no start line; fewer stop lines than runs; more stop lines than runs; a type that differs; a parent that differs; no line that names its parent; and a line for an agent the harness has no file for. Three things are expected, from this project's own sessions ([`RECORDS.md`](../../../handoffs/0104-the-live-graph/RECORDS.md) §2), and are named apart from differences when they are met:
+Every difference is written into the run's result by its kind, with the agent's id: no start line; fewer or more start lines than runs; fewer stop lines than runs; more stop lines than runs; no stop line for a run the harness's files do not show ending either (a subagent still running when the session's files stop); a type that differs; a parent that differs; no line that names its parent; and a line for an agent the harness has no file for. Three things are expected, from this project's own sessions ([`RECORDS.md`](../../../handoffs/0104-the-live-graph/RECORDS.md) §2), and are named apart from differences when they are met:
 
 - **a run that failed has no stop line**: the harness says the run failed, and the hook was not called for it;
 - **a foreground child's parent is known only at its end**: the line that names who started it is written when the call returns;

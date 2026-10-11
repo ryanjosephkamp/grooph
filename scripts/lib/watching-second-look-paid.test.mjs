@@ -647,6 +647,7 @@ test("the hook's file beside the harness's files, agent by agent: every kind of 
         use("u-twice", "Agent", {}, 7),
         use("u-fore", "Agent", {}, 8),
         result("u-fore", "done", 40, { about: { agentId: "afore", status: "completed" } }),
+        use("u-running", "Agent", {}, 9),
         notice("aok", "completed", 30),
         notice("afailed", "failed", 31),
         notice("anostop", "completed", 32),
@@ -660,6 +661,8 @@ test("the hook's file beside the harness's files, agent by agent: every kind of 
         atype: { meta: background("u-type", { agentType: "Explore" }), lines: [said(5), said(24)] },
         aparent: { meta: background("u-parent"), lines: [said(6), said(25)] },
         anoparent: { meta: background("u-noparent"), lines: [said(7), said(26)] },
+        // Still running when the session's files stop: the harness's files show no ending for it either.
+        arunning: { meta: background("u-running"), lines: [said(10), said(45)] },
         // Carried on from once after it finished: two runs.
         atwice: { meta: background("u-twice"), lines: [said(8), said(20), { type: "user", isMeta: true, origin: { kind: "coordinator" }, timestamp: at(27), message: { content: "more" } }, said(28)] },
         // A foreground child of the session: the line that names who started it is written when the call returns.
@@ -681,6 +684,7 @@ test("the hook's file beside the harness's files, agent by agent: every kind of 
         hook("subagent-start", 5, { agent: "atype", ...gp }), hook("tool", 5, { tool: "Agent", spawned: "atype" }), hook("subagent-stop", 24, { agent: "atype", ...gp }),
         hook("subagent-start", 6, { agent: "aparent", ...gp }), hook("tool", 6, { tool: "Agent", spawned: "aparent", agent: "aok", ...gp }), hook("subagent-stop", 25, { agent: "aparent", ...gp }),
         hook("subagent-start", 7, { agent: "anoparent", ...gp }), hook("subagent-stop", 26, { agent: "anoparent", ...gp }),
+        hook("subagent-start", 10, { agent: "arunning", ...gp }), hook("tool", 10, { tool: "Agent", spawned: "arunning" }),
         hook("subagent-start", 8, { agent: "atwice", ...gp }), hook("tool", 8, { tool: "Agent", spawned: "atwice" }), hook("subagent-stop", 20, { agent: "atwice", ...gp }), hook("subagent-stop", 28, { agent: "atwice", ...gp }), hook("subagent-stop", 29, { agent: "atwice", ...gp }),
         hook("subagent-start", 9, { agent: "afore", ...gp }), hook("subagent-stop", 39, { agent: "afore", ...gp }), hook("tool", 40, { tool: "Agent", spawned: "afore" }),
         hook("subagent-start", 3, { agent: "anested", ...gp }), hook("tool", 3, { tool: "Agent", spawned: "anested", agent: "aok", ...gp }), hook("subagent-stop", 12, { agent: "anested", ...gp }),
@@ -693,7 +697,7 @@ test("the hook's file beside the harness's files, agent by agent: every kind of 
     );
     const read = readSession(profile, "S");
     const each = agentByAgent({ read, eventsFile: events });
-    assert.deepEqual([each.the_hooks_file.found, each.the_hooks_file.lines_that_are_not_events, each.subagents_in_the_harnesss_files, each.agrees], [true, 1, 10, false]);
+    assert.deepEqual([each.the_hooks_file.found, each.the_hooks_file.lines_that_are_not_events, each.subagents_in_the_harnesss_files, each.agrees], [true, 1, 11, false]);
     assert.deepEqual(each.differences.by_kind, {
       [DIFFERENCES.stranger]: ["aghost"],
       [DIFFERENCES.parent]: ["aparent"],
@@ -703,8 +707,9 @@ test("the hook's file beside the harness's files, agent by agent: every kind of 
       [DIFFERENCES.moreStops]: ["atwice"],
       [DIFFERENCES.noParent]: ["anoparent"],
       [DIFFERENCES.noStart]: ["anostart"],
+      [DIFFERENCES.notEnded]: ["arunning"],
     });
-    assert.equal(each.differences.count, 8);
+    assert.equal(each.differences.count, 9);
     assert.deepEqual(each.expected.by_kind, { [EXPECTED.lateParent]: ["afore"], [EXPECTED.failed]: ["afailed"] });
     assert.deepEqual(each.expected[EXPECTED.helpers], { agents: 2, lines: 2, read_as: "the harness's own helpers, which leave no transcript (docs/subagents.md §5)" });
     const of = (agent) => each.each.find((one) => one.agent === agent);
@@ -717,14 +722,14 @@ test("the hook's file beside the harness's files, agent by agent: every kind of 
     assert.deepEqual(of("aparent").started_by, { in_the_harnesss_files: "the session", read_from: "the tool use that started it", in_the_hooks_lines: "aok", known_to_the_hook: "while it ran", seconds_after_its_first_line: 0 });
     // With no file of the hook's at all, nothing agrees and every subagent is a difference.
     const none = agentByAgent({ read, eventsFile: join(top, "none.jsonl") });
-    assert.deepEqual([none.the_hooks_file.found, none.agrees, none.differences.by_kind[DIFFERENCES.noStart].length], [false, false, 10]);
+    assert.deepEqual([none.the_hooks_file.found, none.agrees, none.differences.by_kind[DIFFERENCES.noStart].length], [false, false, 11]);
     // And a session with no subagent and a hook's file with no subagent line agree, with nothing to compare.
     session(profile, "T", { lead: [said(0)] });
     writeFileSync(join(top, "T.jsonl"), [hook("session-start", 0), hook("session-end", 1)].join("\n"), "utf8");
     const quiet = agentByAgent({ read: readSession(profile, "T"), eventsFile: join(top, "T.jsonl") });
     assert.deepEqual([quiet.agrees, quiet.subagents_in_the_harnesss_files, quiet.differences.count, quiet.each], [true, 0, 0, []]);
     // How many were running at once: each from its first line to its last.
-    assert.equal(delegation({ read, output: null }).most_at_once, 10, "from the ninth second to the twelfth all ten were open");
+    assert.equal(delegation({ read, output: null }).most_at_once, 11, "from the tenth second to the twelfth all eleven were open");
     assert.equal(mostAtOnce([{ first: at(0), last: at(10) }, { first: at(10), last: at(20) }, { first: at(30), last: at(40) }, { first: null, last: null }]), 2, "two that touch were both there; one with no time is not counted");
     assert.equal(mostAtOnce([]), 0);
   } finally {

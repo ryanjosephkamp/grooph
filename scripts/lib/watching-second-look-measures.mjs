@@ -156,6 +156,7 @@ export const DIFFERENCES = {
   fewerStarts: "fewer start lines than runs",
   moreStarts: "more start lines than runs",
   fewerStops: "fewer stop lines than runs",
+  notEnded: "no stop line for a run the harness's files do not show ending",
   moreStops: "more stop lines than runs",
   type: "a type that differs",
   parent: "a parent that differs",
@@ -245,8 +246,11 @@ export function agentByAgent({ read, eventsFile }) {
     else if (starts.length > runs) differences.push(DIFFERENCES.moreStarts);
     if (stops.length > runs) differences.push(DIFFERENCES.moreStops);
     else if (stops.length < runs) {
-      // A run the harness says did not complete is not expected to have a stop line; any other missing one is a difference.
+      // A run the harness says did not complete is not expected to have a stop line. Any other missing one is a
+      // difference, and of two kinds: the harness's files show the run ending and the hook has no line for it, or they
+      // show no ending either (a subagent still running when the session's own files stop).
       if (runs - stops.length <= notCompleted) expected.push(EXPECTED.failed);
+      else if (ended.length < runs) differences.push(DIFFERENCES.notEnded);
       else differences.push(DIFFERENCES.fewerStops);
     }
     if (harnessType !== null && hookTypes.some((type) => type !== harnessType)) differences.push(DIFFERENCES.type);
