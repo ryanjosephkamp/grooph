@@ -137,7 +137,7 @@ test("watch given a folder says that following a run has left, exits 1, and star
     for (const argv of [["watch", "--help"], ["help", "watch"]]) {
       const help = capture();
       assert.equal(await grooph(argv, help), 0);
-      assert.equal(help.stdout.join("\n").split("\n")[0], "grooph watch [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]");
+      assert.equal(help.stdout.join("\n").split("\n")[0], "grooph watch [--sessions] [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]");
       assert.doesNotMatch(help.stdout.join("\n"), /<run dir>|<graph dir>|\bthe run\b|newest run|working copy/);
       // --sessions chose the sessions over a run. It is still taken, so that a line written for 0.4.1 runs, and the page says it changes nothing.
       assert.match(help.stdout.join("\n"), /^ {2}--sessions {4}taken and not needed: the sessions are what watch serves\./m);
