@@ -51,6 +51,16 @@ The one session that used subagents was an invited one (`haiku/four/invited-1`: 
 - **The two tools were not used the one time there was occasion, and what the server hands a session does not mention them.** Its one sentence for a session's lead lies past the 2,048 characters the harness hands over, and what does arrive is about authoring graphs. What a session may say needs a short server of its own.
 - **The next look needs work that calls for subagents.** What a model chooses, and whether the record of it is true, can only be seen where it chooses something.
 
+## Two things found in the records afterward
+
+**2026-10-11.** Nothing above is changed, and nothing here reads a difference into or out of the answers above. The protocol has the same note at its end, at more length, with who found what and the field each figure is read from.
+
+- **Every session was told its dollar ceiling.** The harness's files show a reminder with each of the model's messages: 4 to 58 a run, and in all thirty-six records as many as the model's own messages (not the "turns" of the tables below, which is another count). What a reminder says was read in one transcript: what was used, the ceiling, and what remains. The protocol said no session is told. The ceiling was the same in the three arms of a task, so on this the arms were treated alike. Other kinds of reminder differ from block to block, and the protocol's note lists them.
+- **A run's cost may reflect when it was made as well as its arm.** The arms ran in one order in each round: plain, watched, invited.
+  - On the narrow task, on Sonnet and on Haiku, the block's first run wrote 1.7 to 2.7 times as much to the harness's prompt cache as the five later runs of that task, and on Sonnet it also cost more ($0.20 against $0.11 to $0.14). On Opus the six narrow runs cost less one after another as they were made ($0.35 down to $0.21).
+  - On the wide task, cost rose from the first round to the second in every arm on Sonnet and on Opus.
+  - Beside the three cases listed under the first question: within each round each keeps its direction. The Opus case is a gap of less than a cent, between the first round's plain run and the second round's invited run. And Sonnet's narrow task is not listed there because its plain runs, $0.20 and $0.11, lie on both sides of the runs with the hook; the $0.20 is the block's first run.
+
 ## The thirty-six runs
 
 In each table: cost is the harness's own figure; minutes are by the runner's clock; "unseen tests passed" is the package's hidden suite, and for the wide task the four packages in the order `settingskit`, `textwrap`, `csvline`, `semver-mini`; the last three columns are empty where an arm has nothing to count.
