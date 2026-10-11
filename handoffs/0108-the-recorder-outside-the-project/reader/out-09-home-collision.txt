@@ -1,0 +1,7 @@
+build: <TMP>/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+       node v26.10.0, darwin arm64
+[BROKE] install --user, a folder listed, then grooph hooks install typed in the home folder (an install 'in a project' whose project is ~) | tries: 1 | entries in ~/.claude/settings.json before: 7 of the user's kind; after: 0 of the user's kind, 7 of a project's kind. install's words name the user-level install: false. A session in the listed project: before, 1 entry ran, 0 heard; after, 1 ran, 1 heard (exit 1: Error: Cannot find module '<S>/a/home/code/project/.grooph/hooks/grooph-event.mjs'). Session files: events/project-b346bad8/before.jsonl. status in the listed project: claude-code: no entries in .claude/settings.json / codex: no entries in .codex/hooks.json / claude-code: no entries in ~/.claude/settings.json / codex: no entries in ~/.codex/hooks.json
+[BROKE] grooph hooks install in ~, then install --user, then remove --user | tries: 1 | both kinds of entry stand: 7 of a project's kind, 7 of the user's. A session started in ~ then writes in-home.jsonl straight into ~/.grooph/events/, beside the listed folders' own folders. remove --user: ".../settings.json; .../grooph-event.mjs"; entries left: 7 of a project's kind, and the file they run is GONE. A session started in ~ after that: 1 ran, 1 heard (exit 1: Error: Cannot find module '<S>/b/home/.grooph/hooks/grooph-event.mjs')
+
+2 attacks: 0 held, 2 broke, 0 a limit worth saying

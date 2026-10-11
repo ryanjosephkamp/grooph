@@ -448,7 +448,8 @@ grooph app and one read-only endpoint, read again from disk on every request:
                 another project's folder, or git:<ref> for a branch that carries its
                 .grooph/events/ (read from the watched project's repository, no checkout).
                 name=<source> shows its sessions under that name. The project's own
-                .grooph/events/ is always read.
+                .grooph/events/ is always read; in a folder listed with grooph hooks watch,
+                so is the record kept for it outside the project.
   --map <file>  an operation map to draw above the sessions, each of its sessions marked
                 with what the hook has seen. Name each --events source for the map session
                 it belongs to: --events operator=git:origin/operator.
@@ -468,6 +469,8 @@ Install the event hook (it records and never steers)
 
 ```text
 grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--local]
+grooph hooks install | remove --user [--harness claude-code,codex] [--tools]
+grooph hooks watch | unwatch <folder>...
 
 Record which subagents a session starts and stops, by a hook, into one file per session
 under <project>/.grooph/events/. grooph watch and grooph sessions read those files.
@@ -494,11 +497,36 @@ under <project>/.grooph/events/. grooph watch and grooph sessions read those fil
   --local           Claude Code only: write .claude/settings.local.json (this machine)
                     instead of .claude/settings.json (shared with the repository)
 
+Outside the project (--user): installed once for the machine, for the folders you list. A
+watched project then holds nothing of grooph's: no hook, no settings entry, no events.
+
+  install --user    copy the hook to ~/.grooph/hooks/grooph-event.mjs and add it to the
+                    harness's own settings for every project: ~/.claude/settings.json for
+                    Claude Code, ~/.codex/hooks.json for Codex. Safe to run again. Its entries
+                    go into the file where it stands and every other character of it is left
+                    as it was; a file it cannot read, or could not put back whole, is not changed.
+  watch <folder>    list a folder. A session working in it, or in a folder inside it, is
+                    recorded from then on. Until a folder is listed nothing is recorded.
+                    A worktree or a copy kept in another place is another folder.
+  unwatch <folder>  take a folder off the list; its events stay
+  status            also prints the list, and what is installed outside the project
+  remove --user     take the entries and the hook file out again; the list and the events stay
+
+  The events go to ~/.grooph/events/<a name made from the folder's>/, one file per session.
+  In a listed folder grooph sessions, grooph watch --sessions and grooph hooks status read
+  them from there, and say so.
+  Every session on the machine then starts the hook at each of its events, whatever folder
+  it works in. For a folder that is not listed the hook reads the list and leaves.
+  GROOPH_HOME names another folder than ~/.grooph, by its whole path. CLAUDE_CONFIG_DIR and
+  CODEX_HOME name the harnesses' folders, as they do for the harnesses themselves.
+  --push, --local and GROOPH_EVENTS_DIR are for an install in a project: grooph events push
+  sends a project's own .grooph/events/ and nothing else.
+
 The hook appends one line and exits 0. It prints nothing, never blocks, and records ids,
 names and times: never a prompt, a tool's input or result, or a reply. It needs Node.
 Codex runs a hook only after you have reviewed it (open /hooks in Codex once and trust it),
-and only in a folder it trusts. Commit .codex/hooks.json: the Codex app works in its own copy
-of the repository, which holds only committed files.
+and a project's hooks only in a folder it trusts. In a project, commit .codex/hooks.json: the
+Codex app works in its own copy of the repository, which holds only committed files.
 What each harness tells a hook, with sources: docs/subagents.md.
 ```
 
@@ -510,7 +538,9 @@ What the hook has seen.
 grooph sessions [<source>...] [--json]
 
 What the event hook has seen: each session, and under it each subagent with whether it is
-running or done, for how long, and its last tool. With no source, ./.grooph/events/.
+running or done, for how long, and its last tool. With no source, ./.grooph/events/;
+in a folder listed with grooph hooks watch, the record kept for it outside the project
+(and both, where the folder has both: a session is shown once).
 
   <source>   an events file, a folder of them, or a project folder (its .grooph/events/).
              git:<ref> reads .grooph/events/ from a git ref without checking it out:

@@ -1,0 +1,23 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r2/packages/cli/bin/grooph.js
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[HELD] GROOPH_HOME named with characters a shell reads (29 names); the settings entry run under sh -c, bash -c and zsh -c | tries: 87 | 21 names installed, ran silently under all three shells, recorded one line each in their own record, and were removed again; 8 refused with "Nothing was changed" and nothing written; 0 went wrong. Files named CANARY anywhere: 0. 
+[HELD] GROOPH_HOME with a slash at its end | tries: 1 | command: node "<S>/q30/gh/hooks/grooph-event.mjs" claude-code --user
+node:fs:620
+    return binding.readFileUtf8(path, stringToFlags(options.flag));
+                   ^
+
+Error: ENOENT: no such file or directory, open '/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/g0108-reader-DAGDWq/q31/claude/settings.json'
+    at readFileSync (node:fs:620:20)
+    at read (file:///Users/noir/Documents/grooph/.claude/worktrees/slice-0108-recorder-4a4073/handoffs/0108-the-recorder-outside-the-project/reader/lib.mjs:164:28)
+    at file:///Users/noir/Documents/grooph/.claude/worktrees/slice-0108-recorder-4a4073/handoffs/0108-the-recorder-outside-the-project/reader/03-paths.mjs:128:27
+    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)
+    at async node:internal/modules/esm/loader:650:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:105:5) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/g0108-reader-DAGDWq/q31/claude/settings.json'
+}
+
+Node.js v26.10.0

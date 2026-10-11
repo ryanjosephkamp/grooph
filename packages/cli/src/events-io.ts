@@ -6,10 +6,12 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { closeSync, existsSync, fstatSync, openSync, readFileSync, readSync, readdirSync, statSync } from "node:fs";
-import { basename, join, resolve, sep } from "node:path";
+import { closeSync, existsSync, fstatSync, lstatSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 
 import { parseEvents, summarizeSessions, type LiveView, type SessionEvent } from "@grooph/core";
+
+import { userPlaces } from "./paths.js";
 
 /** Where the hook writes, under a project. */
 export const EVENTS_DIR = join(".grooph", "events");
@@ -20,7 +22,19 @@ export const EVENTS_DIR = join(".grooph", "events");
  * `.grooph/events/` (a lane's pushed branch: the repository is the carrier,
  * so nothing has to be checked out to read it).
  */
-export type EventSource = { name?: string; path: string; ref?: undefined } | { name?: string; ref: string; path?: undefined };
+export type EventSource =
+  | {
+      name?: string;
+      path: string;
+      ref?: undefined;
+      /**
+       * This source stands behind the ones named before it: of a session one of those holds, it adds only what the
+       * session itself said (a plan, a note), and nothing of what a hook saw. A project's own events folder is
+       * read this way beside the record kept for it outside the project, which a session in the project cannot write.
+       */
+      behind?: true;
+    }
+  | { name?: string; ref: string; path?: undefined };
 
 /** `lane-a=path/to/events` names a source; `git:<ref>` reads a ref; a bare path is shown without a name. */
 export function parseSource(arg: string): EventSource {
@@ -80,6 +94,25 @@ function readTail(file: string): string {
   }
 }
 
+/** A file, or a link to one. A pipe or a folder under an event file's name is listed (status counts it) and never read: a pipe would hold the reader. */
+const isFile = (path: string): boolean => {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+};
+
+/** A file that is no link and has no second name. */
+const isOwnFile = (path: string): boolean => {
+  try {
+    const is = lstatSync(path);
+    return is.isFile() && is.nlink === 1;
+  } catch {
+    return false;
+  }
+};
+
 /** The event files a source names: the file itself, the `*.jsonl` in a folder, or a project's `.grooph/events/`. */
 export function eventFiles(path: string): string[] {
   const full = resolve(path);
@@ -92,6 +125,117 @@ export function eventFiles(path: string): string[] {
     .sort()
     .map((name) => join(dir, name));
 }
+
+// ─── The record outside the project (grooph hooks install --user) ─────────
+
+/** A folder a person listed with `grooph hooks watch`, and the name its events are kept under in grooph's own folder. */
+export type Listed = { path: string; events: string };
+
+/** The name a listed folder's events are kept under. The hook holds the same rule (`NAME` in its file); a test holds the two together. */
+export const STORE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+
+/** A folder's path with no link in it, in the letters its folders are really named in: what `grooph hooks watch` writes and what the hook compares with. */
+export const exactPath = (path: string): string => {
+  try {
+    return realpathSync.native(path);
+  } catch {
+    return resolve(path);
+  }
+};
+
+/** The same for a path that may not be there yet: asked of the nearest folder above it that is, with the rest put back on. */
+export function exactNearest(path: string): string {
+  const rest: string[] = [];
+  for (let at = resolve(path); ; at = dirname(at)) {
+    try {
+      return join(realpathSync.native(at), ...rest);
+    } catch {
+      if (dirname(at) === at) return resolve(path);
+      rest.unshift(basename(at));
+    }
+  }
+}
+
+/**
+ * The list as the hook reads it: the entries it would use, in the file's order. `problem` says why a list that is
+ * there could not be read, or how many of its entries the hook passes over; a list that is not there is an empty one.
+ */
+export function readList(file: string): { folders: Listed[]; problem?: string } {
+  if (!existsSync(file)) return { folders: [] };
+  try {
+    const json: unknown = JSON.parse(readFileSync(file, "utf8"));
+    const entries = typeof json === "object" && json !== null ? (json as { folders?: unknown }).folders : undefined;
+    if (!Array.isArray(entries)) return { folders: [], problem: "it is not a list grooph wrote (no \"folders\")" };
+    const folders = entries.flatMap((f: unknown): Listed[] => {
+      const e = f as { path?: unknown; events?: unknown } | null;
+      return typeof e?.path === "string" && isAbsolute(e.path) && typeof e.events === "string" && STORE_NAME.test(e.events) ? [{ path: resolve(e.path), events: e.events }] : [];
+    });
+    if (folders.length !== entries.length) return { folders, problem: `${entries.length - folders.length} of its ${entries.length} entries cannot be used (each needs a whole path and a plain folder name for its events)` };
+    // Two folders under one name would have their sessions in one record. `grooph hooks watch` never writes that.
+    const named = new Map<string, string>();
+    for (const f of folders) {
+      const other = named.get(f.events.toLowerCase());
+      if (other !== undefined && other !== f.path) return { folders, problem: `two of its folders keep their events under one name (${f.events}), so their sessions are recorded together` };
+      named.set(f.events.toLowerCase(), f.path);
+    }
+    return { folders };
+  } catch (err) {
+    return { folders: [], problem: (err as Error).message };
+  }
+}
+
+/** The listed folder a folder is in: the innermost, where one listed folder holds another. The hook's own rule. */
+export function listedFor(folders: Listed[], dir: string): Listed | undefined {
+  const at = exactPath(dir);
+  return folders.reduce<Listed | undefined>((best, f) => ((at === f.path || at.startsWith(f.path + sep)) && (best === undefined || f.path.length > best.path.length) ? f : best), undefined);
+}
+
+/** Where a folder's sessions are read from when it is listed: the folder in grooph's own folder, the listed folder it stands for, and the project's own events folder when that is read as well. */
+export type Store = { dir: string; listed: string; beside?: string };
+
+/**
+ * What a command reads when it is given no source: the folder's own events, as before; and, where the folder is in
+ * a listed one, the record kept for it outside the project.
+ *
+ *   - a folder that is not listed: its own `.grooph/events/`, or the event files in it. Unchanged.
+ *   - a listed folder with no `.grooph/events/` of its own: the record outside the project, and nothing else.
+ *   - a listed folder that has both: the record outside the project, and behind it the project's own folder. A
+ *     session the record holds is read from the record: that is the one a session working in the project cannot
+ *     write, and the one still being added to when an install in the project has been removed and its files
+ *     left behind. Of such a session the project's folder adds only what the session itself said (a plan, a
+ *     note, which `grooph mcp` writes there); a session the record does not hold is read from the project whole.
+ *     A project's events folder that is a link, or is reached through one, is not read: it may lead to another
+ *     folder's record.
+ *
+ * `from` is the folder that was asked about, when `dir` was found by walking up from it: the listing is looked up
+ * for `from`, and a `dir` whose `.grooph` is grooph's own folder (a person's home) is no project, so `from` is read.
+ * `problem` says why a list that is there could not be read: the record outside is then not found, and a reader says so.
+ */
+export function ownSources(dir: string, env: NodeJS.ProcessEnv = process.env, from: string = dir): { sources: EventSource[]; store?: Store; problem?: string } {
+  const places = userPlaces(env);
+  const project = exactPath(join(dir, ".grooph")) === exactPath(places.home) ? from : dir;
+  const list = readList(places.list);
+  const problem = list.problem !== undefined ? { problem: `the list of folders recorded outside their projects (${places.list}) could not be read whole: ${list.problem}` } : {};
+  const listed = listedFor(list.folders, from);
+  if (listed === undefined) return { sources: [{ path: project }], ...problem };
+  const store: Store = { dir: join(places.events, listed.events), listed: listed.path };
+  const nested = join(resolve(project), EVENTS_DIR);
+  const folder = (path: string): boolean => {
+    try {
+      return lstatSync(path).isDirectory();
+    } catch {
+      return false;
+    }
+  };
+  if (!(folder(dirname(nested)) && folder(nested))) return { sources: [{ path: store.dir }], store, ...problem };
+  return { sources: [{ path: store.dir }, { path: nested, behind: true }], store: { ...store, beside: nested }, ...problem };
+}
+
+/** The one line a reader says when it read the record kept outside the project. */
+export const storeLine = (store: Store): string =>
+  store.beside === undefined
+    ? `read from ${store.dir}${sep}: the sessions of ${store.listed} are recorded there, outside the project (grooph hooks status)`
+    : `read from ${store.dir}${sep}, where the sessions of ${store.listed} are recorded outside the project, and from ${store.beside}${sep} for sessions that record does not hold and for what a session said (grooph hooks status)`;
 
 /**
  * Several sources as one live view: every event read, tagged with its
@@ -113,12 +257,17 @@ export function readLive(sources: EventSource[], now: () => Date = () => new Dat
   const kept = new Map<string, number>();
   const held = new Map<string, number[]>();
   sources.forEach((source, at) => {
-    const files = source.ref !== undefined ? refFiles(source.ref, cwd) : eventFiles(resolve(cwd, source.path)).map((file) => ({ name: basename(file), text: readTail(file) }));
+    const behind = source.ref === undefined && source.behind === true;
+    // A folder that stands behind a record is read for its own files only: a link there, or a second name for a
+    // file kept elsewhere, may lead to another folder's record.
+    const files = source.ref !== undefined ? refFiles(source.ref, cwd) : eventFiles(resolve(cwd, source.path)).filter(behind ? isOwnFile : isFile).map((file) => ({ name: basename(file), text: readTail(file) }));
     const here = new Map<string, number>();
     for (const file of files) {
       const parsed = parseEvents(file.text);
       for (const e of parsed.events) {
         const session = `${e.harness}\u0000${e.session}`;
+        // Of a session a source named before this one holds, a source that stands behind adds only what was said.
+        if (behind && e.event !== "plan" && e.event !== "note" && (held.get(session) ?? []).some((n, i) => i < at && n > 0)) continue;
         const counts = held.get(session) ?? held.set(session, sources.map(() => 0)).get(session)!;
         counts[at]! += 1;
         // The same line twice in one source is two events (two tool calls in one millisecond); in two sources, one.

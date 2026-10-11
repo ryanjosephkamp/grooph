@@ -1,0 +1,6 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r2/packages/cli/bin/grooph.js
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+[HELD] a lock folder 11 s old, then 24 watch commands at once, each for another folder | tries: 60 | rounds in which a folder was lost from the list: 0 of 60; folders lost in all: 0 of 1440, while 1440 of 1440 commands said "listed:" and exited 0; the slowest command: 1139 ms
+
+1 attacks: 1 held, 0 broke, 0 a limit worth saying

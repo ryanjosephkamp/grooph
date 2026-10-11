@@ -1,0 +1,10 @@
+build: <TMP>/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+       node v26.10.0, darwin arm64
+[HELD] GROOPH_HOME named with characters a shell reads (29 names); the settings entry run under sh -c, bash -c and zsh -c | tries: 87 | 21 names installed, ran silently under all three shells, recorded one line each in their own record, and were removed again; 8 refused with "Nothing was changed" and nothing written; 0 went wrong. Files named CANARY anywhere: 0. 
+[HELD] GROOPH_HOME with a slash at its end | tries: 1 | command: node "<S>/q30/gh/hooks/grooph-event.mjs" claude-code --user
+[LIMIT] GROOPH_HOME=rel/gh (relative): install run in one folder, watch in another | tries: 2 | the entry runs node "<S>/q31/one/rel/gh/hooks/grooph-event.mjs" claude-code --user; watch wrote its list in <two>/rel/gh/ (not the one the hook reads); watch said of that: "Nothing runs the hook outside a project yet"; status there says: not installed: .grooph/hooks/grooph-event.mjs / not installed: <S>/q31/two/rel/gh/hooks/grooph-event.mjs / they run the hook at <S>/q31/one/rel/gh/hooks/grooph-event.mjs: its list and its events are in that folder, not in this one (GROOPH_HOME names this one)
+[HELD] GROOPH_HOME is a link to a folder elsewhere | tries: 3 | the hook wrote in the real folder: true; grooph sessions in the project finds it: true; listing the folder that holds both is refused: true
+[LIMIT] the installed hook file replaced by a link to a copy kept elsewhere | tries: 1 | recorded: nothing, silently (the hook takes grooph's folder to be where its real file is); grooph hooks status says: not installed: .grooph/hooks/grooph-event.mjs / installed: <S>/q33/gh/hooks/grooph-event.mjs
+
+5 attacks: 3 held, 0 broke, 2 a limit worth saying

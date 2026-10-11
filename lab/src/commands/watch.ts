@@ -35,7 +35,8 @@ grooph app and two read-only endpoints, read again from disk on every request:
                 another project's folder, or git:<ref> for a branch that carries its
                 .grooph/events/ (read from the watched project's repository, no checkout).
                 name=<source> shows its sessions under that name. The project's own
-                .grooph/events/ is always read.
+                .grooph/events/ is always read; in a folder listed with grooph hooks watch,
+                so is the record kept for it outside the project.
   --map <file>  an operation map to draw above the sessions, each of its sessions marked
                 with what the hook has seen. Name each --events source for the map session
                 it belongs to: --events operator=git:origin/operator. Opens on the sessions.
@@ -81,7 +82,7 @@ export function follow(target: WatchTarget): Follow {
 }
 
 /** The server, following a target: what tests start without the command around it. */
-export function startWatch(options: { target: WatchTarget; webDist: string; port: number; host: string; sessions?: boolean; events?: EventSource[]; map?: string }): Promise<Watcher> {
+export function startWatch(options: { target: WatchTarget; webDist: string; port: number; host: string; sessions?: boolean; events?: EventSource[]; map?: string; env?: NodeJS.ProcessEnv }): Promise<Watcher> {
   const { target, ...rest } = options;
   return serve({ ...rest, root: target.path, follow: follow(target) });
 }

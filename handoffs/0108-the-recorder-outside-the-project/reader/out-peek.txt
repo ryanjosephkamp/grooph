@@ -1,0 +1,70 @@
+build: <TMP>/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+       node v26.10.0, darwin arm64
+--- status with a shared record name
+not installed: .grooph/hooks/grooph-event.mjs
+claude-code: no entries in .claude/settings.json
+codex: no entries in .codex/hooks.json
+0 session files in <S>/n2/gh/events/same-record/, outside the project: this folder is listed (grooph hooks watch)
+
+outside the project (grooph hooks install --user), in <S>/n2/gh:
+  installed: <S>/n2/gh/hooks/grooph-event.mjs
+  claude-code: 7 hook entries in <S>/n2/claude/settings.json
+  codex: no entries in <S>/n2/codex/hooks.json
+  2 folders listed (grooph hooks watch <folder>, grooph hooks unwatch <folder>):
+    <S>/shared/a: no session recorded yet
+    <S>/shared/b: no session recorded yet
+  this folder is listed: its sessions are recorded outside the project
+
+--- watch c
+listed: <S>/shared/c
+A session working in it, or in a folder inside it, is recorded from its next event on, in <S>/n2/gh/events/c-f34d4b22/
+A worktree or a copy kept in another place is another folder: list it by its own path.
+
+--- watch outer
+listed: <S>/tree/outer
+A session working in it, or in a folder inside it, is recorded from its next event on, in <S>/n2/gh/events/outer-84d239db/
+A worktree or a copy kept in another place is another folder: list it by its own path.
+
+--- watch inner
+listed: <S>/tree/outer/inner
+A session working in it, or in a folder inside it, is recorded from its next event on, in <S>/n2/gh/events/inner-b8c8501b/
+It is inside <S>/tree/outer, which is listed too: a session here is recorded under this one, the inner of the two.
+A worktree or a copy kept in another place is another folder: list it by its own path.
+
+--- unwatch inner
+no longer listed: <S>/tree/outer/inner
+From its next event on, a session working there is not recorded. What was recorded is kept: <S>/n2/gh/events/inner-b8c8501b/
+
+--- unwatch something not listed
+not on the list: <S>/never. Nothing was changed. Listed: <S>/shared/a, <S>/shared/b, <S>/shared/c, <S>/tree/outer
+
+--- watch <home>/events
+grooph: <S>/n2/gh/events is not a folder. Nothing was changed.
+
+--- events push in a listed folder
+grooph: the sessions of <S>/tree/outer are recorded outside the project, in <S>/n2/gh/events/outer-84d239db/, and grooph events push sends only a project's own .grooph/events/. Nothing was sent. To send events, install in the project as well: grooph hooks install --push
+
+--- sessions --json in a listed folder (stderr)
+read from <S>/n2/gh/events/outer-84d239db/: the sessions of <S>/tree/outer are recorded there, outside the project (grooph hooks status)
+
+--- sessions in a listed folder, nothing recorded
+no sessions recorded for <S>/tree/outer yet, in <S>/n2/gh/events/outer-84d239db/. The event hook outside the project writes them, for a session working in that folder: grooph hooks status says whether it is installed
+
+--- hooks status in an unlisted folder
+not installed: .grooph/hooks/grooph-event.mjs
+claude-code: no entries in .claude/settings.json
+codex: no entries in .codex/hooks.json
+0 session files in .grooph/events/
+
+outside the project (grooph hooks install --user), in <S>/n2/gh:
+  installed: <S>/n2/gh/hooks/grooph-event.mjs
+  claude-code: 7 hook entries in <S>/n2/claude/settings.json
+  codex: no entries in <S>/n2/codex/hooks.json
+  4 folders listed (grooph hooks watch <folder>, grooph hooks unwatch <folder>):
+    <S>/shared/a: no session recorded yet
+    <S>/shared/b: no session recorded yet
+    <S>/shared/c: no session recorded yet
+    <S>/tree/outer: no session recorded yet
+  this folder is not listed: a session working here is not recorded by the hook outside the project
+

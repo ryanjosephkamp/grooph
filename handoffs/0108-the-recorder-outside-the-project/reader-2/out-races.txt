@@ -1,0 +1,14 @@
+Sun Oct 11 16:13:15 EDT 2026
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+RESULT layout=user race=dir-name attacker=swap calls=2000 conc=8 seconds=33.5 attacker-rounds=138000 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 979
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+RESULT layout=user race=dir-name attacker=node calls=2000 conc=8 seconds=37.8 attacker-rounds=65997 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 1125
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+RESULT layout=user race=hardlink-ours calls=4000 conc=8 seconds=68.8 attacker-rounds=86874 | outside: 17 lines, 0 new files or folders [victim (+17 lines)] | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+RESULT layout=user race=hardlink-empty calls=4000 conc=8 seconds=75.4 attacker-rounds=92508 | outside: 15 lines, 0 new files or folders [victim (+15 lines)] | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+RESULT layout=user race=hardlink-other calls=4000 conc=8 seconds=72.8 attacker-rounds=92933 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+RESULT layout=user race=pipe calls=600 conc=8 seconds=10.3 attacker-rounds=38449 | outside: 0 lines, 0 new files or folders, 0 bytes into the pipe | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+Sun Oct 11 16:18:20 EDT 2026

@@ -1,0 +1,10 @@
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-r2/packages/cli/bin/grooph.js
+       hooks.js 96f16a908dce · events-io.js 23d611fdf5b4 · grooph-event.mjs 332b2e1dbe1f
+       node v26.10.0, darwin arm64
+a number past 2^53: was  "k": 12345678901234567890   is  "k": 12345678901234567890,   (exit 0, no word of it)
+a number past 1e308: was  "k": 1e400   is  "k": 1e400,   (exit 0, no word of it)
+a negative one: was  "k": -1e400   is  "k": -1e400,   (exit 0, no word of it)
+an id with 19 digits: was  "k": 9007199254740993   is  "k": 9007199254740993,   (exit 0, no word of it)
+a decimal: was  "k": 0.1000000000000000055511151231257827   is  "k": 0.1000000000000000055511151231257827,   (exit 0, no word of it)
+minus zero: was  "k": -0   is  "k": -0,   (exit 0, no word of it)
+a repeated key: was  "k": "first", "k": "second"   is  "k": "first", "k": "second",   (exit 0, no word of it)

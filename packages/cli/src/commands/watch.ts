@@ -5,7 +5,7 @@ import { extname, join, resolve, sep } from "node:path";
 
 import { isQuiet, parseMapText, sessionLine, type LiveView } from "@grooph/core";
 
-import { EVENTS_DIR, readLive, type EventSource } from "../events-io.js";
+import { EVENTS_DIR, ownSources, readLive, storeLine, type EventSource } from "../events-io.js";
 import { readText } from "../io.js";
 import { appDir } from "../paths.js";
 import type { Output } from "../print.js";
@@ -24,7 +24,8 @@ grooph app and one read-only endpoint, read again from disk on every request:
                 another project's folder, or git:<ref> for a branch that carries its
                 .grooph/events/ (read from the watched project's repository, no checkout).
                 name=<source> shows its sessions under that name. The project's own
-                .grooph/events/ is always read.
+                .grooph/events/ is always read; in a folder listed with grooph hooks watch,
+                so is the record kept for it outside the project.
   --map <file>  an operation map to draw above the sessions, each of its sessions marked
                 with what the hook has seen. Name each --events source for the map session
                 it belongs to: --events operator=git:origin/operator.
@@ -100,10 +101,15 @@ export type Watcher = { url: string; port: number; host: string; close: () => Pr
 /** What the run's endpoint answers when no run is followed: the app's run view shows it as the reason there is nothing to show. */
 export const NO_RUN = "grooph watch follows no run: it serves the sessions the event hook has seen";
 
-export function startWatch(options: { root: string; webDist: string; port: number; host: string; sessions?: boolean; events?: EventSource[]; map?: string; follow?: Follow }): Promise<Watcher> {
+/**
+ * `root` is the folder watch was started in (or the folder a followed run is under), as it was given and not yet
+ * walked up to its project: the project is found from it here, and a folder listed with `grooph hooks watch` is
+ * looked up by that folder itself, where its record outside the project is kept.
+ */
+export function startWatch(options: { root: string; webDist: string; port: number; host: string; sessions?: boolean; events?: EventSource[]; map?: string; env?: NodeJS.ProcessEnv; follow?: Follow }): Promise<Watcher> {
   /** The sessions now, and the operation map they belong on when one was given: read again each time, so an edit to the map shows. */
   const liveNow = (): LiveView => {
-    const view = readLive(sources, undefined, root);
+    const view = readLive(sources(), undefined, root);
     if (options.map === undefined) return view;
     try {
       const parsed = parseMapText(readText(options.map));
@@ -114,7 +120,8 @@ export function startWatch(options: { root: string; webDist: string; port: numbe
   };
   const dist = resolve(options.webDist);
   const root = projectRoot(options.root);
-  const sources: EventSource[] = [{ path: root }, ...(options.events ?? [])];
+  /** Looked up again each time: a listed folder's record is made by its first session, which may come after this starts. */
+  const sources = (): EventSource[] => [...ownSources(root, options.env, options.root).sources, ...(options.events ?? [])];
   /** Where a visit to the bare address lands: the sessions, or a followed run when there is one and the sessions were not asked for. */
   const home = (): string => {
     if (options.follow === undefined || options.sessions) return SESSIONS_ROUTE;
@@ -222,7 +229,7 @@ export function projectRoot(path: string): string {
   return resolve(path);
 }
 
-export type WatchEnv = { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv };
+export type WatchEnv = { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv; /** where the command is run from, when not the process's own folder */ cwd?: string };
 
 /** `grooph watch [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]` (docs/subagents.md §6). `follow` is the lab's: see `Follow`. */
 export async function watchCommand(io: Output, flags: { port: number; host: string; open: boolean; sessions?: boolean; events?: EventSource[]; map?: string }, env: WatchEnv, follow?: Follow): Promise<number> {
@@ -233,7 +240,10 @@ export async function watchCommand(io: Output, flags: { port: number; host: stri
       return 1;
     }
   }
-  const root = projectRoot(follow?.path ?? process.cwd());
+  // The folder watch was started in, or the one a followed run is under, as it is: a folder listed with
+  // `grooph hooks watch` is found by that folder itself, and the project by walking up from it.
+  const started = follow?.path ?? env.cwd ?? process.cwd();
+  const root = projectRoot(started);
   const webDist = findWebDist(env.env);
   if (!webDist) {
     io.err("grooph: the web app is not built, so there is nothing to serve. Build it with pnpm --filter @grooph/web build (or set GROOPH_WEB_DIST to a built app)");
@@ -242,7 +252,7 @@ export async function watchCommand(io: Output, flags: { port: number; host: stri
 
   let watcher: Watcher;
   try {
-    watcher = await startWatch({ root, webDist, port: flags.port, host: flags.host, ...(flags.sessions ? { sessions: true } : {}), ...(flags.events ? { events: flags.events } : {}), ...(flags.map !== undefined ? { map: flags.map } : {}), ...(follow ? { follow } : {}) });
+    watcher = await startWatch({ root: started, webDist, port: flags.port, host: flags.host, ...(flags.sessions ? { sessions: true } : {}), ...(flags.events ? { events: flags.events } : {}), ...(flags.map !== undefined ? { map: flags.map } : {}), ...(env.env ? { env: env.env } : {}), ...(follow ? { follow } : {}) });
   } catch (err) {
     const error = err as NodeJS.ErrnoException;
     if (error.code === "EADDRINUSE") {
@@ -257,13 +267,16 @@ export async function watchCommand(io: Output, flags: { port: number; host: stri
   }
 
   if (follow) io.out(follow.line());
-  const live = readLive([{ path: root }, ...(flags.events ?? [])], undefined, root);
+  const own = ownSources(root, env.env, started);
+  const live = readLive([...own.sources, ...(flags.events ?? [])], undefined, root);
   const working = live.sessions.filter((s) => s.state === "working" && !isQuiet(s, live.at)).length;
   io.out(
     live.sessions.length === 0
-      ? `sessions: none recorded under ${shown(join(root, EVENTS_DIR))}/ yet (grooph hooks install records them)`
+      ? `sessions: none recorded under ${shown(own.store?.dir ?? join(root, EVENTS_DIR))}/ yet (grooph hooks install${own.store ? " --user" : ""} records them)`
       : `sessions: ${live.sessions.length} recorded, ${working} working${live.sessions.length === 1 ? ` (${sessionLine(live.sessions[0]!, live.at)})` : ""}`,
   );
+  if (own.store) io.out(storeLine(own.store));
+  if (own.problem !== undefined) io.err(own.problem);
   io.out(`open ${watcher.url}`);
   const route = watcher.url.slice(watcher.url.indexOf("#"));
   if (!isLoopback(flags.host)) {
