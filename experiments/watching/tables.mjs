@@ -3,7 +3,8 @@
  * The tables of the watching check, made from its records and from nothing else.
  *
  *   node experiments/watching/tables.mjs            print the three tables as Markdown
- *   node experiments/watching/tables.mjs --check    exit 1 unless RESULTS.md holds exactly these tables
+ *   node experiments/watching/tables.mjs --check    exit 1 unless RESULTS.md holds exactly these tables; then the same check of
+ *                                                    the second look's own tables (second-look/tables.mjs)
  *
  * One row for each run, in the protocol's order, one table for each block (README.md, "How it will be read").
  * Every value is read from a run's result.json and score.json. No model, no network.
@@ -67,4 +68,8 @@ if (process.argv.includes("--check")) {
     process.exit(1);
   }
   console.log("watching tables: RESULTS.md holds the tables its records make");
+  // The second look keeps its own tables beside its own records (second-look/tables.mjs): this one command checks both.
+  const second = (await import("./second-look/tables.mjs")).check();
+  (second.ok ? console.log : console.error)(second.says);
+  if (!second.ok) process.exit(1);
 } else process.stdout.write(`${text}\n`);
