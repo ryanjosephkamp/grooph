@@ -38,7 +38,7 @@ The small set shows the same kinds and no other (132, 96, 36 and 12).
 
 ## The second reader's re-check, and what came of it
 
-The second reader was then asked to attack the lane's answer to its own report, briefly. Its report, as it handed it back (it could not write a file of its own), with the lane's note on each of the things that broke:
+The second reader was then asked to attack the lane's answer to its own report, briefly. It could not write a file of its own, and its report came back as a message. What follows is that report shortened by the lane: the findings, the counts and the things reasoned are the reader's, in its words where they are kept; what was cut is detail of each case, which its three scripts print (`../reader-2/out-21-*.txt`, `out-22-sequences.txt`, `out-23-behind.txt`).
 
 > Three things still broke: a session's note changes the state shown for a recorded session, a link to a single file still shows another project's session, and removing for one of two accounts deletes the hook the other still runs. The lock held under every real load I gave it, the settings editor held in every case, and my model agrees with the fuzz rerun.
 >
