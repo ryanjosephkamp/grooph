@@ -105,6 +105,18 @@ export const PAIRS = [["plain", "watched"], ["plain", "outside"], ["watched", "o
 
 /** A run whose value is read with its arm: it has a record, the harness did not end it, and it was watched if its arm is a watched one. */
 const isRead = (run) => Boolean(run.record) && run.record.result.ended_by !== "the harness" && !run.record.result.not_watched;
+/** The run of a block that was recorded first, or null: whatever a block's first run pays, it is this one's. */
+const firstOf = (runs) => runs.filter((run) => run.record).reduce((first, run) => (first === null || String(run.record.result.recorded ?? "") < String(first.record.result.recorded ?? "") ? run : first), null);
+const sameCheckout = (a, b) => checkoutOf(a).commit === checkoutOf(b).commit && checkoutOf(a).hook_sha256 === checkoutOf(b).hook_sha256;
+/**
+ * The runs of a block that were made from another checkout than the block's first run: `outside` runs made later, once
+ * the recorder could be installed outside a project. They are published as rows and are not read against the others
+ * (README.md, "If the clock runs short, or slice 0108 is not merged").
+ */
+const madeLater = (runs) => {
+  const first = firstOf(runs);
+  return first === null ? [] : runs.filter((run) => run.record && !sameCheckout(run.record, first.record));
+};
 
 /**
  * Two arms on one task and one measure. They OVERLAP when neither arm's values all lie above the other's: equal values
@@ -119,7 +131,9 @@ export function onATask(a, b) {
 
 /** Every reading of a block: each measure, for each pair of arms, on each task, and what the rule says of the pair. */
 export function readings(root, block) {
-  const runs = runsOf(root, block).filter(isRead);
+  const all = runsOf(root, block);
+  const later = madeLater(all);
+  const runs = all.filter((run) => isRead(run) && !later.includes(run));
   return MEASURES.flatMap((measure) =>
     PAIRS.map(([a, b]) => {
       const tasks = TASKS.map((task) => {
@@ -158,7 +172,7 @@ export function seenInBoth(root) {
 export function tables(root = here) {
   const out = [];
   const made = BLOCKS.map((block) => runsOf(root, block)).filter((runs) => runs.some((run) => run.record));
-  const earliest = (runs) => runs.filter((run) => run.record).reduce((first, run) => (String(run.record.result.recorded ?? "") < String(first.record.result.recorded ?? "") ? run : first)).record;
+  const earliest = (runs) => firstOf(runs).record;
   // One checkout for both blocks: every run is held to the checkout of the first run of the whole look.
   const looksFirst = made.length > 0 ? made.map(earliest).reduce((first, record) => (String(record.result.recorded ?? "") < String(first.result.recorded ?? "") ? record : first)) : null;
   for (const runs of made) {
@@ -172,8 +186,11 @@ export function tables(root = here) {
     out.push(`| ${HEAD.join(" | ")} |`, `|${HEAD.map(() => "---").join("|")}|`);
     for (const run of runs) out.push(`| ${row(run, first, plainKinds).join(" | ")} |`);
     out.push("");
-    const others = runs.filter((run) => run.record && (checkoutOf(run.record).commit !== checkoutOf(looksFirst).commit || checkoutOf(run.record).hook_sha256 !== checkoutOf(looksFirst).hook_sha256)).map((run) => `\`${run.task}\` ${run.arm} ${run.round}`);
-    if (others.length > 0) out.push(`Made from another checkout than the first run of the look (another commit, or another hook's file): ${others.join(", ")}.`, "");
+    const named = (list) => list.map((run) => `\`${run.task}\` ${run.arm} ${run.round}`).join(", ");
+    const others = runs.filter((run) => run.record && !sameCheckout(run.record, looksFirst));
+    if (others.length > 0) out.push(`Made from another checkout than the first run of the look (another commit, or another hook's file): ${named(others)}.`, "");
+    const later = madeLater(runs);
+    if (later.length > 0) out.push(`Made from another checkout than this block's own first run, and so published as rows and not read with the block's other runs: ${named(later)}.`, "");
     out.push(...readingsTable(root, block));
   }
   if (made.length === BLOCKS.length) {

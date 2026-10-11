@@ -1080,6 +1080,10 @@ test("the rule of reading is applied by the script, not by eye: overlap and apar
     record("opus", "four", "watched", 2, 1.4, { not_watched: "the hook left no file for this session" });
     assert.equal(cost("opus")[0].says, "not read: `four` has 1 run(s) in an arm");
     assert.deepEqual(seenInBoth(top), []);
+    // Runs made later from another checkout (the outside arm, once it could be installed) are rows, and are not read with the block's others.
+    for (const task of ["four", "six"]) for (const round of [1, 2, 3]) record("sonnet", task, "outside", round, 9, { recorded: "2026-10-13T00:00:00.000Z", given: { the_runners_checkout: { commit: "d".repeat(40), hook_sha256: "i".repeat(64) } } });
+    assert.deepEqual(cost("sonnet").slice(1).map((reading) => reading.says), ["not read: `four` has 0 run(s) in an arm; `six` has 0 run(s) in an arm", "not read: `four` has 0 run(s) in an arm; `six` has 0 run(s) in an arm"]);
+    assert.ok(tables(top).includes("\nMade from another checkout than this block's own first run, and so published as rows and not read with the block's other runs: `four` outside 1, `six` outside 1, `four` outside 2, `six` outside 2, `four` outside 3, `six` outside 3.\n"));
     // A cost decided by less than a cent is decided by the record's own figure, not by the row's two decimals.
     record("opus", "six", "plain", 1, 1.2409);
     record("opus", "six", "plain", 2, 1.2449);
