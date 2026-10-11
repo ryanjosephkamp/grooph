@@ -2,7 +2,9 @@
 
 grooph draws workflows and watches them. It no longer directs a session ([decision 0032](../docs/decisions/0032-grooph-draws-and-watches.md), [the contract](../spec/contract.md)). What did direct one is kept here: the compilers and the packages they write, brakes a run obeys, adoption, run folders, and the proving and comparison runners.
 
-The lab builds and is tested with everything else in the repository. It is in no package grooph publishes, not in the app and not on the site. Nothing was deleted to make it, and it is meant to be used: for experiments larger and longer than the ones on record, in Claude Code and in Codex.
+The lab builds and is tested with everything else in the repository. This folder is in nothing grooph publishes: the npm package is bundled from the product's command alone, and no workflow that deploys the site builds the lab. Nothing was deleted to make it, and it is meant to be used: for experiments larger and longer than the ones on record, in Claude Code and in Codex.
+
+Where the lab is going, when slice 0103 is done: none of what directs a session is in the npm package or in the app. It is not there yet (see "Where the move stands"). The site is a separate matter: it still shows some of the lab's records and documents (`experiments/patterns/` and `experiments/comparisons/`, and the pages made from `docs/runs.md`, `docs/targets/claude-code.md`, `docs/comparisons.md` and `docs/claims.md`), and that stays as it is until the site is rewritten, by the owner's word.
 
 This page is the lab's index: what is in it, where each thing lives, and how it is run.
 
@@ -73,4 +75,8 @@ That is two sets:
 - **`lab/test/`**: the command started as a program; export for both harnesses against `fixtures/golden/`, byte for byte; the frozen game experiment's package against its manifest (`experiments/game/setup/starting-contents.claude-code.sha256`); adoption; and the two proving runners' dry runs.
 - **Every runner test**: `scripts/lib/*.test.mjs` and `scripts/prove-codex.test.mjs`. Five of these ran nowhere in CI before the lab had a test script: the tests of `compare-run`, `compare-prompt`, `compare-lead`, `compare-score` and `compare-projects`. One is not the lab's own: `watching-check-paid.test.mjs` tests the watching check's runner, which is built on these.
 
-What has no test: `scripts/lib/prove-pattern.mjs` beyond its dry run, and `scripts/e2e-claude-code.sh`, whose dry run rewrites `~/.claude.json` and so is run by hand only.
+What no test reaches, as far as a search of the test files shows:
+
+- `scripts/lib/prove-pattern.mjs` beyond its dry run, and the four modules it stands on that no test names: `prove-check.mjs`, `prove-evidence.mjs`, `prove-ledger.mjs` and `prove-summary.mjs`.
+- `scripts/lib/compare-seen.mjs` and `compare-summary.mjs`, and the dry run of `scripts/compare.sh` (`compare-run.test.mjs` has no dry-run case).
+- `scripts/e2e-claude-code.sh` in any mode. Its dry run rewrites `~/.claude.json` (it grants a trust entry and takes it away), so it is run by hand only.
