@@ -356,23 +356,33 @@ for (const layout of LAYOUTS) test(`${layout}: the hook writes through no link: 
       assert.deepEqual(readdirSync(elsewhere).sort(), ["kept.txt", "there"]);
       assert.deepEqual(readdirSync(join(elsewhere, "there")), []);
 
-      // GROOPH_EVENTS_DIR names a folder of the person's choosing: a real one is written in, a link by that name is not.
-      mkdirSync(join(elsewhere, "mine"));
-      quiet(start("s6", { GROOPH_EVENTS_DIR: join(elsewhere, "mine", "events") }), "a folder named by GROOPH_EVENTS_DIR");
-      assert.deepEqual(readdirSync(join(elsewhere, "mine", "events")), ["s6.jsonl"]);
-      symlinkSync(join(elsewhere, "there"), join(elsewhere, "mine", "linked"));
-      quiet(start("s7", { GROOPH_EVENTS_DIR: join(elsewhere, "mine", "linked") }), "a link named by GROOPH_EVENTS_DIR");
-      assert.deepEqual(readdirSync(join(elsewhere, "there")), [], "a line went through a link named by GROOPH_EVENTS_DIR");
-      // A slash on the end of the name would have the system look through the link: it is taken off first.
-      quiet(start("s7", { GROOPH_EVENTS_DIR: `${join(elsewhere, "mine", "linked")}/` }), "a link named by GROOPH_EVENTS_DIR with a slash on its end");
-      quiet(start("s7", { GROOPH_EVENTS_DIR: `${join(elsewhere, "mine", "linked")}/.` }), "a link named by GROOPH_EVENTS_DIR with /. on its end");
-      assert.deepEqual(readdirSync(join(elsewhere, "there")), [], "a line went through a link named by GROOPH_EVENTS_DIR with a slash on its end");
-      symlinkSync(join(elsewhere, "not-yet"), join(elsewhere, "mine", "nowhere"));
-      quiet(start("s7", { GROOPH_EVENTS_DIR: `${join(elsewhere, "mine", "nowhere")}/` }), "a link to nowhere named by GROOPH_EVENTS_DIR with a slash on its end");
-      assert.equal(existsSync(join(elsewhere, "not-yet")), false, "the hook made a folder through a link named by GROOPH_EVENTS_DIR");
-      symlinkSync(join(elsewhere, "kept.txt"), join(elsewhere, "mine", "events", "s8.jsonl"));
-      quiet(start("s8", { GROOPH_EVENTS_DIR: join(elsewhere, "mine", "events") }), "a linked session file in a folder named by GROOPH_EVENTS_DIR");
-      assert.equal(readFileSync(join(elsewhere, "kept.txt"), "utf8"), "as it was\n");
+      if (layout === "outside the project") {
+        // The record outside the project is kept in grooph's own folder and nowhere else: GROOPH_EVENTS_DIR, which
+        // moves a project's events, is not read there. A variable in a session's environment does not move the record.
+        mkdirSync(join(elsewhere, "mine"));
+        for (const named of [join(elsewhere, "mine", "events"), "rel-events", join(dir, "inside-the-project")]) quiet(start("s6", { GROOPH_EVENTS_DIR: named }), `GROOPH_EVENTS_DIR=${named}`);
+        assert.deepEqual(readdirSync(join(elsewhere, "mine")), [], "a line went where GROOPH_EVENTS_DIR named");
+        assert.deepEqual(readdirSync(dir), [], "the hook made something in the watched project");
+        assert.equal(linesOf(site, "s6").length, 3);
+        return;
+      }
+        // GROOPH_EVENTS_DIR names a folder of the person's choosing: a real one is written in, a link by that name is not.
+        mkdirSync(join(elsewhere, "mine"));
+        quiet(start("s6", { GROOPH_EVENTS_DIR: join(elsewhere, "mine", "events") }), "a folder named by GROOPH_EVENTS_DIR");
+        assert.deepEqual(readdirSync(join(elsewhere, "mine", "events")), ["s6.jsonl"]);
+        symlinkSync(join(elsewhere, "there"), join(elsewhere, "mine", "linked"));
+        quiet(start("s7", { GROOPH_EVENTS_DIR: join(elsewhere, "mine", "linked") }), "a link named by GROOPH_EVENTS_DIR");
+        assert.deepEqual(readdirSync(join(elsewhere, "there")), [], "a line went through a link named by GROOPH_EVENTS_DIR");
+        // A slash on the end of the name would have the system look through the link: it is taken off first.
+        quiet(start("s7", { GROOPH_EVENTS_DIR: `${join(elsewhere, "mine", "linked")}/` }), "a link named by GROOPH_EVENTS_DIR with a slash on its end");
+        quiet(start("s7", { GROOPH_EVENTS_DIR: `${join(elsewhere, "mine", "linked")}/.` }), "a link named by GROOPH_EVENTS_DIR with /. on its end");
+        assert.deepEqual(readdirSync(join(elsewhere, "there")), [], "a line went through a link named by GROOPH_EVENTS_DIR with a slash on its end");
+        symlinkSync(join(elsewhere, "not-yet"), join(elsewhere, "mine", "nowhere"));
+        quiet(start("s7", { GROOPH_EVENTS_DIR: `${join(elsewhere, "mine", "nowhere")}/` }), "a link to nowhere named by GROOPH_EVENTS_DIR with a slash on its end");
+        assert.equal(existsSync(join(elsewhere, "not-yet")), false, "the hook made a folder through a link named by GROOPH_EVENTS_DIR");
+        symlinkSync(join(elsewhere, "kept.txt"), join(elsewhere, "mine", "events", "s8.jsonl"));
+        quiet(start("s8", { GROOPH_EVENTS_DIR: join(elsewhere, "mine", "events") }), "a linked session file in a folder named by GROOPH_EVENTS_DIR");
+        assert.equal(readFileSync(join(elsewhere, "kept.txt"), "utf8"), "as it was\n");
     } finally {
       rmSync(elsewhere, { recursive: true, force: true });
     }

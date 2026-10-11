@@ -622,7 +622,7 @@ Install the event hook (it records and never steers)
 ```text
 grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--local]
 grooph hooks install | remove --user [--harness claude-code,codex] [--tools]
-grooph hooks watch | unwatch <folder>
+grooph hooks watch | unwatch <folder>...
 
 Record which subagents a session starts and stops, by a hook, into one file per session
 under <project>/.grooph/events/. grooph watch and grooph sessions read those files.
@@ -654,8 +654,9 @@ watched project then holds nothing of grooph's: no hook, no settings entry, no e
 
   install --user    copy the hook to ~/.grooph/hooks/grooph-event.mjs and add it to the
                     harness's own settings for every project: ~/.claude/settings.json for
-                    Claude Code, ~/.codex/hooks.json for Codex. Safe to run again, and every
-                    other setting is left as it was.
+                    Claude Code, ~/.codex/hooks.json for Codex. Safe to run again. Its entries
+                    go into the file where it stands and every other character of it is left
+                    as it was; a file it cannot read, or could not put back whole, is not changed.
   watch <folder>    list a folder. A session working in it, or in a folder inside it, is
                     recorded from then on. Until a folder is listed nothing is recorded.
                     A worktree or a copy kept in another place is another folder.
@@ -668,10 +669,10 @@ watched project then holds nothing of grooph's: no hook, no settings entry, no e
   them from there, and say so.
   Every session on the machine then starts the hook at each of its events, whatever folder
   it works in. For a folder that is not listed the hook reads the list and leaves.
-  GROOPH_HOME names another folder than ~/.grooph. CLAUDE_CONFIG_DIR and CODEX_HOME name
-  the harnesses' folders, as they do for the harnesses themselves.
-  --push and --local are for an install in a project: grooph events push sends a project's
-  own .grooph/events/ and nothing else.
+  GROOPH_HOME names another folder than ~/.grooph, by its whole path. CLAUDE_CONFIG_DIR and
+  CODEX_HOME name the harnesses' folders, as they do for the harnesses themselves.
+  --push, --local and GROOPH_EVENTS_DIR are for an install in a project: grooph events push
+  sends a project's own .grooph/events/ and nothing else.
 
 The hook appends one line and exits 0. It prints nothing, never blocks, and records ids,
 names and times: never a prompt, a tool's input or result, or a reply. It needs Node.

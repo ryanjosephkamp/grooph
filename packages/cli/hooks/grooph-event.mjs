@@ -32,15 +32,16 @@
  *
  *   - it records only a session working in a folder the person listed
  *     (`grooph hooks watch <folder>`), or in a folder inside one. The list is
- *     watched.json in grooph's own folder. With nothing listed it leaves before
- *     it reads what it was sent.
+ *     watched.json in grooph's own folder. With nothing listed it leaves without
+ *     looking at what it was sent.
  *   - grooph's own folder is the one this file was installed in, which is the one
  *     GROOPH_HOME named when install ran (by default .grooph in the person's home).
  *     No variable is read for it here: a session started without that variable
  *     would otherwise send one install's lines to another folder's record.
  *   - the line goes to <grooph's folder>/events/<the listed folder's name there>/
  *     <session id>.jsonl, stepped into from grooph's folder under the same rules
- *     as above, in folders and a file only their owner can read.
+ *     as above, in folders and a file only their owner can read. Nowhere else:
+ *     GROOPH_EVENTS_DIR is for an install in a project, and is not read here.
  *
  *   node <grooph's folder>/hooks/grooph-event.mjs <harness> --user
  */
@@ -107,8 +108,7 @@ function into(part, mode) {
  * Stand in the folder the events go in, made if it is missing: `parts`, one after another, from `root`.
  * False where a link stands in the place of any of them.
  */
-function inEventsFolder(root, parts, mode) {
-  const named = str(process.env.GROOPH_EVENTS_DIR);
+function inEventsFolder(root, parts, mode, named) {
   if (named !== undefined) {
     // Whoever set the variable chose the folders above this one (on macOS /tmp is itself a link). The one they named must be a folder.
     // resolve() takes a slash off its end: with one, the system would look through a link there.
@@ -133,6 +133,8 @@ const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
  */
 function listed(home) {
   try {
+    // A file, or a link to one: anything else by that name (a pipe would hold this process) is no list.
+    if (!statSync(join(home, "watched.json")).isFile()) return [];
     const list = JSON.parse(readFileSync(join(home, "watched.json"), "utf8"));
     return Array.isArray(list?.folders) ? list.folders.filter((f) => str(f?.path) !== undefined && isAbsolute(f.path) && typeof f.events === "string" && NAME.test(f.events)) : [];
   } catch {
@@ -151,7 +153,7 @@ function main(input) {
   // No variable is read for it, so a session started without one cannot send an install's lines to another folder.
   const home = user ? real(resolve(dirname(fileURLToPath(import.meta.url)), "..")) : undefined;
   const folders = user ? listed(home) : undefined;
-  // Nothing listed: every session on the machine runs this, and for all of them it ends here.
+  // Nothing listed: every session on the machine runs this, and for all of them it ends here, with what it was sent not looked at.
   if (user && folders.length === 0) return;
 
   const payload = JSON.parse(input);
@@ -205,7 +207,8 @@ function main(input) {
   }
 
   // At the user's level the record is of every listed project on the machine: its folders and files are the person's alone.
-  if (!inEventsFolder(root, parts, user ? 0o700 : undefined)) return;
+  // And it is kept in grooph's own folder and nowhere else: a variable in a session's environment does not move it.
+  if (!inEventsFolder(root, parts, user ? 0o700 : undefined, user ? undefined : str(process.env.GROOPH_EVENTS_DIR))) return;
   // By its name in the folder now stood in, which nothing done to that folder's name can lead away.
   const file = `${/^[A-Za-z0-9._-]{1,128}$/.test(session) ? session : Buffer.from(session).toString("hex").slice(0, 64)}.jsonl`;
   // The session's file is a file of its own, or is not there yet: not a link, and not a pipe that would hold this process.

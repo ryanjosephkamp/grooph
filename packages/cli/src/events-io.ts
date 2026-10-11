@@ -7,7 +7,7 @@
 
 import { execFileSync } from "node:child_process";
 import { closeSync, existsSync, fstatSync, openSync, readFileSync, readSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { basename, isAbsolute, join, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 
 import { parseEvents, summarizeSessions, type LiveView, type SessionEvent } from "@grooph/core";
 
@@ -114,6 +114,19 @@ export const exactPath = (path: string): string => {
   }
 };
 
+/** The same for a path that may not be there yet: asked of the nearest folder above it that is, with the rest put back on. */
+export function exactNearest(path: string): string {
+  const rest: string[] = [];
+  for (let at = resolve(path); ; at = dirname(at)) {
+    try {
+      return join(realpathSync.native(at), ...rest);
+    } catch {
+      if (dirname(at) === at) return resolve(path);
+      rest.unshift(basename(at));
+    }
+  }
+}
+
 /**
  * The list as the hook reads it: the entries it would use, in the file's order. `problem` says why a list that is
  * there could not be read, or how many of its entries the hook passes over; a list that is not there is an empty one.
@@ -128,7 +141,10 @@ export function readList(file: string): { folders: Listed[]; problem?: string } 
       const e = f as { path?: unknown; events?: unknown } | null;
       return typeof e?.path === "string" && isAbsolute(e.path) && typeof e.events === "string" && STORE_NAME.test(e.events) ? [{ path: resolve(e.path), events: e.events }] : [];
     });
-    return folders.length === entries.length ? { folders } : { folders, problem: `${entries.length - folders.length} of its ${entries.length} entries cannot be used (each needs a whole path and a plain folder name for its events)` };
+    if (folders.length !== entries.length) return { folders, problem: `${entries.length - folders.length} of its ${entries.length} entries cannot be used (each needs a whole path and a plain folder name for its events)` };
+    // Two folders under one name would have their sessions in one record. `grooph hooks watch` never writes that.
+    const shared = folders.find((f) => folders.some((other) => other.path !== f.path && other.events.toLowerCase() === f.events.toLowerCase()));
+    return shared === undefined ? { folders } : { folders, problem: `two of its folders keep their events under one name (${shared.events}), so their sessions are recorded together` };
   } catch (err) {
     return { folders: [], problem: (err as Error).message };
   }
@@ -140,8 +156,8 @@ export function listedFor(folders: Listed[], dir: string): Listed | undefined {
   return folders.reduce<Listed | undefined>((best, f) => ((at === f.path || at.startsWith(f.path + sep)) && (best === undefined || f.path.length > best.path.length) ? f : best), undefined);
 }
 
-/** Where a folder's sessions are read from when it is listed: the folder in grooph's own folder, and the listed folder it stands for. */
-export type Store = { dir: string; listed: string };
+/** Where a folder's sessions are read from when it is listed: the folder in grooph's own folder, the listed folder it stands for, and the project's own events folder when that is read as well. */
+export type Store = { dir: string; listed: string; beside?: string };
 
 /**
  * What a command reads when it is given no source: the folder's own events, as before; and, where the folder is in
@@ -149,26 +165,40 @@ export type Store = { dir: string; listed: string };
  *
  *   - a folder that is not listed: its own `.grooph/events/`, or the event files in it. Unchanged.
  *   - a listed folder with no `.grooph/events/` of its own: the record outside the project, and nothing else.
- *   - a listed folder that has both: its own, and from the record outside every session its own folder does not
- *     hold. One session is one file under one name in both places, so a session recorded twice (an install in the
- *     project beside the listing) is read once, from the project.
+ *   - a listed folder that has both: the record outside the project, and from the project's own folder every
+ *     session that record does not hold. One session is one file under one name in both places, so a session
+ *     recorded twice (an install in the project beside the listing) is read once. It is read from the record
+ *     outside: that is the one a session working in the project cannot write, and the one still being added to
+ *     when an install in the project has been removed and its files left behind.
  *
  * `from` is the folder that was asked about, when `dir` was found by walking up from it: the listing is looked up
  * for `from`, and a `dir` whose `.grooph` is grooph's own folder (a person's home) is no project, so `from` is read.
+ * `problem` says why a list that is there could not be read: the record outside is then not found, and a reader says so.
  */
-export function ownSources(dir: string, env: NodeJS.ProcessEnv = process.env, from: string = dir): { sources: EventSource[]; store?: Store } {
+export function ownSources(dir: string, env: NodeJS.ProcessEnv = process.env, from: string = dir): { sources: EventSource[]; store?: Store; problem?: string } {
   const places = userPlaces(env);
   const project = exactPath(join(dir, ".grooph")) === exactPath(places.home) ? from : dir;
-  const listed = listedFor(readList(places.list).folders, from);
-  if (listed === undefined) return { sources: [{ path: project }] };
+  const list = readList(places.list);
+  const problem = list.problem !== undefined ? { problem: `the list of folders recorded outside their projects (${places.list}) could not be read whole: ${list.problem}` } : {};
+  const listed = listedFor(list.folders, from);
+  if (listed === undefined) return { sources: [{ path: project }], ...problem };
   const store: Store = { dir: join(places.events, listed.events), listed: listed.path };
   const nested = join(resolve(project), EVENTS_DIR);
-  if (!(existsSync(nested) && statSync(nested).isDirectory())) return { sources: [{ path: store.dir }], store };
-  return { sources: [{ path: project }, { path: store.dir, without: new Set(eventFiles(nested).map((file) => basename(file))) }], store };
+  if (!(existsSync(nested) && statSync(nested).isDirectory())) return { sources: [{ path: store.dir }], store, ...problem };
+  let held: string[] = [];
+  try {
+    held = eventFiles(store.dir).map((file) => basename(file));
+  } catch {
+    // A record that cannot be looked into: the reader that opens it says so.
+  }
+  return { sources: [{ path: store.dir }, { path: project, without: new Set(held) }], store: { ...store, beside: nested }, ...problem };
 }
 
 /** The one line a reader says when it read the record kept outside the project. */
-export const storeLine = (store: Store): string => `read from ${store.dir}${sep}: the sessions of ${store.listed} are recorded there, outside the project (grooph hooks status)`;
+export const storeLine = (store: Store): string =>
+  store.beside === undefined
+    ? `read from ${store.dir}${sep}: the sessions of ${store.listed} are recorded there, outside the project (grooph hooks status)`
+    : `read from ${store.dir}${sep}, where the sessions of ${store.listed} are recorded outside the project, and from ${store.beside}${sep} for the sessions only that folder holds (grooph hooks status)`;
 
 /**
  * Several sources as one live view: every event read, tagged with its

@@ -8,11 +8,12 @@
  */
 
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { chmodSync, existsSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import type { LiveView } from "@grooph/core";
 
@@ -252,7 +253,74 @@ test("remove --user takes grooph's entries out whatever folder they were install
     assert.deepEqual(JSON.parse(readFileSync(h.claude, "utf8")), byHand);
     assert.match(removed.out, new RegExp(`Those entries ran the hook at ${literally(join(other.GROOPH_HOME, "hooks", "grooph-event.mjs"))}`));
     assert.equal(existsSync(join(other.GROOPH_HOME, "hooks", "grooph-event.mjs")), true);
-    assert.equal(existsSync(h.hook), false);
+    // The hook's file stays while any entry there still names it, grooph's or not: with it gone, that entry would be heard from at every event.
+    assert.match(removed.out, new RegExp(`kept ${literally(h.hook)}: ${literally(h.claude)} still names it`));
+    assert.equal(existsSync(h.hook), true);
+    const said = await h.grooph(["hooks", "status", "--dir", h.root]);
+    assert.match(said.out, /claude-code: no entries in .*\n {4}and 1 entry there that names grooph's hook and is not as install --user writes them: grooph leaves it alone/);
+    writeFileSync(h.claude, "{}");
+    assert.match((await h.grooph(["hooks", "remove", "--user"])).out, new RegExp(`removed ${literally(h.hook)}`));
+    assert.equal(readFileSync(h.claude, "utf8"), "{}");
+
+    // Commands that only look like grooph's are somebody's own: another file whose name ends the same way, words that end the same way, grooph's file run another way.
+    const theirs = [`node "/opt/tools/my-own-grooph-event.mjs" claude-code --user`, `echo "remember: grooph-event.mjs" claude-code --user`, `node '${h.hook}' claude-code --user`, `node "${h.hook}" claude-code --user || true`, `sh -c 'node "${h.hook}" claude-code --user'`];
+    const lookAlikes = { hooks: { Stop: theirs.map((command) => ({ hooks: [{ type: "command", command }] })) } };
+    writeFileSync(h.claude, JSON.stringify(lookAlikes, null, 2));
+    const beside = await h.grooph(["hooks", "install", "--user"]);
+    assert.match(beside.out, /5 entries in .* name grooph's hook and are not as this command writes them: left as they are\. If they run this hook too, an event is recorded twice\./);
+    assert.deepEqual((JSON.parse(readFileSync(h.claude, "utf8")) as typeof lookAlikes).hooks.Stop.map((e) => e.hooks[0]!.command), [...theirs, `node "${h.hook}" claude-code --user`]);
+    assert.equal((await h.grooph(["hooks", "remove", "--user"])).code, 0);
+    assert.equal(readFileSync(h.claude, "utf8"), JSON.stringify(lookAlikes, null, 2));
+    assert.equal(existsSync(h.hook), true, "the hook's file was removed while somebody's own entry still runs it");
+
+    // An entry somebody joined grooph's command into keeps its other command, and a file keeps its tabs and its line endings.
+    const notify = { type: "command", command: "./notify.sh" };
+    const joined = { hooks: { Stop: [{ hooks: [notify, { type: "command", command: `node "${h.hook}" claude-code --user`, timeout: 5 }] }] } };
+    writeFileSync(h.claude, JSON.stringify(joined, null, "\t").replace(/\n/g, "\r\n"));
+    assert.equal((await h.grooph(["hooks", "install", "--user"])).code, 0);
+    const text = readFileSync(h.claude, "utf8");
+    assert.match(text, /^\{\r\n\t"hooks"/);
+    assert.doesNotMatch(text, /[^\r]\n/, "a line of the file lost its ending");
+    const kept = JSON.parse(text) as { hooks: Record<string, { hooks: { command: string }[] }[]> };
+    assert.deepEqual(kept.hooks["Stop"]!.map((e) => e.hooks.map((x) => x.command)), [["./notify.sh"], [`node "${h.hook}" claude-code --user`]]);
+    assert.equal((await h.grooph(["hooks", "remove", "--user"])).code, 0);
+    assert.deepEqual(JSON.parse(readFileSync(h.claude, "utf8")), { hooks: { Stop: [{ hooks: [notify] }] } });
+  });
+});
+
+test("several folders are listed by one command, and commands run at the same moment each keep their folder on the list", async () => {
+  await withHome(async (h) => {
+    const [a, b] = [h.project("a"), h.project("b")];
+    const both = await h.grooph(["hooks", "watch", a, b]);
+    assert.equal(both.code, 0, both.err);
+    assert.deepEqual(readList(h.list).folders.map((f) => f.path), [a, b]);
+    // One that cannot be listed does not stop the others, and is what the command ends on.
+    const mixed = await h.grooph(["hooks", "unwatch", a, join(h.root, "nowhere"), b]);
+    assert.equal(mixed.code, 0);
+    assert.deepEqual(readList(h.list).folders, []);
+    const refused = await h.grooph(["hooks", "watch", join(h.root, "nowhere"), a]);
+    assert.equal(refused.code, 1);
+    assert.deepEqual(readList(h.list).folders.map((f) => f.path), [a]);
+
+    // The command itself, as many processes at once, each with a folder of its own.
+    const cli = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "grooph.js");
+    const AT_ONCE = 12;
+    const folders = Array.from({ length: AT_ONCE }, (_, i) => h.project(`many/p${i}`));
+    const exits = await Promise.all(
+      folders.map(
+        (folder) =>
+          new Promise<number | null>((done) => {
+            const child = spawn(process.execPath, [cli, "hooks", "watch", folder], { env: { PATH: process.env["PATH"] ?? "", ...scratchEnv, ...h.env }, stdio: "ignore" });
+            child.on("close", done);
+          }),
+      ),
+    );
+    assert.deepEqual(exits, folders.map(() => 0));
+    const listed = readList(h.list);
+    assert.equal(listed.problem, undefined);
+    assert.deepEqual(listed.folders.map((f) => f.path).sort(), [a, ...folders].sort(), "a folder listed at the same moment as another was lost");
+    assert.equal(new Set(listed.folders.map((f) => f.events)).size, AT_ONCE + 1);
+    assert.deepEqual(readdirSync(h.env.GROOPH_HOME), ["watched.json"], "something was left beside the list");
   });
 });
 
@@ -298,11 +366,21 @@ test("the list starts empty and the hook then writes nothing; watch and unwatch 
 
     // A listed folder inside a listed folder: a session there is the inner one's.
     const nested = await h.grooph(["hooks", "watch", inner]);
-    assert.match(nested.out, new RegExp(`It is inside ${literally(a)}, which is listed too`));
+    assert.match(nested.out, new RegExp(`It is inside ${literally(a)}, and both are listed\\. A session is recorded under the inner of the two that holds the folder it was started in, where its harness says which that is \\(Claude Code does\\), and otherwise the folder it is working in\\.`));
+    // So a session started in the outer one stays the outer one's, working in the inner; and status, run in that session, finds its line there.
+    quiet(start(h.hook, "s-stays", inner, { CLAUDE_PROJECT_DIR: a }), "started in the outer of two listed folders, working in the inner");
+    assert.equal(existsSync(join(h.store(a), "s-stays.jsonl")), true);
+    assert.match((await h.grooph(["hooks", "status", "--dir", inner], { cwd: inner, env: { CLAUDE_CODE_SESSION_ID: "s-stays" } })).out, /this session \(s-stays\): 1 line recorded/);
+    rmSync(join(h.store(a), "s-stays.jsonl"));
     quiet(start(h.hook, "s-nested", inner), "a session in the inner of two listed folders");
     assert.deepEqual(sessionsIn(h.store(inner)), ["s-nested.jsonl"]);
     assert.equal(existsSync(join(h.store(a), "s-nested.jsonl")), false);
-    assert.equal((await h.grooph(["hooks", "unwatch", inner])).code, 0);
+    // Taken off while the folder that holds it is listed still: what is said is what happens.
+    const innerOff = await h.grooph(["hooks", "unwatch", inner]);
+    assert.match(innerOff.out, new RegExp(`A session working there is still recorded, under ${literally(a)}, which holds it and is listed\\.`));
+    quiet(start(h.hook, "s-back", inner), "a session in a folder taken off the list, inside one still on it");
+    assert.equal(existsSync(join(h.store(a), "s-back.jsonl")), true);
+    rmSync(join(h.store(a), "s-back.jsonl"));
 
     // Two projects with one name do not share a record, and a folder listed again finds the one it left.
     const same = [h.project("x/same"), h.project("y/same")];
@@ -336,6 +414,9 @@ test("the list starts empty and the hook then writes nothing; watch and unwatch 
       [["hooks", "watch", join(h.root, "nowhere")], /is not a folder/],
       [["hooks", "watch", h.root], /holds grooph's own folder/],
       [["hooks", "watch", h.env.GROOPH_HOME], /holds grooph's own folder/],
+      [["hooks", "watch", h.events], /is in grooph's own folder/],
+      [["hooks", "watch", dirname(h.hook)], /is in grooph's own folder/],
+      [["hooks", "watch", join(h.events, storeName(a, []))], /is in grooph's own folder/],
       [["hooks", "watch", homedir()], /holds your whole home folder/],
       [["hooks", "watch", "/"], /holds grooph's own folder/],
     ] as const) {
@@ -344,7 +425,141 @@ test("the list starts empty and the hook then writes nothing; watch and unwatch 
       assert.match(r.err, said);
       assert.equal(readFileSync(h.list, "utf8"), before, `${argv.join(" ")} changed the list`);
     }
+    if (process.platform !== "win32") assert.equal(statSync(h.list).mode & 0o777, 0o600, "the list of a person's projects is open to others");
   });
+});
+
+test("grooph's own folder is found where it really is, before it is made: named through a link, in other letters, or by part of a path", async () => {
+  await withHome(async (h) => {
+    const project = h.project("p");
+    // Named through a link, and not there yet: the folder that will hold it cannot be listed.
+    symlinkSync(project, join(h.root, "link-to-p"));
+    const through = { GROOPH_HOME: join(h.root, "link-to-p", "kept", "grooph") };
+    const refused = await h.grooph(["hooks", "watch", project], { env: through });
+    assert.equal(refused.code, 1);
+    assert.match(refused.err, /holds grooph's own folder/);
+    assert.deepEqual(readdirSync(project), [], "something was made in the folder that was refused");
+    // A name that is not a whole path would be a different folder from every folder a command is run in.
+    for (const argv of [["hooks", "watch", project], ["hooks", "unwatch", project], ["hooks", "install", "--user"], ["hooks", "remove", "--user"]]) {
+      const relative = await h.grooph(argv, { env: { GROOPH_HOME: "my-grooph" }, cwd: h.root });
+      assert.equal(relative.code, 1, argv.join(" "));
+      assert.match(relative.err, /GROOPH_HOME is "my-grooph", which is not a whole path.*Nothing was changed/);
+    }
+    assert.equal(existsSync(h.env.GROOPH_HOME), false);
+    assert.equal(existsSync(h.claude), false);
+  });
+});
+
+test("a settings file is changed where it stands: every character that is not grooph's stays, and install then remove gives the file back to the letter", async () => {
+  await withHome(async (h) => {
+    mkdirSync(dirname(h.claude), { recursive: true });
+    const other = { matcher: "Bash", hooks: [{ type: "command", command: "./mine.sh" }] };
+    const files: Record<string, string> = {
+      "no hooks, four spaces, no line break at the end": JSON.stringify({ model: "opus", permissions: { allow: ["Bash(ls:*)"] } }, null, 4),
+      "hooks of the person's own, two spaces": `${JSON.stringify({ hooks: { PreToolUse: [other], Stop: [{ hooks: [{ type: "command", command: "./notify.sh" }] }], PreCompact: [] }, model: "opus" }, null, 2)}\n`,
+      "all on one line": JSON.stringify({ model: "opus", hooks: { Stop: [other] } }),
+      "one line, with spaces": '{ "model": "opus", "hooks": { "Stop": [{ "hooks": [{ "type": "command", "command": "./notify.sh" }] }] } }\n',
+      "tabs and Windows line endings": JSON.stringify({ model: "opus", hooks: { SessionStart: [other] } }, null, "\t").replace(/\n/g, "\r\n"),
+      "an empty object": "{}",
+      "an empty hooks": '{\n  "hooks": {}\n}\n',
+      // What reading into an object and writing out again would change: a number too large to hold, one too long to
+      // hold exactly, a key written twice, a key that is a number, a list on one line, letters written as escapes.
+      "what a second writing would change": '{\n  "z": 1e400,\n  "big": 9007199254740993,\n  "twice": 1,\n  "twice": 2,\n  "10": "a number for a key",\n  "list": [1, 2,   3],\n  "escaped": "caf\\u00e9 \\/ ok",\n  "__proto__": { "kept": true }\n}\n',
+      "the same, with hooks in the middle": '{\n  "z": 1e400,\n  "hooks": { "Stop": [ { "hooks": [ { "type": "command", "command": "./notify.sh" } ] } ] },\n  "twice": 1,\n  "twice": 2,\n  "list": [1, 2,   3]\n}\n',
+    };
+    for (const [what, before] of Object.entries(files)) {
+      writeFileSync(h.claude, before);
+      const installed = await h.grooph(["hooks", "install", "--user", "--tools"]);
+      assert.equal(installed.code, 0, `${what}: ${installed.err}`);
+      const after = readFileSync(h.claude, "utf8");
+      const command = `node "${h.hook}" claude-code --user`;
+      const parsed = JSON.parse(after) as { hooks: Record<string, { hooks: { command: string }[] }[]> };
+      for (const event of ["SessionStart", "SessionEnd", "UserPromptSubmit", "Stop", "SubagentStart", "SubagentStop", "PostToolUse"]) assert.equal(parsed.hooks[event]!.at(-1)!.hooks[0]!.command, command, `${what}: ${event}`);
+      // Every line of the file as it was is still in it, whole and in order: nothing of the person's was written again.
+      // (A file kept on one line is one line, into which grooph's entries go, and so is a "hooks" written on one line:
+      // giving the file back to the letter, below, is the check of those.)
+      let from = 0;
+      for (const piece of before.split(/\r?\n/).length < 3 ? [] : before.split(/\r?\n/).map((l) => l.replace(/[,{[\]}]*$/, "").trim()).filter((l) => l.length > 3 && !l.startsWith('"hooks": { "'))) {
+        const at = after.indexOf(piece, from);
+        assert.ok(at >= 0, `${what}: "${piece}" is no longer in the file as it was written`);
+        from = at + piece.length;
+      }
+      assert.equal(after.includes("\r\n"), before.includes("\r\n"), `${what}: the line endings changed`);
+      assert.equal(after.includes("\n"), before.includes("\n") || before === "{}", `${what}: a file on one line was spread out`);
+      // A second install writes nothing; remove gives back what was there.
+      assert.match((await h.grooph(["hooks", "install", "--user", "--tools"])).out, new RegExp(`as it was: ${literally(h.claude)}`), what);
+      assert.equal((await h.grooph(["hooks", "remove", "--user"])).code, 0, what);
+      // The one case that does not come back to the letter: a "hooks" that was there and empty goes with grooph's entries, which filled it.
+      assert.equal(readFileSync(h.claude, "utf8"), what === "an empty hooks" ? "{}\n" : before, `${what}: install and then remove did not give the file back`);
+    }
+
+    // What cannot be put back whole is not changed: a read-only file, a file with a second name, a folder that takes no new file.
+    const fine = `${JSON.stringify({ model: "opus" }, null, 2)}\n`;
+    if (process.platform !== "win32" && process.getuid?.() !== 0) {
+      const refused = async (said: RegExp): Promise<void> => {
+        for (const argv of [["hooks", "install", "--user"]]) {
+          const r = await h.grooph(argv);
+          assert.equal(r.code, 1, said.source);
+          assert.match(r.err, said);
+          assert.match(r.err, /Nothing was changed/);
+          assert.equal(readFileSync(h.claude, "utf8"), fine);
+          assert.equal(existsSync(h.hook), false);
+        }
+      };
+      writeFileSync(h.claude, fine);
+      chmodSync(h.claude, 0o444);
+      await refused(/cannot read .*settings\.json: it is read-only/);
+      chmodSync(h.claude, 0o644);
+      linkSync(h.claude, join(h.root, "second-name.json"));
+      await refused(/it has a second name \(a hard link\)/);
+      assert.equal(readFileSync(join(h.root, "second-name.json"), "utf8"), fine);
+      rmSync(join(h.root, "second-name.json"));
+      chmodSync(dirname(h.claude), 0o555);
+      try {
+        await refused(/its folder takes no new file, so it cannot be replaced whole/);
+      } finally {
+        chmodSync(dirname(h.claude), 0o755);
+      }
+    }
+  });
+});
+
+test("a person's home folder is no project to install in: an install there is refused, and a project's remove leaves the install outside the project alone", async () => {
+  // With nothing named, a project install in the home folder and the install outside the project have one hook
+  // file (~/.grooph/hooks/) and one settings file (~/.claude/settings.json).
+  const home = realpathSync(mkdtempSync(join(tmpdir(), "grooph-home-as-project-")));
+  try {
+    const env = { ...scratchEnv, GROOPH_HOME: join(home, ".grooph"), CLAUDE_CONFIG_DIR: join(home, ".claude"), CODEX_HOME: join(home, ".codex") };
+    const grooph = async (argv: string[]) => {
+      const io = capture();
+      const code = await run(argv, io, () => "", { openUrl: async () => {}, env });
+      return { code, out: text(io.stdout), err: text(io.stderr) };
+    };
+    assert.equal((await grooph(["hooks", "install", "--user", "--harness", "claude-code,codex"])).code, 0);
+    const settings = readFileSync(join(home, ".claude", "settings.json"), "utf8");
+    const codex = readFileSync(join(home, ".codex", "hooks.json"), "utf8");
+    for (const harness of ["claude-code", "codex", "claude-code,codex"]) {
+      const refused = await grooph(["hooks", "install", "--dir", home, "--harness", harness]);
+      assert.equal(refused.code, 1, harness);
+      assert.match(refused.err, /own settings for every project on this machine, so this folder is no project to install in.*grooph hooks install --user\. Nothing was changed\./);
+    }
+    // An older grooph did install there. Its entries are a project's kind; removing them leaves the other install whole.
+    const projectKind = { type: "command", command: 'node "$CLAUDE_PROJECT_DIR/.grooph/hooks/grooph-event.mjs" claude-code' };
+    const both = JSON.parse(settings) as { hooks: Record<string, { hooks: unknown[] }[]> };
+    both.hooks["Stop"]!.push({ hooks: [projectKind] });
+    writeFileSync(join(home, ".claude", "settings.json"), JSON.stringify(both, null, 2));
+    const status = await grooph(["hooks", "status", "--dir", home]);
+    assert.match(status.out, /^installed: \.grooph\/hooks\/grooph-event\.mjs\nclaude-code: 1 hook entry in \.claude\/settings\.json\n/);
+    assert.match(status.out, /\n {2}claude-code: 7 hook entries in /);
+    const removed = await grooph(["hooks", "remove", "--dir", home, "--harness", "claude-code,codex"]);
+    assert.equal(removed.code, 0, removed.err);
+    assert.deepEqual(JSON.parse(readFileSync(join(home, ".claude", "settings.json"), "utf8")), JSON.parse(settings));
+    assert.equal(readFileSync(join(home, ".codex", "hooks.json"), "utf8"), codex);
+    assert.equal(existsSync(join(home, ".grooph", "hooks", "grooph-event.mjs")), true, "a project's remove took the hook the install outside the project runs");
+    assert.match((await grooph(["hooks", "status", "--dir", home])).out, /\n {2}claude-code: 7 hook entries in /);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
 });
 
 test("the hook and the commands hold one rule for the list: an entry with no whole path, or whose name is not one plain folder's, records nothing and is said", async () => {
@@ -380,6 +595,22 @@ test("the hook and the commands hold one rule for the list: an entry with no who
     quiet(start(h.hook, "s2", a), "a list with one entry that can be used");
     assert.deepEqual(sessionsIn(join(h.events, "kept-here")), ["s2.jsonl"]);
     assert.match((await h.grooph(["hooks", "status", "--dir", a])).out, /the list \(.*\) is read in part: 1 of its 2 entries cannot be used/);
+
+    // A list written by hand in which two folders share a name for their events: said, since their sessions land together.
+    writeFileSync(h.list, JSON.stringify({ folders: [{ path: a, events: "one-name" }, { path: h.project("b"), events: "One-Name" }] }));
+    assert.match((await h.grooph(["hooks", "status", "--dir", a])).out, /two of its folders keep their events under one name \(one-name\)/);
+    // The readers say that the list could not be read, and do not call the folder's record empty without it.
+    writeFileSync(h.list, "{ not json");
+    const unread = await h.grooph(["sessions"], { cwd: a });
+    assert.match(unread.err, /the list of folders recorded outside their projects \(.*watched\.json\) could not be read whole: /);
+    // Something that is no file where the list should be does not hold the hook.
+    if (process.platform !== "win32") {
+      rmSync(h.list);
+      if (spawnSync("mkfifo", [h.list]).status === 0) {
+        const held = spawnSync(process.execPath, [h.hook, "claude-code", "--user"], { input: JSON.stringify({ hook_event_name: "SessionStart", session_id: "s3", cwd: a }), env: { PATH: process.env["PATH"] ?? "" }, encoding: "utf8", timeout: 10_000 });
+        assert.deepEqual([held.status, held.signal, held.stdout, held.stderr], [0, null, "", ""], "a pipe where the list should be held the hook");
+      }
+    }
   });
 });
 
@@ -535,7 +766,7 @@ test("in a listed folder with no events of its own, sessions, hooks status and w
       // A listed folder whose record does not exist yet: the view is empty, and shows the first session when it comes.
       assert.equal((await h.grooph(["hooks", "watch", b])).code, 0);
       const empty = await h.grooph(["watch", b, "--sessions", "--port", "0"], { env: { GROOPH_WEB_DIST: dist }, signal: AbortSignal.abort() });
-      assert.match(empty.out, new RegExp(`\\nsessions: none recorded under ${literally(h.store(b))}/ yet `));
+      assert.match(empty.out, new RegExp(`\\nsessions: none recorded under ${literally(h.store(b))}/ yet \\(grooph hooks install --user records them\\)\\n`));
       const watcher = await startWatch({ target: watchTarget(b), webDist: dist, port: 0, host: "127.0.0.1", sessions: true, env: { ...scratchEnv, ...h.env } });
       try {
         assert.deepEqual(await live(watcher.port), []);
@@ -555,21 +786,27 @@ test("in a listed folder with no events of its own, sessions, hooks status and w
     assert.match(pushed.err, new RegExp(`^grooph: the sessions of ${literally(a)} are recorded outside the project, in ${literally(h.store(a))}/, and grooph events push sends only a project's own \\.grooph/events/\\. Nothing was sent\\.`));
     assert.equal(existsSync(join(a, ".grooph")), false);
 
-    // The project gets an install of its own as well. A session both recorded is read once, from the project; one
-    // only the record outside holds is still read; and status counts each place.
+    // The project gets an install of its own as well. A session both recorded is read once, from the record outside
+    // the project, which a session working in the project cannot write; one only the project holds is still read;
+    // and status counts each place.
     assert.equal((await h.grooph(["hooks", "install", "--dir", a])).code, 0);
     const own = (payload: Record<string, unknown>) => spawnSync(process.execPath, [join(a, ".grooph", "hooks", "grooph-event.mjs"), "claude-code"], { input: JSON.stringify({ cwd: a, ...payload }), cwd: a, env: { PATH: process.env["PATH"] ?? "" }, encoding: "utf8" });
     for (const session of ["s1", "s-own"]) assert.equal(own({ hook_event_name: "SessionStart", session_id: session }).status, 0);
-    quiet(start(h.hook, "s-own", a), "the same session, by the hook outside the project");
     const both = await h.grooph(["sessions", "--json"], { cwd: a });
     const view = JSON.parse(both.out) as LiveView;
-    // s1 is in both places: the project's copy holds its start alone, so no subagent, and that copy is the one read.
-    assert.deepEqual(view.sessions.map((s) => [s.id, s.agents.length]).sort(), [["s-own", 0], ["s1", 0]]);
-    assert.equal(both.err, said());
-    rmSync(join(a, ".grooph", "events", "s1.jsonl"));
-    assert.deepEqual((JSON.parse((await h.grooph(["sessions", "--json"], { cwd: a })).out) as LiveView).sessions.map((s) => [s.id, s.agents.length]).sort(), [["s-own", 0], ["s1", 1]]);
+    // s1 is in both places. The project's copy holds its start alone, and no subagent; the record outside holds the
+    // subagent, and is the one read. So a file put in the project under a session's name hides nothing of it.
+    assert.deepEqual(view.sessions.map((s) => [s.id, s.agents.length]).sort(), [["s-own", 0], ["s1", 1]]);
+    const saidBoth = storeLine({ dir: h.store(a), listed: a, beside: join(a, ".grooph", "events") });
+    assert.equal(both.err, saidBoth);
+    assert.equal(saidBoth, `read from ${h.store(a)}/, where the sessions of ${a} are recorded outside the project, and from ${join(a, ".grooph", "events")}/ for the sessions only that folder holds (grooph hooks status)`);
+    // The install in the project is removed and its files stay: a session that goes on is read as it goes on.
+    assert.equal((await h.grooph(["hooks", "remove", "--dir", a])).code, 0);
+    quiet(fire(h.hook, { ...s1, hook_event_name: "SessionEnd" }), "the session ends, after the project's install is gone");
+    assert.deepEqual((JSON.parse((await h.grooph(["sessions", "--json"], { cwd: a })).out) as LiveView).sessions.map((s) => [s.id, s.state, s.agents.length]).sort(), [["s-own", "working", 0], ["s1", "ended", 1]]);
+    assert.equal((await h.grooph(["hooks", "install", "--dir", a])).code, 0);
     const two = await h.grooph(["hooks", "status", "--dir", a]);
-    assert.match(two.out, new RegExp(`\\n1 session file in \\.grooph/events/\\n2 session files in ${literally(h.store(a))}/, outside the project: this folder is listed`));
+    assert.match(two.out, new RegExp(`\\n2 session files in \\.grooph/events/\\n1 session file in ${literally(h.store(a))}/, outside the project: this folder is listed`));
     const again = await h.grooph(["hooks", "watch", a]);
     assert.match(again.out, /This folder also has an install of its own \(\.grooph\/hooks\/grooph-event\.mjs\): its sessions are recorded in the project as well/);
   });
