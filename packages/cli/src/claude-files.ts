@@ -5,8 +5,9 @@
  * that answered, each run's first and last time, and how each run ended.
  *
  * **It keeps nothing else.** The files it opens hold everything a session read, wrote and said. From a subagent's
- * `agent-<id>.meta.json` it takes five fields and leaves the description, the tool-use id and the worktree's path
- * and branch where they are. From a transcript it takes each line's time, whether the line begins a run, the name
+ * `agent-<id>.meta.json` it takes five fields and leaves the description and the worktree's path and branch where
+ * they are; the tool-use id it reads only to find where a foreground call returned, and does not return. From a
+ * transcript it takes each line's time, whether the line begins a run, the name
  * of the model on a reply, and whether a line carries the result of the call that started a foreground subagent.
  * From the main transcript it takes, of the harness's notice that a background subagent's run is over, the
  * subagent's id, one of three words for how it ended, and the time. No prompt, reply, tool input, tool result,
@@ -14,15 +15,23 @@
  *
  * What it returns is ids, times, a depth, one of two words for the shape, one of four for an ending, and three
  * names: a subagent's type, the model asked for and the model that answered. A name is kept only if it is shaped
- * like one (letters, digits and `. _ : @ / -`, no space, at most 100 characters). The type and the model asked
+ * like one (letters, digits and `. _ : @ / - [ ]`, no space, at most 100 characters). The type and the model asked
  * for are what the call that started the subagent named; that they are names of agents and models, and not words
  * a session made up, rests on the harness refusing a call that names neither.
  *
- * Two limits. The main transcript does not say who wrote a line it queued: text typed while the session was busy
- * is kept in the same shape as the harness's own notice. So a message that begins exactly as a notice does, names
- * one of the session's subagents, and is typed after that subagent's last line would be read as its ending. And a
- * foreground subagent's run is taken to have ended when the call that started it returned: as completed unless
- * the result is marked an error, which is read as ended with no more said.
+ * Its limits:
+ *
+ * - The main transcript does not say who wrote a line it queued: text typed while the session was busy is kept in
+ *   the same shape as the harness's own notice. So a message that begins exactly as a notice does, names one of
+ *   the session's subagents, and is typed after that subagent's last line would be read as its ending.
+ * - A foreground subagent's run is taken to have ended when the call that started it returned: as completed unless
+ *   the result is marked an error, which is read as ended with no more said.
+ * - Which run an ending is of is a matter of time, as it is in `seen.ts`: a notice names the subagent and not the
+ *   run. It is the earliest run with no ending that had written its last line within half a minute before, and
+ *   otherwise the latest that had written its last line at all. Where a subagent has two runs that close it is a
+ *   judgment; in the records its runs were never less than 130 s apart.
+ * - A session whose id is in two project folders: each subagent is read whole from the first folder that holds
+ *   any file of it. A line longer than 64 MB is passed over, and so is a first line that follows a byte-order mark.
  *
  * It reads on the machine it runs on, when it is asked, and writes nothing. Under `projects/` it follows no link
  * and opens nothing but plain files. The shapes are as Claude Code 2.1.271 to 2.1.295 wrote them
@@ -54,10 +63,10 @@ export function claudeProjectsDir(options: ClaudeFilesOptions = {}): string {
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const SESSION = /^[A-Za-z0-9._-]{1,128}$/;
 /** A name as a harness writes one: a type (`general-purpose`, `plugin:agent`) or a model (`opus`, `claude-opus-5-5`). No space in it, so no sentence. */
-const NAME = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,99}$/;
+const NAME = /^[A-Za-z0-9][A-Za-z0-9._:@/[\]-]{0,99}$/;
 const name = (v: unknown): string | undefined => (typeof v === "string" && NAME.test(v) ? v : undefined);
 /** A time as the harness writes one, given back in one form. */
-const TIME = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,9})?(Z|[+-]\d\d:\d\d)$/;
+const TIME = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,9})?(Z|[+-]\d\d:?\d\d)$/;
 const time = (v: unknown): string | undefined => {
   if (typeof v !== "string" || !TIME.test(v)) return undefined;
   const n = Date.parse(v);
@@ -82,14 +91,15 @@ const isPlainDir = (path: string): boolean => {
 };
 /**
  * A plain file, opened to read: never a link (which could lead out of the folder), nor a pipe or a device (which
- * could hold a read for ever). Asked not to wait, so that even one put in a file's place between the look and the
- * opening does not hang it.
+ * could hold a read for ever). The system is asked not to follow a link and not to wait, so that one put in the
+ * file's place between the look and the opening is refused or does not hang it (where the system has no such
+ * request to make, as on Windows, the look before and the look after are what holds).
  */
 function openPlain(path: string): number | undefined {
   if (!isPlainFile(path)) return undefined;
   let fd: number | undefined;
   try {
-    fd = openSync(path, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0));
+    fd = openSync(path, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0) | (constants.O_NOFOLLOW ?? 0));
     if (fstatSync(fd).isFile()) return fd;
   } catch {
     // Not there any more, or not ours to read: passed over.
@@ -97,6 +107,22 @@ function openPlain(path: string): number | undefined {
   if (fd !== undefined) closeSync(fd);
   return undefined;
 }
+
+/** A plain file's text, where it is one and is no larger than `largest` bytes; otherwise nothing. */
+export function readPlainFile(path: string, largest: number): string | undefined {
+  const fd = openPlain(path);
+  if (fd === undefined) return undefined;
+  try {
+    return fstatSync(fd).size > largest ? undefined : readFileSync(fd, "utf8");
+  } catch {
+    return undefined;
+  } finally {
+    closeSync(fd);
+  }
+}
+
+/** How long after a run's last line the harness's notice of its end may be written and still be looked for among the runs before the newest: 8.7 s at most, in the records. */
+const NEAR_MS = 30_000;
 
 /** A line longer than this is passed over unread: nothing this reader wants is that long. */
 const LONGEST_LINE = 64_000_000;
@@ -215,11 +241,10 @@ export function readClaudeAgents(session: string, options: ClaudeFilesOptions = 
     }
     for (const agent of found.values()) {
       if (agent.folder !== place.subagents) continue;
-      const fd = openPlain(join(place.subagents, `agent-${agent.id}.meta.json`));
-      if (fd === undefined) continue;
+      const text = readPlainFile(join(place.subagents, `agent-${agent.id}.meta.json`), 1_000_000);
+      if (text === undefined) continue;
       try {
-        if (fstatSync(fd).size > 1_000_000) continue;
-        const meta = JSON.parse(readFileSync(fd, "utf8")) as Record<string, unknown> | null;
+        const meta = JSON.parse(text) as Record<string, unknown> | null;
         if (typeof meta !== "object" || meta === null) continue;
         const depth = meta["spawnDepth"];
         const parent = meta["parentAgentId"];
@@ -236,8 +261,6 @@ export function readClaudeAgents(session: string, options: ClaudeFilesOptions = 
         };
       } catch {
         // A meta file that is not JSON: the subagent is still one, with nothing said of it.
-      } finally {
-        closeSync(fd);
       }
     }
   }
@@ -280,12 +303,21 @@ export function readClaudeAgents(session: string, options: ClaudeFilesOptions = 
 
   for (const place of places) {
     if (place.transcript === undefined || found.size === 0) continue;
-    const calls = [...waited.keys()].map((call) => Buffer.from(call));
     const notice = Buffer.from("<task-notification>");
+    const answers = Buffer.from('"tool_use_id":"');
+    /** Whether a line answers one of the calls waited for: each id after the key that names one is looked up, the line read once. */
+    const answersOne = (bytes: Buffer): boolean => {
+      for (let at = bytes.indexOf(answers); at !== -1; at = bytes.indexOf(answers, at + 1)) {
+        const from = at + answers.length;
+        const to = bytes.indexOf(34, from);
+        if (to !== -1 && to - from <= 200 && waited.has(bytes.toString("utf8", from, to))) return true;
+      }
+      return false;
+    };
     eachLine(place.transcript, (bytes) => {
       // Most of a main transcript is nothing to do with a subagent's end: a line is parsed only if it could be.
       const noticed = bytes.includes(notice);
-      if (!noticed && !calls.some((call) => bytes.includes(call))) return;
+      if (!noticed && (waited.size === 0 || !answersOne(bytes))) return;
       const line = json(bytes);
       if (line === undefined) return;
       returned(line, place.subagents);
@@ -301,14 +333,23 @@ export function readClaudeAgents(session: string, options: ClaudeFilesOptions = 
     });
   }
 
-  // An ending is the run's that had written its last line by then: of the runs with no ending yet, the latest such.
-  // A run that wrote a line after it had not ended, whatever a line in the transcript says; and a notice can be
-  // written after the same subagent has begun again.
+  // An ending is given to a run that had written its last line by then and has no ending yet: a run that wrote a
+  // line after it had not ended, whatever a line in the transcript says. A notice is written within seconds of its
+  // run's last line, and can be written after the same subagent has begun again: so of the runs that wrote their
+  // last line within half a minute before, the earliest; and where there is none such (a subagent stopped long
+  // after its last line), the latest.
   endings.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
   for (const ending of endings) {
-    const within = new Date(Date.parse(ending.at) + 1000).toISOString();
-    let run: HarnessRun | undefined;
-    for (const r of found.get(ending.agent)!.runs) if (r.end === undefined && r.first <= ending.at && r.last <= within) run = r;
+    const at = Date.parse(ending.at);
+    let near: HarnessRun | undefined;
+    let latest: HarnessRun | undefined;
+    for (const r of found.get(ending.agent)!.runs) {
+      const last = Date.parse(r.last);
+      if (r.end !== undefined || Date.parse(r.first) > at || last > at + 1000) continue;
+      latest = r;
+      if (near === undefined && at - last <= NEAR_MS) near = r;
+    }
+    const run = near ?? latest;
     if (run !== undefined) run.end = ending.end;
   }
 

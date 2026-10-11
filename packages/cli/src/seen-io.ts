@@ -7,12 +7,11 @@
  * writes one file a session, and a copy sent elsewhere part way through is a shorter one of the same.
  */
 
-import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { parseEvents, seenGraph, type SeenGraph, type SessionEvent } from "@grooph/core";
 
-import { findClaudeSession, readClaudeAgents, type ClaudeFilesOptions } from "./claude-files.js";
+import { findClaudeSession, readClaudeAgents, readPlainFile, type ClaudeFilesOptions } from "./claude-files.js";
 import { eventFiles, type EventSource } from "./events-io.js";
 import type { Output } from "./print.js";
 
@@ -37,13 +36,10 @@ export function readSeen(sources: EventSource[], session: string, options: { at?
   const held = new Map<string, SessionEvent[]>();
   for (const source of sources) {
     for (const file of eventFiles(resolve(options.cwd ?? process.cwd(), source.path!))) {
-      let text: string;
-      try {
-        if (statSync(file).size > LARGEST_FILE) continue;
-        text = readFileSync(file, "utf8");
-      } catch {
-        continue;
-      }
+      // A plain file and no other: a link, a pipe or a device by an events file's name (in a checkout of someone
+      // else's events, say) would be followed out of the folder, or never finish being read.
+      const text = readPlainFile(file, LARGEST_FILE);
+      if (text === undefined) continue;
       const here = new Map<string, SessionEvent[]>();
       for (const e of parseEvents(text).events) {
         if (e.event === "plan" || e.event === "note") continue;

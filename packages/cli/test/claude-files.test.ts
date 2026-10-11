@@ -91,9 +91,13 @@ const FILES: Record<string, string> = {
   // A foreground call the main session made, which came back as an error.
   "agent-a5.meta.json": meta("a5", { requestShape: "foreground", toolUseId: "toolu-main" }),
   "agent-a5.jsonl": jsonl([first(600), reply(601, "claude-opus-5-5")]),
-  // Asked for in the foreground and then put in the background: its call returned at once, and a notice ended it.
+  // Asked for in the foreground and then put in the background: its call returned at once, having only launched it,
+  // and a notice ended it later. (Its last line is before that return, so nothing but what the return says keeps it open.)
   "agent-a6.meta.json": meta("a6", { requestShape: "foreground", toolUseId: "toolu-moved" }),
-  "agent-a6.jsonl": jsonl([first(690), reply(710, "claude-opus-5-5")]),
+  "agent-a6.jsonl": jsonl([first(690), reply(690, "claude-opus-5-5")]),
+  // A background subagent whose starting call's result comes after its last line: a background call's return ends nothing.
+  "agent-a7.meta.json": meta("a7"),
+  "agent-a7.jsonl": jsonl([first(800), reply(800, "claude-opus-5-5")]),
   // Beside them, files that are not a subagent's.
   "agent-a1.prefix.json": JSON.stringify({ note: SAID.prompt }),
   "notes.txt": SAID.reply,
@@ -115,6 +119,7 @@ const MAIN: object[] = [
   toolResult(650, "toolu-main", { is_error: true }),
   { ...(toolResult(691, "toolu-moved") as object), toolUseResult: { status: "async_launched", agentId: "a6" } },
   notice(720, "a6", "failed"),
+  toolResult(801, `${SAID.call}-a7`),
 ];
 
 const EXPECTED = [
@@ -123,7 +128,8 @@ const EXPECTED = [
   { id: "a3", type: "Plan", depth: 1, shape: "background", model: "claude-sonnet-5-5", runs: [{ first: t(30), last: t(45), end: "failed" }] },
   { id: "a4", type: "general-purpose", depth: 1, shape: "background", modelAsked: "sonnet", model: "claude-sonnet-5-5", runs: [{ first: t(500), last: t(501) }] },
   { id: "a5", type: "general-purpose", depth: 1, shape: "foreground", model: "claude-opus-5-5", runs: [{ first: t(600), last: t(601), end: "ended" }] },
-  { id: "a6", type: "general-purpose", depth: 1, shape: "foreground", model: "claude-opus-5-5", runs: [{ first: t(690), last: t(710), end: "failed" }] },
+  { id: "a6", type: "general-purpose", depth: 1, shape: "foreground", model: "claude-opus-5-5", runs: [{ first: t(690), last: t(690), end: "failed" }] },
+  { id: "a7", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(800), last: t(800) }] },
 ];
 
 test("each subagent of a session: its type, depth, parent, shape, both models, each run's first and last time, and how it ended", (ctx) => {
@@ -164,7 +170,7 @@ test("a type or a model is kept only if it is shaped like a name, and a parent o
     "agent-a2.jsonl": jsonl([first(2), reply(3, `claude-${long}`)]),
     // A plugin's agent and a provider's model id are names. An agent is not its own parent.
     "agent-a3.meta.json": meta("a3", { agentType: "review-kit:code-reviewer", model: "us.anthropic.claude-opus-5-5-v1:0", parentAgentId: "a3" }),
-    "agent-a3.jsonl": jsonl([first(3), reply(4, "claude-opus-5-5"), reply(5, "not a name"), reply(6, "claude-sonnet-5-5")]),
+    "agent-a3.jsonl": jsonl([first(3), reply(4, "claude-opus-5-5"), reply(5, "not a name"), reply(6, "claude-sonnet-5-5[1m]"), { type: "user", timestamp: "2026-02-01T10:00:07+0000", message: { model: "claude-on-a-line-that-is-no-reply", content: SAID.prompt } }]),
     // A path, and a name with a mark in it that turns the text after it around.
     "agent-a4.meta.json": meta("a4", { agentType: "/Users/somebody/agents/mine", model: "opus\u202esupo" }),
     "agent-a4.jsonl": jsonl([first(4)]),
@@ -173,7 +179,8 @@ test("a type or a model is kept only if it is shaped like a name, and a parent o
     { id: "a1", depth: 1, shape: "background", runs: [{ first: t(1), last: t(6) }] },
     { id: "a2", depth: 2, shape: "background", runs: [{ first: t(2), last: t(3) }] },
     // The model that answered is the last one a reply named.
-    { id: "a3", type: "review-kit:code-reviewer", depth: 1, shape: "background", modelAsked: "us.anthropic.claude-opus-5-5-v1:0", model: "claude-sonnet-5-5", runs: [{ first: t(3), last: t(6) }] },
+    // A time may be written with its zone as +0000; a model is only what a reply names.
+    { id: "a3", type: "review-kit:code-reviewer", depth: 1, shape: "background", modelAsked: "us.anthropic.claude-opus-5-5-v1:0", model: "claude-sonnet-5-5[1m]", runs: [{ first: t(3), last: t(7) }] },
     { id: "a4", depth: 1, shape: "background", runs: [{ first: t(4), last: t(4) }] },
   ]);
 });
@@ -221,18 +228,33 @@ test("an ending is the run's that had written its last line by then, and a run k
       { type: "user", timestamp: "PLANTED 1 Jan 2031 10:00 GMT", message: { content: SAID.prompt } },
       { type: "user", timestamp: "2031-01-01T10:00:00", message: { content: SAID.prompt } },
       reply(15, "claude-opus-5-5"),
+      // A line written out of order: the run's last time is its latest, not the last in the file.
+      { type: "user", timestamp: t(12.5), message: { content: SAID.prompt } },
     ]),
+    // Read while its second run is going: the first run failed at 20, a message resumed it at 22, and the notice of
+    // the failure was written at 25. The notice is the first run's; the second has no ending yet.
+    "agent-a6.meta.json": meta("a6"),
+    "agent-a6.jsonl": jsonl([first(10), reply(20, "claude-opus-5-5"), resume(22), reply(24, "claude-opus-5-5")]),
+    // The same, with a second run so short that it too is over before the first notice: each notice in turn.
+    "agent-a7.meta.json": meta("a7"),
+    "agent-a7.jsonl": jsonl([first(10), reply(20, "claude-opus-5-5"), resume(22), reply(24.5, "claude-opus-5-5")]),
+    // Stopped long after its last line (it was waiting on a long command): the notice is still its own, however late.
+    "agent-a8.meta.json": meta("a8"),
+    "agent-a8.jsonl": jsonl([first(10), reply(20, "claude-opus-5-5"), resume(100), reply(110, "claude-opus-5-5")]),
     // A meta file too large to be one is not read.
     "agent-a5.meta.json": JSON.stringify({ agentType: "Plan", spawnDepth: 1, padding: "x".repeat(1_100_000) }),
     "agent-a5.jsonl": jsonl([first(10), reply(20, "claude-opus-5-5")]),
   };
-  const main = [notice(23, "a1", "failed"), notice(50, "a2", "killed"), notice(21, "a3", "completed"), notice(22, "a3", "failed"), notice(61, "a1", "completed"), notice(91, "a2", "completed")];
+  const main = [notice(23, "a1", "failed"), notice(50, "a2", "killed"), notice(21, "a3", "completed"), notice(22, "a3", "failed"), notice(61, "a1", "completed"), notice(91, "a2", "completed"), notice(25, "a6", "failed"), notice(25, "a7", "failed"), notice(25.5, "a7", "completed"), notice(20.5, "a8", "completed"), notice(900, "a8", "killed")];
   assert.deepEqual(readClaudeAgents(SESSION, { env: config(ctx, files, main).env }), [
     { id: "a1", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(20), end: "failed" }, { first: t(22), last: t(60), end: "completed" }] },
     { id: "a2", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(90), end: "completed" }] },
     { id: "a3", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(20), end: "completed" }] },
     { id: "a4", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(15) }] },
     { id: "a5", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(20) }] },
+    { id: "a6", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(20), end: "failed" }, { first: t(22), last: t(24) }] },
+    { id: "a7", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(20), end: "failed" }, { first: t(22), last: t(24.5), end: "completed" }] },
+    { id: "a8", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(20), end: "completed" }, { first: t(100), last: t(110), end: "killed" }] },
   ]);
 });
 
@@ -249,14 +271,14 @@ test("it honors CLAUDE_CONFIG_DIR, and without it reads ~/.claude; a session wit
   writeFileSync(join(subagents, "agent-b1.jsonl"), jsonl([first(1), reply(2, "claude-opus-5-5")]));
   assert.deepEqual(readClaudeAgents(SESSION, { env: {}, home }), [{ id: "b1", type: "Explore", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(1), last: t(2) }] }]);
   // The variable wins over the home folder.
-  assert.deepEqual(readClaudeAgents(SESSION, { env, home }).map((a) => a.id), ["a1", "a2", "a3", "a4", "a5", "a6"]);
+  assert.deepEqual(readClaudeAgents(SESSION, { env, home }).map((a) => a.id), ["a1", "a2", "a3", "a4", "a5", "a6", "a7"]);
 
   // No such session or no such folder: nothing, and no error.
   assert.deepEqual(readClaudeAgents("00000000-0000-4000-8000-000000000000", { env }), []);
   assert.deepEqual(readClaudeAgents(SESSION, { env: { CLAUDE_CONFIG_DIR: join(dir, "nowhere") } }), []);
   // Told which project folders to look in, it looks in no other.
   assert.deepEqual(readClaudeAgents(SESSION, { env, only: (folder) => folder.startsWith("-another") }), []);
-  assert.equal(readClaudeAgents(SESSION, { env, only: (folder) => folder === "-work-demo" }).length, 6);
+  assert.equal(readClaudeAgents(SESSION, { env, only: (folder) => folder === "-work-demo" }).length, 7);
   assert.deepEqual(findClaudeSession(SESSION, { env }), [{ transcript: join(dir, "projects", "-work-demo", `${SESSION}.jsonl`), subagents: join(dir, "projects", "-work-demo", SESSION, "subagents") }]);
 });
 
@@ -275,7 +297,7 @@ test("a name that is not a session's id reaches no file, though one lies where i
   }
   // Each subagent is read whole from the first folder that holds it: a1 is `-work-demo`'s, not a mix of the two.
   const agents = readClaudeAgents(SESSION, { env });
-  assert.deepEqual(agents.map((a) => a.id), ["z1", "a1", "a2", "a3", "a4", "a5", "a6"]);
+  assert.deepEqual(agents.map((a) => a.id), ["z1", "a1", "a2", "a3", "a4", "a5", "a6", "a7"]);
   assert.deepEqual(agents[1], EXPECTED[0]);
   // And a subagent's run is ended only by the transcript of its own folder: a4 is still running, whatever the other says.
   assert.deepEqual(agents[4], EXPECTED[3]);

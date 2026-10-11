@@ -5,7 +5,8 @@
  */
 
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -183,4 +184,25 @@ test("a session two sources hold is drawn once, from the one that holds the most
   const read = readSeen([{ path: codex }], "seen-nested-and-resumed", { claude });
   assert.ok("graph" in read && !read.harnessRead && read.graph.record.harness === undefined);
   assert.equal(read.graph.nodes[0]!.kind === "session" && read.graph.nodes[0]!.harness, "codex");
+});
+
+test("an events folder is read for plain files only: a link or a pipe by an events file's name is passed over, and does not hold the command", { timeout: 30_000, skip: process.platform === "win32" }, (ctx) => {
+  const { events, expected } = fixture("failed");
+  const dir = project(ctx, { "seen-failed": events });
+  // What a checkout of someone else's events branch could hold beside the real file.
+  const outside = temp(ctx, "grooph-seen-outside-");
+  writeFileSync(join(outside, "other.jsonl"), events.replaceAll("seen-failed", "seen-elsewhere"));
+  symlinkSync(join(outside, "other.jsonl"), join(dir, ".grooph", "events", "linked.jsonl"));
+  symlinkSync("/dev/zero", join(dir, ".grooph", "events", "endless.jsonl"));
+  try {
+    execFileSync("mkfifo", [join(dir, ".grooph", "events", "pipe.jsonl")]);
+  } catch {
+    // No pipes to be made here: the link to a device is the same question.
+  }
+  const claude = { env: { CLAUDE_CONFIG_DIR: temp(ctx, "grooph-seen-empty-") } };
+  const read = readSeen([{ path: dir }], "seen-failed", { claude });
+  assert.ok("graph" in read);
+  assert.deepEqual(drawn(read.graph), expected.fromTheHookAlone.graphs[expected.fromTheHookAlone.graphs.length - 1]);
+  const linked = readSeen([{ path: dir }], "seen-elsewhere", { claude });
+  assert.ok("error" in linked && /no session "seen-elsewhere"/.test(linked.error));
 });

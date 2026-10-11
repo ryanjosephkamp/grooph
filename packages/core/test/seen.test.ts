@@ -491,7 +491,11 @@ test("a run that is over before the hook's start line is written is still drawn 
   // A start line is written after its run's first line: 1.3 s after, in one of the fixtures. A run can be over by then.
   const lines = [line(0, "turn-start"), line(2, "subagent-start", { agent: "a1", type: "general-purpose" }), line(2.01, "tool", { tool: "Agent", spawned: "a1" }), line(3, "turn-end")];
   const failed = seenGraph(lines, { harness: [ran("a1", 0.7, 1.3, {}, "failed")] });
-  assert.deepEqual([agentOf(failed, "a1").state, agentOf(failed, "a1").runs, failed.differs, failed.nodes[0]!.state], ["failed", [{ from: t(2), to: t(2), end: "failed", source: "both" }], [{ agent: "a1", what: "no-stop-line", run: 0 }], "waiting"]);
+  // Drawn when the hook's line comes, from when the files say it began.
+  assert.deepEqual([agentOf(failed, "a1").state, agentOf(failed, "a1").runs, failed.differs, failed.nodes[0]!.state], ["failed", [{ from: t(0.7), to: t(2), end: "failed", source: "both" }], [{ agent: "a1", what: "no-stop-line", run: 0 }], "waiting"]);
+  assert.deepEqual([edgeTo(failed, "a1"), failed.moments, failed.nodes[0]!.kind === "session" && failed.nodes[0]!.started], [{ from: "s1", to: "a1", kind: "started", at: t(0.7), knownAt: t(2), source: "both" }, [t(0), t(2), t(3)], t(0)]);
+  // The ending the files hold is nothing in the graph before that: with no line of the hook's yet, there is no session to draw.
+  assert.deepEqual(seenGraph(lines.slice(1), { harness: [ran("a1", 0.7, 1.3, {}, "failed")] }).moments, [t(2), t(3)]);
   // It completed, and its stop line was written before its start line: one run, from when the harness's files say it began.
   const early = [line(0, "turn-start"), line(1.4, "subagent-stop", { agent: "a1", type: "general-purpose" }), line(2, "subagent-start", { agent: "a1", type: "general-purpose" }), line(2.01, "tool", { tool: "Agent", spawned: "a1" })];
   const done = seenGraph(early, { harness: [ran("a1", 0.7, 1.3)] });
@@ -533,7 +537,7 @@ test("a start line belongs to the earliest run near it that has none; and a hook
   // A second run can begin before the first one's start line is written.
   const lines = [line(0, "turn-start"), line(2, "subagent-start", { agent: "a1", type: "general-purpose" }), line(2.5, "subagent-start", { agent: "a1", type: "general-purpose" }), line(9, "subagent-stop", { agent: "a1", type: "general-purpose" })];
   const g = seenGraph(lines, { harness: [{ id: "a1", depth: 1, runs: [{ first: t(0.5), last: t(1), end: "completed" }, { first: t(1.5), last: t(8.9), end: "completed" }] }] });
-  assert.deepEqual(agentOf(g, "a1").runs, [{ from: t(2), to: t(2), end: "completed", source: "both" }, { from: t(2.5), to: t(9), end: "completed", source: "both" }]);
+  assert.deepEqual(agentOf(g, "a1").runs, [{ from: t(0.5), to: t(2), end: "completed", source: "both" }, { from: t(2.5), to: t(9), end: "completed", source: "both" }]);
   assert.deepEqual(g.differs, [{ agent: "a1", what: "no-stop-line", run: 0 }]);
   // A run from hours before is not near: the start line is the newest run's.
   const old = seenGraph([line(0, "turn-start"), line(100, "subagent-start", { agent: "a1", type: "general-purpose" })], { harness: [{ id: "a1", depth: 1, runs: [{ first: t(-9000), last: t(-8000), end: "completed" }, { first: t(99.9), last: t(99.9) }] }] });
@@ -595,6 +599,68 @@ test("a stop with no type from an id the harness's files hold is that agent's st
   const lines = [line(0, "turn-start"), line(9, "subagent-stop", { agent: "a1" }), line(10, "subagent-stop", { agent: "helper" })];
   const g = seenGraph(lines, { harness: [ran("a1", -100, 8.9)] });
   assert.deepEqual([agentOf(g, "a1").runs, g.differs, g.record.hook.stopsNotDrawn], [[{ from: t(-100), to: t(9), end: "completed", source: "both" }], [{ agent: "a1", what: "no-start-line", run: 0 }], 1]);
+  // And where the files hold the agent with no run that can be dated, so that nothing of it is drawn before its stop.
+  const bare = seenGraph(lines, { harness: [{ id: "a1", type: "Explore", depth: 1, runs: [] }] });
+  assert.deepEqual([agentsOf(bare).map((a) => [a.id, a.type, a.state, a.runs]), bare.record.hook.stopsNotDrawn], [[["a1", "Explore", "done", [{ to: t(9), source: "hook" }]]], 1]);
+});
+
+test("which run a line is of, where one agent's runs are seconds apart", () => {
+  const start = (at: number): SessionEvent => line(at, "subagent-start", { agent: "a1", type: "general-purpose" });
+  const stop = (at: number): SessionEvent => line(at, "subagent-stop", { agent: "a1", type: "general-purpose" });
+  const files = (...runs: [number, number, ("completed" | "failed" | "killed")?][]): HarnessAgent[] => [{ id: "a1", type: "general-purpose", depth: 1, runs: runs.map(([first, last, end]) => ({ first: t(first), last: t(last), ...(end !== undefined ? { end } : {}) })) }];
+  const runsOf = (g: SeenGraph): unknown[] => agentOf(g, "a1").runs.map((r) => [r.from, r.to, r.end ?? (r.notSeenToFinish ? "not seen to finish" : "open"), r.source]);
+
+  // A run that failed and fired no stop, then two that each fired one: each stop is its own run's, and only the first run has none.
+  const mixed = seenGraph([line(0, "turn-start"), start(10.1), start(14.1), stop(16.1), start(18.1), stop(20.1)], { harness: files([10, 12, "failed"], [14, 16, "completed"], [18, 20, "completed"]) });
+  assert.deepEqual(runsOf(mixed), [[t(10.1), t(12), "failed", "both"], [t(14.1), t(16.1), "completed", "both"], [t(18.1), t(20.1), "completed", "both"]]);
+  assert.deepEqual(mixed.differs, [{ agent: "a1", what: "no-stop-line", run: 0 }]);
+  // The same read while the third run is going: the files do not say yet that it ended, and its stop line is still its own.
+  const live = seenGraph([line(0, "turn-start"), start(10.1), start(14.1), stop(16.1), start(18.1), stop(20.1)], { harness: files([10, 12, "failed"], [14, 16, "completed"], [18, 19.9]) });
+  assert.deepEqual([runsOf(live)[2], agentOf(live, "a1").state], [[t(18.1), t(20.1), "open", "both"], "done"]);
+
+  // A stop written for a run that is not drawn yet (its start line comes after) draws that run, and ends no other.
+  const early = seenGraph([line(0, "turn-start"), start(10.1), stop(20.4), start(20.6)], { harness: files([10, 12], [20, 20.3, "completed"]) });
+  assert.deepEqual(runsOf(early), [[t(10.1), undefined, "not seen to finish", "both"], [t(20), t(20.4), "completed", "both"]]);
+  assert.deepEqual([agentOf(early, "a1").state, early.differs], ["done", []]);
+
+  // A run from before the hook's first line, and one begun soon after it: the start line is the newer run's.
+  const before = seenGraph([line(12, "turn-start"), start(25.8)], { harness: files([1.9, 10, "completed"], [25.4, 114.9, "killed"]) });
+  assert.deepEqual(runsOf(before), [[t(1.9), t(10), "completed", "harness"], [t(25.8), t(114.9), "killed", "both"]]);
+  assert.deepEqual(before.differs, [{ agent: "a1", what: "run-not-in-hook", run: 0 }, { agent: "a1", what: "no-stop-line", run: 1 }]);
+
+  // Two stop lines for one run: the second adds nothing.
+  const twice = seenGraph([line(0, "turn-start"), start(10.1), stop(12.1), stop(13.1)], { harness: files([10, 12, "completed"]) });
+  assert.deepEqual([runsOf(twice), twice.differs, twice.moments], [[[t(10.1), t(12.1), "completed", "both"]], [], [t(0), t(10.1), t(12.1)]]);
+  // A stop long after the last line of a run the files do not say is over is still that run's: a subagent can wait on a long command.
+  const waited = seenGraph([line(0, "turn-start"), start(10.1), stop(12.1), start(100.1), stop(200)], { harness: files([10, 12, "completed"], [100, 110]) });
+  assert.deepEqual(runsOf(waited), [[t(10.1), t(12.1), "completed", "both"], [t(100.1), t(200), "open", "both"]]);
+  // A stop that is no run of the files' (their one run was over long before) ends the run that is open, which only the hook saw: the hook's lines are the timeline.
+  const hookOnly = seenGraph([line(0, "turn-start"), start(10.1), stop(12.1), start(100.1), stop(200)], { harness: files([10, 12, "completed"]) });
+  assert.deepEqual([runsOf(hookOnly), hookOnly.differs], [[[t(10.1), t(12.1), "completed", "both"], [t(100.1), t(200), "open", "hook"]], [{ agent: "a1", what: "run-not-in-harness", run: 1 }]]);
+  // A hook's clock a little ahead of the files': nothing is dated later than the line that shows it.
+  const ahead = seenGraph([line(0, "turn-start"), stop(9.9)], { harness: files([10, 10.2, "completed"]) });
+  assert.deepEqual([runsOf(ahead), ahead.edges.map((x) => [x.at, x.knownAt])], [[[t(9.9), t(9.9), "completed", "both"]], [[t(9.9), t(9.9)]]]);
+});
+
+test("small things the graph holds to: an end the files give after the session closed, a run its parent's tool line opened, a line from inside a run, a turn after an end, a type once given", () => {
+  // The session closes with the run open; the files then say how it ended. It failed: it is not "not seen to finish".
+  const closed = seenGraph([line(0, "turn-start"), line(1, "subagent-start", { agent: "a1", type: "Explore" }), line(5, "session-end")], { harness: [ran("a1", 0.9, 9, { type: "Explore" }, "failed")] });
+  assert.deepEqual([agentOf(closed, "a1").state, agentOf(closed, "a1").runs, seenGraph([line(0, "turn-start"), line(1, "subagent-start", { agent: "a1", type: "Explore" }), line(5, "session-end")], { harness: [ran("a1", 0.9, 9, { type: "Explore" }, "failed")], at: t(6) }).nodes[1]!.state], ["failed", [{ from: t(1), to: t(9), end: "failed", source: "both" }], "not-seen-to-finish"]);
+  // The parent's tool line opens the child's run; the files' own first line of it, a moment later by another clock, is the same run.
+  const joined = seenGraph([line(0, "turn-start"), line(5, "tool", { tool: "Agent", spawned: "c" })], { harness: [ran("c", 5.2, 9, { type: "Explore" })] });
+  assert.deepEqual([agentOf(joined, "c").runs, joined.differs], [[{ from: t(5), to: t(9), end: "completed", source: "both" }], [{ agent: "c", what: "no-start-line", run: 0 }]]);
+  // A line from inside a run the hook wrote no start line for: the hook saw that run.
+  const inside = seenGraph([line(0, "turn-start"), line(7, "tool", { agent: "a1", type: "Explore", tool: "Read" })], { harness: [ran("a1", -50, 9, { type: "Explore" })] });
+  assert.deepEqual([agentOf(inside, "a1").runs[0]!.source, inside.differs], ["both", [{ agent: "a1", what: "no-start-line", run: 0 }]]);
+  // From one not seen to finish, a line means it is running after all.
+  const alive = seenGraph([line(0, "turn-start"), line(1, "subagent-start", { agent: "a1", type: "Explore" }), line(5, "session-end"), line(6, "tool", { agent: "a1", type: "Explore", tool: "Read" })]);
+  assert.deepEqual([agentOf(alive, "a1").state, agentOf(alive, "a1").runs, alive.nodes[0]!.state], ["running", [{ from: t(1), source: "hook" }], "working"]);
+  // A turn that starts after the session's end means it is open again.
+  const reopened = seenGraph([line(0, "turn-start"), line(1, "turn-end"), line(5, "session-end"), line(9, "turn-start")]);
+  assert.deepEqual([reopened.nodes[0]!.state, reopened.nodes[0]!.kind === "session" && reopened.nodes[0]!.ended], ["working", undefined]);
+  // The first type a line of its own gives an agent stands.
+  const typed = seenGraph([line(0, "turn-start"), line(1, "subagent-start", { agent: "a1", type: "Explore" }), line(2, "tool", { agent: "a1", type: "Plan", tool: "Read" }), line(3, "subagent-start", { agent: "a1", type: "general-purpose" })]);
+  assert.equal(agentOf(typed, "a1").type, "Explore");
 });
 
 test("what is given that is not what it should be is passed over: a moment that is not one, an id that is not one, a line that is not one", () => {
