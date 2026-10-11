@@ -17,7 +17,7 @@ Your harness runs the package. grooph never runs an agent, never calls a model, 
 
 ## Quickstart
 
-You need Node 22 or later, pnpm and git. This makes a graph from a template, checks it, draws it, and writes the package Claude Code runs:
+You need Node 22 or later, pnpm and git. This makes a graph from a template, checks it and draws it:
 
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git && cd grooph
@@ -25,10 +25,9 @@ pnpm install && pnpm -r build && scripts/install-local.sh
 grooph template use grind-loop --name "Fix the flaky test" --set task="make the checkout test pass ten times in a row" --set test-command="pnpm test checkout" --out flaky.grooph.json
 grooph validate --for-export flaky.grooph.json
 grooph image flaky.grooph.json --out flaky.png
-grooph export flaky.grooph.json --target claude-code --into .
 ```
 
-`scripts/install-local.sh` links `grooph` into `~/.local/bin` and the `grooph-design` skill into `~/.claude/skills/`. It prints what it will touch first, and `--uninstall` removes both links. `grooph export` prints the kickoff prompt to paste into a Claude Code session opened in that folder. Run it in your own project with `--into <your project>`.
+`scripts/install-local.sh` links `grooph` into `~/.local/bin` and the `grooph-design` skill into `~/.claude/skills/`. It prints what it will touch first, and `--uninstall` removes both links.
 
 ## Ask your agent
 
