@@ -75,8 +75,10 @@ That is two sets:
 - **`lab/test/`**: the command started as a program; export for both harnesses against `fixtures/golden/`, byte for byte; the frozen game experiment's package against its manifest (`experiments/game/setup/starting-contents.claude-code.sha256`); adoption; and the two proving runners' dry runs.
 - **Every runner test**: `scripts/lib/*.test.mjs` and `scripts/prove-codex.test.mjs`. Five of these ran nowhere in CI before the lab had a test script: the tests of `compare-run`, `compare-prompt`, `compare-lead`, `compare-score` and `compare-projects`. One is not the lab's own: `watching-check-paid.test.mjs` tests the watching check's runner, which is built on these.
 
-What no test reaches, as far as a search of the test files shows:
+What the tests do not reach, measured with Node's own coverage over the lab's tests and every runner test:
 
-- `scripts/lib/prove-pattern.mjs` beyond its dry run, and the four modules it stands on that no test names: `prove-check.mjs`, `prove-evidence.mjs`, `prove-ledger.mjs` and `prove-summary.mjs`.
-- `scripts/lib/compare-seen.mjs` and `compare-summary.mjs`, and the dry run of `scripts/compare.sh` (`compare-run.test.mjs` has no dry-run case).
+- `scripts/lib/prove-pattern.mjs` beyond its dry run, and `scripts/prove-codex.mjs` beyond its dry run and the functions its own test calls: every path that would start a session, and each one's `--check` from the command line.
+- `scripts/lib/prove-check.mjs`: loaded, and none of its functions run by a test. (CI's `node scripts/field-guide.mjs --check` does run it.) `prove-evidence.mjs` and `prove-ledger.mjs` are named by no test and are run in part, through the runners that import them.
+- `scripts/lib/prove-summary.mjs`, `compare-seen.mjs` and `compare-summary.mjs`: never loaded.
+- The command line of `scripts/compare.sh` (`--status`, `--derive`, `--judge`, `--next`, `--score`, a dry run, a paid run): `compare-run.test.mjs` tests the functions under it.
 - `scripts/e2e-claude-code.sh` in any mode. Its dry run rewrites `~/.claude.json` (it grants a trust entry and takes it away), so it is run by hand only.

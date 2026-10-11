@@ -46,50 +46,53 @@ function sameTree(made: string, kept: string, what: string): void {
 const REAL_RUN = join("fixtures", "runs", "slice-0007-sandwich", "runs", "20260919-0057-66c8");
 
 test("started as a program, the lab's command answers what grooph answers", () => {
-  // Each with the exit code it must give, so that the two cannot agree by failing alike (a fixture that moved, say).
-  const asked: [status: number, ...args: string[]][] = [
-    [0, "--version"],
-    [0, "--help"],
-    [1],
-    [0, "help", "export"],
-    [0, "help", "adopt"],
-    [0, "help", "runs"],
-    [0, "help", "watch"],
-    [1, "nonsense"],
-    [0, "validate", "--for-export", "fixtures/valid/review-loop.grooph.json"],
-    [1, "validate", "fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json"],
-    [0, "explain", "fixtures/valid/review-loop.grooph.json"],
-    [1, "export"],
-    [1, "export", "fixtures/valid/review-loop.grooph.json", "--target", "nowhere", "--into", "never-made"],
-    [0, "runs", "list", "fixtures/runs"],
-    [0, "runs", "show", REAL_RUN],
-    [0, "adopt", REAL_RUN],
+  // Each with the exit code it must give and a word it must say, so that the two cannot agree by failing alike
+  // (a fixture that moved, say: "no such file" is exit 1 too).
+  const asked: { status: number; says: RegExp; args: string[] }[] = [
+    { status: 0, says: /^\d+\.\d+\.\d+\n$/, args: ["--version"] },
+    { status: 0, says: /^grooph \d+\.\d+\.\d+: /, args: ["--help"] },
+    { status: 1, says: /^grooph \d+\.\d+\.\d+: /, args: [] },
+    { status: 0, says: /^grooph export <file> --target <harness> --into <dir>/, args: ["help", "export"] },
+    { status: 0, says: /^grooph adopt <run dir>/, args: ["help", "adopt"] },
+    { status: 0, says: /^grooph runs list \[<dir>\]/, args: ["help", "runs"] },
+    { status: 0, says: /^grooph watch \[<run dir> \| <graph dir>\]/, args: ["help", "watch"] },
+    { status: 1, says: /unknown command "nonsense"/, args: ["nonsense"] },
+    { status: 0, says: /W_HOMOGENEOUS_CRITICS[^]*0 errors, 1 warning/, args: ["validate", "--for-export", "fixtures/valid/review-loop.grooph.json"] },
+    { status: 1, says: /E_CYCLE_NO_STOP/, args: ["validate", "fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json"] },
+    { status: 0, says: /Loop "Build-review cycle": at most 4 rounds/, args: ["explain", "fixtures/valid/review-loop.grooph.json"] },
+    { status: 1, says: /export needs a file/, args: ["export"] },
+    { status: 1, says: /unknown target "nowhere"[^]*No package was written\. A plan can still be/, args: ["export", "fixtures/valid/review-loop.grooph.json", "--target", "nowhere", "--into", "never-made"] },
+    { status: 0, says: /20260919-0057-66c8 +slice-0007-sandwich +ended · pass/, args: ["runs", "list", "fixtures/runs"] },
+    { status: 0, says: /^Run 20260919-0057-66c8 · Slice 0007 sandwich/, args: ["runs", "show", REAL_RUN] },
+    { status: 0, says: /version 2 of slice-0007-sandwich[^]*dry run: --write writes it/, args: ["adopt", REAL_RUN] },
   ];
-  for (const [status, ...args] of asked) {
+  for (const { status, says, args } of asked) {
     const ours = lab(args);
-    assert.equal(ours.status, status, `grooph-lab ${args.join(" ")}\n${ours.stdout}${ours.stderr}`);
+    const what = `grooph-lab ${args.join(" ")}\n${ours.stdout}${ours.stderr}`;
+    assert.equal(ours.status, status, what);
+    assert.match(`${ours.stdout}${ours.stderr}`, says, what);
     assert.deepEqual(ours, start(GROOPH, args), `grooph-lab ${args.join(" ")}`);
   }
   // The command says which grooph it stands on.
   assert.deepEqual(lab(["--version"]), { status: 0, stdout: `${JSON.parse(readFileSync(join(root, "packages", "cli", "package.json"), "utf8")).version}\n`, stderr: "" });
 });
 
-test("the lab's run() hands on each of the product's arguments: where the output goes, standard input, and what a run may reach", () => {
-  // In a process of its own, with standard input closed (hand-on.ts says why).
+test("the lab's run() hands on each of the product's arguments: where the output goes, standard input, and the folders and the fetch a run may reach", () => {
+  // In a process of its own, with nothing on standard input (hand-on.ts says why, and what it leaves untried).
   const graph = join(root, "fixtures", "valid", "fix-until-green.grooph.json");
   const empty = scratch();
   try {
     const ran = spawnSync(process.execPath, [join(root, "lab", "dist", "test", "hand-on.js"), graph, empty], { cwd: root, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 60_000 });
     assert.equal(ran.status, 0, `${ran.stdout}${ran.stderr}`);
-    const got = JSON.parse(ran.stdout) as { validated: number; applied: number; read: number; listed: number; fetched: number; stdout: string[]; stderr: string[] };
+    const got = JSON.parse(ran.stdout) as { validated: number; applied: number; read: number; listed: number; fetchedByList: number; asked: number; fetched: number; stdout: string[]; stderr: string[] };
     const said = got.stdout.join("\n");
-    assert.deepEqual(got.stderr, []);
-    assert.deepEqual([got.validated, got.applied, got.listed], [0, 0, 0]);
+    assert.deepEqual([got.validated, got.applied, got.listed], [0, 0, 0], got.stderr.join("\n"));
     assert.match(said, /no issues/);
     assert.equal(got.read, 1, "the ops came from the reader it was given");
     assert.match(said, /applied 1 op; .* not written/);
     assert.match(said, /^0 templates\./m, "the templates it listed are the ones in the folders it was given: none");
-    assert.equal(got.fetched, 0);
+    assert.equal(got.fetchedByList, 0, "a list of what is on the machine asks no registry");
+    assert.deepEqual([got.asked, got.fetched], [1, 1], "the registry it was told to ask was asked through the fetch it was given, once, and that failed as the stand-in fails");
   } finally {
     rmSync(empty, { recursive: true, force: true });
   }

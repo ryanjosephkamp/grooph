@@ -5,6 +5,8 @@
  *
  * `claude` and `codex` are stand-ins for the length of a dry run, first on its path: a file that writes down how it
  * was called and does nothing else. So "no model was called" is read from that list, not from what the runner says.
+ * Before the run each stand-in is called once and its line looked for, so an empty list afterward means nothing
+ * called it, and not that it was never found or could not write.
  *
  * The runners' own unit tests are `scripts/lib/*.test.mjs` and `scripts/prove-codex.test.mjs`, which this package's
  * `test` script runs beside these.
@@ -29,13 +31,20 @@ function dry(command: string, args: string[]): Dry {
   const log = join(home, "calls.txt");
   mkdirSync(tmp);
   mkdirSync(bin);
-  writeFileSync(log, "");
+  // The list's path reaches a stand-in through the environment and not through its text: a path may hold anything.
   for (const harness of ["claude", "codex"]) {
-    writeFileSync(join(bin, harness), `#!/bin/sh\nprintf '%s\\n' "${harness} $*" >> "${log}"\n[ "$1" = "--version" ] && echo "0.0.0 (a stand-in: it calls no model)"\nexit 0\n`, { mode: 0o755 });
+    writeFileSync(join(bin, harness), `#!/bin/sh\nprintf '%s\\n' "${harness} $*" >> "$GROOPH_LAB_TEST_CALLS"\n[ "$1" = "--version" ] && echo "0.0.0 (a stand-in: it calls no model)"\nexit 0\n`, { mode: 0o755 });
   }
-  const env = Object.fromEntries(Object.entries({ ...process.env, TMPDIR: tmp, PATH: `${bin}${delimiter}${process.env["PATH"] ?? ""}` }).filter(([name]) => name !== "GROOPH_MODELS" && name !== "GROOPH_MODELS_CODEX"));
+  const env = Object.fromEntries(
+    Object.entries({ ...process.env, TMPDIR: tmp, PATH: `${bin}${delimiter}${process.env["PATH"] ?? ""}`, GROOPH_LAB_TEST_CALLS: log }).filter(([name]) => name !== "GROOPH_MODELS" && name !== "GROOPH_MODELS_CODEX"),
+  );
+  const called = (): string[] => (existsSync(log) ? readFileSync(log, "utf8").split("\n").filter((line) => line !== "") : []);
+  // The control: each stand-in is the one a bare name finds, and it can write its line.
+  for (const harness of ["claude", "codex"]) spawnSync(harness, ["--version"], { cwd: root, env, encoding: "utf8" });
+  assert.deepEqual(called(), ["claude --version", "codex --version"], "the stand-ins are found by name and write down a call");
+  writeFileSync(log, "");
   const { status, stdout, stderr } = spawnSync(command, args, { cwd: root, env, encoding: "utf8" });
-  const calls = readFileSync(log, "utf8").split("\n").filter((line) => line !== "");
+  const calls = called();
   return { status, stdout, stderr, made: readdirSync(tmp).sort(), tmp, calls, done: () => rmSync(home, { recursive: true, force: true }) };
 }
 
