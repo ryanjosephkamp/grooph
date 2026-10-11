@@ -632,6 +632,43 @@ test("the hook reads no variable for grooph's folder: an install's lines go to t
   });
 });
 
+test("with GROOPH_EVENTS_DIR set, the recorder outside the project does what it does without it: the record stays in grooph's own folder, one folder to a listed folder, the person's alone, and the readers find it", async () => {
+  // The variable moves a project's events. Out here it is not read: what a session's environment names does not move the record.
+  await withHome(async (h) => {
+    assert.equal((await h.grooph(["hooks", "install", "--user"])).code, 0);
+    const [a, b] = [h.project("a"), h.project("b")];
+    assert.equal((await h.grooph(["hooks", "watch", a, b])).code, 0);
+    const named = join(h.root, "named-by-the-variable");
+
+    // A name that is not a whole path, with the hook started in the project: nothing is made in the project.
+    quiet(fire(h.hook, { hook_event_name: "SessionStart", session_id: "s-rel", cwd: a }, { cwd: a, env: { GROOPH_EVENTS_DIR: "rel-events", CLAUDE_PROJECT_DIR: a } }), "a relative GROOPH_EVENTS_DIR");
+    assert.deepEqual(readdirSync(a), [], "the hook made something in the watched project");
+    assert.deepEqual(sessionsIn(h.store(a)), ["s-rel.jsonl"]);
+
+    // Two listed folders, one variable: each session is in its own folder's record, and the named folder is not made.
+    quiet(start(h.hook, "s-a", a, { GROOPH_EVENTS_DIR: named }), "a session in the first listed folder");
+    quiet(start(h.hook, "s-b", b, { GROOPH_EVENTS_DIR: named }), "a session in the second listed folder");
+    assert.deepEqual(sessionsIn(h.store(a)), ["s-a.jsonl", "s-rel.jsonl"]);
+    assert.deepEqual(sessionsIn(h.store(b)), ["s-b.jsonl"]);
+    assert.equal(existsSync(named), false, "the folder the variable named was made");
+
+    // The folders and the files made with the variable set are the person's alone, as without it.
+    if (process.platform !== "win32") {
+      for (const folder of [h.events, h.store(a), h.store(b)]) assert.equal(statSync(folder).mode & 0o777, 0o700, folder);
+      for (const file of [join(h.store(a), "s-a.jsonl"), join(h.store(b), "s-b.jsonl")]) assert.equal(statSync(file).mode & 0o777, 0o600, file);
+    }
+
+    // The readers, with the same variable in their own environment, find the events where they are; status says why.
+    const read = await h.grooph(["sessions", "--json"], { cwd: a, env: { GROOPH_EVENTS_DIR: named } });
+    assert.deepEqual((JSON.parse(read.out) as LiveView).sessions.map((s) => s.id).sort(), ["s-a", "s-rel"]);
+    assert.equal(read.err, storeLine({ dir: h.store(a), listed: a }));
+    const status = await h.grooph(["hooks", "status", "--dir", b], { env: { GROOPH_EVENTS_DIR: named } });
+    assert.match(status.out, new RegExp(`\\n1 session file in ${literally(h.store(b))}/, outside the project: this folder is listed`));
+    assert.match(status.out, new RegExp(`\\n  GROOPH_EVENTS_DIR is set \\(${literally(named)}\\): the recorder outside the project does not read it, and its events are in ${literally(h.events)}/\\n`));
+    assert.doesNotMatch((await h.grooph(["hooks", "status", "--dir", b])).out, /GROOPH_EVENTS_DIR/);
+  });
+});
+
 test("a folder is listed in the letters it is really named in, so a session that names it in other letters is still recorded", { skip: !existsSync(tmpdir().toUpperCase()) }, async () => {
   // Where the system does not tell letters' cases apart (macOS, by default), one folder has many spellings.
   await withHome(async (h) => {

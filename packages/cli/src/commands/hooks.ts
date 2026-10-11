@@ -863,7 +863,7 @@ function listOne(io: Output, sub: "watch" | "unwatch", folder: string, flags: Ho
 }
 
 /** What `grooph hooks status` says of the install outside the project. Nothing, where there is none and no list. */
-function userStatus(io: Output, places: UserPlaces, dir: string): void {
+function userStatus(io: Output, places: UserPlaces, dir: string, eventsDir?: string): void {
   const read = (["claude-code", "codex"] as Harness[]).map((harness) => {
     const path = places.settings[harness];
     try {
@@ -930,6 +930,9 @@ function userStatus(io: Output, places: UserPlaces, dir: string): void {
       io.out(`    ${f.path}${existsSync(f.path) ? "" : " (no such folder now)"}: ${count}`);
     }
   }
+  // The variable that moves a project's events is not the recorder's to obey out here: a hook that a harness runs
+  // outside its sandbox does not take where it writes from something a session's environment can set.
+  if (eventsDir !== undefined && eventsDir !== "") io.out(`  GROOPH_EVENTS_DIR is set (${eventsDir}): the recorder outside the project does not read it, and its events are in ${tilde(places.events)}${sep}`);
   const mine = listedFor(folders, dir);
   io.out(mine !== undefined ? `  this folder is ${mine.path === exactPath(dir) ? "listed" : `in ${mine.path}, which is listed`}: its sessions are recorded outside the project` : "  this folder is not listed: a session working here is not recorded by the hook outside the project");
 }
@@ -1211,7 +1214,7 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
     const pushed = lastPush(dir);
     if (pushed) for (const line of pushLines(pushed, (flags.now ?? (() => new Date()))().toISOString())) io.out(line);
     else if (anyPush) io.out("no push recorded yet: the first turn to start after this version was installed leaves one");
-    userStatus(io, places, dir);
+    userStatus(io, places, dir, (flags.env ?? process.env)["GROOPH_EVENTS_DIR"]);
     return 0;
   }
 
