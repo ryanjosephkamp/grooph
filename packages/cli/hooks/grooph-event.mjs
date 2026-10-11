@@ -17,7 +17,7 @@
  *     a session can write in its project: where a link stands at .grooph, at
  *     .grooph/events or at a session's file, or that file has a second name (a
  *     hard link), nothing is written. `grooph hooks status` says when a link
- *     stands at either folder, and how many session files have a second name.
+ *     stands at either folder, and how many session files it will add nothing to.
  *   - it adds only to a file that is empty or already begins as one of its own.
  *
  * No dependencies; any Node from 18 on. `grooph hooks install` copies this

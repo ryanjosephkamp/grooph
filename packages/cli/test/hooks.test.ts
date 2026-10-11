@@ -15,7 +15,7 @@ import { test } from "node:test";
 
 import type { LiveView } from "@grooph/core";
 
-import { hookEntries, hookSource, pushSource } from "../src/commands/hooks.js";
+import { OURS, hookEntries, hookSource, pushSource } from "../src/commands/hooks.js";
 import { parseSource, readLive } from "../src/events-io.js";
 import { moved } from "./fresh.js";
 import { run } from "../src/index.js";
@@ -266,7 +266,16 @@ test("the hook writes through no link: not at .grooph/events, not at a session's
       assert.equal(readFileSync(join(events, "s9.jsonl"), "utf8").trim().split("\n").length, 1, "a line was added to a file with a second name");
       const twice = capture();
       assert.equal(await grooph(["hooks", "status", "--dir", dir], twice), 0);
-      assert.match(text(twice.stdout), /2 session files have a second name \(a hard link\): the hook adds nothing to them/);
+      // s2 and s3 are links, s4 and s9 have a second name: status counts what the hook will add nothing to.
+      assert.match(text(twice.stdout), /4 session files the hook adds nothing to: each is a link, has a second name \(a hard link\), or does not begin as a file of the hook's lines does/);
+
+      // The same second name, for a file elsewhere that itself begins as a file of these lines does: only the count of names keeps a line out of it.
+      writeFileSync(join(elsewhere, "others.jsonl"), `${OURS}2026-01-01T00:00:00.000Z"}\n`);
+      linkSync(join(elsewhere, "others.jsonl"), join(events, "s12.jsonl"));
+      quiet(start("s12"), "a session file that is another events file's second name");
+      assert.equal(readFileSync(join(elsewhere, "others.jsonl"), "utf8"), `${OURS}2026-01-01T00:00:00.000Z"}\n`, "a line was appended to an events file kept elsewhere, through its second name");
+      rmSync(join(events, "s12.jsonl"));
+      rmSync(join(elsewhere, "others.jsonl"));
       rmSync(join(dir, "copy-of-s9.jsonl"));
       rmSync(join(events, "s4.jsonl"));
       rmSync(join(events, "s9.jsonl"));
@@ -289,7 +298,8 @@ test("the hook writes through no link: not at .grooph/events, not at a session's
       assert.deepEqual(linesOf(dir, "s5").map((l) => [l["event"], l["session"]]), [["session-start", "s5"]]);
       quiet(start("s5"), "the same session again");
       assert.equal(linesOf(dir, "s5").length, 2, "a second line was not added to the hook's own file");
-      assert.ok(readFileSync(join(events, "s5.jsonl"), "utf8").startsWith('{"v":1,"t":"'), "a file of the hook's lines no longer begins as the hook expects one to");
+      assert.ok(readFileSync(join(events, "s5.jsonl"), "utf8").startsWith(OURS), "a file of the hook's lines no longer begins as the hook expects one to");
+      assert.ok(readFileSync(hookSource(), "utf8").includes(`const OURS = '${OURS}';`), "the hook and the status command no longer agree on how a line begins");
       assert.deepEqual(readdirSync(elsewhere).sort(), ["kept.txt", "there"]);
       assert.deepEqual(readdirSync(join(elsewhere, "there")), []);
 
@@ -322,11 +332,37 @@ test("status says when the project's copy of the hook is not this grooph's, and 
     let io = capture();
     assert.equal(await grooph(["hooks", "status", "--dir", dir], io), 0);
     assert.doesNotMatch(text(io.stdout), /is not this grooph's version/);
+    // With no events folder yet, a file of the person's own at the project's top is none of the hook's, whatever names it has.
+    writeFileSync(join(dir, "notes.jsonl"), "a file of the person's own\n");
+    linkSync(join(dir, "notes.jsonl"), join(dir, "notes-again.jsonl"));
+    io = capture();
+    assert.equal(await grooph(["hooks", "status", "--dir", dir], io), 0);
+    assert.doesNotMatch(text(io.stdout), /adds nothing to/);
+    rmSync(join(dir, "notes.jsonl"));
+    rmSync(join(dir, "notes-again.jsonl"));
     // A project installed by an older grooph keeps that grooph's hook until it is installed again: the copy is what runs.
     writeFileSync(join(dir, ".grooph", "hooks", "grooph-event.mjs"), "// an older hook\n");
     io = capture();
     assert.equal(await grooph(["hooks", "status", "--dir", dir], io), 0);
     assert.match(text(io.stdout), /\.grooph\/hooks\/grooph-event\.mjs is not this grooph's version: run grooph hooks install again/);
+    // Something that cannot be read as a file where the hook should be is said the same way, and is no error.
+    rmSync(join(dir, ".grooph", "hooks", "grooph-event.mjs"));
+    mkdirSync(join(dir, ".grooph", "hooks", "grooph-event.mjs"));
+    io = capture();
+    assert.equal(await grooph(["hooks", "status", "--dir", dir], io), 0, text(io.stderr));
+    assert.match(text(io.stdout), /grooph-event\.mjs is not this grooph's version/);
+    // An events folder that cannot be read is said, and is no error.
+    if (process.platform !== "win32" && process.getuid?.() !== 0) {
+      mkdirSync(join(dir, ".grooph", "events"));
+      chmodSync(join(dir, ".grooph", "events"), 0o000);
+      try {
+        io = capture();
+        assert.equal(await grooph(["hooks", "status", "--dir", dir], io), 0, text(io.stderr));
+        assert.match(text(io.stdout), /\.grooph\/events\/ could not be read/);
+      } finally {
+        chmodSync(join(dir, ".grooph", "events"), 0o755);
+      }
+    }
     if (process.platform !== "win32" && process.getuid?.() !== 0) {
       chmodSync(join(dir, ".grooph"), 0o000);
       try {
