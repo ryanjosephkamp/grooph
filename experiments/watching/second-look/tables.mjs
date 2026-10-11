@@ -93,7 +93,7 @@ function row({ task, arm, round, record }, first, plainKinds) {
     String(m.session?.turns_as_the_harness_reports ?? ""),
     subagents.count > 0 ? `${subagents.count} (${kinds})` : "0",
     String(m.delegation?.most_at_once ?? ""),
-    score ? score.packages.map((pkg) => (pkg.ran !== false && Number.isInteger(pkg.passed) ? `${pkg.passed}/${pkg.cases}` : "suite not run")).join(" · ") : "not scored",
+    score && Array.isArray(score.packages) ? score.packages.map((pkg) => (pkg.ran !== false && Number.isInteger(pkg.passed) ? `${pkg.passed}/${pkg.cases}` : "suite not run")).join(" · ") : "not scored",
     number(m.delegation?.tokens_put_out_with_its_subagents),
     number(m.delegation?.tokens_written_to_the_cache_with_its_subagents),
     `${inside.named_in_the_input?.calls ?? 0} / ${inside.shown_in_the_result?.calls ?? 0}`,

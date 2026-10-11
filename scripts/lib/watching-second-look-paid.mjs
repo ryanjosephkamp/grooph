@@ -348,7 +348,9 @@ export const promptFor = ({ task }) => `${taskText(task).replace(/\n*$/, "\n")}\
 // ── the recorder outside the project ─────────────────────────────────────
 
 const toolEnv = () => ({ PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "" });
-const inside = (path, base) => resolve(path) === resolve(base) || resolve(path).startsWith(`${resolve(base)}/`);
+/** A path with the Mac's other names for one place taken off: its data volume's own name, and `/private` before `/var`, `/tmp` and `/etc`. */
+const plainly = (path) => resolve(path).replace(/^\/System\/Volumes\/Data(?=\/)/, "").replace(/^\/private(?=\/(?:var|tmp|etc)(?:\/|$))/, "");
+const inside = (path, base) => plainly(path) === plainly(base) || plainly(path).startsWith(`${plainly(base)}/`);
 /** Two paths that are one folder on the disk, whatever each is called: a link, another spelling of its letters, another name for the same volume. */
 const oneFolder = (a, b) => {
   try {
@@ -653,7 +655,7 @@ function sumOfAll(paths) {
   }
 }
 /** The built tool: what installs the hook, in a project or outside it. */
-const TOOL = ["packages/cli/bin", "packages/cli/dist", "packages/cli/hooks", "packages/core/dist"];
+const TOOL = ["packages/cli/package.json", "packages/cli/bin", "packages/cli/dist", "packages/cli/hooks", "packages/core/dist"];
 /** The runner: this script, what it measures with, and what of the first check's and the lab's it runs a session by. */
 const RUNNER = ["scripts/lib/watching-second-look-paid.mjs", "scripts/lib/watching-second-look-measures.mjs", "scripts/lib/watching-check-paid.mjs", "scripts/lib/study-three-paid.mjs", "scripts/lib/compare-profile.mjs", "experiments/comparisons/profile/settings.json"];
 
@@ -673,7 +675,7 @@ export function checkout() {
 }
 
 /** What two runs have to share to have been made with the same things, each with what it is called when it differs. */
-const MADE_WITH = [["hook_sha256", "another hook"], ["tool_sha256", "another build of the tool"], ["runner_sha256", "another runner"]];
+const MADE_WITH = [["hook_sha256", "another hook"], ["tool_sha256", "another build of the tool"], ["grooph_version", "another version of grooph"], ["runner_sha256", "another runner"]];
 
 /**
  * Both blocks are run with one hook, one built tool and one runner (the protocol, "Three rounds, in two blocks"). This
@@ -950,7 +952,7 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
       // The first check's own measures, unchanged, and without the two tools no arm of this look offers.
       const { the_two_tools: _none, ...first } = measure({ profile, sessionId: call.session_id, output: call.output, wallS: call.wall_s });
       const read = readSession(profile, call.session_id);
-      return { ...first, delegation: delegation({ read, output: call.output }), noticed: noticed({ read, output: call.output, profileSettings: join(profile, "settings.json"), groophHome: groophHomeIn(home) }), read };
+      return { ...first, delegation: delegation({ read, output: call.output }), noticed: noticed({ read, output: call.output, profileSettings: join(profile, "settings.json"), groophHome: groophHomeIn(home), profileHome: home }), read };
     },
     null,
   );
