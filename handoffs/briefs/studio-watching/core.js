@@ -88,6 +88,11 @@ function prepare(sample) {
 
 /** The burst a time is in, or the last one begun before it, or the first. */
 const burstAt = (P, t) => [...P.bursts].reverse().find((b) => b.from <= t) ?? P.bursts[0];
+/** Whether a run has begun at this moment, and whether it is the one running. By the order of moments, not by the clock: two things may share a millisecond. */
+const begun = (v, r) => v.of.get(r.id).runs > r.k;
+const live = (v, r) => v.of.get(r.id).state === "running" && v.of.get(r.id).runs === r.k + 1;
+/** What can be said of the session itself. The hook times some of a session's turns and not all of its work: a start outside every timed turn is common, so "not in a turn" is never said. */
+const leadWord = (v) => (v.ended ? "the sample ends" : v.working ? "in a turn" : "");
 
 /** The session at moment i: what exists, what is running, what has finished, and what is known. */
 function viewAt(P, i, saidOn) {
@@ -115,7 +120,8 @@ function viewAt(P, i, saidOn) {
     running: all.filter((s) => s.state === "running"),
     working: P.sample.turns.some(([a, b]) => a <= mo.t && mo.t < b),
     ended: mo.kind === "end",
-    burst: burstAt(P, mo.t),
+    // A statement belongs to the burst it was said before.
+    burst: mo.kind === "said" ? burstAt(P, P.byId.get(P.plans[mo.plan].before).runs[0].from) : burstAt(P, mo.t),
   };
 }
 
@@ -135,8 +141,8 @@ function sayMoment(P, v) {
   const head = `Moment ${v.i + 1} of ${P.moments.length} · ${dur(mo.t)} in. `;
   const n = v.running.length;
   const tail = n === 0 ? " Nothing is running." : ` ${cap(num(n))} running.`;
-  if (mo.kind === "begin") return `${head}The session begins on ${P.lead.name}. Nothing has been started yet. Press Play.`;
-  if (mo.kind === "end") return `${head}The last line of the record: ${count(P.agents.length, "subagent")}, ${count(P.agents.reduce((t, x) => t + x.runs.length, 0), "run")}${P.agents.some((x) => x.runs.some((r) => r.end === "failed")) ? ", one of them failed" : ""}.`;
+  if (mo.kind === "begin") return `${head}The session's first line, on ${P.lead.name}. Nothing has been started yet. Press Play.`;
+  if (mo.kind === "end") return `${head}The sample ends, at the last turn the hook timed: ${count(P.agents.length, "subagent")}, ${count(P.agents.reduce((t, x) => t + x.runs.length, 0), "run")}${P.agents.some((x) => x.runs.some((r) => r.end === "failed")) ? ", one of them failed" : ""}.`;
   if (mo.kind === "said") {
     const p = P.plans[mo.plan];
     if (!v.saidOn) return `${head}Nothing changes in the record here. With Said on, a made-up statement stands at this moment.${tail}`;
@@ -157,14 +163,18 @@ function sayMoment(P, v) {
 /** One agent at this moment, in a line: for the place under a drawing when one is touched. */
 function sayAgent(P, v, id) {
   const ghost = v.ghosts.find((g) => g.id === id);
-  if (ghost) return `Made up: a ${ghost.type} subagent the session said it would start and never did. Nothing in the record answers it.`;
-  if (id === "session") return `The session itself, on ${P.lead.name}: the one in charge. It ${v.ended ? "has ended" : v.working ? "is in a turn of its own" : "is between turns"}. Everything it started is tied to it.`;
+  if (ghost) return `Made up: ${/^[AEIOU]/i.test(ghost.type) ? "an" : "a"} ${ghost.type} subagent the session said it would start and never did. Nothing in the record answers it.`;
+  if (id === "session") {
+    const stops = P.sample.record.untypedStops;
+    return `The session itself, on ${P.lead.name}: the one in charge, and everything it started is tied to it. ${v.working && !v.ended ? "The hook timed a turn of its own here. " : ""}The hook wrote ${P.sample.record.hookLines} lines for it${stops ? `, ${stops} of them stops with no type, from ids it never showed starting: counted, and not drawn` : ""}.`;
+  }
   const s = v.of.get(id);
   if (!s || !s.exists) return "";
   const a = s.a;
-  const source = !a.hook.start ? "in the harness's files only (it ran before the hook was installed)" : !a.hook.stop && s.state !== "running" ? "its start by the hook, its end by the harness's files only" : "by the hook and in the harness's files";
+  const source = !a.hook.start ? "in the harness's files only (it ran before the hook was installed)" : !a.hook.stop && s.state !== "running" ? "by the hook when it started; how it ended is in the harness's files only" : "by the hook and in the harness's files";
+  const asked = a.asked === "not read" ? "" : a.asked ? ` (the call asked for ${a.asked})` : " (the call named no model)";
   const state = s.state === "running" ? `running for ${dur(v.t - s.since)}` : s.state === "failed" ? "failed" : "done";
-  return `${a.id} · ${a.type} · ${a.m.name}${a.asked ? ` (the call asked for ${a.asked})` : " (the call named no model)"} · ${a.shape} · started by ${a.parent ?? "the session"}${s.known ? "" : " (not yet known to the hook)"} · ${state}${s.runs > 1 ? `, run ${s.runs}` : ""}, ${dur(s.ran)} in all · seen ${source}${s.unsaid ? " · made up: never said" : ""}.`;
+  return `${a.id} · ${a.type} · ${a.m.name}${asked} · ${a.shape} · started by ${a.parent ?? "the session"}${s.known ? "" : " (not yet known to the hook)"} · ${state}${s.runs > 1 ? `, run ${s.runs}` : ""}, ${dur(s.ran)} in all · seen ${source}${s.unsaid ? " · made up: never said" : ""}.`;
 }
 
 /* ── small things every drawing draws with ─────────────────────────────────────────────────────────────────── */

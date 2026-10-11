@@ -15,7 +15,7 @@ DRAW.bursts = (P, v, W, o) => {
     const cw = (W - pad * 2) / per;
     const ch = 58;
     P.bursts.forEach((burst, k) => {
-      if (burst.from > t) return;
+      if (burst !== b && !burst.runs.some((r) => begun(v, r))) return;
       const x0 = pad + (k % per) * cw;
       const y0 = y + Math.floor(k / per) * ch;
       const here = burst === b;
@@ -40,8 +40,7 @@ DRAW.bursts = (P, v, W, o) => {
       });
       const sx = mx - 16;
       for (const id of burst.ids) {
-        const run = burst.runs.find((r) => r.id === id);
-        if (run.from > t) continue;
+        if (!begun(v, burst.runs.find((r) => r.id === id))) continue;
         const a = P.byId.get(id);
         const [x, yy] = place.get(id);
         const [px, py] = place.get(a.parent) ?? [sx, mid];
@@ -49,13 +48,13 @@ DRAW.bursts = (P, v, W, o) => {
       }
       g.push(tag("circle", { cx: r1(sx), cy: mid, r: 3, class: "f-ink" }));
       for (const id of burst.ids) {
-        const runs = burst.runs.filter((r) => r.id === id && r.from <= t);
+        const runs = burst.runs.filter((r) => r.id === id && begun(v, r));
         if (runs.length === 0) continue;
         const a = P.byId.get(id);
         const s = v.of.get(id);
         const [x, yy] = place.get(id);
         const last = runs.at(-1);
-        const running = last.to > t;
+        const running = live(v, last);
         const m = `m-${a.m.key}`;
         g.push(tag("circle", { cx: r1(x), cy: r1(yy), r: 3.3, class: running ? `f-m ${m}` : `f-surface s-m ${m}`, "stroke-width": 1.5 }));
         // Back again: a subagent that had run before this burst has a point in its dot.
@@ -70,13 +69,13 @@ DRAW.bursts = (P, v, W, o) => {
       out.push(`<g data-go="${P.moments.find((m) => m.t >= burst.from && (m.kind === "start" || m.kind === "resume")).i}">${g.join("")}</g>`);
     });
     // The sentence is as long as the session has gone.
-    y += Math.ceil((P.bursts.filter((x) => x.from <= t).length || 1) / per) * ch + 6;
+    y += Math.ceil((Math.max(b.k, ...P.bursts.filter((x) => x.runs.some((r) => begun(v, r))).map((x) => x.k)) + 1) / per) * ch + 6;
     out.push(line(pad, y, W - pad, y, { class: "s-line", "stroke-width": 1 }));
     y += 12;
   }
 
   // The open burst.
-  const started = b.runs.filter((r) => r.from <= t);
+  const started = b.runs.filter((r) => begun(v, r));
   const ids = [...new Set(started.map((r) => r.id))];
   const ghosts = v.ghosts.filter((g) => burstAt(P, P.byId.get(P.plans[g.plan].before).runs[0].from) === b);
   out.push(text(pad, y + 9, many ? `burst ${b.k + 1} of ${P.bursts.length} · begins ${dur(b.from)} in · ${dur(b.to - b.from)} long` : `one burst · ${dur(b.to - b.from)} of subagents' work`, { size: 10.5, class: "t2", weight: 600 }));
@@ -90,6 +89,8 @@ DRAW.bursts = (P, v, W, o) => {
     for (const kid of a.kids.filter((k) => ids.includes(k))) order.push({ id: kid, in: 1 });
     for (const g of ghosts.filter((x) => x.after === id)) order.push({ ghost: g, in: 0 });
   }
+  // Said, and the one it is listed after has not started yet: it stands at the end until then.
+  for (const g of ghosts.filter((x) => !order.some((row) => row.ghost === x))) order.push({ ghost: g, in: 0 });
   const sr = 24;
   const sx = pad + sr + 2;
   const left = pad + sr * 2 + (W < 500 ? 26 : 44);
@@ -127,7 +128,7 @@ DRAW.bursts = (P, v, W, o) => {
     g.push(text(x + 16 + 30, cy + 17, a.m.name, { size: 11.5, weight: 600, class: "t-m" }));
     const word = running ? `running ${short(t - s.since)}` : s.state === "failed" ? "failed" : `done · ${short(s.ran)}`;
     g.push(text(x + w - 10, cy + 17, word, { size: 10.5, anchor: "end", weight: running ? 600 : 400, class: s.state === "failed" ? "t-bad" : running ? "t-m" : "t3" }));
-    g.push(text(x + 16, cy + 32, `${a.type} · ${a.shape}${row.in ? ` · started by ${a.parent}` : ""}`, { size: 10, class: "t2" }));
+    g.push(text(x + 16, cy + 32, `${a.type} · ${a.shape}${row.in ? ` · ${W < 340 ? "" : "started "}by ${a.parent}` : ""}`, { size: 10, class: "t2" }));
     if (s.runs > 1) g.push(text(x + w - 10, cy + 32, `run ${s.runs}`, { size: 10, anchor: "end", weight: 600, class: "t2" }));
     if (s.unsaid) g.push(diamond(x + 1, cy + 1, 5.5));
     if (o.sel === a.id) g.push(tag("rect", { x: r1(x - 3), y: r1(cy - 3), width: r1(w + 6), height: ch + 6, rx: 12, class: "sel" }));

@@ -51,7 +51,7 @@ DRAW.lanes = (P, v, W, o) => {
         out.push(text(x + 2.5, base - 31, `${d}d`, { size: 8, class: "t3 mono" }));
       }
       const h = 5 + (burst.most / P.most) * 22;
-      const past = burst.to <= t;
+      const past = burst !== b && burst.runs.every((r) => begun(v, r) && !live(v, r));
       const here = burst === b;
       out.push(tag("rect", { x: r1(x + 1), y: r1(base - h), width: r1(Math.max(2, bw - 2)), height: r1(h), rx: 1.5, class: here ? "f-accent" : past ? "f-ink" : "f-none s-line", opacity: here ? 1 : past ? 0.5 : 1, "stroke-width": 1 }));
       if (here) out.push(path(`M${r1(x + bw / 2 - 4)} ${base + 5}h8l-4 5z`, { class: "f-accent" }));
@@ -83,11 +83,11 @@ DRAW.lanes = (P, v, W, o) => {
   const ties = [];
   const prev = new Map();
   for (const r of b.runs) {
-    if (r.from > t) continue;
+    if (!begun(v, r)) continue;
     const s = v.of.get(r.id);
     const a = s.a;
     const k = lanes.get(`${r.id}/${r.k}`);
-    const running = r.to > t;
+    const running = live(v, r);
     const x1 = x(r.from);
     const x2 = Math.max(x1 + 4, x(running ? t : r.to));
     const by = laneY(k);
@@ -103,16 +103,16 @@ DRAW.lanes = (P, v, W, o) => {
     if (running) g.push(tag("rect", { x: r1(x2 - 5), y: by - 3, width: 8, height: bh + 6, rx: 4, class: "halo" }));
     g.push(tag("rect", { x: r1(x1), y: by, width: r1(x2 - x1), height: bh, rx: 6, class: running ? "f-m s-m" : "f-surface s-m", "stroke-width": 1.8 }));
     // A foreground child holds its parent still: hatched for as long as the child ran.
-    for (const kid of a.kids.map((id) => P.byId.get(id)).filter((c) => c.shape === "foreground" && c.runs[0].from <= t && c.runs[0].from >= r.from && c.runs[0].from <= r.to)) {
+    for (const kid of a.kids.map((id) => P.byId.get(id)).filter((c) => c.shape === "foreground" && begun(v, { id: c.id, k: 0 }) && c.runs[0].from >= r.from && c.runs[0].from <= r.to)) {
       const h1 = x(kid.runs[0].from);
-      const h2 = x(Math.min(kid.runs[0].to, t));
+      const h2 = x(live(v, { id: kid.id, k: 0 }) ? t : kid.runs[0].to);
       if (h2 - h1 > 2) g.push(tag("rect", { x: r1(h1), y: by + 1.5, width: r1(h2 - h1), height: bh - 3, fill: "url(#sw-wait)" }));
     }
     const name = `${a.id}${r.k > 0 ? `·${r.k + 1}` : ""}`;
     const full = `${name} ${a.m.short}`;
     const wFull = full.length * 5.7 + 10;
     const wName = name.length * 5.7 + 8;
-    const waits = a.kids.some((id) => P.byId.get(id).shape === "foreground" && P.byId.get(id).runs[0].from <= t);
+    const waits = a.kids.some((id) => P.byId.get(id).shape === "foreground" && begun(v, { id, k: 0 }));
     if (x2 - x1 >= wFull && !waits) g.push(text(x1 + 6, by + 15, full, { size: 10, weight: 600, class: `mono ${running ? "t-on" : "t-m"}` }));
     else if (x2 - x1 >= wName && !waits) g.push(text(x1 + 5, by + 15, name, { size: 10, weight: 600, class: `mono ${running ? "t-on" : "t-m"}` }));
     else if (x2 + wFull < W - pad) g.push(text(x2 + 4, by + 15, full, { size: 10, weight: 600, class: "mono t-m" }));

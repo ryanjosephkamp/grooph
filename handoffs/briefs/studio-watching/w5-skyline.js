@@ -40,7 +40,7 @@ DRAW.skyline = (P, v, W, o) => {
   for (let c = 1; c < cols; c++) out.push(line(...iso(c, 0), ...iso(c, rows), { class: "s-line", "stroke-width": 0.7, opacity: 0.6 }));
   for (let r = 1; r < rows; r++) out.push(line(...iso(0, r), ...iso(cols, r), { class: "s-line", "stroke-width": 0.7, opacity: 0.6 }));
   const fy = corners[2][1] + slab + 16;
-  out.push(text(W / 2, fy, `the session's floor · ${P.lead.name} · ${v.ended ? "ended" : v.working ? "in a turn" : "between turns"}`, { size: 10.5, anchor: "middle", class: "t2" }));
+  out.push(text(W / 2, fy, ["the session's floor", P.lead.name, leadWord(v)].filter(Boolean).join(" · "), { size: 10.5, anchor: "middle", class: "t2" }));
   if (o.sel === "session") out.push(tag("polygon", { points: pts(corners), class: "sel" }));
 
   const cell = (id) => {
@@ -113,7 +113,7 @@ DRAW.skyline = (P, v, W, o) => {
     for (const kid of a.kids.map((k) => v.of.get(k)).filter((k) => k.exists && !G.at.has(k.a.id))) {
       const rider = column(kid, cx, cy, top, 0.36);
       riders.push(`<g data-id="${kid.a.id}" class="${cls(kid)}"><g${kid.fresh ? ' class="fresh"' : ""}>${rider.g.join("")}${kid.state === "failed" ? cross(cx, cy - rider.z, 4) : ""}</g></g>`);
-      if (kid.state === "running" || n <= 16 || o.sel === kid.a.id) names.push(text(cx, cy - rider.z - hh * 0.36 - 5, `${kid.a.id}${kid.known ? "" : " ?"}`, { size: 9, weight: 700, anchor: "middle", class: `mono lift ${kid.state === "running" ? "" : "t3"}` }));
+      if (kid.state === "running" || !kid.known || n <= 16 || o.sel === kid.a.id) names.push(text(cx, cy - rider.z - hh * 0.36 - 5, `${kid.a.id}${kid.known ? "" : " ?"}`, { size: 9, weight: 700, anchor: "middle", class: `mono lift ${kid.state === "running" ? "" : "t3"}` }));
       rode = rider.z + 11;
       if (o.sel === kid.a.id) names.push(tag("ellipse", { cx: r1(cx), cy: r1(cy - rider.z), rx: r1(hw * 0.36 + 4), ry: r1(hh * 0.36 + 3), class: "sel" }));
       top = Math.max(top, rider.z);

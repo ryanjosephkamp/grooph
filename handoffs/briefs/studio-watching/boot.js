@@ -22,7 +22,10 @@ function paint(view) {
   const v = viewAt(p, state.i, state.said);
   const W = Math.max(280, Math.round(view.stage.clientWidth));
   const { h, body } = view.draw(p, v, W, { said: state.said, sel: state.sel });
-  view.stage.innerHTML = `<svg viewBox="0 0 ${W} ${Math.ceil(h)}" width="${W}" height="${Math.ceil(h)}" role="img" aria-label="${view.el.dataset.name}: ${p.sample.name}, ${dur(v.t)} in, ${v.running.length} running, ${v.all.length - v.running.length} finished">${body}</svg>`;
+  // Wherever an amber mark may show, the drawing itself says that it is made up: on the page and in a picture of it.
+  const key = state.said && p.plans.length > 0 ? `<g>${text(12, h + 13, "Made up:", { size: 9.5, weight: 700, class: "t-said" })}${tag("rect", { x: 57, y: h + 4.5, width: 10, height: 10, rx: 3, class: "said f-said" })}${text(71, h + 13, "said, never ran", { size: 9.5, class: "t2" })}${diamond(148, h + 9.5, 4.5)}${text(157, h + 13, "ran, never said", { size: 9.5, class: "t2" })}</g>` : "";
+  const H = Math.ceil(h + (key ? 22 : 0));
+  view.stage.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${view.el.dataset.name}: ${p.sample.name}, ${dur(v.t)} in, ${v.running.length} running, ${v.all.length - v.running.length} finished">${body}${key}</svg>`;
   view.says.innerHTML = sayMoment(p, v);
   view.who.textContent = state.sel ? sayAgent(p, v, state.sel) : "Touch anything in the drawing to read what the record has of it.";
   view.range.max = String(p.moments.length - 1);
@@ -43,8 +46,15 @@ function stop() {
   state.timer = null;
   state.playing = null;
 }
-function go(i) {
-  state.i = clamp(i, 0, P().moments.length - 1);
+/** With the made-up statements off, the clock does not stop where one was said: nothing changed in the record there. */
+function settle(i, way) {
+  const m = P().moments;
+  i = clamp(i, 0, m.length - 1);
+  while (!state.said && m[i].kind === "said" && m[i + way]) i += way;
+  return i;
+}
+function go(i, way = 1) {
+  state.i = settle(i, way);
   refresh();
 }
 function play(view) {
@@ -60,7 +70,7 @@ function play(view) {
   const every = still() ? 1000 : clamp(32000 / P().moments.length, 170, 800);
   state.timer = setInterval(() => {
     if (state.i >= P().moments.length - 1) stop();
-    else state.i += 1;
+    else state.i = settle(state.i + 1, 1);
     refresh();
   }, every);
   refresh();
@@ -69,7 +79,7 @@ function choose(s) {
   stop();
   state.s = s;
   state.sel = null;
-  state.i = Math.max(0, OPENS[P().id]?.(P()) ?? 0);
+  state.i = settle(Math.max(0, OPENS[P().id]?.(P()) ?? 0), 1);
   document.querySelectorAll("[data-doc]").forEach((b, k) => b.setAttribute("aria-checked", String(k === s)));
   const p = P();
   const runs = p.agents.reduce((t, a) => t + a.runs.length, 0);
@@ -83,7 +93,8 @@ for (const view of views) {
     if (!what) return;
     if (what === "play") return play(view);
     stop();
-    go(what === "prev" ? state.i - 1 : what === "next" ? state.i + 1 : what === "start" ? 0 : P().moments.length - 1);
+    if (what === "prev") go(state.i - 1, -1);
+    else go(what === "next" ? state.i + 1 : P().moments.length - 1);
   });
   view.range.addEventListener("input", () => {
     stop();
@@ -124,8 +135,7 @@ saidButton.addEventListener("click", () => {
   state.said = !state.said;
   saidButton.setAttribute("aria-pressed", String(state.said));
   saidButton.textContent = `Said: ${state.said ? "on" : "off"}`;
-  // The moments are the same either way; only the marks come and go.
-  refresh();
+  go(state.i);
 });
 const themeButton = document.querySelector("[data-theme-switch]");
 themeButton.addEventListener("click", () => {

@@ -80,7 +80,7 @@ code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
 .bar button[data-do="play"] { min-width: 4.2rem; }
 .bar button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
 .bar input { flex: 1 1 2rem; min-width: 0; height: 2.75rem; accent-color: var(--accent); }
-.says { display: block; min-height: 4.05em; font-size: 0.93rem; line-height: 1.35; color: var(--ink-2); }
+.says { display: block; min-height: 2.7em; font-size: 0.93rem; line-height: 1.35; color: var(--ink-2); }
 .says b { font-weight: 600; color: var(--ink); font-family: var(--mono); font-size: 0.88em; }
 .who { display: block; min-height: 1.4em; font-size: 0.9rem; line-height: 1.45; color: var(--ink-3); }
 .three { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.4rem; max-width: 65ch; font-size: 0.98rem; }
