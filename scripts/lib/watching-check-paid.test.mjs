@@ -778,7 +778,9 @@ test("a dry run builds the folder, says what would be started and what would ref
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length, existsSync(p.recordRoot)], [[], 1, false], "the folder is gone, no line was written, no record was made");
     const plain = dryRun({ run: order()[0], home: p.home, ledgerPath: p.ledgerPath, recordRoot: p.recordRoot, stand: () => ({ claude: p.harness, refused: [] }) });
     assert.match(plain, /the arm: plain: nothing of grooph is in the folder/);
-    assert.ok(!/--mcp-config|mcp__|--disallowedTools|grooph/i.test(plain.split("short names of a model")[0].split("would start")[1]), "the plain arm's command names no server, withholds nothing, closes nothing, and holds nothing of grooph");
+    // The command names folders of the test's own, under the temporary folder, and that folder is called whatever the
+    // machine calls it (a path with the word "grooph" in it, on a checkout kept under one): they are taken out first.
+    assert.ok(!/--mcp-config|mcp__|--disallowedTools|grooph/i.test(plain.split("short names of a model")[0].split("would start")[1].replaceAll(p.top, "<the test's own folder>")), "the plain arm's command names no server, withholds nothing, closes nothing, and holds nothing of grooph");
     assert.deepEqual(readdirSync(p.at.work), []);
     // A run of a later block: its own model and ceilings, and what holds its block up, said with the runs that do.
     writeFileSync(p.ledgerPath, JSON.stringify({ ...p.ledger(), invocations: [], scoring_outside_the_sandbox: DECISION }), "utf8");

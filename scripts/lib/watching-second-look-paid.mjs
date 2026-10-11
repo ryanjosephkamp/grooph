@@ -692,7 +692,8 @@ export function madeFromAnother(now, recordRoot = HOME) {
         continue;
       }
       if (!was || typeof was.hook_sha256 !== "string") continue;
-      const what = MADE_WITH.filter(([key]) => typeof was[key] === "string" && was[key] !== now[key]).map(([, name]) => name);
+      // A thing is another only where the record and this checkout both say what theirs is, and say differently.
+      const what = MADE_WITH.filter(([key]) => typeof was[key] === "string" && typeof now[key] === "string" && was[key] !== now[key]).map(([, name]) => name);
       if (what.length > 0) return { run: run.name, what, its_commit: was.commit ?? null, its_hook_sha256: was.hook_sha256, its_tool_sha256: was.tool_sha256 ?? null, its_runner_sha256: was.runner_sha256 ?? null };
     }
   }
