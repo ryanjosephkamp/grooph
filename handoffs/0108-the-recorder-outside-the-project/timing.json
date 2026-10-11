@@ -1,0 +1,64 @@
+{
+  "what": "one call of the shipped event hook, in each layout, beside Node starting and doing nothing (slice 0108)",
+  "hook_sha256": "d2701dfd1a8e94b5d77a971e6312475eed0626022e201251c91d965d673ac9b5",
+  "node": "v26.10.0",
+  "machine": "darwin arm64, Apple M3 Pro",
+  "times": 300,
+  "taken_in_turn": true,
+  "every_call_printed_nothing_and_exited_0": {
+    "node_starting_and_doing_nothing": true,
+    "in_a_project": true,
+    "outside_the_project_listed_folder": true,
+    "outside_the_project_folder_not_listed": true,
+    "outside_the_project_folder_not_listed_fifty_on_the_list": true,
+    "outside_the_project_nothing_listed": true
+  },
+  "lines_written": {
+    "in_a_project": 300,
+    "outside_one_listed": 300,
+    "outside_fifty_listed": 0,
+    "outside_none_listed": 0,
+    "in_the_folders_not_listed": 0,
+    "in_the_listed_folder_itself": 0
+  },
+  "lines_as_expected": true,
+  "timing": {
+    "node_starting_and_doing_nothing": {
+      "median_ms": 49.9,
+      "p95_ms": 55.6,
+      "max_ms": 61.1
+    },
+    "in_a_project": {
+      "median_ms": 53.4,
+      "p95_ms": 60.2,
+      "max_ms": 67.3
+    },
+    "outside_the_project_listed_folder": {
+      "median_ms": 53.5,
+      "p95_ms": 60.8,
+      "max_ms": 116.9
+    },
+    "outside_the_project_folder_not_listed": {
+      "median_ms": 53,
+      "p95_ms": 59.3,
+      "max_ms": 108.3
+    },
+    "outside_the_project_folder_not_listed_fifty_on_the_list": {
+      "median_ms": 53,
+      "p95_ms": 58.9,
+      "max_ms": 93.3
+    },
+    "outside_the_project_nothing_listed": {
+      "median_ms": 52.6,
+      "p95_ms": 58.6,
+      "max_ms": 74.6
+    }
+  },
+  "over_node_alone_median_ms": {
+    "in_a_project": 3.5,
+    "outside_the_project_listed_folder": 3.6,
+    "outside_the_project_folder_not_listed": 3.1,
+    "outside_the_project_folder_not_listed_fifty_on_the_list": 3.1,
+    "outside_the_project_nothing_listed": 2.7
+  }
+}
