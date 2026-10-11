@@ -11,7 +11,6 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { test } from "node:test";
 
-import { run } from "../src/index.js";
 import { root } from "./root.js";
 
 const LAB = join(root, "lab", "bin", "grooph-lab.js");
@@ -47,36 +46,53 @@ function sameTree(made: string, kept: string, what: string): void {
 const REAL_RUN = join("fixtures", "runs", "slice-0007-sandwich", "runs", "20260919-0057-66c8");
 
 test("started as a program, the lab's command answers what grooph answers", () => {
-  const asked: string[][] = [
-    ["--version"],
-    ["--help"],
-    [],
-    ["help", "export"],
-    ["help", "adopt"],
-    ["help", "runs"],
-    ["help", "watch"],
-    ["nonsense"],
-    ["validate", "--for-export", "fixtures/valid/review-loop.grooph.json"],
-    ["validate", "fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json"],
-    ["explain", "fixtures/valid/review-loop.grooph.json"],
-    ["export"],
-    ["export", "fixtures/valid/review-loop.grooph.json", "--target", "nowhere", "--into", "never-made"],
-    ["runs", "list", "fixtures/runs"],
-    ["runs", "show", REAL_RUN],
-    ["adopt", REAL_RUN],
+  // Each with the exit code it must give, so that the two cannot agree by failing alike (a fixture that moved, say).
+  const asked: [status: number, ...args: string[]][] = [
+    [0, "--version"],
+    [0, "--help"],
+    [1],
+    [0, "help", "export"],
+    [0, "help", "adopt"],
+    [0, "help", "runs"],
+    [0, "help", "watch"],
+    [1, "nonsense"],
+    [0, "validate", "--for-export", "fixtures/valid/review-loop.grooph.json"],
+    [1, "validate", "fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json"],
+    [0, "explain", "fixtures/valid/review-loop.grooph.json"],
+    [1, "export"],
+    [1, "export", "fixtures/valid/review-loop.grooph.json", "--target", "nowhere", "--into", "never-made"],
+    [0, "runs", "list", "fixtures/runs"],
+    [0, "runs", "show", REAL_RUN],
+    [0, "adopt", REAL_RUN],
   ];
-  for (const args of asked) assert.deepEqual(lab(args), start(GROOPH, args), `grooph-lab ${args.join(" ")}`);
-  // And not by both failing alike: the command is there, and it says which grooph it stands on.
+  for (const [status, ...args] of asked) {
+    const ours = lab(args);
+    assert.equal(ours.status, status, `grooph-lab ${args.join(" ")}\n${ours.stdout}${ours.stderr}`);
+    assert.deepEqual(ours, start(GROOPH, args), `grooph-lab ${args.join(" ")}`);
+  }
+  // The command says which grooph it stands on.
   assert.deepEqual(lab(["--version"]), { status: 0, stdout: `${JSON.parse(readFileSync(join(root, "packages", "cli", "package.json"), "utf8")).version}\n`, stderr: "" });
 });
 
-test("the lab's run() takes the product's arguments: where the output goes, and what a run may reach", async () => {
-  const stdout: string[] = [];
-  const stderr: string[] = [];
-  const io = { out: (line: string) => void stdout.push(line), err: (line: string) => void stderr.push(line) };
-  assert.equal(await run(["validate", join(root, "fixtures", "valid", "fix-until-green.grooph.json")], io), 0);
-  assert.match(stdout.join("\n"), /no issues/);
-  assert.deepEqual(stderr, []);
+test("the lab's run() hands on each of the product's arguments: where the output goes, standard input, and what a run may reach", () => {
+  // In a process of its own, with standard input closed (hand-on.ts says why).
+  const graph = join(root, "fixtures", "valid", "fix-until-green.grooph.json");
+  const empty = scratch();
+  try {
+    const ran = spawnSync(process.execPath, [join(root, "lab", "dist", "test", "hand-on.js"), graph, empty], { cwd: root, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 60_000 });
+    assert.equal(ran.status, 0, `${ran.stdout}${ran.stderr}`);
+    const got = JSON.parse(ran.stdout) as { validated: number; applied: number; read: number; listed: number; fetched: number; stdout: string[]; stderr: string[] };
+    const said = got.stdout.join("\n");
+    assert.deepEqual(got.stderr, []);
+    assert.deepEqual([got.validated, got.applied, got.listed], [0, 0, 0]);
+    assert.match(said, /no issues/);
+    assert.equal(got.read, 1, "the ops came from the reader it was given");
+    assert.match(said, /applied 1 op; .* not written/);
+    assert.match(said, /^0 templates\./m, "the templates it listed are the ones in the folders it was given: none");
+    assert.equal(got.fetched, 0);
+  } finally {
+    rmSync(empty, { recursive: true, force: true });
+  }
 });
 
 test("export through the lab's command writes the golden packages, byte for byte, for Claude Code and for Codex", () => {
