@@ -11,7 +11,7 @@
  */
 
 import assert from "node:assert/strict";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 
 import type { LiveView } from "@grooph/core";
 
-import { ENDPOINT, LIVE_ENDPOINT, findWebDist, startWatch } from "../src/commands/watch.js";
+import { ENDPOINT, LIVE_ENDPOINT, NO_RUN, findWebDist, startWatch } from "../src/commands/watch.js";
 import { run, type CliEnv } from "../src/index.js";
 import type { Output } from "../src/print.js";
 
@@ -144,7 +144,11 @@ test("watch serves the sessions the event hook recorded: the project's own, and 
       const bare = await get(watcher.port, "/");
       assert.equal(bare.status, 302);
       assert.equal(bare.headers["location"], "/grooph/#/live");
-      assert.equal((await get(watcher.port, ENDPOINT)).status, 404);
+      // The run's endpoint says, as JSON, that no run is followed: the app's run view shows that reason, and not "there is no grooph watch here".
+      const noRun = await get(watcher.port, ENDPOINT);
+      assert.equal(noRun.status, 404);
+      assert.match(String(noRun.headers["content-type"]), /^application\/json/);
+      assert.deepEqual(JSON.parse(noRun.body), { error: NO_RUN });
       const empty = JSON.parse((await get(watcher.port, LIVE_ENDPOINT)).body) as LiveView;
       assert.equal(empty.groophLive, 0);
       assert.deepEqual(empty.sessions, []);
@@ -210,4 +214,27 @@ test("watch finds the built app in this clone when there is one", () => {
   const dist = findWebDist({});
   if (!existsSync(join(repoRoot, "apps", "web", "dist", "index.html"))) return;
   assert.equal(dist, join(repoRoot, "apps", "web", "dist"));
+});
+
+test("in a project that has a run, grooph watch still follows none: the bare address is the sessions', and the run's endpoint says so", async () => {
+  const dir = emptyProject();
+  const dist = fakeDist();
+  try {
+    // The recorded run of slice 0007, placed as a package's run: what `grooph watch` opened on through 0.4.1.
+    cpSync(join(repoRoot, "fixtures", "runs", "slice-0007-sandwich"), join(dir, ".grooph", "slice-0007-sandwich"), { recursive: true });
+    const watcher = await startWatch({ root: dir, webDist: dist, port: 0, host: "127.0.0.1" });
+    try {
+      assert.match(watcher.url, /^http:\/\/127\.0\.0\.1:\d+\/grooph\/#\/live$/);
+      assert.equal((await get(watcher.port, "/")).headers["location"], "/grooph/#/live");
+      const noRun = await get(watcher.port, ENDPOINT);
+      assert.equal(noRun.status, 404);
+      assert.deepEqual(JSON.parse(noRun.body), { error: NO_RUN });
+      assert.doesNotMatch(noRun.body, /20260919-0057-66c8|slice-0007-sandwich/);
+    } finally {
+      await watcher.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(dist, { recursive: true, force: true });
+  }
 });

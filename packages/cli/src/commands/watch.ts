@@ -19,8 +19,7 @@ grooph app and one read-only endpoint, read again from disk on every request:
   the sessions  what the event hook has recorded (grooph hooks install): each session
                 and its subagents as they start and stop, in Claude Code and in Codex
 
-  --sessions    taken and not needed: the sessions are what watch serves. A line written
-                for grooph 0.4.1 still runs.
+  --sessions    taken and not needed: the sessions are what watch serves
   --events <s>  more events to merge in, as often as wanted: a file, a folder of files,
                 another project's folder, or git:<ref> for a branch that carries its
                 .grooph/events/ (read from the watched project's repository, no checkout).
@@ -34,6 +33,7 @@ grooph app and one read-only endpoint, read again from disk on every request:
                 interface) lets anyone on that network read all of it while watch runs.
   --open        open the view in the default browser
 
+It takes no folder: it serves the project it is started in, and --events adds another's.
 It writes nothing, needs no credentials, and stops with Ctrl-C. It is a local viewer, not a
 backend: the app it serves makes no request except to this server.`;
 
@@ -49,8 +49,8 @@ export const LIVE_ROUTE = "#/run?live";
 
 /**
  * A run to serve beside the sessions. grooph's own command follows none: it reads no run folder, and its server
- * answers the run's endpoint with "not found". The lab's `watch` gives one (lab/README.md); the app's run view,
- * which stays as a reader of what was recorded, is fed by it.
+ * answers the run's endpoint with `NO_RUN`. The lab's `watch` gives one (lab/README.md); the app's run view, which
+ * stays as a reader of what was recorded, is fed by it.
  */
 export type Follow = {
   /** the folder the run is under: the events served are its project's */
@@ -97,6 +97,9 @@ export type Watcher = { url: string; port: number; host: string; close: () => Pr
  * nothing is written. Bound to loopback, it also refuses requests whose Host
  * is not this machine, so a web page cannot reach the run by DNS rebinding.
  */
+/** What the run's endpoint answers when no run is followed: the app's run view shows it as the reason there is nothing to show. */
+export const NO_RUN = "grooph watch follows no run: it serves the sessions the event hook has seen";
+
 export function startWatch(options: { root: string; webDist: string; port: number; host: string; sessions?: boolean; events?: EventSource[]; map?: string; follow?: Follow }): Promise<Watcher> {
   /** The sessions now, and the operation map they belong on when one was given: read again each time, so an edit to the map shows. */
   const liveNow = (): LiveView => {
@@ -145,8 +148,9 @@ export function startWatch(options: { root: string; webDist: string; port: numbe
       return;
     }
     if (path === LIVE_ENDPOINT) return send(res, 200, TYPES[".json"]!, `${JSON.stringify(liveNow())}\n`, head, { "Cache-Control": "no-store" });
-    if (path === ENDPOINT && options.follow !== undefined) {
+    if (path === ENDPOINT) {
       try {
+        if (options.follow === undefined) throw new LoadError(NO_RUN);
         return send(res, 200, TYPES[".json"]!, options.follow.bundle(), head, { "Cache-Control": "no-store" });
       } catch (err) {
         if (!(err instanceof LoadError)) throw err;

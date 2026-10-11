@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import { buildRunBundle, canonicalizeRunBundle, decodeSharePayload, parseGraphText, sharePayloadFrom } from "@grooph/core";
 
-import { GONE, WATCH_GONE, gone } from "../src/commands/help.js";
+import { COMMANDS, GONE, WATCH_GONE, gone } from "../src/commands/help.js";
 import { run, type CliEnv } from "../src/index.js";
 import type { Output } from "../src/print.js";
 import { inflateRaw } from "../src/share-io.js";
@@ -131,7 +131,7 @@ test("watch given a folder says that following a run has left, exits 1, and star
       }
     }
     assert.deepEqual(opened, [], "a browser was opened");
-    assert.ok(!WATCH_GONE.includes("\n") && WATCH_GONE.startsWith("grooph: watch no longer takes a run or a graph folder") && WATCH_GONE.includes("grooph-lab watch <run dir>"), WATCH_GONE);
+    assert.ok(!WATCH_GONE.includes("\n") && WATCH_GONE.startsWith("grooph: watch no longer takes a folder") && WATCH_GONE.includes("grooph-lab watch <run dir>"), WATCH_GONE);
 
     // Its page is of the sessions and the map, and takes no folder: no run and no graph folder.
     for (const argv of [["watch", "--help"], ["help", "watch"]]) {
@@ -140,7 +140,8 @@ test("watch given a folder says that following a run has left, exits 1, and star
       assert.equal(help.stdout.join("\n").split("\n")[0], "grooph watch [--sessions] [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]");
       assert.doesNotMatch(help.stdout.join("\n"), /<run dir>|<graph dir>|\bthe run\b|newest run|working copy/);
       // --sessions chose the sessions over a run. It is still taken, so that a line written for 0.4.1 runs, and the page says it changes nothing.
-      assert.match(help.stdout.join("\n"), /^ {2}--sessions {4}taken and not needed: the sessions are what watch serves\./m);
+      assert.match(help.stdout.join("\n"), /^ {2}--sessions {4}taken and not needed: the sessions are what watch serves$/m);
+      assert.match(help.stdout.join("\n"), /^It takes no folder: it serves the project it is started in, and --events adds another's\.$/m);
     }
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -277,4 +278,54 @@ test("the files that held adopt, runs and the reading of a run folder are not in
   // Nor has it a case for any of the three: the one line above is all it says of them.
   assert.doesNotMatch(index, /case "(export|adopt|runs)"/);
   for (const moved of ["commands/adopt", "commands/runs", "run-io"]) assert.doesNotMatch(index, new RegExp(`from "\\./${moved}(\\.js)?"`), moved);
+});
+
+test("no page grooph prints names export, adopt or runs as a command: the overview and every command's own page", async () => {
+  const pages: Record<string, string> = {};
+  for (const name of COMMANDS) {
+    const io = capture();
+    assert.equal(await grooph(["help", name], io), 0, name);
+    assert.deepEqual(io.stderr, [], name);
+    pages[name] = io.stdout.join("\n");
+    assert.ok(pages[name]!.length > 100, `${name} has a page`);
+  }
+  const overview = capture();
+  assert.equal(await grooph(["--help"], overview), 0);
+  pages["--help"] = overview.stdout.join("\n");
+  assert.equal(Object.keys(pages).length, 23, "twenty-two commands and the overview");
+  for (const [name, page] of Object.entries(pages)) {
+    for (const line of page.split("\n")) {
+      // The command by its name after grooph's, or as a line of the overview. A flag (--for-export), a rule's kind
+      // (export-only), a tool (grooph_export) and the plain word in an example's title are not the command.
+      assert.doesNotMatch(line, /\bgrooph (export|adopt|runs)\b|^ {2}(export|adopt|runs) {2,}\S|\bruns (list|show|bundle)\b|(?<!--for-)\bexport (that|refuses|writes|compares)\b|\ban export\b/, `grooph help ${name}: ${line}`);
+    }
+  }
+});
+
+test("no sentence in the command line's source tells a reader to run export, adopt or runs", () => {
+  // Every string the command line can print is in these files. export.ts and the MCP server's two are the tool's,
+  // which leaves in the next pull request; help.ts holds the three names once, in the list of what is gone.
+  const src = join(repoRoot, "packages", "cli", "src");
+  const files = [...readdirSync(src), ...readdirSync(join(src, "commands")).map((name) => join("commands", name))].filter((name) => name.endsWith(".ts") && !["mcp.ts", "mcp-author.ts", join("commands", "export.ts")].includes(name));
+  assert.ok(files.length > 25, files.join(" "));
+  // "the lab's export writes it" is a comment's way of saying whose it is, and tells nobody to run anything.
+  const TELLS = /grooph (export|adopt|runs)\b|(?<!--for-)export refuses|\bruns bundle\b|and export that|(?<!the lab's )export writes|Only grooph export/;
+  for (const name of files) {
+    for (const [index, line] of readFileSync(join(src, name), "utf8").split("\n").entries()) {
+      assert.doesNotMatch(line, TELLS, `${name}:${index + 1}`);
+    }
+  }
+});
+
+test("with a slot unfilled, template use and sub add name the check that refuses it, and not export", async () => {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "grooph-gone-slots-")));
+  try {
+    const io = capture();
+    assert.equal(await grooph(["template", "use", "grind-loop", "--name", "Slots", "--out", join(dir, "slots.grooph.json")], io), 0, io.stderr.join("\n"));
+    const said = [...io.stdout, ...io.stderr].join("\n");
+    assert.match(said, /grooph validate --for-export refuses unfilled slots \(E_UNFILLED_SLOT\)\./);
+    assert.doesNotMatch(said, NAMES_EXPORT);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

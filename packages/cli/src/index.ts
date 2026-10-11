@@ -305,7 +305,7 @@ export async function run(
           allowPositionals: true,
           options: { port: { type: "string" }, host: { type: "string" }, open: { type: "boolean" }, sessions: { type: "boolean" }, events: { type: "string", multiple: true }, map: { type: "string" } },
         });
-        // A folder was a run's or a graph's, and following a run is the lab's (lab/README.md).
+        // A folder named a run to follow (a run's own, a graph's, or a project's newest), and following a run is the lab's (lab/README.md).
         if (positionals[0] !== undefined) {
           io.err(WATCH_GONE);
           return 1;

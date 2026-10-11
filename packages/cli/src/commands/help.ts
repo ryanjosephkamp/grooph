@@ -54,9 +54,9 @@ export const COMMANDS = [
 export const GONE: readonly string[] = ["export", "adopt", "runs"];
 export const gone = (command: string): string =>
   `grooph: ${command} is no longer part of grooph, which draws workflows and watches them and no longer directs a session. Version 0.4.1 on npm still has it, and the repository keeps it as a lab (lab/README.md: grooph-lab ${command}).`;
-/** `grooph watch <run dir | graph dir>`: the one part of a command that stays which left. */
+/** `grooph watch <folder>`: the one part of a command that stays which left. A folder was a run's, a graph's, or a project's whose newest run was followed. */
 export const WATCH_GONE =
-  "grooph: watch no longer takes a run or a graph folder: grooph no longer directs a session, so it has no run to follow. Version 0.4.1 on npm still does, and the repository keeps that as a lab (lab/README.md: grooph-lab watch <run dir>). With no folder, grooph watch serves the sessions the event hook has seen.";
+  "grooph: watch no longer takes a folder: a folder named a run to follow, and grooph no longer directs a session, so it has no run to follow. Version 0.4.1 on npm still does, and the repository keeps that as a lab (lab/README.md: grooph-lab watch <run dir>). With no folder, grooph watch serves the sessions the event hook has seen in the project it is started in; --events <folder> adds another project's.";
 
 /** Edit distance with transposition counted as one edit. */
 function distance(a: string, b: string): number {

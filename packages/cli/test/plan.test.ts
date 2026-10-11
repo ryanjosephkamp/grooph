@@ -239,7 +239,7 @@ test("grooph plan writes through no link and never the graph a package keeps", a
     const project = join(dir, "project");
     const kept = await grooph(["plan", named, "--into", join(project, ".grooph", "review-loop"), "--force"]);
     assert.equal(kept.code, 1);
-    assert.match(kept.err, /is the graph a package keeps\. grooph does not write it: what placed the package compares the next graph with it/);
+    assert.match(kept.err, /is the graph a package keeps\. No command of grooph's writes it: what placed the package compares the next graph with it/);
     assert.equal(existsSync(project), false, "nothing was written");
 
     // A link where a file would go is not written through, with --force or without.

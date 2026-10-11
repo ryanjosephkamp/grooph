@@ -102,7 +102,7 @@ test("no command of grooph's writes the graph a package keeps: by its path, thro
         if (args[0] === "canonicalize" && r.code === 0) assert.match(r.out, /is already canonical/);
         else {
           assert.equal(r.code, 1, `${args.join(" ")}: ${r.out}`);
-          assert.match(`${r.err}${r.out}`, /is the graph a package keeps\. grooph does not write it: what placed the package compares the next graph with it/, args.join(" "));
+          assert.match(`${r.err}${r.out}`, /is the graph a package keeps\. No command of grooph's writes it: what placed the package compares the next graph with it/, args.join(" "));
         }
         assert.equal(tree(project), before, args.join(" "));
       }

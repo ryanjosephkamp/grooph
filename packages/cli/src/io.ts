@@ -41,7 +41,7 @@ export function isKeptGraph(path: string): boolean {
 
 /** Said by every command of grooph's that is asked to write the graph a package keeps. What placed the package is the lab's export (lab/README.md). */
 export const keptGraphRefusal = (path: string): string =>
-  `${path} is the graph a package keeps. grooph does not write it: what placed the package compares the next graph with it, and a change made to it here would move that comparison with no word said. Nothing was written. Work on a copy of your own (.grooph/graphs/<id>.grooph.json is the usual place).`;
+  `${path} is the graph a package keeps. No command of grooph's writes it: what placed the package compares the next graph with it, and a change made to it here would move that comparison with no word said. Nothing was written. Work on a copy of your own (.grooph/graphs/<id>.grooph.json is the usual place).`;
 
 export function writeText(path: string, contents: string): void {
   // The graph a package keeps is the baseline an export holds the next graph to. The lab's export places it with the

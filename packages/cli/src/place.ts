@@ -1,5 +1,5 @@
 /**
- * Where grooph may put a file on someone else's word, and how. One guard for the MCP tools and for `grooph export`:
+ * Where grooph may put a file on someone else's word, and how. One guard for the MCP tools and for the lab's export (lab/README.md):
  * inside the folder it was given, by real location; never under `.git`; never through a link; and a set of files
  * placed whole or not at all.
  */
