@@ -53,13 +53,13 @@ The one session that used subagents was an invited one (`haiku/four/invited-1`: 
 
 ## Two things found in the records afterward
 
-**2026-10-11.** Nothing above is changed. The protocol has the same note at its end, at more length, with the field each figure is read from.
+**2026-10-11.** Nothing above is changed, and nothing here reads a difference into or out of the answers above. The protocol has the same note at its end, at more length, with who found what and the field each figure is read from.
 
-- **Every session was told its dollar ceiling.** The harness's files show a reminder of it with each of the model's messages: 4 to 58 a run, and in all thirty-six records as many as the model's own messages (not the "turns" of the tables below, which is another count). The protocol said no session is told. The ceiling was the same in the three arms of a task, so in this the arms were given the same. Nothing here shows what a session would have done had it not been told.
-- **On the narrow task, a run's cost may hold its place in the order as well as its arm.** The plain arm went first in each round. On Sonnet and on Haiku the block's first run, `one` plain, wrote 1.7 to 2.7 times as much to the harness's prompt cache as the five later runs of that task, and on Sonnet it also cost more ($0.20 against $0.11 to $0.14). On Opus the six runs of `one` cost less one after another as they were made ($0.35 down to $0.21), which is also the order of the arms.
-  - This can hide a difference as well as make one. Sonnet's narrow task is not among the cases listed under the first question because its two plain runs, $0.20 and $0.11, span the runs with the hook. The $0.20 is the block's first run; the other plain run is under all four runs with the hook, by less than a cent.
-  - Haiku's narrow case, which is listed there, does not rest on the first run: its other plain run, $0.15, is above all four runs with the hook.
-  - Of the two cases on the wide task this says nothing either way. There a block's first run of the task is the second run made, and what it wrote to the cache was not above the later runs': the lowest of the six on Sonnet, the lowest of the five runs made without subagents on Haiku, and inside the others' on Opus.
+- **Every session was told its dollar ceiling.** The harness's files show a reminder with each of the model's messages: 4 to 58 a run, and in all thirty-six records as many as the model's own messages (not the "turns" of the tables below, which is another count). What a reminder says was read in one transcript: what was used, the ceiling, and what remains. The protocol said no session is told. The ceiling was the same in the three arms of a task, so on this the arms were treated alike. Other kinds of reminder differ from block to block, and the protocol's note lists them.
+- **A run's cost may reflect when it was made as well as its arm.** The arms ran in one order in each round: plain, watched, invited.
+  - On the narrow task, on Sonnet and on Haiku, the block's first run wrote 1.7 to 2.7 times as much to the harness's prompt cache as the five later runs of that task, and on Sonnet it also cost more ($0.20 against $0.11 to $0.14). On Opus the six narrow runs cost less one after another as they were made ($0.35 down to $0.21).
+  - On the wide task, cost rose from the first round to the second in every arm on Sonnet and on Opus.
+  - Beside the three cases listed under the first question: within each round each keeps its direction. The Opus case is a gap of less than a cent, between the first round's plain run and the second round's invited run. And Sonnet's narrow task is not listed there because its plain runs, $0.20 and $0.11, lie on both sides of the runs with the hook; the $0.20 is the block's first run.
 
 ## The thirty-six runs
 
