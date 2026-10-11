@@ -39,6 +39,30 @@ Taken on `main` at `da6c3874`, built there (`pnpm install --frozen-lockfile && p
 
 **One thing to weigh.** With the folder gone from the root, `grooph-lab runs list .` there lists nothing, and the three commands `handoffs/0008-runs/HANDBACK.md:78-80` gives for that folder no longer work as written.
 
+## Pull request 2 · the command line
+
+**What left the product's command line:** `export`, `adopt`, `runs`, `watch <run dir | graph dir>`, and `share` and `embed` of a run folder. `grooph` answers the first three, asked for or asked about (`grooph help export`, `grooph export --help`), with one line and exit code 1; `grooph watch <folder>` with another. No help page, and no "did you mean", names them.
+
+**Where each thing went.**
+
+| From the product | To |
+|---|---|
+| The `export`, `runs` and `adopt` cases of `packages/cli/src/index.ts`, and the `watch`, `share` and `embed` cases as they were | `lab/src/index.ts`, with a copy of the dispatcher's usage line and its error handling for the lab's own commands |
+| `EXPORT_HELP`, the tier lines, the overview and the list of commands as they were (`commands/help.ts`); `SHARE_HELP` and `EMBED_HELP` as they were | `lab/src/help.ts` |
+| `commands/adopt.ts`, `commands/runs.ts`, `run-io.ts` | `lab/src/commands/adopt.ts`, `lab/src/commands/runs.ts`, `lab/src/run-io.ts` (moved whole) |
+| `watchTarget`, `currentRun`, the run's line and `WATCH_HELP` as it was (`commands/watch.ts`) | `lab/src/commands/watch.ts` |
+
+**Files split, and where each half is.**
+
+- `packages/cli/src/commands/watch.ts`: the server, the sessions and the map stay; which run a folder means is the lab's (`lab/src/commands/watch.ts`). The product's `startWatch` and `watchCommand` take one optional argument, `follow`, that `grooph` never passes; the lab's `watch` passes it. So there is one server.
+- `packages/cli/src/commands/share.ts` and `embed.ts`: each takes one optional argument, a document already read, that `grooph` never passes. The lab reads a run folder into a bundle and hands it over (`runIn` in `lab/src/index.ts`).
+- `packages/cli/src/commands/help.ts`: what is said of the commands that stay, stays; the rest is `lab/src/help.ts`. `nearestCommand` takes a list, so the lab's "did you mean" still knows `export`.
+- `packages/cli/src/commands/export.ts`: **not moved yet.** The MCP tool `grooph_export` (`mcp-author.ts:78`) imports fourteen names from it, and that tool leaves in pull request 3. Nothing in the product's command line reaches it. Two helpers changed hands on the way: `shellWord`, which `plan` uses, is in `reply.ts`; `NOT_JUDGED`, which `adopt`, `export` and the MCP tool say, is defined in `export.ts` until that file moves.
+
+**Why the handoff's order and not the MCP tool first.** With the tool first, each file would move once. The handoff fixes the order and keys the three shared files to pull request 2, and its order already implies `export.ts` stays while the tool does; so the order stands and one file waits.
+
+**Where the lab's command is not, word for word, what `grooph` 0.4.1 was.** In what it does, it is a superset. In what it says, it hands the product's commands on as they are now, so it differs exactly where the product's own words changed (each listed in the pull request). The six pages it answers itself (`export`, `adopt`, `runs`, `watch`, `share`, `embed`), the overview and the "did you mean" are as they were. One more difference: a usage error of `share` or `embed` on a file shows the product's usage line, which no longer names a run folder.
+
 ## Where `INVENTORY.md` was wrong, so far
 
 - §5, row 1 lists `experiments/game/setup/make-repo.sh:62-71` and the game's README for pull request 1. Lines 62 to 64 name the compiler's folder, which is still `packages/` until pull request 5; and the driver moved the script's change to pull request 2.
