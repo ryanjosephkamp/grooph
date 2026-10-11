@@ -430,17 +430,30 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
         if (n > 0 || !local) io.out(`${harness}: ${n > 0 ? `${plural(n, "hook entry", "hook entries")} in ${shownPath(path)}${sends}` : `no entries in ${shownPath(path)}`}`);
       }
     }
+    // The copy in a project is the one that runs: a project installed by an older grooph keeps that grooph's hook until it is installed again.
+    if (existsSync(hookFile) && readFileSync(hookFile, "utf8") !== readFileSync(hookSource(), "utf8")) {
+      io.out(`${HOOK_REL} is not this grooph's version: run grooph hooks install again (with the same options)`);
+    }
     if (existsSync(join(dir, PUSH_REL)) && readFileSync(join(dir, PUSH_REL), "utf8") !== readFileSync(pushSource(), "utf8")) {
       io.out(`${PUSH_REL} is not this grooph's version: run grooph hooks install again (with the same options) and commit it`);
     }
     const files = eventFiles(dir);
     io.out(`${plural(files.length, "session file")} in ${EVENTS_DIR}/`);
     // The hook writes through no link and says nothing when it meets one: this is where a person hears of it.
-    for (const rel of [dirname(EVENTS_DIR), EVENTS_DIR]) {
-      const is = lstatSync(join(dir, rel), { throwIfNoEntry: false });
-      if (is === undefined || is.isDirectory()) continue;
-      io.out(`${rel.split(sep).join("/")} is ${is.isSymbolicLink() ? "a link" : "a file"}, not a folder: the hook records nothing while it is`);
-      break;
+    // (With GROOPH_EVENTS_DIR set the hook writes there, and what stands at these two folders is nothing to it.)
+    if (!(flags.env ?? process.env)["GROOPH_EVENTS_DIR"]) {
+      try {
+        for (const rel of [dirname(EVENTS_DIR), EVENTS_DIR]) {
+          const is = lstatSync(join(dir, rel), { throwIfNoEntry: false });
+          if (is === undefined || is.isDirectory()) continue;
+          io.out(`${rel.split(sep).join("/")} is ${is.isSymbolicLink() ? "a link, not a folder" : "not a folder"}: the hook records nothing while it is`);
+          break;
+        }
+        const twice = files.filter((file) => lstatSync(file).nlink > 1).length;
+        if (twice > 0) io.out(`${plural(twice, "session file has", "session files have")} a second name (a hard link): the hook adds nothing to ${twice === 1 ? "it" : "them"}`);
+      } catch {
+        // A folder that cannot be looked into: the count above already says what could be read.
+      }
     }
     // Run from inside a session, the harness says which one: whether that session itself has recorded anything.
     // Only when that session is working in this project: asked about another project (--dir), "nothing recorded"

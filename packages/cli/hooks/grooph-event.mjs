@@ -15,16 +15,18 @@
  *     sessions working in that project.
  *   - it writes through no link. A harness runs a hook outside its sandbox, and
  *     a session can write in its project: where a link stands at .grooph, at
- *     .grooph/events or at a session's file, or that file is a second name for
- *     a file kept elsewhere, nothing is written. `grooph hooks status` says so.
+ *     .grooph/events or at a session's file, or that file has a second name (a
+ *     hard link), nothing is written. `grooph hooks status` says when a link
+ *     stands at either folder, and how many session files have a second name.
+ *   - it adds only to a file that is empty or already begins as one of its own.
  *
  * No dependencies; any Node from 18 on. `grooph hooks install` copies this
  * file to <project>/.grooph/hooks/ and points the harness at the copy.
  *
  *   node .grooph/hooks/grooph-event.mjs <harness>      harness: claude-code | codex
  */
-import { closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, realpathSync, writeSync } from "node:fs";
-import { dirname, join, resolve, sep } from "node:path";
+import { closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readSync, realpathSync, statSync, writeSync } from "node:fs";
+import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const EVENT = {
@@ -37,6 +39,9 @@ const EVENT = {
   PostToolUse: "tool",
 };
 
+/** How every line this hook has ever written begins, and so how every file of its lines does. */
+const OURS = '{"v":1,"t":"';
+
 const str = (v) => (typeof v === "string" && v !== "" ? v : undefined);
 const real = (p) => {
   try {
@@ -47,42 +52,53 @@ const real = (p) => {
 };
 const inside = (child, parent) => child === parent || child.startsWith(parent + sep);
 /** What stands at a path, a link there not followed; undefined when nothing does. */
-const at = (p) => lstatSync(p, { throwIfNoEntry: false });
+const at = (p) => lstatSync(p, { throwIfNoEntry: false, bigint: true });
+const same = (a, b) => a.ino === b.ino && a.dev === b.dev;
 
-/** Make one folder where nothing stands, and say whether a folder, and not a link to one, stands there now. */
-function folder(p) {
-  if (at(p) === undefined) {
+/**
+ * Step into one folder, by its name in the folder this process stands in, making it where nothing stands.
+ * False where a link, or anything else that is not a folder, stands there. The folder stood in afterward is
+ * checked to be the one that was looked at: a link put there between the look and the step leads somewhere
+ * else, and that shows. From then on the folder is held, whatever is done to its name.
+ */
+function into(part) {
+  if (at(part) === undefined) {
     try {
-      mkdirSync(p);
+      mkdirSync(part);
     } catch (e) {
       // A hook started at the same moment made it first.
       if (e?.code !== "EEXIST") throw e;
     }
   }
-  return at(p)?.isDirectory() === true;
+  const looked = at(part);
+  if (looked?.isDirectory() !== true) return false;
+  process.chdir(part);
+  return same(looked, statSync(".", { bigint: true }));
 }
 
-/** The folder the events go in, made if it is missing; undefined where a link, or anything else that is not a folder, stands in its place. */
-function eventsFolder(project) {
+/** Stand in the folder the events go in, made if it is missing. False where a link stands in its place, or on the way to it from the project. */
+function inEventsFolder(project) {
   const named = str(process.env.GROOPH_EVENTS_DIR);
   if (named !== undefined) {
     // Whoever set the variable chose the folders above this one (on macOS /tmp is itself a link). The one they named must be a folder.
-    if (at(named) === undefined) mkdirSync(named, { recursive: true });
-    return at(named)?.isDirectory() === true ? named : undefined;
+    // resolve() takes a slash off its end: with one, the system would look through a link there.
+    const plain = resolve(named);
+    if (at(plain) === undefined) mkdirSync(plain, { recursive: true });
+    const looked = at(plain);
+    if (looked?.isDirectory() !== true) return false;
+    process.chdir(plain);
+    return same(looked, statSync(".", { bigint: true }));
   }
-  // From the project down, one at a time: making both at once would make them on the far side of a link.
-  let dir = project;
-  for (const part of [".grooph", "events"]) {
-    dir = join(dir, part);
-    if (!folder(dir)) return undefined;
-  }
-  return dir;
+  // From the project down, one folder at a time: making both at once would make them on the far side of a link.
+  process.chdir(project);
+  return into(".grooph") && into("events");
 }
 
 function main(input) {
   const harness = str(process.argv[2]) ?? "unknown";
   const payload = JSON.parse(input);
-  const event = EVENT[payload.hook_event_name];
+  // An own key only: "constructor" is on every object, and is no event.
+  const event = Object.hasOwn(EVENT, payload.hook_event_name) ? EVENT[payload.hook_event_name] : undefined;
   const session = str(payload.session_id);
   if (!event || !session) return;
 
@@ -116,20 +132,29 @@ function main(input) {
     if (transcript) line.transcript = transcript;
   }
 
-  const dir = eventsFolder(project);
-  if (dir === undefined) return;
-  const name = /^[A-Za-z0-9._-]{1,128}$/.test(session) ? session : Buffer.from(session).toString("hex").slice(0, 64);
-  const file = join(dir, `${name}.jsonl`);
+  if (!inEventsFolder(project)) return;
+  // By its name in the folder now stood in, which nothing done to that folder's name can lead away.
+  const file = `${/^[A-Za-z0-9._-]{1,128}$/.test(session) ? session : Buffer.from(session).toString("hex").slice(0, 64)}.jsonl`;
   // The session's file is a file of its own, or is not there yet: not a link, and not a pipe that would hold this process.
   const is = at(file);
   if (is !== undefined && !is.isFile()) return;
-  // O_NOFOLLOW has the system refuse a link as it opens the file, whatever stood there a moment ago.
-  const fd = openSync(file, constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT | (constants.O_NOFOLLOW ?? 0), 0o666);
+  // O_NOFOLLOW (macOS, Linux) has the system refuse a link as it opens the file, whatever stood there a moment ago;
+  // O_NONBLOCK keeps a pipe put there in that moment from holding this process.
+  const fd = openSync(file, constants.O_RDWR | constants.O_APPEND | constants.O_CREAT | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0), 0o666);
   try {
-    const opened = fstatSync(fd);
-    // A file with a second name somewhere (a hard link) may be someone else's file: it gets no line.
+    const opened = fstatSync(fd, { bigint: true });
+    // What was opened is what stands at that name now, and it has no other name. A file with a second name (a hard
+    // link) may be someone else's file, and so may one whose second name was taken away a moment ago: neither gets a line.
+    const named = at(file);
+    if (!(opened.isFile() && named?.isFile() === true && named.nlink === 1n && same(named, opened))) return;
+    // Those looks cannot be made in one instant, so a second name put on and taken off in a loop can slip between
+    // them. What it then reaches must already begin as a file of these lines does: nothing else is ever added to.
+    if (opened.size > 0n) {
+      const head = Buffer.alloc(OURS.length);
+      if (readSync(fd, head, 0, head.length, 0) !== head.length || head.toString() !== OURS) return;
+    }
     // One short line, appended in one write: lines from hooks running at the same moment do not interleave.
-    if (opened.isFile() && opened.nlink === 1) writeSync(fd, `${JSON.stringify(line)}\n`);
+    writeSync(fd, `${JSON.stringify(line)}\n`);
   } finally {
     closeSync(fd);
   }
