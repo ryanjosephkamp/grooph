@@ -20,6 +20,8 @@
  *   node scripts/lib/watching-second-look-paid.mjs --score <block>/<task>/<arm>-<n>      score a run whose scorer failed; no session, no spend
  *   node scripts/lib/watching-second-look-paid.mjs --settle <n> --cost <usd|ceiling> --note "<what happened>"
  *                                                                                  settle a ledger line a stopped runner left running; no session
+ *   node scripts/lib/watching-second-look-paid.mjs --not-obtained <block>/<task>/<arm>-<n> --note "<what happened>"
+ *                                                                                  a run started twice and recorded neither time; no session
  *
  * Thirty-six runs, in two blocks: `opus`, then `sonnet`, each on one model for the session itself. A block is
  * eighteen: two tasks (`four`, `six`), three arms (`plain`, `watched`, `outside`), three rounds, the arms changing
@@ -42,9 +44,9 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { accessSync, constants, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { amendEntry, counted, loadLedger, saveLedger, settleEntry } from "./compare-ledger.mjs";
@@ -135,6 +137,17 @@ export const USER_ENTRY = /grooph-event\.mjs"? +claude-code +--user\s*$/;
 
 const SCORING = { what: SCORING_RUNS_WHAT_A_SESSION_WROTE, where: "experiments/watching/second-look/ledger.json" };
 
+/**
+ * The owner's decision on scoring, as this look reads it: the lab's own test that a decision is recorded, and one more.
+ * That test asks only that the three fields hold words. Words that begin with a no are a no: nothing is started or
+ * scored on them, and a person writes the decision so that it reads as what it is.
+ */
+export function decidedYes(ledger) {
+  const scoring = scoringDecided(ledger, SCORING);
+  if (scoring.ok && /^\W*(no|not|never|don't|do not|refused?|declined?)\b/i.test(scoring.decision.words)) return { ok: false, why: `${SCORING_RUNS_WHAT_A_SESSION_WROTE} The decision recorded for this look (${SCORING.where}) begins "${scoring.decision.words.slice(0, 40)}", which reads as a no: no run is started and none is scored on it. If it is a yes, it is written so that it begins as one.` };
+  return scoring;
+}
+
 // ── the order ────────────────────────────────────────────────────────────
 
 /**
@@ -162,17 +175,19 @@ export const nextRun = (recordRoot = HOME, block = null, { withoutOutside = fals
 
 /**
  * What holds a block up, or null: the block before it having no whole round, or a round begun and not finished (the
- * protocol, "Three rounds, in two blocks"). A run of the `outside` arm is not needed for a round to be whole: a block
- * may be made without that arm while the recorder cannot be installed outside a project. A run the harness ended has
- * a record and holds nothing up: it waits for its one rerun.
+ * protocol, "Three rounds, in two blocks"). A round is begun when any of its six runs has a record. It is finished when
+ * its `plain` and `watched` runs are all done, and, if any of its `outside` runs has a record, those too: a block may
+ * be made without that arm, but not half with it. A run is done when it is a result, or was not obtained for good. A
+ * run the harness ended, and that has not yet been run once more, is not done.
  */
 export function heldUpBy(block, recordRoot = HOME) {
+  const done = (run) => !["not recorded", "ended by the harness, and not yet run again"].includes(stateOf(run, recordRoot).state);
   for (const earlier of BLOCKS.slice(0, Math.max(0, BLOCKS.indexOf(block)))) {
-    const needed = order().filter((run) => run.block === earlier && run.arm !== "outside");
-    const rounds = roundsOf(earlier).map((_, at) => needed.filter((run) => run.round === at + 1));
-    const whole = rounds.filter((runs) => runs.every((run) => recorded(run, recordRoot)));
-    const begun = rounds.filter((runs) => runs.some((run) => recorded(run, recordRoot)) && !runs.every((run) => recorded(run, recordRoot)));
-    const why = begun.length > 0 ? `has a round begun and not finished (${begun.flatMap((runs) => runs.filter((run) => !recorded(run, recordRoot)).map((run) => run.name)).join(", ")} with no record)` : whole.length === 0 ? "has no whole round" : null;
+    const rounds = roundsOf(earlier).map((_, at) => order().filter((run) => run.block === earlier && run.round === at + 1));
+    const needed = (runs) => runs.filter((run) => run.arm !== "outside" || runs.some((other) => other.arm === "outside" && recorded(other, recordRoot)));
+    const begun = rounds.filter((runs) => runs.some((run) => recorded(run, recordRoot)));
+    const unfinished = begun.filter((runs) => !needed(runs).every(done));
+    const why = unfinished.length > 0 ? `has a round begun and not finished (${unfinished.flatMap((runs) => needed(runs).filter((run) => !done(run)).map((run) => `${run.name}${recorded(run, recordRoot) ? ", which the harness ended and which has not been run once more" : ""}`)).join("; ")})` : begun.length === 0 ? "has no whole round" : null;
     if (why) return { block: earlier, why: `the \`${block}\` block is not started while the \`${earlier}\` block, which comes before it, ${why}: a block is started by a person, and the driver reads its records before the next is started (${PAGE}, "Three rounds, in two blocks")` };
   }
   return null;
@@ -180,12 +195,34 @@ export function heldUpBy(block, recordRoot = HOME) {
 
 const SAY_WHICH_BLOCK = `say which block: ${BLOCKS.map((block) => `--block ${block}`).join(" or ")}. A block is started by name, by a person, in that order (${PAGE}, "Three rounds, in two blocks")`;
 
+/** A file of a record that is there and cannot be read as JSON. */
+class Unreadable extends Error {
+  constructor(path, cause) {
+    super(`${path} cannot be read (${cause.message})`);
+    this.path = path;
+  }
+}
+
 /** Where one run stands, from its record: its own, or its one rerun when the harness ended its own or its own was never written. */
 export function stateOf(run, recordRoot = HOME) {
   const first = recordOf(run, recordRoot);
-  const read = (dir) => (existsSync(join(dir, "result.json")) ? { result: JSON.parse(readFileSync(join(dir, "result.json"), "utf8")), score: existsSync(join(dir, "score.json")) ? JSON.parse(readFileSync(join(dir, "score.json"), "utf8")) : null } : null);
-  const own = read(first);
-  const again = read(`${first}-rerun`);
+  const parse = (path) => {
+    try {
+      return JSON.parse(readFileSync(path, "utf8"));
+    } catch (error) {
+      throw new Unreadable(path, error);
+    }
+  };
+  const read = (dir) => (existsSync(join(dir, "result.json")) ? { result: parse(join(dir, "result.json")), score: existsSync(join(dir, "score.json")) ? parse(join(dir, "score.json")) : null } : null);
+  let own, again;
+  try {
+    own = read(first);
+    again = read(`${first}-rerun`);
+  } catch (error) {
+    if (!(error instanceof Unreadable)) throw error;
+    // A record that was cut short is still a record: nothing is started over it, and a person looks at the file.
+    return { state: `recorded, and ITS RECORD CANNOT BE READ (${relativeToRoot(error.path)}: cut short, or not JSON): a person looks`, unreadable: error.path };
+  }
   if (!own && !again) return { state: "not recorded" };
   const used = !own || own.result.ended_by === "the harness" ? again : own;
   if (!used) return { state: "ended by the harness, and not yet run again", why: own.result.why ?? null };
@@ -261,6 +298,32 @@ export function settleLine({ n, cost, note, ledgerPath = LEDGER }) {
   return line;
 }
 
+/**
+ * Mark a run not obtained, by hand: its one rerun was started and left no record (the runner was stopped during the
+ * rerun as well), so nothing can start it a third time and its block cannot be finished. A record is written for it
+ * that says the harness ended it and that a person wrote this, with what happened. No session is started.
+ */
+export function markNotObtained({ name, note, ledgerPath = LEDGER, recordRoot = HOME }) {
+  if (typeof note !== "string" || note.trim().length < 8) throw new NotStarted('--note says what happened: "<a sentence>"');
+  const run = order().find((candidate) => candidate.name === name);
+  if (!run) throw new NotStarted(`${JSON.stringify(name)} is not a run of the second look: --not-obtained names one, such as ${BLOCKS[0]}/four/plain-1`);
+  const ledger = readLedger(ledgerPath);
+  const first = recordOf(run, recordRoot);
+  const again = ledger.invocations.find((entry) => entry.run === `second-look/${run.name}-rerun`) ?? null;
+  if (!again) throw new NotStarted(`${name} has no line on the ledger for a rerun: a run is marked not obtained only when its one rerun was started and left no record. Until then it can be made, or made once more`);
+  if (again.status === "running") throw new NotStarted(`the rerun of ${name} has a line on the ledger (${again.n}) still marked running: settle that first (--settle ${again.n} --cost <usd|ceiling> --note "<what happened>")`);
+  if (existsSync(join(`${first}-rerun`, "result.json"))) throw new NotStarted(`the rerun of ${name} has a record: the run is what its record says`);
+  const written = { run: run.name, block: run.block, task: run.task, arm: run.arm, round: run.round, replicate: run.replicate, ended_by: "the harness", why: `not obtained: the run was started twice and the runner was stopped before it recorded either. Marked by hand: ${note.trim()}`, written_by_hand: true, scored: false, measures: null, problems: [], recorded: new Date().toISOString(), protocol: PAGE };
+  const made = [];
+  for (const dir of [first, `${first}-rerun`]) {
+    if (existsSync(join(dir, "result.json"))) continue;
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "result.json"), `${JSON.stringify(dir === first ? written : { ...written, rerun_of: run.name }, null, 2)}\n`, "utf8");
+    made.push(dir);
+  }
+  return { run, made, state: stateOf(run, recordRoot).state };
+}
+
 /** A refusal of the paid path that names the comparisons ledger's own commands, said for this ledger. */
 const forThisLedger = (message) =>
   /compare-ledger\.mjs|still marked running/.test(message)
@@ -286,29 +349,70 @@ export const promptFor = ({ task }) => `${taskText(task).replace(/\n*$/, "\n")}\
 
 const toolEnv = () => ({ PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "" });
 const inside = (path, base) => resolve(path) === resolve(base) || resolve(path).startsWith(`${resolve(base)}/`);
+/** Two paths that are one folder on the disk, whatever each is called: a link, another spelling of its letters, another name for the same volume. */
+const oneFolder = (a, b) => {
+  try {
+    const [x, y] = [statSync(a), statSync(b)];
+    return x.dev === y.dev && x.ino === y.ino;
+  } catch {
+    return false;
+  }
+};
+/** A path and every folder above it, nearest first. */
+const upFrom = (path) => {
+  const out = [];
+  for (let at = resolve(path); ; at = dirname(at)) {
+    out.push(at);
+    if (dirname(at) === at) return out;
+  }
+};
 
 /** The owner's own places a recorder at the user's level would be kept in. Nothing here is ever installed into one. */
-export const theOwnersOwn = (userHome = homedir()) => [join(userHome, ".claude"), join(userHome, ".codex"), join(userHome, ".grooph")];
+export function theOwnersOwn(userHome = homedir()) {
+  if (typeof userHome !== "string" || !isAbsolute(userHome) || resolve(userHome) === "/") throw new NotStarted(`the owner's home folder is not known (${JSON.stringify(userHome)}): without it, his own ~/.claude, ~/.codex and ~/.grooph cannot be told from the places an install is told of, and nothing is installed`);
+  return [join(userHome, ".claude"), join(userHome, ".codex"), join(userHome, ".grooph")];
+}
 
 /**
  * The three places an install outside the project is told of, each one named and none left to a default: left to
- * themselves they are the owner's own. A place that is one of his, or inside one, is a refusal.
+ * themselves they are the owner's own. A place that is one of his, or inside one, is a refusal: by its name, however
+ * its letters are cased, and by which folder it really is, so that a link to one of his places, or another name for
+ * the same folder, is refused as the place itself would be. A link that leads nowhere is refused too.
  */
 export function placesFor({ groophHome, configDir, userHome = homedir() }) {
   const places = { GROOPH_HOME: resolve(groophHome), CLAUDE_CONFIG_DIR: resolve(configDir), CODEX_HOME: join(dirname(resolve(groophHome)), ".codex-is-not-used") };
-  for (const [name, path] of Object.entries(places)) for (const own of theOwnersOwn(userHome)) if (inside(path, own)) throw new NotStarted(`${name} would be ${path}, which is the owner's own ${own}: the recorder is installed at the user's level of the clean profile and of nothing else`);
+  const own = theOwnersOwn(userHome);
+  for (const [name, path] of Object.entries(places)) {
+    for (const his of own) {
+      if (inside(path, his) || inside(path.toLowerCase(), his.toLowerCase())) throw new NotStarted(`${name} would be ${path}, which is the owner's own ${his}: the recorder is installed at the user's level of the clean profile and of nothing else`);
+      const really = upFrom(path).find((at) => oneFolder(at, his));
+      if (really) throw new NotStarted(`${name} would be ${path}, and ${really} is the owner's own ${his} under another name: the recorder is installed at the user's level of the clean profile and of nothing else`);
+    }
+    for (const at of upFrom(path)) {
+      let link = false;
+      try {
+        link = lstatSync(at).isSymbolicLink();
+      } catch {}
+      if (link && !existsSync(at)) throw new NotStarted(`${name} would be ${path}, and ${at} is a link that leads nowhere: nothing is installed through it`);
+    }
+  }
   return places;
 }
 
 /** `grooph hooks install --user`, then `grooph hooks watch <folder>`, by a checkout's own tool, with every place named. Returns what the tool printed. */
-export function installOutside({ cli = CLI, node = process.execPath, groophHome, configDir, folder, cwd }) {
-  const env = { ...toolEnv(), ...placesFor({ groophHome, configDir }) };
+export function installOutside({ cli = CLI, node = process.execPath, groophHome, configDir, folder, cwd, toolHome }) {
+  // The tool's own HOME is a folder made for it, never the owner's: a tool that left one of the three places to its
+  // default would write there, and what it left there says so.
+  mkdirSync(toolHome, { recursive: true });
+  const env = { PATH: process.env.PATH ?? "", HOME: toolHome, ...placesFor({ groophHome, configDir }) };
   const said = [];
   for (const args of [["hooks", "install", "--user", "--harness", "claude-code"], ["hooks", "watch", folder]]) {
     const out = spawnSync(node, [cli, ...args], { cwd, encoding: "utf8", env, timeout: 30_000 });
     said.push(`$ grooph ${args.join(" ")}\n${out.stdout ?? ""}${out.stderr ?? ""}`);
     if (out.status !== 0) throw new Error(`grooph ${args.slice(0, 3).join(" ")} exited ${out.status ?? out.signal ?? out.error?.message}: ${String(out.stderr ?? "").trim().split("\n")[0].slice(0, 300)}`);
   }
+  const strayed = filesUnder(toolHome);
+  if (strayed.length > 0) throw new Error(`the tool wrote under its own home folder (${strayed.slice(0, 4).join(", ")}): it did not keep to the places it was told of, and on the owner's machine that would have been his own`);
   return said.join("\n");
 }
 
@@ -373,7 +477,7 @@ export function rehearse({ cli = CLI, node = process.execPath, home = DEFAULT_HO
     if (!existsSync(join(dirname(cli), "..", "dist")) && cli === CLI) return { ok: false, why: "this checkout's grooph is not built: run pnpm -r build first" };
     let said;
     try {
-      said = installOutside({ cli, node, groophHome, configDir, folder: project, cwd: scratch });
+      said = installOutside({ cli, node, groophHome, configDir, folder: project, cwd: scratch, toolHome: join(scratch, "home", "tool-home") });
     } catch (error) {
       return { ok: false, why: `this checkout's grooph did not install the recorder outside a project (${error.message}). That install is slice 0108's: until it is on main and built here, a block is started with --without-outside` };
     }
@@ -384,7 +488,7 @@ export function rehearse({ cli = CLI, node = process.execPath, home = DEFAULT_HO
       return { ok: false, why: `the install outside the project did not leave what the protocol says it leaves: ${error.message}` };
     }
     // The hook, run as the entry runs it, with what the harness would send for a session's start.
-    const fire = (folder, session) => spawnSync("/bin/sh", ["-c", left.commands[0]], { input: JSON.stringify({ hook_event_name: "SessionStart", session_id: session, cwd: folder }), encoding: "utf8", env: { ...toolEnv(), CLAUDE_PROJECT_DIR: folder }, timeout: 15_000 });
+    const fire = (folder, session) => spawnSync("/bin/sh", ["-c", left.commands[0]], { input: JSON.stringify({ hook_event_name: "SessionStart", session_id: session, cwd: folder }), encoding: "utf8", env: { PATH: process.env.PATH ?? "", HOME: join(scratch, "home", "tool-home"), CLAUDE_PROJECT_DIR: folder }, timeout: 15_000 });
     const here = fire(project, "rehearsal-in-the-listed-folder");
     const there = fire(elsewhere, "rehearsal-somewhere-else");
     const wrong = [];
@@ -392,6 +496,7 @@ export function rehearse({ cli = CLI, node = process.execPath, home = DEFAULT_HO
     if (eventsOf(groophHome, "rehearsal-in-the-listed-folder") === null) wrong.push("a session in the listed folder left no line under grooph's own folder");
     if (eventsOf(groophHome, "rehearsal-somewhere-else") !== null) wrong.push("a session in a folder that is not listed left a line");
     if (filesUnder(project).length > 0) wrong.push(`the project holds ${filesUnder(project).join(", ")}`);
+    if (filesUnder(join(scratch, "home", "tool-home")).length > 0) wrong.push(`the hook wrote under its own home folder (${filesUnder(join(scratch, "home", "tool-home")).slice(0, 4).join(", ")})`);
     if (wrong.length > 0) return { ok: false, why: `the install outside the project did not behave as the protocol says: ${wrong.join("; ")}` };
     // A scratch copy of the profile's settings, three times: the repository's before; the repository's and exactly
     // what the install wrote, after it (whatTheInstallLeft throws above unless they are that); and the repository's
@@ -429,8 +534,10 @@ export const STARTED = "the-launcher-started-the-harness";
  * folder, where the folder above the session's would hold them in this arm and in no other.
  */
 export function launcherText({ harness, node, cli, groophHome, configDir, folder, dir }) {
+  const toolHome = join(dir, "tool-home");
   const places = Object.entries(placesFor({ groophHome, configDir })).map(([name, path]) => `${name}=${sh(path)}`).join(" ");
-  const grooph = `${places} ${sh(node)} ${sh(cli)}`;
+  // The tool is run with a home of its own, which has to stay empty: left to a default, a place would be under it.
+  const grooph = `HOME=${sh(toolHome)} ${places} ${sh(node)} ${sh(cli)}`;
   return `#!/bin/sh
 # Written by ${SCRIPT} for one run of the \`outside\` arm (${PAGE}).
 session=
@@ -442,23 +549,39 @@ if [ -z "$session" ]; then
   exit 64
 fi
 (
+  mkdir -p ${sh(toolHome)} &&
   cd ${sh(dir)} &&
   ${grooph} hooks install --user --harness claude-code &&
-  ${grooph} hooks watch ${sh(folder)}
+  ${grooph} hooks watch ${sh(folder)} &&
+  if [ -n "$(ls -A ${sh(toolHome)})" ]; then echo "the tool wrote under its own home folder: it did not keep to the places it was told of"; exit 1; fi &&
+  if [ ! -f ${sh(join(groophHome, "hooks", "grooph-event.mjs"))} ]; then echo "no hook was left in grooph's own folder for the run"; exit 1; fi &&
+  if ! grep -q 'grooph-event\\.mjs.* claude-code --user' ${sh(join(configDir, "settings.json"))}; then echo "the profile's settings hold no entry that runs the recorder"; exit 1; fi &&
+  if [ ! -x ${sh(harness)} ]; then echo "the harness is not there to be started"; exit 1; fi
 ) >${sh(join(dir, "outside-install.txt"))} 2>&1 || exit 70
 cp ${sh(join(configDir, "settings.json"))} ${sh(join(dir, "settings-with-the-recorder.json"))} || exit 70
 : >${sh(join(dir, STARTED))} || exit 70
-exec ${sh(harness)} "$@"
+# The harness is started with the environment this was given, to the letter: what a shell adds of its own is taken off.
+exec /usr/bin/env -u PWD -u OLDPWD -u SHLVL -u _ ${sh(harness)} "$@"
 `;
 }
 
-/** How many entries of a recorder outside the project the owner's own settings hold, and whether his own grooph folder holds a hook: read, never written. */
-export function theOwnersOwnAsFound(userHome = homedir()) {
-  let entries = null;
+/** A file's checksum, or null where there is no such file; and its first sixteen characters, for a file of the owner's own. */
+const sha256Of = (path) => {
   try {
-    entries = hookCommands(JSON.parse(readFileSync(join(userHome, ".claude", "settings.json"), "utf8"))).filter((entry) => USER_ENTRY.test(entry.command)).length;
-  } catch {}
-  return { entries_of_a_recorder_in_his_own_settings: entries, a_hook_in_his_own_grooph_folder: existsSync(join(userHome, ".grooph", "hooks", "grooph-event.mjs")) };
+    return createHash("sha256").update(readFileSync(path)).digest("hex");
+  } catch {
+    return null;
+  }
+};
+const sumOf = (path) => sha256Of(path)?.slice(0, 16) ?? null;
+
+/**
+ * The owner's own files a recorder at the user's level would change, as they are found: a checksum of each, or null
+ * where there is none. Read, never written, and nothing of what they hold is kept. Set beside the same after a run,
+ * any change shows, whatever made it.
+ */
+export function theOwnersOwnAsFound(userHome = homedir()) {
+  return { his_settings: sumOf(join(userHome, ".claude", "settings.json")), his_hooks_in_codex: sumOf(join(userHome, ".codex", "hooks.json")), his_list_of_watched_folders: sumOf(join(userHome, ".grooph", "watched.json")), a_hook_in_his_own_grooph_folder: sumOf(join(userHome, ".grooph", "hooks", "grooph-event.mjs")) };
 }
 
 // ── the three arms ───────────────────────────────────────────────────────
@@ -479,7 +602,7 @@ export function build({ run, home = DEFAULT_HOME, node = process.execPath, cli =
   const groophHome = groophHomeIn(home);
   if (run.arm === "outside") {
     placesFor({ groophHome, configDir: layout(home).profile });
-    if (existsSync(dirname(groophHome))) throw new NotStarted(`${dirname(groophHome)} is still there: it is grooph's own folder from an earlier run of the outside arm, and the next run starts with none. Move it aside before another is made`);
+    if (existsSync(dirname(groophHome))) throw new NotStarted(`${dirname(groophHome)} is there: it holds grooph's own folder for one run of the outside arm, and the next run starts with none. IF A RUN IS IN PROGRESS in another terminal, it is that run's: leave it alone and wait. Only if no run is in progress is it left from an earlier one, and then a person moves it aside before another is made`);
   }
   let installed = [];
   const project = makeProject({
@@ -515,22 +638,47 @@ export function unbuild(built) {
   if (built.outside) rmSync(built.outside.dir, { recursive: true, force: true });
 }
 
-/** This checkout as a run found it: the commit it was at, the version of the tool in it, and the hook it ships. */
+/** One checksum of every file under some folders and of some files, by their paths from the repository's root, in order. Null if any cannot be read. */
+function sumOfAll(paths) {
+  try {
+    const hash = createHash("sha256");
+    for (const path of paths) {
+      const full = join(root, path);
+      const files = lstatSync(full).isDirectory() ? filesUnder(full).map((file) => join(path, file)) : [path];
+      for (const file of files) hash.update(`${file}\0`).update(readFileSync(join(root, file))).update("\0");
+    }
+    return hash.digest("hex");
+  } catch {
+    return null;
+  }
+}
+/** The built tool: what installs the hook, in a project or outside it. */
+const TOOL = ["packages/cli/bin", "packages/cli/dist", "packages/cli/hooks", "packages/core/dist"];
+/** The runner: this script, what it measures with, and what of the first check's and the lab's it runs a session by. */
+const RUNNER = ["scripts/lib/watching-second-look-paid.mjs", "scripts/lib/watching-second-look-measures.mjs", "scripts/lib/watching-check-paid.mjs", "scripts/lib/study-three-paid.mjs", "scripts/lib/compare-profile.mjs", "experiments/comparisons/profile/settings.json"];
+
+/**
+ * This checkout as a run found it: the hook it ships, the tool as it is built, and the runner, each by a checksum; and
+ * the commit it was at, with how many files differed from it. The checksums are what say two runs were made with the
+ * same things. The commit is kept and is not what is compared: committing a block's records moves it and changes
+ * nothing a session is run with, and a checkout with uncommitted changes has the commit it had before them.
+ */
 export function checkout() {
   const asked = (...args) => String(spawnSync("git", ["-C", root, ...args], { encoding: "utf8", env: { ...toolEnv(), GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" } }).stdout ?? "").trim();
   let version = null;
-  let hook = null;
   try {
     version = JSON.parse(readFileSync(join(root, "packages", "cli", "package.json"), "utf8")).version ?? null;
-    hook = createHash("sha256").update(readFileSync(SHIPPED_HOOK)).digest("hex");
   } catch {}
-  return { commit: asked("rev-parse", "HEAD") || null, files_changed_since_it: asked("status", "--porcelain").split("\n").filter(Boolean).length, grooph_version: version, hook_sha256: hook };
+  return { commit: asked("rev-parse", "HEAD") || null, files_changed_since_it: asked("status", "--porcelain").split("\n").filter(Boolean).length, grooph_version: version, hook_sha256: sha256Of(SHIPPED_HOOK), tool_sha256: sumOfAll(TOOL), runner_sha256: sumOfAll(RUNNER) };
 }
 
+/** What two runs have to share to have been made with the same things, each with what it is called when it differs. */
+const MADE_WITH = [["hook_sha256", "another hook"], ["tool_sha256", "another build of the tool"], ["runner_sha256", "another runner"]];
+
 /**
- * Both blocks are run from one built checkout at one commit (the protocol, "Three rounds, in two blocks"): the
- * watched arm's hook is the checkout's own file. This is the first run already recorded that was made from another
- * commit, or with another hook, than `now`; or null. A record that does not say which checkout made it is passed over.
+ * Both blocks are run with one hook, one built tool and one runner (the protocol, "Three rounds, in two blocks"). This
+ * is the first run already recorded that was made with another of them than `now`; or null. A record that does not
+ * say what made it is passed over.
  */
 export function madeFromAnother(now, recordRoot = HOME) {
   for (const run of order()) {
@@ -541,9 +689,9 @@ export function madeFromAnother(now, recordRoot = HOME) {
       } catch {
         continue;
       }
-      if (!was || typeof was.commit !== "string" || typeof was.hook_sha256 !== "string") continue;
-      const what = [was.commit !== now.commit ? "another commit" : null, was.hook_sha256 !== now.hook_sha256 ? "another hook" : null].filter(Boolean);
-      if (what.length > 0) return { run: run.name, what, its_commit: was.commit, its_hook_sha256: was.hook_sha256 };
+      if (!was || typeof was.hook_sha256 !== "string") continue;
+      const what = MADE_WITH.filter(([key]) => typeof was[key] === "string" && was[key] !== now[key]).map(([, name]) => name);
+      if (what.length > 0) return { run: run.name, what, its_commit: was.commit ?? null, its_hook_sha256: was.hook_sha256, its_tool_sha256: was.tool_sha256 ?? null, its_runner_sha256: was.runner_sha256 ?? null };
     }
   }
   return null;
@@ -588,6 +736,21 @@ const scoreLine = (scored) => scored.packages.map((pkg) => `${pkg.package} ${pkg
 // ── one run ──────────────────────────────────────────────────────────────
 
 const short = (sha) => String(sha ?? "unknown").slice(0, 8);
+const withWhat = (now) => `this checkout's hook is ${short(now.hook_sha256)}, its built tool ${short(now.tool_sha256)} and its runner ${short(now.runner_sha256)}`;
+
+/**
+ * Hold the signals that would end the runner (interrupted, told to end, its terminal closed), from before a session
+ * is started until its record is kept. The first one is noted and said; none ends the runner while it holds.
+ */
+export function holdSignals(say = (text) => console.error(text)) {
+  let noted = null;
+  const handlers = ["SIGINT", "SIGTERM", "SIGHUP"].map((signal) => [signal, () => {
+    if (noted === null) say(`${signal}: the runner goes on until this run's record is kept, and stops then. Nothing more is started.`);
+    noted ??= signal;
+  }]);
+  for (const [signal, handler] of handlers) process.on(signal, handler);
+  return { signal: () => noted, release: () => handlers.forEach(([signal, handler]) => process.removeListener(signal, handler)) };
+}
 
 /**
  * One run, start to record. Before the call, a refusal throws `NotStarted` and nothing was spent. After it, nothing
@@ -600,7 +763,7 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
   const ledger = readLedger(ledgerPath);
   // Before any folder is made: a run is scored by running what the session wrote, outside the sandbox. Without the
   // owner's recorded decision on that, for this look by name, the whole run is refused, not only its scoring.
-  const scoring = scoringDecided(ledger, SCORING);
+  const scoring = decidedYes(ledger);
   if (!scoring.ok) throw new NotStarted(scoring.why);
   let run = rerun === null ? nextRun(recordRoot, block, { withoutOutside, throughRound }) : null;
   let recordDir = run ? recordOf(run, recordRoot) : null;
@@ -611,6 +774,10 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
     const first = recordOf(run, recordRoot);
     const kept = existsSync(join(first, "result.json")) ? JSON.parse(readFileSync(join(first, "result.json"), "utf8")) : null;
     const line = ledger.invocations.find((entry) => entry.run === `second-look/${run.name}`) ?? null;
+    // Its one rerun has a line on the ledger and no record: the runner was stopped during the rerun too. The lab's gate
+    // would refuse a third start in words about a flag this script does not have; it is said here, with the way out.
+    const again = ledger.invocations.find((entry) => entry.run === `second-look/${run.name}-rerun`) ?? null;
+    if (again && !existsSync(join(`${first}-rerun`, "result.json"))) throw new NotStarted(`${rerun} was run once more already (line ${again.n} on the ledger), and the runner was stopped before it recorded that run too. A run is made once more only once: this one is not obtained. ${again.status === "running" ? `Settle that line first (--settle ${again.n} --cost <usd|ceiling> --note "<what happened>"), and then say` : "Say"} so, with what happened, so that the block can go on: --not-obtained ${rerun} --note "<what happened>"`);
     const neverRecorded = kept === null && line !== null && line.status !== "running";
     if (kept?.ended_by !== "the harness" && !neverRecorded) throw new NotStarted(`${rerun} has no record the harness ended${line?.status === "running" ? `, and its line on the ledger (${line.n}) is still marked running: settle that first` : ""}: a run is made once more only when it failed for a reason outside the session (the sign-in, the network, a usage limit)`);
     recordDir = `${first}-rerun`;
@@ -630,7 +797,7 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
   // with another hook, than a run already recorded is refused unless it was asked for by name; the record then says so.
   const now = checkout();
   const other = madeFromAnother(now, recordRoot);
-  if (other && !anotherCheckout) throw new NotStarted(`this checkout is at commit ${short(now.commit)} with the hook ${short(now.hook_sha256)}, and ${other.run} was made from ${other.what.join(" and with ")} (commit ${short(other.its_commit)}, hook ${short(other.its_hook_sha256)}): both blocks are run from one built checkout at one commit (${PAGE}, "Three rounds, in two blocks"). To run from another on purpose, say so by name with --another-checkout: the record and the results page then say it`);
+  if (other && !anotherCheckout) throw new NotStarted(`${withWhat(now)}, and ${other.run} was made with ${other.what.join(" and ")}: both blocks are run with one hook, one built tool and one runner (${PAGE}, "Three rounds, in two blocks"). To run with another on purpose, say so by name with --another-checkout: the record and the results page then say it`);
   // The outside arm: the install is rehearsed in a scratch folder before anything is made or spent, and the harness
   // is found now, because the launcher has to name it.
   let rehearsed = null;
@@ -646,6 +813,12 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
   // In the outside arm the launcher is the program started for the session and for nothing else: the profile's check
   // asks the harness itself, whatever program it is handed.
   const started = built.outside ? { findProgram: () => ({ path: built.outside.launcher, version: real.version }), profileCheck: (asked) => (profileCheck ?? checkProfile)({ ...asked, claude: real.path }) } : { claude, findProgram, profileCheck };
+  // From here until the run's record is kept, a signal does not end the runner. While the session runs, the profile's
+  // own runner ends the session on a signal, as it always did; what is added is that the runner then goes on to keep
+  // the record, and that a signal after the session is over (the lab's handlers are gone by then) does not kill it
+  // halfway through, which would lose a finished, paid run. It stops when the record is written.
+  const signals = holdSignals();
+  try {
   let call;
   try {
     call = await runSession({ home, cwd: built.cwd, prompt: built.prompt, ...LEAD[run.block], usd: watchdog.usd, minutes: watchdog.minutes, closed: built.closed, unpinned: LEFT_TO_THE_HARNESS, label: { project: `second-look/${run.block}/${run.task}`, arm: run.arm, replicate: rerun ? `${run.replicate}-rerun` : run.replicate }, note: `the second look at watching: ${run.block}, ${run.task}, ${run.arm}, round ${run.round}${rerun ? `; the one rerun of a run the harness ended (${because})` : ""}`, go, ...started, ledgerPath, harnessDir: built.harnessDir, gameOpen, plan: { projects: ["second-look"], stop_usd: ledger.cap_usd + 1e-6 }, grace });
@@ -683,11 +856,17 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
   // The outside arm, when the launcher never became the harness: the install or the listing failed, and no session
   // was started. That is no result. What happened is kept beside the run's own folder, its ledger line is settled at
   // nothing under another name, and the run itself still has no record: it can be started again once a person has looked.
-  if (built.outside && !existsSync(join(built.outside.dir, STARTED))) {
+  const noMarker = Boolean(built.outside) && !existsSync(join(built.outside.dir, STARTED));
+  // The file alone does not say it: a folder can be moved while a run is in progress. A session that printed a
+  // result, reported a cost or left a transcript ran, whatever became of the file, and is recorded as any run is.
+  const ran = call.output !== null || call.reported_cost_usd !== null || attempt("looking for the session's transcript", () => readSession(profile, call.session_id).length > 0, true);
+  if (noMarker && ran) problems.push(`the file the launcher leaves when it becomes the harness (${STARTED}) is not where it was left, and a session ran all the same: the folder it is kept in was moved or changed while the run was in progress. The run is recorded as a run, at its cost`);
+  if (noMarker && !ran) {
     let at = `${recordDir}-not-started`;
     for (let n = 2; existsSync(at); n += 1) at = `${recordDir}-not-started-${n}`;
-    const said = attempt("what the launcher printed", () => readFileSync(join(built.outside.dir, "outside-install.txt"), "utf8").trim().split("\n").at(-1) ?? "", "");
-    const why = `the launcher could not install the recorder outside the project, or could not list the session's folder${said ? ` (${said.slice(0, 300)})` : ""}, so it started nothing: no session ran and nothing was spent`;
+    const said = existsSync(join(built.outside.dir, "outside-install.txt")) ? attempt("what the launcher printed", () => readFileSync(join(built.outside.dir, "outside-install.txt"), "utf8").trim().split("\n").at(-1) ?? "", "") : "";
+    // What stopped it is said as it was: the install, or something before the launcher got as far (it could not be run, or the runner was told to stop).
+    const why = said ? `the launcher could not install the recorder outside the project, or what it left did not hold (${said.slice(0, 300)}), so it started nothing: no session ran and nothing was spent` : `the launcher did not get as far as starting the harness (${call.why ?? `it ended with ${call.exit ?? "no status"}`}): no session ran and nothing was spent`;
     problems.push(why);
     attempt("what the launcher left", () => (mkdirSync(at, { recursive: true }), existsSync(join(built.outside.dir, "outside-install.txt")) && cpSync(join(built.outside.dir, "outside-install.txt"), join(at, "outside-install.txt"))));
     const copied = copyRecord({ home, cwd: built.cwd, base: built.base, gitDir: built.gitDir, call, recordDir: at, prompt: built.prompt, annotate: namesOnly, excludes: [] });
@@ -700,7 +879,7 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
     });
     const kept = aside();
     const result = writeResult(at, call, { run: run.name, block: run.block, task: run.task, arm: run.arm, round: run.round, replicate: run.replicate, ended_by: "nobody: no session was started", not_started: why, counted_usd: 0, given: { the_runners_checkout: theCheckout, the_rehearsal_before_it: rehearsed.left }, measures: null, scored: false, problems, protocol: PAGE });
-    return { run, recordDir: at, result, score: null, kept, notStarted: true, tripwire: "", next: nextRun(recordRoot, run.block, { withoutOutside, throughRound }) };
+    return { run, recordDir: at, result, score: null, kept, notStarted: true, tripwire: "", interrupted: signals.signal(), next: nextRun(recordRoot, run.block, { withoutOutside, throughRound }) };
   }
 
   if (call.watchdog?.usd !== watchdog.usd) problems.push(`the session was given a ceiling of $${call.watchdog?.usd}, and the protocol's for a run of \`${run.task}\` in the \`${run.block}\` block is $${watchdog.usd.toFixed(2)}`);
@@ -759,7 +938,7 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
     if (outside && outside.entries_in_the_settings_the_session_found === 0) problems.push("the session was started with no entry of the recorder in its user-level settings: this is no run of the outside arm");
     for (const view of outside?.the_profiles_settings ?? []) if (!view.holds) problems.push(`the profile's settings ${view.when} were not ${view.they_are}`);
     if (outside && outside.of_grooph_in_the_sessions_folder_afterwards.length > 0) problems.push(`the session's folder holds ${outside.of_grooph_in_the_sessions_folder_afterwards.join(", ")}, and in the outside arm the project holds nothing of grooph`);
-    if (outside && !outside.the_owners_own.as_they_were) problems.push("the owner's own settings or grooph folder are not as they were before the run: a person looks before anything else is started");
+    if (outside && !outside.the_owners_own.as_they_were) problems.push(`the owner's own files are not as they were before the run (${Object.keys(ownBefore).filter((key) => ownBefore[key] !== outside.the_owners_own.after[key]).join(", ")}): this run may not have changed them, and a person looks before anything else is started`);
   }
   const copied = copyRecord({ home, cwd: built.cwd, base: built.base, gitDir: built.gitDir, call, recordDir, prompt: built.prompt, annotate: namesOnly, excludes: run.arm === "watched" ? [join(".grooph", "events")] : [] });
   copied.problems.push(...problems);
@@ -784,7 +963,23 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
   if (measured && measured.transcripts !== copied.transcripts.length) problems.push(`the measures read ${measured.transcripts} transcript(s) and the record names ${copied.transcripts.length}: a subagent's transcript is somewhere the record's list does not look`);
   const eventsFile = events ? join(recordDir, "events", `${call.session_id}.jsonl`) : null;
   const beside = run.arm === "plain" || !measured ? null : attempt("the hook's file beside the transcripts", () => hookBesideTranscripts({ eventsDir: events ? join(recordDir, "events") : null, sessionId: call.session_id, subagentIds: measured.subagents.ids }), null);
-  const each = run.arm === "plain" || !read ? null : attempt("the hook's file beside the harness's files, agent by agent", () => agentByAgent({ read, eventsFile }), null);
+  const each = run.arm === "plain" || !read ? null : attempt("the hook's file beside the harness's files, agent by agent", () => agentByAgent({ read, eventsFile, sessionId: call.session_id }), null);
+  const given = {
+    the_runners_checkout: theCheckout,
+    the_sessions_model: { block: run.block, asked_for: LEAD[run.block].model, effort: LEAD[run.block].effort },
+    short_names_of_a_model: shortNamesIn(call.environment),
+    the_prompt_ends_with: SENTENCE,
+    // The harness tells a session what it has used of its dollar ceiling at each step: the ceiling is part of what
+    // every session was given. The minutes are the runner's clock, and no session is told of them.
+    told_by_the_harness: { its_dollar_ceiling_usd: call.watchdog?.usd ?? null, in_this_many_reminders: measured?.given?.entries_of_what_it_was_given?.budget_usd ?? null, the_minutes: "not told: the runner's clock alone" },
+    hook_installed_in_the_project: built.installed,
+    closed_to_the_session: built.closed.map((path) => path.slice(built.cwd.length + 1)),
+    recorder_outside_the_project: outside,
+  };
+  const facts = () => ({ run: run.name, block: run.block, task: run.task, arm: run.arm, round: run.round, replicate: run.replicate, rerun_of: rerun ? run.name : null, rerun_because: because, given, not_watched: notWatched ? "the hook left no file for this session: it is no run of its arm, and its values are not read with that arm's" : null, measures: measured, the_hooks_file_beside_the_transcripts: beside, the_hooks_file_agent_by_agent: each, scored_outside_the_sandbox_on: scoring.decision, transcripts: copied.transcripts, problems, kept_out_of_the_record: copied.kept_out_of_the_record, protocol: PAGE });
+  // A first copy of the result, before anything a session wrote is run: if the runner is killed while it scores, the
+  // run still has its record, and can be scored afterwards with --score. It is written again when the record is whole.
+  writeResult(recordDir, call, { ...facts(), scored: false, written: "before scoring; written again when the record is whole" });
   let scored = null;
   if (call.ended_by !== "the harness") {
     try {
@@ -803,20 +998,11 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
     outside.the_profile_afterwards = { checked_by: "scripts/lib/compare-profile.mjs --check, every line", holds: lines.length === 0, lines_that_do_not_hold: lines };
     if (lines.length > 0) problems.push(`after the run the profile's own check does not hold on every line (${lines.join("; ")}): a person looks before anything else is started`);
   }
-  const given = {
-    the_runners_checkout: theCheckout,
-    the_sessions_model: { block: run.block, asked_for: LEAD[run.block].model, effort: LEAD[run.block].effort },
-    short_names_of_a_model: shortNamesIn(call.environment),
-    the_prompt_ends_with: SENTENCE,
-    // The harness tells a session what it has used of its dollar ceiling at each step: the ceiling is part of what
-    // every session was given. The minutes are the runner's clock, and no session is told of them.
-    told_by_the_harness: { its_dollar_ceiling_usd: call.watchdog?.usd ?? null, in_this_many_reminders: measured?.given?.entries_of_what_it_was_given?.budget_usd ?? null, the_minutes: "not told: the runner's clock alone" },
-    hook_installed_in_the_project: built.installed,
-    closed_to_the_session: built.closed.map((path) => path.slice(built.cwd.length + 1)),
-    recorder_outside_the_project: outside,
-  };
-  const result = writeResult(recordDir, call, { run: run.name, block: run.block, task: run.task, arm: run.arm, round: run.round, replicate: run.replicate, rerun_of: rerun ? run.name : null, rerun_because: because, given, not_watched: notWatched ? "the hook left no file for this session: it is no run of its arm, and its values are not read with that arm's" : null, measures: measured, the_hooks_file_beside_the_transcripts: beside, the_hooks_file_agent_by_agent: each, scored: scored !== null, scored_outside_the_sandbox_on: scoring.decision, transcripts: copied.transcripts, problems, kept_out_of_the_record: copied.kept_out_of_the_record, protocol: PAGE });
-  return { run, recordDir, result, score: scored, kept, tripwire: call.tripwire, next: nextRun(recordRoot, run.block, { withoutOutside, throughRound }) };
+  const result = writeResult(recordDir, call, { ...facts(), scored: scored !== null, written: "whole" });
+  return { run, recordDir, result, score: scored, kept, tripwire: call.tripwire, interrupted: signals.signal(), next: nextRun(recordRoot, run.block, { withoutOutside, throughRound }) };
+  } finally {
+    signals.release();
+  }
 }
 
 /**
@@ -832,6 +1018,7 @@ export async function runAll({ each = () => {}, ...options }) {
     const one = await runOne(options);
     done.push(one);
     each(one);
+    if (one.interrupted) return { done, stopped: { after: one.run.name, why: `the runner was told to stop (${one.interrupted}), and stopped once this run's record was kept`, by_the_harness: one.result.ended_by === "the harness", interrupted: one.interrupted } };
     const waits = waitsForAPerson(one);
     if (waits) return { done, stopped: { after: one.run.name, why: waits, by_the_harness: one.result.ended_by === "the harness" } };
   }
@@ -848,7 +1035,7 @@ function readLedgerForScoring() {
 
 /** Score a run that was recorded and not scored, from the packages where the runner moved them. No session, no spend; it runs what the session wrote, on the owner's recorded decision. */
 export function scoreKept({ name, ledger, home = DEFAULT_HOME, recordRoot = HOME }) {
-  const scoring = scoringDecided(ledger ?? readLedgerForScoring(), SCORING);
+  const scoring = decidedYes(ledger ?? readLedgerForScoring());
   if (!scoring.ok) throw new NotScored(scoring.why);
   const again = String(name).endsWith("-rerun");
   const run = order().find((candidate) => candidate.name === (again ? String(name).slice(0, -"-rerun".length) : name));
@@ -878,7 +1065,7 @@ export function dryRun({ run, home = DEFAULT_HOME, ledgerPath = LEDGER, recordRo
   try {
     const things = stand({ home, cwd: built.cwd });
     const refused = [...things.refused];
-    const scoring = scoringDecided(ledger, SCORING);
+    const scoring = decidedYes(ledger);
     if (!scoring.ok) refused.push(scoring.why);
     const held = heldUpBy(run.block, recordRoot);
     if (held) refused.push(held.why);
@@ -888,7 +1075,7 @@ export function dryRun({ run, home = DEFAULT_HOME, ledgerPath = LEDGER, recordRo
     if (rehearsed && !rehearsed.ok) refused.push(rehearsed.why);
     const now = checkout();
     const other = madeFromAnother(now, recordRoot);
-    if (other) refused.push(`this checkout is at commit ${short(now.commit)} with the hook ${short(now.hook_sha256)}, and ${other.run} was made from ${other.what.join(" and with ")}: both blocks are run from one built checkout at one commit, unless --another-checkout says otherwise by name`);
+    if (other) refused.push(`${withWhat(now)}, and ${other.run} was made with ${other.what.join(" and ")}: both blocks are run with one hook, one built tool and one runner, unless --another-checkout says otherwise by name`);
     const sample = commandFor({ home, claude: built.outside ? built.outside.launcher : things.claude, cwd: built.cwd, prompt: built.prompt, ...lead, sessionId: "<a new id>", maxBudgetUsd: watchdog.usd, closed: built.closed, unpinned: LEFT_TO_THE_HARNESS });
     const names = shortNamesIn(Object.keys(sample.env));
     const tracked = spawnSync("git", ["--git-dir", built.gitDir, "ls-tree", "-r", "--name-only", built.base], { encoding: "utf8" }).stdout.split("\n").filter(Boolean);
@@ -924,7 +1111,7 @@ export function status({ ledgerPath = LEDGER, recordRoot = HOME, firstCallGate, 
     const has = room(ledger, 0);
     lines.push(`the ledger (${relativeToRoot(ledgerPath)}): $${has.spent.toFixed(2)} counted of $${ledger.cap_usd.toFixed(2)}, in ${ledger.invocations.length} line(s); a cost not yet settled counts at its ceiling`);
     for (const entry of ledger.invocations) lines.push(`  ${String(entry.n).padStart(2)}  ${String(entry.run).padEnd(40)} ${String(entry.status).padEnd(8)} ${typeof entry.cost_usd === "number" ? `$${entry.cost_usd.toFixed(4)}` : `unknown (counted $${entry.max_budget_usd})`}`);
-    const scoring = scoringDecided(ledger, SCORING);
+    const scoring = decidedYes(ledger);
     lines.push(scoring.ok ? `scoring outside the sandbox: decided by ${scoring.decision.decided_by} on ${scoring.decision.on}` : "scoring outside the sandbox: no decision of the owner's is recorded for this look, so no run starts and none is scored");
   } catch (error) {
     lines.push(error.message);
@@ -932,7 +1119,7 @@ export function status({ ledgerPath = LEDGER, recordRoot = HOME, firstCallGate, 
   if (firstCallGate) lines.push(firstCallGate.ok ? `the profile's first call: on record (${firstCallGate.record}), and says later runs may start` : `the profile's first call: ${firstCallGate.why}`);
   const now = checkout();
   const other = madeFromAnother(now, recordRoot);
-  lines.push(`this checkout: commit ${short(now.commit)}, grooph ${now.grooph_version}, hook ${short(now.hook_sha256)}${other ? `; ${other.run} WAS MADE FROM ${other.what.join(" and with ").toUpperCase()} (commit ${short(other.its_commit)}, hook ${short(other.its_hook_sha256)}), so a run from here is refused unless --another-checkout says so by name` : "; no run already recorded was made from another"}`);
+  lines.push(`${withWhat(now)} (commit ${short(now.commit)}${now.files_changed_since_it > 0 ? `, with ${now.files_changed_since_it} file(s) changed since it` : ""}; grooph ${now.grooph_version})${other ? `; ${other.run} WAS MADE WITH ${other.what.join(" AND ").toUpperCase()}, so a run from here is refused unless --another-checkout says so by name` : "; no run already recorded was made with another"}`);
   if (rehearsed) lines.push(rehearsed.ok ? `the outside arm: this checkout's grooph installs the recorder outside a project, and a rehearsal in a scratch folder left what the protocol says (${rehearsed.left.entries} entries, at ${rehearsed.left.at_events.join(", ")})` : `the outside arm: cannot be made as things stand: ${rehearsed.why}`);
   const runs = order().map((run) => ({ ...run, ...stateOf(run, recordRoot) }));
   const isRecorded = (run) => run.state !== "not recorded";
@@ -954,14 +1141,20 @@ export function status({ ledgerPath = LEDGER, recordRoot = HOME, firstCallGate, 
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const flags = process.argv.slice(2);
-  const KNOWN = { plain: ["--status", "--dry-run", "--next", "--all", "--spend", "--without-outside", "--another-checkout"], valued: ["--go", "--block", "--run", "--rerun", "--score", "--settle", "--cost", "--note", "--through-round"] };
+  const KNOWN = { plain: ["--status", "--dry-run", "--next", "--all", "--spend", "--without-outside", "--another-checkout"], valued: ["--go", "--block", "--run", "--rerun", "--score", "--settle", "--cost", "--note", "--through-round", "--not-obtained"] };
   const unknown = unknownFlags(flags, KNOWN);
   if (unknown.length > 0) {
     console.error(`${unknown.join(", ")}: not a flag of this script. Nothing was started.`);
     process.exit(64);
   }
+  // A flag is given once. Given twice, one of the two would be taken and the other passed over in silence.
+  const twice = [...KNOWN.plain, ...KNOWN.valued].filter((flag) => flags.filter((given) => given === flag).length > 1);
+  if (twice.length > 0) {
+    console.error(`${twice.join(", ")}: given more than once. Nothing was started.`);
+    process.exit(64);
+  }
   const valueOf = (flag) => (flags.includes(flag) ? flags[flags.indexOf(flag) + 1] : null);
-  for (const flag of ["--run", "--rerun", "--score"]) {
+  for (const flag of ["--run", "--rerun", "--score", "--not-obtained"]) {
     if (flags.includes(flag) && (!valueOf(flag) || valueOf(flag).startsWith("--"))) {
       console.error(`${flag} names a run, such as ${BLOCKS[0]}/four/plain-1. Nothing was started.`);
       process.exit(64);
@@ -989,6 +1182,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (flags.includes("--status")) only("--status", ["--status"]);
   else if (flags.includes("--score")) only("--score", ["--score"]);
   else if (flags.includes("--settle")) only("--settle", ["--settle", "--cost", "--note"]);
+  else if (flags.includes("--not-obtained")) only("--not-obtained", ["--not-obtained", "--note"]);
   else if (flags.includes("--dry-run")) only("--dry-run", ["--dry-run", "--next", "--all", "--block", "--run", "--spend", "--go", "--without-outside", "--through-round", "--another-checkout"]);
   else only("a paid run", ["--next", "--all", "--block", "--rerun", "--spend", "--go", "--run", "--without-outside", "--through-round", "--another-checkout"]);
   for (const flag of ["--run", "--rerun"]) {
@@ -1006,6 +1200,16 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       const said = valueOf("--cost");
       const line = settleLine({ n: Number(valueOf("--settle")), cost: said === "ceiling" ? null : said === null ? NaN : Number(said), note: valueOf("--note") });
       console.log(`line ${line.n} (${line.run}) is settled: ${typeof line.cost_usd === "number" ? `$${line.cost_usd.toFixed(4)}` : `no cost known, so it counts at its ceiling of $${line.max_budget_usd}`}. No session was started.`);
+      process.exit(0);
+    } catch (error) {
+      console.error(`${error.message}\nNothing was changed.`);
+      process.exit(64);
+    }
+  }
+  if (flags.includes("--not-obtained")) {
+    try {
+      const marked = markNotObtained({ name: valueOf("--not-obtained"), note: valueOf("--note") });
+      console.log(`${marked.run.name} is marked ${marked.state}, in ${marked.made.map((dir) => relativeToRoot(dir)).join(" and ")}. No session was started.`);
       process.exit(0);
     } catch (error) {
       console.error(`${error.message}\nNothing was changed.`);
@@ -1071,7 +1275,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       const all = await runAll({ go: allowed.go, block, withoutOutside, throughRound, anotherCheckout, each: (done) => (say(done, false), console.log("")) });
       if (all.stopped) {
         console.log(`stopped after ${all.stopped.after}: ${all.stopped.why}. Nothing more is started until a person has looked.${all.stopped.by_the_harness ? ` If it failed for a reason outside the session, it may be run once more: --rerun ${all.stopped.after}` : ""}`);
-        process.exit(2);
+        process.exit(all.stopped.interrupted ? 130 : 2);
       }
       const after = BLOCKS[BLOCKS.indexOf(block) + 1];
       console.log(`every run of the \`${block}\` block that was asked for is recorded. ${after ? `The \`${after}\` block is not gone on into: it is started by name, once the driver has read these records` : "It is the last of the two"}`);
@@ -1080,7 +1284,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     const done = await runOne({ go: allowed.go, block, rerun: valueOf("--rerun"), withoutOutside, throughRound, anotherCheckout });
     say(done, flags.includes("--rerun"));
     console.log(`next: ${done.next ? done.next.name : `none; every run of the \`${done.run.block}\` block that was asked for is recorded`}`);
-    process.exit(waitsForAPerson(done) ? 2 : 0);
+    process.exit(done.interrupted ? 130 : waitsForAPerson(done) ? 2 : 0);
   } catch (error) {
     console.error(error.message);
     process.exit(1);

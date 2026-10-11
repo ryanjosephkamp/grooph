@@ -4,7 +4,8 @@
 // the owner's own ~/.claude, ~/.codex or ~/.grooph to anything that writes.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -14,21 +15,24 @@ import { layout, settingsFor } from "./compare-profile.mjs";
 import { scoreHeldOut } from "./compare-score.mjs";
 import { NotStarted, runBounded } from "./study-three-paid.mjs";
 import { CLI, promptFor as firstChecksPromptFor, SUBAGENTS_SENTENCE, WATCHDOG as FIRST_CHECKS } from "./watching-check-paid.mjs";
-import { agentByAgent, delegation, DIFFERENCES, EXPECTED, mostAtOnce, noticed, readSession } from "./watching-second-look-measures.mjs";
+import { agentByAgent, delegation, DIFFERENCES, EXPECTED, mostAtOnce, NOT_A_STATUS, noticed, readSession, stringsOf } from "./watching-second-look-measures.mjs";
 import {
   ARMS,
   BLOCKS,
   build,
   checkout,
+  decidedYes,
   dryRun,
   eventsOf,
   groophHomeIn,
   heldUpBy,
+  holdSignals,
   installOutside,
   launcherText,
   LEAD,
   LEDGER,
   madeFromAnother,
+  markNotObtained,
   nextRun,
   order,
   placesFor,
@@ -41,6 +45,7 @@ import {
   room,
   runAll,
   runOne,
+  scoreKept,
   SENTENCE,
   settleLine,
   SHIPPED_HOOK,
@@ -93,8 +98,11 @@ function standInTool(dir, how = "") {
 import { join } from "node:path";
 const [a, b, c, ...rest] = process.argv.slice(2);
 const how = ${JSON.stringify(how)};
-const home = how === "in-the-folder" ? join(process.cwd(), ".grooph") : process.env.GROOPH_HOME;
-const settingsAt = join(process.env.CLAUDE_CONFIG_DIR, "settings.json");
+// A tool that ignores the places it is told of writes where a default would put it: under its HOME. It says which HOME that was.
+if (how === "ignores-the-places") writeFileSync(${JSON.stringify(join(dir, "the-home-the-tool-was-given.txt"))}, String(process.env.HOME));
+const home = how === "in-the-folder" ? join(process.cwd(), ".grooph") : how === "ignores-the-places" ? join(process.env.HOME, ".grooph") : process.env.GROOPH_HOME;
+const settingsAt = how === "ignores-the-places" ? join(process.env.HOME, ".claude", "settings.json") : join(process.env.CLAUDE_CONFIG_DIR, "settings.json");
+if (how === "ignores-the-places") { mkdirSync(join(process.env.HOME, ".claude"), { recursive: true }); writeFileSync(settingsAt, "{}"); }
 if (a === "hooks" && b === "install" && c === "--user") {
   if (how === "refuses") { console.error("grooph: Unknown option '--user'"); process.exit(1); }
   mkdirSync(join(home, "hooks"), { recursive: true });
@@ -273,10 +281,11 @@ test("the next run, a block made without its outside arm or through an early rou
     assert.match(heldUpBy("sonnet", top).why, /the `opus` block, which comes before it, has no whole round/);
     assert.equal(heldUpBy("opus", top), null);
     const opus = blockOf("opus");
+    const named = (name) => opus.find((run) => run.name === name);
     // The first four in the order are round one's plain and watched runs.
     inHand(top, opus.slice(0, 3));
     assert.equal(nextRun(top, "opus").name, "opus/six/watched-1");
-    assert.match(heldUpBy("sonnet", top).why, /has a round begun and not finished \(opus\/six\/watched-1 with no record\)/);
+    assert.match(heldUpBy("sonnet", top).why, /has a round begun and not finished \(opus\/six\/watched-1\)/);
     inHand(top, opus.slice(3, 4));
     // Round one is whole without its outside arm: a block may be made without it, and the next may then start.
     assert.equal(heldUpBy("sonnet", top), null);
@@ -285,14 +294,36 @@ test("the next run, a block made without its outside arm or through an early rou
     assert.equal(nextRun(top, "opus", { withoutOutside: true, throughRound: 1 }), null, "round one is done, the outside arm left out");
     assert.equal(nextRun(top, "opus", { throughRound: 1 }).name, "opus/four/outside-1");
     // Round two begun: the next block waits again until it is finished.
-    inHand(top, [opus.find((run) => run.name === "opus/four/watched-2")]);
-    assert.match(heldUpBy("sonnet", top).why, /a round begun and not finished \(opus\/six\/watched-2, opus\/four\/plain-2, opus\/six\/plain-2 with no record\)/);
-    // A run the harness ended has a record and holds nothing up; it reads as waiting for its one rerun.
-    inHand(top, opus.filter((run) => run.round === 2 && run.arm !== "outside" && run.name !== "opus/four/watched-2"), { ended_by: "the harness", why: "no result from the harness (exit 1)" });
+    inHand(top, [named("opus/four/watched-2")]);
+    assert.match(heldUpBy("sonnet", top).why, /a round begun and not finished \(opus\/six\/watched-2; opus\/four\/plain-2; opus\/six\/plain-2\)/);
+    // A run the harness ended has a record, and the order goes on past it; but it is not done, and the next block waits for its one rerun.
+    const ended = ["opus/six/watched-2", "opus/four/plain-2", "opus/six/plain-2"].map(named);
+    inHand(top, ended, { ended_by: "the harness", why: "no result from the harness (exit 1)" });
+    assert.equal(nextRun(top, "opus", { withoutOutside: true }).name, "opus/four/plain-3", "the order does not stop at a run the harness ended");
+    assert.match(heldUpBy("sonnet", top).why, /a round begun and not finished \(opus\/six\/watched-2, which the harness ended and which has not been run once more; opus\/four\/plain-2, which the harness ended and which has not been run once more; opus\/six\/plain-2, which/);
+    assert.equal(stateOf(named("opus/six/plain-2"), top).state, "ended by the harness, and not yet run again");
+    // Run once more, each is done: as a result, or as not obtained for good when the harness ended it both times.
+    const again = (run, result) => (mkdirSync(join(top, `${run.name}-rerun`), { recursive: true }), writeFileSync(join(top, `${run.name}-rerun`, "result.json"), JSON.stringify(result), "utf8"));
+    again(ended[0], { ended_by: "the session" });
+    again(ended[1], { ended_by: "the session" });
+    assert.match(heldUpBy("sonnet", top).why, /\(opus\/six\/plain-2, which the harness ended and which has not been run once more\)/);
+    again(ended[2], { ended_by: "the harness" });
+    assert.deepEqual([stateOf(ended[2], top).state, heldUpBy("sonnet", top)], ["not obtained: the harness ended it both times", null]);
+    // A block may be made without its outside arm, but not half with it: one outside run of a round with a record, and that round's other one is needed too.
+    inHand(top, [named("opus/four/outside-1")]);
+    assert.match(heldUpBy("sonnet", top).why, /a round begun and not finished \(opus\/six\/outside-1\)/);
+    inHand(top, [named("opus/six/outside-1")]);
     assert.equal(heldUpBy("sonnet", top), null);
-    assert.equal(stateOf(opus.find((run) => run.name === "opus/six/plain-2"), top).state, "ended by the harness, and not yet run again");
+    // A third round begun with an outside run alone is a round begun: its other five are needed.
+    inHand(top, [named("opus/four/outside-3")]);
+    assert.match(heldUpBy("sonnet", top).why, /\(opus\/six\/outside-3; opus\/four\/plain-3; opus\/six\/plain-3; opus\/four\/watched-3; opus\/six\/watched-3\)/);
     assert.equal(stateOf(opus[0], top).state, "recorded, not scored");
-    assert.equal(stateOf(opus.at(-1), top).state, "not recorded");
+    assert.equal(stateOf(named("opus/six/watched-3"), top).state, "not recorded");
+    // A record that was cut short is a record: nothing is started over it, and the file is named.
+    mkdirSync(join(top, "opus", "six", "watched-3"), { recursive: true });
+    writeFileSync(join(top, "opus", "six", "watched-3", "result.json"), '{ "ended_by": "the ses', "utf8");
+    assert.match(stateOf(named("opus/six/watched-3"), top).state, /^recorded, and ITS RECORD CANNOT BE READ \(.*opus\/six\/watched-3\/result\.json: cut short, or not JSON\): a person looks$/);
+    assert.notEqual(nextRun(top, "opus")?.name, "opus/six/watched-3");
   } finally {
     rmSync(top, { recursive: true, force: true });
   }
@@ -370,14 +401,22 @@ test("on the command line: a paid run without both flags or a block, a flag it d
   refused(run("--run", "opus/four/plain-1", "--spend", "--go", "the driver's words"), /--run names a run for --dry-run only/);
   refused(run("--rerun", "opus/four/plain-1", "--without-outside", "--spend", "--go", "x"), /do not go with --rerun/);
   refused(run("--score", "opus/four/plain-9"), /is not a run of the second look|no decision of his is recorded/);
+  // A flag given twice: one of the two would have been taken and the other passed over in silence.
+  refused(run("--dry-run", "--block", "opus", "--block", "sonnet"), /--block: given more than once\. Nothing was started\./);
+  refused(run("--all", "--block", "opus", "--through-round", "1", "--through-round", "3", "--spend", "--go", "x"), /--through-round: given more than once/);
+  refused(run("--not-obtained", "opus/four/plain-1"), /--note says what happened/);
+  refused(run("--not-obtained", "opus/four/plain-1", "--note", "the machine slept twice", "--spend"), /--not-obtained does not go with --spend/);
 });
 
 // ── the recorder outside the project ─────────────────────────────────────
 
-test("every place an install outside the project is told of is named, and none may be the owner's own", () => {
+test("every place an install outside the project is told of is named, and none may be the owner's own: by its name, or by which folder it really is", () => {
   const places = placesFor({ groophHome: "/scratch/home/.grooph", configDir: "/scratch/profile" });
   assert.deepEqual(places, { GROOPH_HOME: "/scratch/home/.grooph", CLAUDE_CONFIG_DIR: "/scratch/profile", CODEX_HOME: "/scratch/home/.codex-is-not-used" });
   assert.deepEqual(theOwnersOwn("/Users/someone"), ["/Users/someone/.claude", "/Users/someone/.codex", "/Users/someone/.grooph"]);
+  // With no home to go by, his places cannot be told from any other, and nothing is installed.
+  for (const none of ["", "relative/home", "/", undefined === 0 ? null : 7]) assert.throws(() => theOwnersOwn(none), notStarted(/the owner's home folder is not known/), String(none));
+  assert.throws(() => placesFor({ groophHome: "/scratch/home/.grooph", configDir: "/scratch/profile", userHome: "" }), notStarted(/the owner's home folder is not known/));
   for (const own of theOwnersOwn()) {
     assert.throws(() => placesFor({ groophHome: own, configDir: "/scratch/profile" }), notStarted(/which is the owner's own/), own);
     assert.throws(() => placesFor({ groophHome: "/scratch/home/.grooph", configDir: join(own, "inside") }), notStarted(/CLAUDE_CONFIG_DIR would be .* which is the owner's own/), own);
@@ -385,14 +424,40 @@ test("every place an install outside the project is told of is named, and none m
   // Left to its default, grooph's own folder would be the owner's: the profile's own is under the profile's home.
   assert.equal(groophHomeIn("/h"), "/h/home/.grooph");
   assert.throws(() => placesFor({ groophHome: groophHomeIn(homedir()).replace("/home/.grooph", "/.grooph"), configDir: "/scratch/profile" }), notStarted(/GROOPH_HOME would be/));
-  // The launcher names all three on each command, asks the harness nothing unless a session is being started, and becomes it.
+  // By which folder it really is: a stand-in for the owner's home, with his three places in it, and ways of naming them that are not their names.
+  const top = realpathSync(mkdtempSync(join(tmpdir(), "second-look-own-")));
+  try {
+    const his = join(top, "Users", "someone");
+    for (const name of [".claude", ".codex", ".grooph"]) mkdirSync(join(his, name), { recursive: true });
+    mkdirSync(join(top, "scratch", "home"), { recursive: true });
+    const refused = (given, pattern, what) => assert.throws(() => placesFor({ groophHome: join(top, "scratch", "home", ".grooph"), configDir: join(top, "scratch", "profile"), ...given, userHome: his }), notStarted(pattern), what);
+    // A link to one of his places, and a link to his home with the place named through it.
+    symlinkSync(join(his, ".claude"), join(top, "scratch", "a-link-to-his-settings"));
+    symlinkSync(his, join(top, "scratch", "a-link-to-his-home"));
+    refused({ configDir: join(top, "scratch", "a-link-to-his-settings") }, /CLAUDE_CONFIG_DIR would be .*a-link-to-his-settings, and .* is the owner's own .*\.claude under another name/, "a link to his settings folder");
+    refused({ groophHome: join(top, "scratch", "a-link-to-his-home", ".grooph") }, /GROOPH_HOME would be .* is the owner's own .*\.grooph under another name/, "his folder, through a link to his home");
+    refused({ configDir: join(top, "scratch", "a-link-to-his-settings", "deeper", "still") }, /under another name/, "a folder inside his, through a link");
+    // His place with its letters cased another way: one folder on a disk that does not tell the two apart, and refused by its name on one that does.
+    refused({ groophHome: join(his, ".GROOPH") }, /which is the owner's own|under another name/, "another casing of its letters");
+    refused({ configDir: join(his, ".Claude", "x") }, /which is the owner's own|under another name/, "another casing, and inside it");
+    // A link that leads nowhere: nothing is installed through it.
+    symlinkSync(join(top, "nowhere"), join(top, "scratch", "a-link-to-nowhere"));
+    refused({ groophHome: join(top, "scratch", "a-link-to-nowhere", ".grooph") }, /a-link-to-nowhere is a link that leads nowhere/, "a dangling link");
+    // And a place of the runner's own, beside all of those, is let through.
+    assert.deepEqual(Object.keys(placesFor({ groophHome: join(top, "scratch", "home", ".grooph"), configDir: join(top, "scratch", "profile"), userHome: his })), ["GROOPH_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME"]);
+  } finally {
+    rmSync(top, { recursive: true, force: true });
+  }
+  // The launcher: every place named on each command, a home of the tool's own that has to stay empty, what it left
+  // looked at before anything is started, and then the harness, with nothing a shell adds left in its environment.
   const text = launcherText({ harness: "/bin/the harness", node: "/usr/bin/node", cli: "/repo/grooph.js", groophHome: "/scratch/home/.grooph", configDir: "/scratch/profile", folder: "/scratch/work/a/it's here", dir: "/scratch/home" });
-  assert.equal(text.match(/GROOPH_HOME='\/scratch\/home\/\.grooph' CLAUDE_CONFIG_DIR='\/scratch\/profile' CODEX_HOME='\/scratch\/home\/\.codex-is-not-used' '\/usr\/bin\/node' '\/repo\/grooph\.js' hooks/g).length, 2);
-  assert.ok(text.includes(`hooks install --user --harness claude-code &&`) && text.includes(`hooks watch '/scratch/work/a/it'\\''s here'`));
+  assert.equal(text.match(/HOME='\/scratch\/home\/tool-home' GROOPH_HOME='\/scratch\/home\/\.grooph' CLAUDE_CONFIG_DIR='\/scratch\/profile' CODEX_HOME='\/scratch\/home\/\.codex-is-not-used' '\/usr\/bin\/node' '\/repo\/grooph\.js' hooks/g).length, 2);
+  assert.ok(text.includes(`hooks install --user --harness claude-code &&`) && text.includes(`hooks watch '/scratch/work/a/it'\\''s here' &&`));
+  for (const looked of ["the tool wrote under its own home folder", "no hook was left in grooph's own folder for the run", "the profile's settings hold no entry that runs the recorder", "the harness is not there to be started"]) assert.ok(text.includes(`echo "${looked}`), looked);
   // It starts a session and answers nothing else; the moment before it becomes the harness it leaves the file that says a session was started.
   assert.match(text, /if \[ -z "\$session" \]; then\n {2}echo "this is the launcher of one run of the second look's outside arm: it starts that session and answers nothing else" >&2\n {2}exit 64\nfi/);
-  assert.equal(text.match(/exec /g).length, 1, "the harness is named once, to become it");
-  assert.ok(text.trimEnd().endsWith(`: >'/scratch/home/${STARTED}' || exit 70\nexec '/bin/the harness' "$@"`));
+  assert.equal(text.match(/^exec /gm).length, 1, "the harness is named once, to become it");
+  assert.ok(text.trimEnd().endsWith(`: >'/scratch/home/${STARTED}' || exit 70\n# The harness is started with the environment this was given, to the letter: what a shell adds of its own is taken off.\nexec /usr/bin/env -u PWD -u OLDPWD -u SHLVL -u _ '/bin/the harness' "$@"`));
   // What it leaves is kept with grooph's own folder for the run: nothing of it is written beside the session's folder.
   assert.ok(!text.includes("/scratch/work/a/harness") && text.includes(`>'/scratch/home/outside-install.txt' 2>&1 || exit 70`) && text.includes(`'/scratch/home/settings-with-the-recorder.json' || exit 70`));
   assert.ok(USER_ENTRY.test('node "/h/home/.grooph/hooks/grooph-event.mjs" claude-code --user') && !USER_ENTRY.test('node "$CLAUDE_PROJECT_DIR/.grooph/hooks/grooph-event.mjs" claude-code'));
@@ -438,7 +503,7 @@ test("what an install left is held to the protocol: the shipped hook, entries th
     mkdirSync(configDir, { recursive: true });
     const before = settingsFor({ home: join(top, "home") });
     writeFileSync(join(configDir, "settings.json"), JSON.stringify(before), "utf8");
-    const said = installOutside({ cli: standInTool(top), groophHome, configDir, folder: join(top, "work"), cwd: top });
+    const said = installOutside({ cli: standInTool(top), groophHome, configDir, folder: join(top, "work"), cwd: top, toolHome: join(top, "home", "tool-home") });
     assert.match(said, /\$ grooph hooks install --user --harness claude-code\nwrote the hook and its entries\n\n?\$ grooph hooks watch /);
     const left = whatTheInstallLeft({ groophHome, configDir, settingsBefore: before });
     assert.deepEqual([left.entries, left.at_events, left.every_other_setting_as_it_was], [3, ["SessionStart", "SubagentStart", "SubagentStop"], true]);
@@ -477,7 +542,7 @@ test("the three arms' folders: plain and outside are the task's packages byte fo
     assert.ok(!existsSync(join(p.home, "home")) && !existsSync(join(p.at.profile, "settings.json")), "building installed nothing");
     // grooph's own folder from an earlier run of the arm, still there: the next is not made over it.
     mkdirSync(groophHomeIn(p.home), { recursive: true });
-    assert.throws(() => build({ run: order()[4], home: p.home, cli: p.common.cli }), notStarted(/is still there: it is grooph's own folder from an earlier run of the outside arm/));
+    assert.throws(() => build({ run: order()[4], home: p.home, cli: p.common.cli }), notStarted(/home is there: it holds grooph's own folder for one run of the outside arm.*IF A RUN IS IN PROGRESS in another terminal, it is that run's: leave it alone and wait/));
     assert.deepEqual(readdirSync(p.at.work), []);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
@@ -596,7 +661,7 @@ test("a run of the outside arm is refused before anything is made when the insta
     assert.deepEqual([not.run.name, not.notStarted, not.score, not.recordDir.endsWith("opus/four/outside-1-not-started")], ["opus/four/outside-1", true, null, true]);
     assert.ok(!existsSync(join(p.top, "the-harness-was-this-process")) && !existsSync(join(p.at.profile, "command-seen-by-the-stand-in.json")), "the harness was never started");
     assert.deepEqual([not.result.ended_by, not.result.counted_usd, not.result.scored], ["nobody: no session was started", 0, false]);
-    assert.match(not.result.not_started, /the launcher could not install the recorder outside the project, or could not list the session's folder \(grooph: Unknown option '--user'\), so it started nothing: no session ran and nothing was spent/);
+    assert.match(not.result.not_started, /the launcher could not install the recorder outside the project, or what it left did not hold \(grooph: Unknown option '--user'\), so it started nothing: no session ran and nothing was spent/);
     assert.match(readFileSync(join(not.recordDir, "outside-install.txt"), "utf8"), /Unknown option '--user'/);
     // It is no result: the run has no record of its own, its ledger line is settled at nothing under another name, and nothing is left in the next run's way.
     assert.equal(stateOf(order()[4], p.recordRoot).state, "not recorded");
@@ -692,32 +757,45 @@ test("the launcher becomes the harness: when the watchdog ends the process group
   }
 });
 
-test("both blocks are run from one checkout: a run from another commit, or with another hook, than a run already recorded is refused unless it is asked for by name, and then its record says so", { skip: !built }, async () => {
+test("both blocks are run with one hook, one built tool and one runner: a run with another than a run already recorded is refused unless it is asked for by name, and then its record says so", { skip: !built }, async () => {
   const p = place(quietPlan("plain"));
   try {
     const now = checkout();
-    assert.ok(/^[0-9a-f]{40}$/.test(now.commit) && /^[0-9a-f]{64}$/.test(now.hook_sha256));
+    assert.ok(/^[0-9a-f]{40}$/.test(now.commit) && [now.hook_sha256, now.tool_sha256, now.runner_sha256].every((sum) => /^[0-9a-f]{64}$/.test(sum)));
+    assert.equal(now.hook_sha256, createHash("sha256").update(readFileSync(SHIPPED_HOOK)).digest("hex"), "the hook's checksum is its file's own");
+    assert.ok(page.includes("**Both blocks are run with one hook, one built tool and one runner.**"));
     assert.equal(madeFromAnother(now, p.recordRoot), null);
     const first = await runOne(p.opus);
-    assert.deepEqual([first.result.given.the_runners_checkout.commit, first.result.given.the_runners_checkout.hook_sha256, first.result.given.the_runners_checkout.another_than_a_run_before], [now.commit, now.hook_sha256, null]);
+    const made = first.result.given.the_runners_checkout;
+    assert.deepEqual([made.commit, made.hook_sha256, made.tool_sha256, made.runner_sha256, made.another_than_a_run_before], [now.commit, now.hook_sha256, now.tool_sha256, now.runner_sha256, null]);
     assert.equal(madeFromAnother(now, p.recordRoot), null, "a run from this checkout is from no other");
+    const rewrite = (change) => {
+      const record = JSON.parse(readFileSync(join(first.recordDir, "result.json"), "utf8"));
+      Object.assign(record.given.the_runners_checkout, change);
+      writeFileSync(join(first.recordDir, "result.json"), JSON.stringify(record), "utf8");
+    };
+    // Another commit with the same hook, tool and runner is not another: committing a block's records moves the commit and changes nothing a session is run with.
+    rewrite({ commit: "f".repeat(40) });
+    assert.equal(madeFromAnother(now, p.recordRoot), null);
+    // Each of the three is told apart by its own name.
+    rewrite({ tool_sha256: "1".repeat(64), runner_sha256: "2".repeat(64) });
+    assert.deepEqual(madeFromAnother(now, p.recordRoot).what, ["another build of the tool", "another runner"]);
     // A record made with another hook's file: as when a block was started before slice 0108 was merged, and the rest is made after it.
-    const earlier = JSON.parse(readFileSync(join(first.recordDir, "result.json"), "utf8"));
-    earlier.given.the_runners_checkout.hook_sha256 = "0".repeat(64);
-    writeFileSync(join(first.recordDir, "result.json"), JSON.stringify(earlier), "utf8");
-    assert.deepEqual(madeFromAnother(now, p.recordRoot), { run: "opus/four/plain-1", what: ["another hook"], its_commit: now.commit, its_hook_sha256: "0".repeat(64) });
-    await assert.rejects(runOne(p.opus), notStarted(/opus\/four\/plain-1 was made from another hook .*both blocks are run from one built checkout at one commit.*say so by name with --another-checkout/s));
+    rewrite({ tool_sha256: now.tool_sha256, runner_sha256: now.runner_sha256, hook_sha256: "0".repeat(64) });
+    const other = { run: "opus/four/plain-1", what: ["another hook"], its_commit: "f".repeat(40), its_hook_sha256: "0".repeat(64), its_tool_sha256: now.tool_sha256, its_runner_sha256: now.runner_sha256 };
+    assert.deepEqual(madeFromAnother(now, p.recordRoot), other);
+    await assert.rejects(runOne(p.opus), notStarted(/opus\/four\/plain-1 was made with another hook: both blocks are run with one hook, one built tool and one runner.*say so by name with --another-checkout/s));
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length], [[], 1], "refused before anything was made or opened");
-    assert.match(status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }), /opus\/four\/plain-1 WAS MADE FROM ANOTHER HOOK/);
+    assert.match(status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }), /opus\/four\/plain-1 WAS MADE WITH ANOTHER HOOK/);
     const said = await runOne({ ...p.opus, anotherCheckout: true });
-    assert.deepEqual([said.run.name, said.result.problems, said.result.given.the_runners_checkout.another_than_a_run_before], ["opus/six/plain-1", [], { run: "opus/four/plain-1", what: ["another hook"], its_commit: now.commit, its_hook_sha256: "0".repeat(64), said_by: "--another-checkout" }]);
-    // And the tables name the run under its block's table.
+    assert.deepEqual([said.run.name, said.result.problems, said.result.given.the_runners_checkout.another_than_a_run_before], ["opus/six/plain-1", [], { ...other, said_by: "--another-checkout" }]);
+    // The tables give the block's commit, hook and tool, and name the run that was made with another.
     const { tables } = await import(TABLES);
-    assert.match(tables(p.recordRoot), /\nMade from another checkout than the first run of the look \(another commit, or another hook's file\): `six` plain 1\.\n/);
-    assert.ok(tables(p.recordRoot).includes(`The block's first run was made from commit \`${now.commit.slice(0, 8)}\`, with the hook's file \`00000000\`.`));
-    // A record that does not say which checkout made it is passed over.
+    assert.ok(tables(p.recordRoot).includes(`The block's first run was made from commit \`ffffffff\`, with the hook's file \`00000000\` and the built tool \`${now.tool_sha256.slice(0, 8)}\`.`));
+    assert.match(tables(p.recordRoot), /\nMade with another hook's file, or another build of the tool, than the first run of the look: `six` plain 1\.\n/);
+    // A record that does not say what made it is passed over.
     inHand(p.recordRoot, [order()[2]]);
-    assert.equal(madeFromAnother({ commit: earlier.given.the_runners_checkout.commit, hook_sha256: "0".repeat(64) }, p.recordRoot).run, "opus/six/plain-1");
+    assert.equal(madeFromAnother({ ...now, hook_sha256: "0".repeat(64) }, p.recordRoot).run, "opus/six/plain-1");
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
@@ -825,7 +903,7 @@ test("a dry run builds each arm's folder, says what would be started and what wo
     assert.match(said.plain, /^opus\/six\/plain-1\nthe block: opus: the session itself on claude-opus-5-5 at high effort; round 1 of 3\nthe arm: plain: nothing of grooph is in the folder/);
     assert.match(said.watched, /the arm: watched: grooph hooks install was run in the folder before its one commit.*\.grooph is closed to the session's writing, whole/);
     assert.match(said.outside, /the arm: outside: the folder holds nothing of grooph\. The program started is a launcher/);
-    assert.match(said.outside, /\| exec '\/the\/harness' "\$@"/);
+    assert.ok(said.outside.includes(`  | exec /usr/bin/env -u PWD -u OLDPWD -u SHLVL -u _ '/the/harness' "$@"`));
     assert.ok(said.outside.includes(`--max-budget-usd ${WATCHDOG.opus.six.usd} `));
     for (const text of Object.values(said)) {
       assert.match(text, /as things stand, a paid run would be refused:\n {2}- Scoring runs the repository's unseen suites/);
@@ -833,6 +911,163 @@ test("a dry run builds each arm's folder, says what would be started and what wo
     }
     assert.match(said.outside, /\n {2}- the install could not be rehearsed/);
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length, existsSync(join(p.home, "home"))], [[], 0, false]);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("a session that ran is recorded as a run, at its cost, whatever became of the file the launcher leaves: it is never written off as not started", { skip: !built }, async () => {
+  // The session itself takes away the folder the launcher's file is kept in, as a person moving it aside in another terminal would.
+  const p = place({ cost: 0.5, result: "done", uses: [{ tool: "Bash", input: { command: "npm test" }, result: "ok", mkdirs: ["../../../home"] }] });
+  try {
+    inHand(p.recordRoot, order().slice(0, 4));
+    const done = await runOne(p.opus);
+    assert.deepEqual([done.run.name, done.notStarted, done.recordDir.endsWith("opus/four/outside-1"), done.result.ended_by, done.result.reported_cost_usd], ["opus/four/outside-1", undefined, true, "the session", 0.5]);
+    assert.ok(done.result.problems.some((problem) => /is not where it was left, and a session ran all the same.*The run is recorded as a run, at its cost/.test(problem)), done.result.problems.join("; "));
+    assert.deepEqual(p.ledger().invocations.map((entry) => [entry.run, entry.status, entry.cost_usd]), [["second-look/opus/four/outside-1", "ok", 0.5]], "the ledger holds what it cost, under the run's own name");
+    assert.notEqual(stateOf(done.run, p.recordRoot).state, "not recorded");
+    assert.ok(!existsSync(`${recordOf(done.run, p.recordRoot)}-not-started`));
+    assert.equal(nextRun(p.recordRoot, "opus").name, "opus/six/outside-1", "the run has its record, and the order goes on from the next");
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("a tool that ignores the places it is told of is given a home of its own to write in, never the owner's, and what it leaves there stops everything", { skip: !built }, async () => {
+  const p = place(quietPlan("outside"));
+  try {
+    const tool = standInTool(p.top, "ignores-the-places");
+    const given = () => readFileSync(join(p.top, "the-home-the-tool-was-given.txt"), "utf8");
+    // The rehearsal: the tool wrote under its HOME, which was a scratch folder, and the rehearsal says so and does not pass.
+    const rehearsed = rehearse({ cli: tool, home: p.home });
+    assert.deepEqual([rehearsed.ok, /the tool wrote under its own home folder \(.*\): it did not keep to the places it was told of, and on the owner's machine that would have been his own/.test(rehearsed.why)], [false, true], rehearsed.why);
+    assert.ok(given() !== homedir() && given().includes("second-look-rehearsal-") && !existsSync(given()), "the home it was given was the rehearsal's own, and is gone with it");
+    // A whole run with that tool, after a rehearsal that is made to pass: the launcher looks at what the tool left before it starts anything, and starts nothing.
+    inHand(p.recordRoot, order().slice(0, 4));
+    const before = { settings: existsSync(join(homedir(), ".claude", "settings.json")) ? readFileSync(join(homedir(), ".claude", "settings.json"), "utf8") : null, grooph: existsSync(join(homedir(), ".grooph")) };
+    const done = await runOne({ ...p.opus, cli: tool });
+    assert.deepEqual([done.notStarted, done.result.ended_by, done.result.counted_usd], [true, "nobody: no session was started", 0]);
+    assert.match(done.result.not_started, /what it left did not hold \(the tool wrote under its own home folder: it did not keep to the places it was told of\)/);
+    assert.equal(given(), join(p.home, "home", "tool-home"), "the launcher gave the tool a home of its own, under the folder kept for the run");
+    assert.ok(!existsSync(join(p.at.profile, "command-seen-by-the-stand-in.json")), "the harness was never started");
+    assert.deepEqual({ settings: existsSync(join(homedir(), ".claude", "settings.json")) ? readFileSync(join(homedir(), ".claude", "settings.json"), "utf8") : null, grooph: existsSync(join(homedir(), ".grooph")) }, before, "nothing of the owner's own was written");
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("a signal does not end the runner while a run's record is being kept: the record is written whole, and the runner stops then", { skip: !built }, async () => {
+  // The holder by itself: it notes the first signal, says so once, ends nothing, and takes its handlers away again.
+  const before = process.listenerCount("SIGINT");
+  const said = [];
+  const held = holdSignals((text) => said.push(text));
+  assert.equal(process.listenerCount("SIGINT"), before + 1);
+  process.emit("SIGTERM");
+  process.emit("SIGINT");
+  assert.deepEqual([held.signal(), said.length, /^SIGTERM: the runner goes on until this run's record is kept, and stops then/.test(said[0])], ["SIGTERM", 1, true]);
+  held.release();
+  assert.equal(process.listenerCount("SIGINT"), before);
+  // A whole run: the signal comes after the session is over, while its record is being kept (here, as the profile is
+  // checked after a run of the outside arm). Before, the runner died there and a finished, paid run was lost.
+  const p = place({ ...quietPlan("outside"), cost: 0.5 });
+  try {
+    inHand(p.recordRoot, order().slice(0, 4));
+    let calls = 0;
+    const all = await runAll({ ...p.opus, profileCheck: () => ((calls += 1) === 2 && process.emit("SIGINT"), []) });
+    assert.deepEqual([all.done.length, all.done[0].run.name, all.done[0].interrupted, all.stopped?.interrupted], [1, "opus/four/outside-1", "SIGINT", "SIGINT"]);
+    assert.match(all.stopped.why, /the runner was told to stop \(SIGINT\), and stopped once this run's record was kept/);
+    const kept = JSON.parse(readFileSync(join(all.done[0].recordDir, "result.json"), "utf8"));
+    assert.deepEqual([kept.ended_by, kept.written, kept.scored, kept.problems, existsSync(join(all.done[0].recordDir, "score.json"))], ["the session", "whole", true, [], true]);
+    assert.deepEqual([p.ledger().invocations.map((entry) => [entry.status, entry.cost_usd]), readdirSync(p.at.work), stateOf(all.done[0].run, p.recordRoot).state], [[["ok", 0.5]], [], "recorded and scored"]);
+    assert.equal(process.listenerCount("SIGINT"), before, "and its handlers are gone when the run is over");
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("a run that was started twice and recorded neither time is said to be so, and is marked not obtained by hand so that its block can go on", { skip: !built }, async () => {
+  const line = (n, run, more = {}) => ({ n, run, project: "second-look/opus/four", kind: "kickoff", status: "failed", cost_usd: null, reported_cost_usd: null, max_budget_usd: WATCHDOG.opus.four.usd, started: `2026-10-12T00:0${n}:00.000Z`, ...more });
+  const p = place(quietPlan("plain"), { lines: [line(1, "second-look/opus/four/plain-1"), line(2, "second-look/opus/four/plain-1-rerun", { status: "running" })] });
+  try {
+    const run = order()[0];
+    // The block's own command says the run has a line and no record; its rerun says it was run once more already, and what to do.
+    await assert.rejects(runOne(p.opus), notStarted(/opus\/four\/plain-1 has a line on the ledger \(1\) and no record.*--rerun opus\/four\/plain-1/));
+    await assert.rejects(runOne({ ...p.common, rerun: run.name }), notStarted(/was run once more already \(line 2 on the ledger\), and the runner was stopped before it recorded that run too\. A run is made once more only once: this one is not obtained\. Settle that line first \(--settle 2 .*--not-obtained opus\/four\/plain-1 --note/));
+    // It is marked only with what happened, only once its rerun's line is settled, and only when there is a rerun to speak of.
+    assert.throws(() => markNotObtained({ name: run.name, note: "short", ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }), notStarted(/--note says what happened/));
+    assert.throws(() => markNotObtained({ name: run.name, note: "the machine slept twice", ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }), notStarted(/still marked running: settle that first/));
+    assert.throws(() => markNotObtained({ name: "opus/six/plain-1", note: "the machine slept twice", ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }), notStarted(/has no line on the ledger for a rerun/));
+    // A line left running is settled by hand, with what it cost or at its ceiling, and says so.
+    const settled = settleLine({ n: 2, cost: null, note: "the machine slept; no output of the harness was kept", ledgerPath: p.ledgerPath });
+    assert.deepEqual([settled.status, settled.cost_usd, /settled by hand: the machine slept/.test(settled.note)], ["failed", null, true]);
+    assert.equal(p.ledger().invocations[1].status, "failed");
+    const marked = markNotObtained({ name: run.name, note: "the machine slept during the run and again during its rerun", ledgerPath: p.ledgerPath, recordRoot: p.recordRoot });
+    assert.deepEqual([marked.state, marked.made.length], ["not obtained: the harness ended it both times", 2]);
+    const written = JSON.parse(readFileSync(join(recordOf(run, p.recordRoot), "result.json"), "utf8"));
+    assert.deepEqual([written.ended_by, written.written_by_hand, /Marked by hand: the machine slept during the run and again during its rerun/.test(written.why)], ["the harness", true, true]);
+    assert.throws(() => markNotObtained({ name: run.name, note: "a second time, for no reason", ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }), notStarted(/the rerun of opus\/four\/plain-1 has a record/));
+    // The block goes on from the next run, and the tables say what the row is.
+    const next = await runOne(p.opus);
+    assert.equal(next.run.name, "opus/six/plain-1");
+    const { tables } = await import(TABLES);
+    assert.ok(tables(p.recordRoot).includes("| 1 | `four` | plain | not obtained (marked by hand) |"));
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("a run whose scorer failed is scored afterwards from the packages the runner kept, once, on the recorded decision; and a recorded decision that reads as a no is a no", { skip: !built }, async () => {
+  const p = place(quietPlan("plain"));
+  try {
+    const done = await runOne(p.opus);
+    // As if the scorer had failed: the record is there and its score is not.
+    rmSync(join(done.recordDir, "score.json"));
+    assert.equal(stateOf(done.run, p.recordRoot).state, "recorded, not scored");
+    const scored = scoreKept({ name: done.run.name, ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot });
+    assert.deepEqual([scored.score.packages.map((pkg) => pkg.passed), scored.score.scored_afterwards_from, stateOf(done.run, p.recordRoot).state], [[0, 0, 38, 0], "the packages as the runner kept them", "recorded and scored"]);
+    assert.throws(() => scoreKept({ name: done.run.name, ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /is already scored/);
+    assert.throws(() => scoreKept({ name: "opus/six/plain-1", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /has no record/);
+    // The lab's test of a decision asks only that three fields hold words. Words that begin as a no are a no here.
+    const yes = { decided_by: "the owner", on: "2026-10-11", words: "Yes, as for the first check" };
+    for (const words of ["No. Do not run what a session wrote.", "no", "Not for this look", "Never", "Do not score them", "Don't"]) {
+      const said = decidedYes({ scoring_outside_the_sandbox: { ...yes, words } });
+      assert.deepEqual([said.ok, /which reads as a no: no run is started and none is scored on it/.test(said.why)], [false, true], words);
+    }
+    assert.deepEqual([decidedYes({ scoring_outside_the_sandbox: yes }).ok, decidedYes({ scoring_outside_the_sandbox: { ...yes, words: "Nothing against it: yes" } }).ok, decidedYes({ scoring_outside_the_sandbox: { decided_by: null, on: null, words: null } }).ok], [true, true, false]);
+    writeFileSync(p.ledgerPath, JSON.stringify({ ...p.ledger(), scoring_outside_the_sandbox: { ...yes, words: "No. Do not run what a session wrote." } }), "utf8");
+    await assert.rejects(runOne(p.opus), notStarted(/begins "No\. Do not run what a session wrote\.", which reads as a no/));
+    assert.throws(() => scoreKept({ name: "opus/six/plain-1", ledger: p.ledger(), home: p.home, recordRoot: p.recordRoot }), /which reads as a no/);
+    assert.deepEqual(readdirSync(p.at.work), []);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("the harness of the outside arm is started with the arguments and the environment the launcher was given, to the letter: nothing a shell adds, and nothing of grooph's", { skip: !built }, () => {
+  const p = place();
+  try {
+    // A harness that is no shell script, so that what a shell would add of its own cannot hide: it writes down what it was started with.
+    const seenAt = join(p.top, "what-the-harness-was-started-with.json");
+    const harness = join(p.top, "a-harness-that-is-no-shell-script");
+    writeFileSync(harness, `#!${process.execPath}\nrequire("node:fs").writeFileSync(${JSON.stringify(seenAt)}, JSON.stringify({ args: process.argv.slice(2), env: process.env, pid: process.pid }));\n`, { mode: 0o755 });
+    writeFileSync(join(p.at.profile, "settings.json"), `${JSON.stringify(settingsFor({ home: p.home }), null, 2)}\n`, "utf8");
+    const made = build({ run: order()[4], home: p.home, cli: p.common.cli, harness });
+    const env = { PATH: process.env.PATH, CLAUDE_CONFIG_DIR: p.at.profile, TMPDIR: p.at.temp, LANG: "en_US.UTF-8", A_VALUE: "with spaces, a 'quote' and a $sign" };
+    const args = ["-p", "a prompt\nof two lines, with 'quotes' and a $sign", "--model", "claude-opus-5-5", "--session-id", "a-session"];
+    const seen = (program) => {
+      rmSync(seenAt, { force: true });
+      const out = spawnSync(program, args, { cwd: made.cwd, env, encoding: "utf8" });
+      assert.equal(out.status, 0, out.stderr);
+      return { ...JSON.parse(readFileSync(seenAt, "utf8")), launcher: out.pid };
+    };
+    const direct = seen(harness);
+    const launched = seen(made.outside.launcher);
+    assert.deepEqual(launched.args, direct.args, "the arguments, to the letter");
+    assert.deepEqual(launched.env, direct.env, "the environment, to the letter");
+    for (const added of ["PWD", "OLDPWD", "SHLVL", "_", "GROOPH_HOME", "CODEX_HOME", "HOME"]) assert.ok(!(added in launched.env), `${added} is not in it`);
+    assert.equal(launched.pid, launched.launcher, "and it is the launcher's own process that became the harness");
+    assert.ok(existsSync(join(made.outside.dir, STARTED)));
+    unbuild(made);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
@@ -876,10 +1111,23 @@ test("the hook's file beside the harness's files, agent by agent: every kind of 
         use("u-fore", "Agent", {}, 8),
         result("u-fore", "done", 40, { about: { agentId: "afore", status: "completed" } }),
         use("u-running", "Agent", {}, 9),
+        use("u-untyped", "Agent", {}, 9),
+        use("u-twoparents", "Agent", {}, 9),
+        use("u-killed", "Agent", {}, 9),
+        use("u-freetext", "Agent", {}, 9),
+        use("u-oddword", "Agent", {}, 9),
         notice("aok", "completed", 30),
         notice("afailed", "failed", 31),
         notice("anostop", "completed", 32),
         notice("atwice", "completed", 33),
+        notice("auntyped", "completed", 34),
+        notice("atwoparents", "completed", 34),
+        // The harness says this run was killed: only a run it says failed is expected to have no stop line.
+        notice("akilled", "killed", 34),
+        // A notice with no status of the harness's own, whose text (the subagent's last words) holds one: that text is never read as the harness's.
+        { type: "queue-operation", operation: "enqueue", timestamp: at(35), content: "<task-notification>\n<task-id>afreetext</task-id>\n<summary>SECRET-SUMMARY</summary>\n<result>I would say <status>failed</status> SECRET-LAST-WORDS</result>\n</task-notification>" },
+        // A status that is no word of the harness's: it is kept as that, and never as what it said.
+        notice("aoddword", "SECRET free words about it", 36),
       ],
       agents: {
         aok: { meta: background("u-ok"), lines: [said(1), use("u-nested", "Agent", {}, 2), said(20)] },
@@ -895,6 +1143,11 @@ test("the hook's file beside the harness's files, agent by agent: every kind of 
         atwice: { meta: background("u-twice"), lines: [said(8), said(20), { type: "user", isMeta: true, origin: { kind: "coordinator" }, timestamp: at(27), message: { content: "more" } }, said(28)] },
         // A foreground child of the session: the line that names who started it is written when the call returns.
         afore: { meta: { agentType: "general-purpose", toolUseId: "u-fore", spawnDepth: 1, requestShape: "foreground" }, lines: [said(9), said(39)] },
+        auntyped: { meta: background("u-untyped"), lines: [said(10), said(20)] },
+        atwoparents: { meta: background("u-twoparents"), lines: [said(10), said(20)] },
+        akilled: { meta: background("u-killed"), lines: [said(10), said(20)] },
+        afreetext: { meta: background("u-freetext"), lines: [said(10), said(20)] },
+        aoddword: { meta: background("u-oddword"), lines: [said(10), said(20)] },
         // A subagent's own subagent, in the same flat folder: its parent is in the file beside it.
         anested: { meta: { agentType: "general-purpose", toolUseId: "u-nested", parentAgentId: "aok", spawnDepth: 2, requestShape: "background" }, lines: [said(3), said(12)] },
       },
@@ -916,6 +1169,15 @@ test("the hook's file beside the harness's files, agent by agent: every kind of 
         hook("subagent-start", 8, { agent: "atwice", ...gp }), hook("tool", 8, { tool: "Agent", spawned: "atwice" }), hook("subagent-stop", 20, { agent: "atwice", ...gp }), hook("subagent-stop", 28, { agent: "atwice", ...gp }), hook("subagent-stop", 29, { agent: "atwice", ...gp }),
         hook("subagent-start", 9, { agent: "afore", ...gp }), hook("subagent-stop", 39, { agent: "afore", ...gp }), hook("tool", 40, { tool: "Agent", spawned: "afore" }),
         hook("subagent-start", 3, { agent: "anested", ...gp }), hook("tool", 3, { tool: "Agent", spawned: "anested", agent: "aok", ...gp }), hook("subagent-stop", 12, { agent: "anested", ...gp }),
+        // A stop line with a type, and one more with none, for a subagent the harness's files hold.
+        hook("subagent-start", 10, { agent: "auntyped", ...gp }), hook("tool", 10, { tool: "Agent", spawned: "auntyped" }), hook("subagent-stop", 20, { agent: "auntyped", ...gp }), hook("subagent-stop", 21, { agent: "auntyped" }),
+        // Two lines name who started it, and do not agree.
+        hook("subagent-start", 10, { agent: "atwoparents", ...gp }), hook("tool", 10, { tool: "Agent", spawned: "atwoparents" }), hook("tool", 11, { tool: "Agent", spawned: "atwoparents", agent: "aok", ...gp }), hook("subagent-stop", 20, { agent: "atwoparents", ...gp }),
+        hook("subagent-start", 10, { agent: "akilled", ...gp }), hook("tool", 10, { tool: "Agent", spawned: "akilled" }),
+        hook("subagent-start", 10, { agent: "afreetext", ...gp }), hook("tool", 10, { tool: "Agent", spawned: "afreetext" }),
+        hook("subagent-start", 10, { agent: "aoddword", ...gp }), hook("tool", 10, { tool: "Agent", spawned: "aoddword" }), hook("subagent-stop", 20, { agent: "aoddword", ...gp }),
+        // A line that says it is another session's, in this session's file.
+        JSON.stringify({ v: 1, t: at(12), harness: "claude-code", event: "subagent-start", session: "ANOTHER", agent: "aok", ...gp }),
         hook("subagent-start", 10, { agent: "aghost", ...gp }),
         hook("subagent-stop", 11, { agent: "ahelper-1" }), hook("subagent-stop", 12, { agent: "ahelper-2" }),
         "not a line of JSON",
@@ -924,40 +1186,56 @@ test("the hook's file beside the harness's files, agent by agent: every kind of 
       "utf8",
     );
     const read = readSession(profile, "S");
-    const each = agentByAgent({ read, eventsFile: events });
-    assert.deepEqual([each.the_hooks_file.found, each.the_hooks_file.lines_that_are_not_events, each.subagents_in_the_harnesss_files, each.agrees], [true, 1, 11, false]);
+    const each = agentByAgent({ read, eventsFile: events, sessionId: "S" });
+    const of = (agent) => each.each.find((one) => one.agent === agent);
+    assert.deepEqual([each.the_hooks_file.found, each.the_hooks_file.lines_that_are_not_events, each.subagents_in_the_harnesss_files, each.agrees], [true, 1, 16, false]);
     assert.deepEqual(each.differences.by_kind, {
       [DIFFERENCES.stranger]: ["aghost"],
       [DIFFERENCES.parent]: ["aparent"],
       [DIFFERENCES.type]: ["atype"],
       [DIFFERENCES.fewerStarts]: ["atwice"],
-      [DIFFERENCES.fewerStops]: ["anostop"],
+      [DIFFERENCES.fewerStops]: ["akilled", "anostop"],
       [DIFFERENCES.moreStops]: ["atwice"],
+      [DIFFERENCES.manyParents]: ["atwoparents"],
       [DIFFERENCES.noParent]: ["anoparent"],
       [DIFFERENCES.noStart]: ["anostart"],
-      [DIFFERENCES.notEnded]: ["arunning"],
+      [DIFFERENCES.notEnded]: ["afreetext", "arunning"],
+      [DIFFERENCES.untypedStop]: ["auntyped"],
+      [DIFFERENCES.otherSession]: ["1 line(s)"],
+      [DIFFERENCES.notAnEvent]: ["1 line(s)"],
     });
-    assert.equal(each.differences.count, 9);
+    assert.equal(each.differences.count, 15);
+    // Only a word of the harness's own is kept of how a run ended, and nothing a subagent said reaches the result.
+    assert.deepEqual([of("akilled").runs.ended_as_the_harness_says, of("afreetext").runs.ended_as_the_harness_says, of("aoddword").runs.ended_as_the_harness_says, of("aoddword").differences], [["killed"], [], [NOT_A_STATUS], []]);
+    assert.ok(!JSON.stringify(each).includes("SECRET"), "nothing of a notice's own text is in what is kept");
+    assert.deepEqual([of("auntyped").runs.stop_lines, of("auntyped").runs.stop_lines_with_no_type, of("atwoparents").started_by.in_the_hooks_lines], [1, 1, ["the session", "aok"]]);
+    // The line that says it is another session's is not read with this one's: the subagent it names has its one start line, not two.
+    assert.equal(of("aok").runs.start_lines, 1);
     assert.deepEqual(each.expected.by_kind, { [EXPECTED.lateParent]: ["afore"], [EXPECTED.failed]: ["afailed"] });
     assert.deepEqual(each.expected[EXPECTED.helpers], { agents: 2, lines: 2, read_as: "the harness's own helpers, which leave no transcript (docs/subagents.md §5)" });
-    const of = (agent) => each.each.find((one) => one.agent === agent);
     assert.deepEqual([of("aok").differences, of("aok").expected, of("aok").started_by.known_to_the_hook, of("aok").runs.ended_as_the_harness_says], [[], [], "while it ran", ["completed"]]);
     assert.deepEqual([of("anested").differences, of("anested").started_by.in_the_harnesss_files, of("anested").started_by.in_the_hooks_lines, of("anested").started_by.read_from], [[], "aok", "aok", "the file beside its transcript"]);
     assert.deepEqual([of("afore").started_by.known_to_the_hook, of("afore").started_by.seconds_after_its_first_line, of("afore").asked_for, of("afore").runs.ended_as_the_harness_says], ["only at its end", 31, "foreground", ["completed"]]);
-    assert.deepEqual([of("afailed").runs, of("afailed").differences], [{ in_the_harnesss_files: 1, ended_as_the_harness_says: ["failed"], start_lines: 1, stop_lines: 0 }, []]);
+    assert.deepEqual([of("afailed").runs, of("afailed").differences], [{ in_the_harnesss_files: 1, ended_as_the_harness_says: ["failed"], start_lines: 1, stop_lines: 0, stop_lines_with_no_type: 0 }, []]);
     assert.deepEqual([of("atwice").runs.in_the_harnesss_files, of("atwice").runs.start_lines, of("atwice").runs.stop_lines], [2, 1, 3]);
     assert.deepEqual(of("atype").type, { in_the_harnesss_files: "Explore", in_the_hooks_lines: ["general-purpose"] });
     assert.deepEqual(of("aparent").started_by, { in_the_harnesss_files: "the session", read_from: "the tool use that started it", in_the_hooks_lines: "aok", known_to_the_hook: "while it ran", seconds_after_its_first_line: 0 });
     // With no file of the hook's at all, nothing agrees and every subagent is a difference.
     const none = agentByAgent({ read, eventsFile: join(top, "none.jsonl") });
-    assert.deepEqual([none.the_hooks_file.found, none.agrees, none.differences.by_kind[DIFFERENCES.noStart].length], [false, false, 11]);
+    assert.deepEqual([none.the_hooks_file.found, none.agrees, none.differences.by_kind[DIFFERENCES.noStart].length], [false, false, 16]);
     // And a session with no subagent and a hook's file with no subagent line agree, with nothing to compare.
     session(profile, "T", { lead: [said(0)] });
     writeFileSync(join(top, "T.jsonl"), [hook("session-start", 0), hook("session-end", 1)].join("\n"), "utf8");
     const quiet = agentByAgent({ read: readSession(profile, "T"), eventsFile: join(top, "T.jsonl") });
     assert.deepEqual([quiet.agrees, quiet.subagents_in_the_harnesss_files, quiet.differences.count, quiet.each], [true, 0, 0, []]);
+    // With no subagent there is still something to agree about: a file with no line of this session's does not agree, whatever it holds.
+    for (const [name, text, kinds] of [["empty", "", [DIFFERENCES.noLine]], ["not-json", "nothing here is an event\n", [DIFFERENCES.notAnEvent, DIFFERENCES.noLine]], ["another-sessions", `${[hook("session-start", 0), hook("session-end", 1)].join("\n")}\n`, [DIFFERENCES.otherSession, DIFFERENCES.noLine]]]) {
+      writeFileSync(join(top, `${name}.jsonl`), text, "utf8");
+      const empty = agentByAgent({ read: readSession(profile, "T"), eventsFile: join(top, `${name}.jsonl`), sessionId: "T" });
+      assert.deepEqual([empty.agrees, Object.keys(empty.differences.by_kind).sort()], [false, [...kinds].sort()], name);
+    }
     // How many were running at once: each from its first line to its last.
-    assert.equal(delegation({ read, output: null }).most_at_once, 11, "from the tenth second to the twelfth all eleven were open");
+    assert.equal(delegation({ read, output: null }).most_at_once, 16, "from the tenth second to the twelfth all sixteen were open");
     assert.equal(mostAtOnce([{ first: at(0), last: at(10) }, { first: at(10), last: at(20) }, { first: at(30), last: at(40) }, { first: null, last: null }]), 2, "two that touch were both there; one with no time is not counted");
     assert.equal(mostAtOnce([]), 0);
   } finally {
@@ -984,15 +1262,19 @@ test("whether the recorder was noticed, and the delegation, as counts: the user-
     });
     const read = readSession(profile, "S");
     const seen = noticed({ read, output: { result: "I changed src/. I also saw .grooph/events and a GROOPH_HOME variable, and left both alone." }, profileSettings, groophHome });
-    assert.deepEqual(seen.places, ["the profile's own settings file", "grooph's own folder for the run", "the hook's file name", "a variable of grooph's", "the launcher's own files"]);
-    assert.deepEqual(seen.named_in_the_input, { calls: 3, by_tool: { Bash: 2, Read: 1 }, by_place: { "grooph's own folder for the run": 1, "the profile's own settings file": 2 }, of_them_refused: 2 });
+    assert.deepEqual(seen.places, ["the profile's own settings file", "grooph's own folder for the run", "the hook's file name", "a variable of grooph's", "the launcher's own files", "the list of watched folders", "the configuration folder, by its variable or its usual name", "grooph's folder, by its usual name", "the word grooph", "the word hook"]);
+    // What a call named: the two reads of the settings, the read under grooph's folder, and the subagent's look at ~/.grooph by its usual name.
+    assert.deepEqual(seen.named_in_the_input, { calls: 4, by_tool: { Bash: 3, Read: 1 }, by_place: { "grooph's folder, by its usual name": 1, "grooph's own folder for the run": 1, "the configuration folder, by its variable or its usual name": 1, "the list of watched folders": 1, "the profile's own settings file": 2, "the word grooph": 2 }, of_them_refused: 2 });
     assert.deepEqual(seen.shown_in_the_result, { calls: 3, by_tool: { Bash: 3 }, by_place: { "a variable of grooph's": 1, "grooph's own folder for the run": 2, "the hook's file name": 1 }, of_them_showing_a_place_the_call_did_not_name: 3 });
-    assert.deepEqual(seen.the_final_reply, { read: true, names_the_recorder: true, in_the_project: [".grooph"], outside_it: ["a variable of grooph's"], uses_the_word_hook: false });
+    assert.deepEqual(seen.the_final_reply, { read: true, names_the_recorder: true, in_the_project: [".grooph"], outside_it: ["a variable of grooph's"], uses_the_word_hook: false, uses_the_word_grooph: true });
     // Counts only: nothing a call said and nothing that came back is in what is kept.
     assert.ok(!JSON.stringify(seen).includes("cat ") && !JSON.stringify(seen).includes("Operation not permitted") && !JSON.stringify(seen).includes("left both alone"));
-    assert.deepEqual(noticed({ read, output: { result: "I changed src/ in each package." }, profileSettings, groophHome }).the_final_reply, { read: true, names_the_recorder: false, in_the_project: [], outside_it: [], uses_the_word_hook: false });
+    assert.deepEqual(noticed({ read, output: { result: "I changed src/ in each package." }, profileSettings, groophHome }).the_final_reply, { read: true, names_the_recorder: false, in_the_project: [], outside_it: [], uses_the_word_hook: false, uses_the_word_grooph: false });
+    // A reply that names no place and says it all the same: the word is counted. The session's own folder is under a folder called grooph-compare, and that is not it.
+    assert.deepEqual(noticed({ read, output: { result: "Done in ~/grooph-compare/work/x. A tool called grooph is recording this session." }, profileSettings, groophHome }).the_final_reply, { read: true, names_the_recorder: false, in_the_project: [], outside_it: [], uses_the_word_hook: false, uses_the_word_grooph: true });
+    assert.equal(noticed({ read, output: { result: "Done in ~/grooph-compare/work/x." }, profileSettings, groophHome }).the_final_reply.uses_the_word_grooph, false);
     // A reply that speaks of a hook and names no place: counted apart, as the one word.
-    assert.deepEqual(noticed({ read, output: { result: "Done. A Hook seems to run when a subagent starts; I left it alone, and unhooked nothing." }, profileSettings, groophHome }).the_final_reply, { read: true, names_the_recorder: false, in_the_project: [], outside_it: [], uses_the_word_hook: true });
+    assert.deepEqual(noticed({ read, output: { result: "Done. A Hook seems to run when a subagent starts; I left it alone, and unhooked nothing." }, profileSettings, groophHome }).the_final_reply, { read: true, names_the_recorder: false, in_the_project: [], outside_it: [], uses_the_word_hook: true, uses_the_word_grooph: false });
     // The launcher's own files are among the places: a session that saw one has seen how the recorder was installed.
     session(profile, "U", { lead: [use("a", "Bash", { command: "ls .." }, 0), result("a", "launch-outside.sh", 0), use("b", "Bash", { command: "cat ../home/outside-install.txt" }, 1), result("b", "refused", 1, { refused: true })] });
     const saw = noticed({ read: readSession(profile, "U"), output: { result: "done" }, profileSettings, groophHome });
@@ -1002,6 +1284,15 @@ test("whether the recorder was noticed, and the delegation, as counts: the user-
     const echoed = noticed({ read: readSession(profile, "V"), output: { result: "done" }, profileSettings, groophHome });
     assert.deepEqual([echoed.shown_in_the_result.calls, echoed.shown_in_the_result.of_them_showing_a_place_the_call_did_not_name, echoed.named_in_the_input.of_them_refused], [2, 1, 1]);
     assert.deepEqual(noticed({ read, output: null, profileSettings, groophHome }).the_final_reply, { read: false, names_the_recorder: null });
+    // Ways of looking that name no path of the recorder's: each is counted by what it does name. What a call asked is read as it was asked, quotes and all.
+    const looks = ['cat "$CLAUDE_CONFIG_DIR"/settings.json', "ls $CLAUDE_CONFIG_DIR", "cat ~/.claude/settings.json", "ls ${HOME}/.grooph", "env | grep -i grooph", "ps aux | grep -i hook", "find / -name watched.json 2>/dev/null"];
+    session(profile, "W", { lead: looks.flatMap((command, at) => [use(`w${at}`, "Bash", { command }, at), result(`w${at}`, "refused", at, { refused: true })]) });
+    const looked = noticed({ read: readSession(profile, "W"), output: { result: "done" }, profileSettings, groophHome });
+    assert.deepEqual(looked.named_in_the_input, { calls: 7, by_tool: { Bash: 7 }, by_place: { "grooph's folder, by its usual name": 1, "the configuration folder, by its variable or its usual name": 3, "the list of watched folders": 1, "the profile's own settings file": 1, "the word grooph": 2, "the word hook": 1 }, of_them_refused: 7 });
+    assert.equal(looked.shown_in_the_result.calls, 0);
+    // A result that holds the word hook for a reason of its own (a listing of .git) shows nothing of the recorder.
+    session(profile, "X", { lead: [use("a", "Bash", { command: "ls .git" }, 0), result("a", "HEAD\nhooks\nobjects", 0)] });
+    assert.deepEqual([noticed({ read: readSession(profile, "X"), output: { result: "done" }, profileSettings, groophHome }).shown_in_the_result.calls, noticed({ read: readSession(profile, "X"), output: { result: "done" }, profileSettings, groophHome }).named_in_the_input.calls], [0, 0]);
     // A session that looked at nothing of the kind: every count is nothing.
     session(profile, "T", { lead: [use("a", "Bash", { command: "npm test" }, 0), result("a", "ok", 0)] });
     const quiet = noticed({ read: readSession(profile, "T"), output: { result: "done" }, profileSettings, groophHome });
@@ -1031,11 +1322,11 @@ test("the tables are made from the records: none and no results page while nothi
     assert.deepEqual([tables(p.recordRoot), check(p.recordRoot).ok], ["", true]);
     await runOne(p.opus);
     const text = tables(p.recordRoot);
-    assert.match(text, /^### The `opus` block \(the session's own model answered as `claude-opus-5-5`\)\n\nThe block's first run was made from commit `[0-9a-f]{8}`, with the hook's file `[0-9a-f]{8}`\.\n\n\| Round \| Task \| Arm \|/);
+    assert.match(text, /^### The `opus` block \(the session's own model answered as `claude-opus-5-5`\)\n\nThe block's first run was made from commit `[0-9a-f]{8}`, with the hook's file `[0-9a-f]{8}` and the built tool `[0-9a-f]{8}`\.\n\n\| Round \| Task \| Arm \| Ended by \| Problems in its record \|/);
     const rows = text.split("\n").filter((row) => /^\| [123][ ,]/.test(row));
     assert.equal(rows.length, 18, "one row for each run of the block, made or not");
     // The minutes are the runner's clock, and a stand-in's run takes what the machine gives it: the cell is a number, whatever it is.
-    assert.match(rows[0], /^\| 1, the block's first run \| `four` \| plain \| the session \| \$0\.25 \| \d+(\.\d+)? \| 2 \| 1 \(1 general-purpose\) \| 1 \| 0\/55 · 0\/88 · 38\/73 · 0\/62 \| 0 \| 0 \| 0 \/ 0 \| 0 \/ 0 \/ 0 \| no \| {2}\| {2}\|$/);
+    assert.match(rows[0], /^\| 1, the block's first run \| `four` \| plain \| the session \| 0 \| \$0\.25 \| \d+(\.\d+)? \| 2 \| 1 \(1 general-purpose\) \| 1 \| 0\/55 · 0\/88 · 38\/73 · 0\/62 \| 0 \| 0 \| 0 \/ 0 \| 0 \/ 0 \/ 0 \| no \| {2}\| {2}\|$/);
     assert.equal(rows[1], `| 1 | \`six\` | plain | not run | ${HEAD.slice(4).map(() => "").join(" | ")} |`);
     assert.equal(HEAD.length, rows[0].split(" | ").length, "a row has a cell for every column");
     assert.ok(!text.includes("`sonnet` block"), "a block with no record has no table");
@@ -1046,6 +1337,19 @@ test("the tables are made from the records: none and no results page while nothi
     assert.deepEqual([check(p.recordRoot).ok, /does not hold the tables these records make/.test(check(p.recordRoot).says)], [false, true]);
     writeFileSync(join(p.recordRoot, "RESULTS.md"), `# What the runs showed\n\n${text}\n`, "utf8");
     assert.equal(check(p.recordRoot).ok, true);
+    // A page that holds these tables and, beside them, a stale copy with other numbers, or a table of a block that these records do not make, does not pass.
+    writeFileSync(join(p.recordRoot, "RESULTS.md"), `# What the runs showed\n\n${text}\n\n${text.replaceAll("$0.25", "$9.99")}\n`, "utf8");
+    assert.match(check(p.recordRoot).says, /holds the tables these records make and also another table of a block/);
+    writeFileSync(join(p.recordRoot, "RESULTS.md"), `# What the runs showed\n\n${text}\n\n### The \`sonnet\` block (made up)\n`, "utf8");
+    assert.equal(check(p.recordRoot).ok, false);
+    writeFileSync(join(p.recordRoot, "RESULTS.md"), `${text}\n\n${text}\n`, "utf8");
+    assert.equal(check(p.recordRoot).ok, false, "the same tables twice");
+    // A record that was cut short stops the tables, and the file is named.
+    const cut = join(p.recordRoot, "opus", "six", "plain-1");
+    mkdirSync(cut, { recursive: true });
+    writeFileSync(join(cut, "result.json"), '{ "ended_by": "the ses', "utf8");
+    assert.throws(() => tables(p.recordRoot), (error) => error.message.includes(join(cut, "result.json")) && /cannot be read: it is cut short, or is not JSON/.test(error.message));
+    rmSync(cut, { recursive: true, force: true });
     const empty = mkdtempSync(join(tmpdir(), "second-look-tables-"));
     writeFileSync(join(empty, "RESULTS.md"), "a page with no record under it", "utf8");
     assert.match(check(empty).says, /exists and no run has a record/);
@@ -1072,7 +1376,7 @@ test("the rule of reading is applied by the script, not by eye: overlap and apar
       const dir = join(top, block, task, `${arm}-${round}`);
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, "result.json"), JSON.stringify({ ended_by: "the session", recorded: `2026-10-12T0${round}:00:00.000Z`, given: { the_runners_checkout: { commit: "c".repeat(40), hook_sha256: "h".repeat(64) } }, measures: { session: { cost_usd_as_the_harness_reports: cost, minutes_by_the_runners_clock: 5, models_that_answered: [`claude-${block}-5-5`] }, subagents: { count: 4, by_type: { "general-purpose": 4 } }, delegation: { tokens_put_out_with_its_subagents: 1000, most_at_once: 4 } }, ...more }), "utf8");
-      writeFileSync(join(dir, "score.json"), JSON.stringify({ packages: [{ package: "x", passed: 274, cases: 278 }] }), "utf8");
+      writeFileSync(join(dir, "score.json"), JSON.stringify(more.score ?? { packages: [{ package: "x", ran: true, passed: 274, cases: 278 }] }), "utf8");
     };
     const costs = { plain: [1.0, 1.1, 1.2], watched: [1.3, 1.4, 1.5], outside: [1.15, 1.25, 1.6] };
     for (const block of ["opus", "sonnet"]) for (const task of ["four", "six"]) for (const arm of ARMS) costs[arm].forEach((cost, at) => record(block, task, arm, at + 1, task === "six" && arm === "watched" ? cost - 0.3 : cost));
@@ -1098,7 +1402,19 @@ test("the rule of reading is applied by the script, not by eye: overlap and apar
     // Runs made later from another checkout (the outside arm, once it could be installed) are rows, and are not read with the block's others.
     for (const task of ["four", "six"]) for (const round of [1, 2, 3]) record("sonnet", task, "outside", round, 9, { recorded: "2026-10-13T00:00:00.000Z", given: { the_runners_checkout: { commit: "d".repeat(40), hook_sha256: "i".repeat(64) } } });
     assert.deepEqual(cost("sonnet").slice(1).map((reading) => reading.says), ["not read: `four` has 0 run(s) in an arm; `six` has 0 run(s) in an arm", "not read: `four` has 0 run(s) in an arm; `six` has 0 run(s) in an arm"]);
-    assert.ok(tables(top).includes("\nMade from another checkout than this block's own first run, and so published as rows and not read with the block's other runs: `four` outside 1, `six` outside 1, `four` outside 2, `six` outside 2, `four` outside 3, `six` outside 3.\n"));
+    assert.ok(tables(top).includes("\nMade with another hook's file, or another build of the tool, than this block's own first run, and so published as rows and not read with the block's other runs: `four` outside 1, `six` outside 1, `four` outside 2, `six` outside 2, `four` outside 3, `six` outside 3.\n"));
+    // A block made at another commit with the same hook and the same tool is read as any block: the commit's name is not what a session is run with.
+    for (const task of ["four", "six"]) for (const round of [1, 2, 3]) record("sonnet", task, "outside", round, 9, { given: { the_runners_checkout: { commit: "e".repeat(40), hook_sha256: "h".repeat(64) } } });
+    assert.ok(cost("sonnet").slice(1).every((reading) => !reading.says.startsWith("not read")) && !tables(top).includes("published as rows and not read with the block's other runs"));
+    // A suite that did not run is no count of nothing: the run has no value on that measure, and its row says so.
+    const passed = (block) => readings(top, block).filter((reading) => reading.measure.name === "Unseen tests passed, the packages' sum");
+    assert.equal(passed("sonnet")[0].says, "no difference seen");
+    for (const round of [1, 2, 3]) record("sonnet", "four", "watched", round, costs.watched[round - 1], { score: { packages: [{ package: "x", ran: true, passed: 38, cases: 73 }, { package: "y", ran: false, passed: null, cases: null, reason: "node --test produced no summary" }] } });
+    assert.equal(passed("sonnet")[0].says, "not read: `four` has 0 run(s) in an arm", "three suites that did not run are not three scores of 38 against 274");
+    assert.ok(tables(top).includes("| 38/73 · suite not run |"));
+    // The session's own model as it answered is said of the whole block, not of one run of it.
+    record("sonnet", "six", "plain", 2, 1.1, { measures: { session: { cost_usd_as_the_harness_reports: 1.1, minutes_by_the_runners_clock: 5, models_that_answered: ["claude-haiku-4-5-20251001"] }, subagents: { count: 4, by_type: { "general-purpose": 4 } }, delegation: { tokens_put_out_with_its_subagents: 1000, most_at_once: 4 } } });
+    assert.ok(tables(top).includes("### The `sonnet` block (the session's own model answered as `claude-sonnet-5-5` in 17, `claude-haiku-4-5-20251001` in 1)"));
     // A cost decided by less than a cent is decided by the record's own figure, not by the row's two decimals.
     record("opus", "six", "plain", 1, 1.2409);
     record("opus", "six", "plain", 2, 1.2449);

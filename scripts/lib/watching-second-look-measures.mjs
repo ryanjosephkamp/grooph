@@ -23,8 +23,15 @@ const tally = (names) => Object.fromEntries([...names.reduce((counts, name) => c
 const NO_ID = "\u0000no id: ";
 const SESSION = "the session";
 
-/** How the harness says a background subagent's run ended: its own notice to the session, which names the agent and a status. */
-const NOTICE = /<task-id>([^<]+)<\/task-id>[\s\S]*?<status>([^<]+)<\/status>/g;
+/**
+ * How the harness says a background subagent's run ended: its own notice to the session, which names the agent and a
+ * status. A notice also carries what the subagent last said, and that is never read: the status is the one that comes
+ * before any summary or result, in the first notice of the line, and only a word of the harness's own is kept.
+ */
+const NOTICE = /<task-notification>\s*<task-id>([A-Za-z0-9_-]{1,64})<\/task-id>((?:(?!<summary>|<result>|<task-notification>)[\s\S])*?)<status>([^<]{0,60})<\/status>/;
+export const STATUSES = ["completed", "failed", "killed", "canceled", "stopped", "error", "timeout", "timed_out", "async_launched"];
+export const NOT_A_STATUS = "a word that is not one of the harness's";
+const statusOf = (word) => (STATUSES.includes(String(word).trim()) ? String(word).trim() : NOT_A_STATUS);
 
 /**
  * One transcript, read once for what this look needs: every tool use and its result, when its first and last lines
@@ -59,10 +66,11 @@ export function readForAgents(file) {
       // A subagent that is handed more work after it finished: the harness writes the hand-over into its transcript.
       if (record.isMeta === true && record.origin?.kind === "coordinator") resumes += 1;
       const about = record.toolUseResult && typeof record.toolUseResult === "object" ? record.toolUseResult : null;
-      for (const block of content) if (block?.type === "tool_result") results.set(block.tool_use_id, { refused: block.is_error === true, text: textOf(block.content), agent: typeof about?.agentId === "string" ? about.agentId : null, status: typeof about?.status === "string" ? about.status : null, at });
+      for (const block of content) if (block?.type === "tool_result") results.set(block.tool_use_id, { refused: block.is_error === true, text: textOf(block.content), agent: typeof about?.agentId === "string" ? about.agentId : null, status: typeof about?.status === "string" ? statusOf(about.status) : null, at });
     } else if (record.type === "queue-operation" && record.operation === "enqueue") {
       const said = typeof record.content === "string" ? record.content : textOf(record.content);
-      for (const found of said.matchAll(NOTICE)) ended.push({ agent: found[1].trim(), status: found[2].trim(), at });
+      const found = NOTICE.exec(said);
+      if (found) ended.push({ agent: found[1], status: statusOf(found[3]), at });
     }
   }
   return { uses, results, ended, first, last, resumes };
@@ -114,31 +122,54 @@ export function delegation({ read, output = null }) {
   };
 }
 
+/** Every string a tool call was given, one to a line: what it asked, as it asked it (a stringified copy would escape its quotes). */
+export function stringsOf(input) {
+  const out = [];
+  const walk = (value) => {
+    if (typeof value === "string") out.push(value);
+    else if (Array.isArray(value)) value.forEach(walk);
+    else if (value && typeof value === "object") Object.values(value).forEach(walk);
+  };
+  walk(input);
+  return out.join("\n");
+}
+
+const USUAL = "(?:~|\\$HOME|\\$\\{HOME\\})";
 /**
- * The user-level places a recorder outside the project is kept in, as what to look for in a call or a result. The same
- * five are looked for in every arm, so that the plain arm shows what the count picks up when nothing is there.
+ * The places a recorder outside the project is kept in, as what to look for. The same are looked for in every arm, so
+ * that the plain arm shows what the count picks up when nothing is there. The first six are looked for in what a call
+ * asked and in what came back. The last four are ways of looking, and are looked for only in what a call asked: a
+ * result may hold the word "hook" for any reason (a listing of `.git`).
+ *
+ * This is a count of names. A look that names none of them (a search of the whole disk, a list of processes) is not in it.
  */
 export function userLevelPlaces({ profileSettings, groophHome }) {
   return [
-    { name: "the profile's own settings file", in: (text) => text.includes(profileSettings) || /CLAUDE_CONFIG_DIR[}"']?\/settings\.json/.test(text) },
+    { name: "the profile's own settings file", in: (text) => text.includes(profileSettings) || /CLAUDE_CONFIG_DIR\W{0,3}\/settings\.json/.test(text) },
     { name: "grooph's own folder for the run", in: (text) => text.includes(groophHome) },
     { name: "the hook's file name", in: (text) => text.includes("grooph-event") },
     { name: "a variable of grooph's", in: (text) => /\bGROOPH_[A-Z][A-Z_]*/.test(text) },
     { name: "the launcher's own files", in: (text) => ["launch-outside", "outside-install", "settings-with-the-recorder"].some((name) => text.includes(name)) },
+    { name: "the list of watched folders", in: (text) => text.includes("watched.json") },
+    { name: "the configuration folder, by its variable or its usual name", asked_only: true, in: (text) => new RegExp(`CLAUDE_CONFIG_DIR|${USUAL}/\\.claude\\b`).test(text) },
+    { name: "grooph's folder, by its usual name", asked_only: true, in: (text) => new RegExp(`${USUAL}/\\.grooph\\b`).test(text) },
+    { name: "the word grooph", asked_only: true, in: (text) => /grooph(?!-compare)/i.test(text) },
+    { name: "the word hook", asked_only: true, in: (text) => /\bhooks?\b/i.test(text) },
   ];
 }
 
 /**
- * Whether the recorder was noticed, as counts: calls that name a user-level place, results that show one, how many of
- * those calls came back refused, and whether the final reply names the recorder at all, in the project or outside it.
- * What a call said, what came back and what the reply says are not kept.
+ * Whether the recorder was noticed, as counts: calls that name a place or a way of looking, results that show a place,
+ * how many of those calls came back refused, and whether the final reply names the recorder at all, in the project or
+ * outside it. What a call said, what came back and what the reply says are not kept.
  */
 export function noticed({ read, output = null, profileSettings, groophHome }) {
   const places = userLevelPlaces({ profileSettings, groophHome });
-  const every = read.flatMap((transcript) => [...transcript.uses].map(([id, use]) => ({ ...use, asked: JSON.stringify(use.input ?? {}), result: transcript.results.get(id) ?? null })));
-  const which = (text) => places.filter((place) => place.in(text)).map((place) => place.name);
-  const naming = every.map((use) => ({ use, places: which(use.asked) })).filter((entry) => entry.places.length > 0);
-  const shown = every.map((use) => ({ use, places: use.result ? which(use.result.text) : [], named: which(use.asked) })).filter((entry) => entry.places.length > 0);
+  const every = read.flatMap((transcript) => [...transcript.uses].map(([id, use]) => ({ ...use, asked: stringsOf(use.input), result: transcript.results.get(id) ?? null })));
+  const asked = (text) => places.filter((place) => place.in(text)).map((place) => place.name);
+  const which = (text) => places.filter((place) => !place.asked_only && place.in(text)).map((place) => place.name);
+  const naming = every.map((use) => ({ use, places: asked(use.asked) })).filter((entry) => entry.places.length > 0);
+  const shown = every.map((use) => ({ use, places: use.result ? which(use.result.text) : [], named: asked(use.asked) })).filter((entry) => entry.places.length > 0);
   // A result that shows a place the call itself did not name told the session something: a refused `cat` of a path
   // echoes the path it was given and tells it nothing. The two are kept apart.
   const told = shown.filter((entry) => entry.places.some((place) => !entry.named.includes(place)));
@@ -146,12 +177,12 @@ export function noticed({ read, output = null, profileSettings, groophHome }) {
   const inTheProject = reply === null ? [] : FOOTPRINT.filter((path) => reply.includes(path));
   const outside = reply === null ? [] : which(reply);
   return {
-    counts: "tool calls, the session's and its subagents', that name a user-level place a recorder outside the project is kept in, and results that show one. Two counts, kept apart; one call may be in both. Counts only: nothing a call said and nothing that came back is kept. The same places are looked for in every arm",
+    counts: "tool calls, the session's and its subagents', that name a place a recorder outside the project is kept in, or a way of looking for one, and results that show such a place. Two counts, kept apart; one call may be in both. Counts only: nothing a call said and nothing that came back is kept. The same are looked for in every arm. A look that names none of them is not counted",
     places: places.map((place) => place.name),
     named_in_the_input: { calls: naming.length, by_tool: tally(naming.map((entry) => entry.use.tool)), by_place: tally(naming.flatMap((entry) => entry.places)), of_them_refused: naming.filter((entry) => entry.use.result?.refused === true).length },
     shown_in_the_result: { calls: shown.length, by_tool: tally(shown.map((entry) => entry.use.tool)), by_place: tally(shown.flatMap((entry) => entry.places)), of_them_showing_a_place_the_call_did_not_name: told.length },
-    // The word "hook" is counted apart: a reply may speak of a hook without naming any place. A count, in every arm.
-    the_final_reply: reply === null ? { read: false, names_the_recorder: null } : { read: true, names_the_recorder: inTheProject.length + outside.length > 0, in_the_project: inTheProject, outside_it: outside, uses_the_word_hook: /\bhooks?\b/i.test(reply) },
+    // The words "hook" and "grooph" are counted apart: a reply may speak of either without naming any place. In every arm.
+    the_final_reply: reply === null ? { read: false, names_the_recorder: null } : { read: true, names_the_recorder: inTheProject.length + outside.length > 0, in_the_project: inTheProject, outside_it: outside, uses_the_word_hook: /\bhooks?\b/i.test(reply), uses_the_word_grooph: /grooph(?!-compare)/i.test(reply) },
   };
 }
 
@@ -166,7 +197,12 @@ export const DIFFERENCES = {
   type: "a type that differs",
   parent: "a parent that differs",
   noParent: "no line that names its parent",
+  manyParents: "more than one line names its parent",
+  untypedStop: "a stop line that names it and no type",
   stranger: "a line for an agent the harness has no file for",
+  otherSession: "a line for another session",
+  notAnEvent: "a line that is not an event",
+  noLine: "no line for this session",
 };
 /** What is expected, from this project's own sessions (handoffs/0104-the-live-graph/RECORDS.md §2), and named apart from a difference. */
 export const EXPECTED = {
@@ -207,8 +243,11 @@ export function hookLines(file) {
  * From the hook: a start line and a stop line carry the agent's id and its type; the line for the call that started a
  * subagent carries the id it started, and the id of the subagent that made the call when one did.
  */
-export function agentByAgent({ read, eventsFile }) {
-  const hook = hookLines(eventsFile);
+export function agentByAgent({ read, eventsFile, sessionId = null }) {
+  const all = hookLines(eventsFile);
+  // The file is one session's. A line that says it is another's is not read with it, and is a difference.
+  const others = sessionId === null ? [] : all.lines.filter((line) => line.session !== sessionId);
+  const hook = { ...all, lines: all.lines.filter((line) => !others.includes(line)) };
   const lead = read.find((transcript) => transcript.lead) ?? null;
   const subagents = read.filter((transcript) => !transcript.lead);
   const known = new Set(subagents.map((transcript) => transcript.agent));
@@ -234,13 +273,16 @@ export function agentByAgent({ read, eventsFile }) {
     const runs = 1 + transcript.resumes;
     const starts = of("subagent-start", id);
     const stops = of("subagent-stop", id).filter((line) => typeof line.type === "string");
+    const untyped = of("subagent-stop", id).length - stops.length;
     const ended = endings.get(id) ?? [];
-    const notCompleted = ended.filter((status) => status !== "completed").length;
+    // The one ending this project's own sessions show with no stop line is a run the harness says failed.
+    const failed = ended.filter((status) => status === "failed").length;
     const harnessType = typeof transcript.meta.agentType === "string" && transcript.meta.agentType !== "" ? transcript.meta.agentType : null;
     const hookTypes = [...new Set([...starts, ...stops].map((line) => line.type).filter((type) => typeof type === "string"))].sort();
     const harnessParent = startedBy(transcript);
     const naming = hook.lines.filter((line) => line.event === "tool" && line.spawned === id);
-    const hookParent = naming.length === 0 ? null : typeof naming[0].agent === "string" ? naming[0].agent : SESSION;
+    const hookParents = [...new Set(naming.map((line) => (typeof line.agent === "string" ? line.agent : SESSION)))];
+    const hookParent = hookParents.length === 0 ? null : hookParents[0];
     // The line that names who started it is written when the call returns: for a foreground child, at the child's end.
     const namedAt = naming.length === 0 || typeof naming[0].t !== "string" ? null : Date.parse(naming[0].t);
     const late = namedAt !== null && transcript.last !== null && namedAt >= Date.parse(transcript.last) - 1000 && Date.parse(transcript.last) - Date.parse(transcript.first ?? transcript.last) >= 2000;
@@ -254,22 +296,24 @@ export function agentByAgent({ read, eventsFile }) {
       // A run the harness says did not complete is not expected to have a stop line. Any other missing one is a
       // difference, and of two kinds: the harness's files show the run ending and the hook has no line for it, or they
       // show no ending either (a subagent still running when the session's own files stop).
-      if (runs - stops.length <= notCompleted) expected.push(EXPECTED.failed);
+      if (runs - stops.length <= failed) expected.push(EXPECTED.failed);
       else if (ended.length < runs) differences.push(DIFFERENCES.notEnded);
       else differences.push(DIFFERENCES.fewerStops);
     }
     if (harnessType !== null && hookTypes.some((type) => type !== harnessType)) differences.push(DIFFERENCES.type);
-    if (hookParent === null) differences.push(DIFFERENCES.noParent);
+    if (untyped > 0) differences.push(DIFFERENCES.untypedStop);
+    if (hookParents.length === 0) differences.push(DIFFERENCES.noParent);
+    else if (hookParents.length > 1) differences.push(DIFFERENCES.manyParents);
     else if (harnessParent.parent !== null && hookParent !== harnessParent.parent) differences.push(DIFFERENCES.parent);
     else if (late) expected.push(EXPECTED.lateParent);
     return {
       agent: id,
       type: { in_the_harnesss_files: harnessType, in_the_hooks_lines: hookTypes },
-      runs: { in_the_harnesss_files: runs, ended_as_the_harness_says: ended, start_lines: starts.length, stop_lines: stops.length },
+      runs: { in_the_harnesss_files: runs, ended_as_the_harness_says: ended, start_lines: starts.length, stop_lines: stops.length, stop_lines_with_no_type: untyped },
       started_by: {
         in_the_harnesss_files: harnessParent.parent,
         read_from: harnessParent.from,
-        in_the_hooks_lines: hookParent,
+        in_the_hooks_lines: hookParents.length > 1 ? hookParents : hookParent,
         known_to_the_hook: namedAt === null ? null : late ? "only at its end" : "while it ran",
         seconds_after_its_first_line: namedAt === null || transcript.first === null ? null : Math.round((namedAt - Date.parse(transcript.first)) / 10) / 100,
       },
@@ -291,6 +335,11 @@ export function agentByAgent({ read, eventsFile }) {
   };
   const differences = byKind("differences");
   if (typed.length > 0) differences.set(DIFFERENCES.stranger, typed);
+  // Three things about the file itself, each a difference: lines that are another session's, lines that are no
+  // event, and a file with no line of this session's at all. The count is of lines; no agent is named.
+  if (others.length > 0) differences.set(DIFFERENCES.otherSession, [`${others.length} line(s)`]);
+  if (hook.unread > 0) differences.set(DIFFERENCES.notAnEvent, [`${hook.unread} line(s)`]);
+  if (hook.found && hook.lines.length === 0) differences.set(DIFFERENCES.noLine, ["the file"]);
   const expected = byKind("expected");
   return {
     read_from: "the hook's own file as the record keeps it, set beside the harness's own files in the profile: each subagent's transcript and the file beside it, and the session's transcript for how each run ended",
@@ -302,6 +351,6 @@ export function agentByAgent({ read, eventsFile }) {
       by_kind: Object.fromEntries([...expected].sort(([a], [b]) => a.localeCompare(b))),
       [EXPECTED.helpers]: { agents: new Set(helpers.map((entry) => entry.id)).size, lines: helpers.length, read_as: "the harness's own helpers, which leave no transcript (docs/subagents.md §5)" },
     },
-    agrees: hook.found && [...differences.values()].every((agents) => agents.length === 0),
+    agrees: hook.found && hook.lines.length > 0 && [...differences.values()].every((agents) => agents.length === 0),
   };
 }
