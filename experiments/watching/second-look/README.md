@@ -101,7 +101,7 @@ Every arm is measured the same way, **from the harness's own files in the clean 
 
 **The session.** Turns, tool calls by tool name, minutes by the runner's clock, tokens and the cost the harness reports, with the tokens written to the cache kept apart. Turns are the session's own: the first check's one delegating run reports 5 turns for work its four subagents did in 63 messages. So turns are read between arms only where both delegated.
 
-**The result.** How many of the unseen tests pass, for each package.
+**The result.** How many of the unseen tests pass, for each package. With no work done at all `csvline` passes 38 of its 73 and the other five packages pass none: that is where each count starts.
 
 **Whether the recorder was noticed**, counted the same way in every arm, so that the plain arm shows what the count picks up when there is nothing to notice:
 
@@ -176,4 +176,19 @@ These are a proposal until the first run: the driver and the owner may change th
 5. The owner's word for each block, given to the runner in the driver's words (`--spend --go "…"`).
 6. For the `outside` arm: slice 0108 is on `main`, the checkout is built (`pnpm -r build`), and the runner's own rehearsal of the install, made in a scratch folder with no session, leaves what this page says it leaves.
 
-A paid run is started from a terminal, by a person, and never from a tool with a time limit of its own. `--dry-run` starts nothing and shows what would be started.
+## How a block is started
+
+From a terminal, by a person, and never from a tool with a time limit of its own. The runner is `scripts/lib/watching-second-look-paid.mjs`.
+
+```bash
+node scripts/lib/watching-second-look-paid.mjs --status
+node scripts/lib/watching-second-look-paid.mjs --all --block opus --dry-run
+node scripts/lib/watching-second-look-paid.mjs --all --block opus --spend --go "<the driver's words for this block>"
+```
+
+The first two start nothing: `--status` says where everything stands, and `--dry-run` builds each run's folder, says what would be started and what would refuse it, and takes the folder away. The third makes every run of the block still to come, one at a time, and never goes on into the next block. `--block sonnet` is the second block. Two more words go with the third:
+
+- `--through-round 2` (or `1`) stops the block at the end of that round.
+- `--without-outside` makes the block's `plain` and `watched` runs and leaves its `outside` runs for later.
+
+The runner stops by itself, and starts nothing more until a person has looked, when the harness ended a run, when a record could not be kept whole, or when a session of the `watched` or `outside` arm left no file of the hook's: such a session was not watched, and the runs after it would be spent on an arm that is not what its name says.

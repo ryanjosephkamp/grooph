@@ -1,0 +1,41 @@
+{
+  "about": "The second look's own ledger (README.md beside it, \"Limits\"): every model session the look starts is a line here, opened before the session with its id and settled after it with the cost the harness reported. A cost that is not yet settled counts at its ceiling. The lines are written by scripts/lib/watching-second-look-paid.mjs and never by hand. The numbers above them are the protocol's: the runner refuses a ledger that states others.",
+  "cap_usd": 200,
+  "cap_is": "where the whole look stops. The thirty-six runs' ceilings add up to $387.00 ($270.00 in the opus block, $117.00 in the sonnet block) and the cap is $200.00, which is meant: a run is not started unless there is room for its ceiling, a settled run counted at its reported cost and an unsettled one at its ceiling. The dollars are the list price the harness reports; on the owner's subscription they are usage and not a charge",
+  "refuse_below_usd": 5,
+  "per_invocation_ceiling_usd": 18,
+  "watchdog": {
+    "opus": {
+      "four": {
+        "usd": 12,
+        "minutes": 40
+      },
+      "six": {
+        "usd": 18,
+        "minutes": 60
+      }
+    },
+    "sonnet": {
+      "four": {
+        "usd": 5,
+        "minutes": 40
+      },
+      "six": {
+        "usd": 8,
+        "minutes": 60
+      }
+    },
+    "is_not_a_graphs_stop": true,
+    "about": "the runner's outer limits for one run, by its block and its task, which no session is told of: dollars by the harness's own ceiling, minutes by the runner's clock. The smallest of the ceilings is refuse_below_usd and the largest is per_invocation_ceiling_usd"
+  },
+  "once_more": "a run that fails for a reason outside the session (the sign-in, the network, a usage limit) may be run once more, with the reason written beside it: its line is <block>/<task>/<arm>-<n>-rerun",
+  "scoring_outside_the_sandbox": {
+    "about": "A run is scored by the repository's unseen suites, run against the packages the session left, and that runs the code the session wrote, outside the sandbox and with the account's rights. A session's commands run inside the sandbox; what it wrote does not when it is scored. Whether that may be done is the owner's to decide, for this look by name: the decision recorded for the first check, or for any other experiment, is not read here. Until his decision is written in the three fields below, no run of the second look is started and none is scored.",
+    "decided_by": null,
+    "on": null,
+    "words": null
+  },
+  "invocations": [],
+  "spent_usd": 0,
+  "remaining_usd": 200
+}
