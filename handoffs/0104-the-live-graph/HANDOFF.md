@@ -1,6 +1,6 @@
 # Handoff 0104 · The live graph of one session, part one: the record as a graph
 
-**Stage:** 25 · **Lane:** Opus 5.5 · **Effort:** extra high (high is the floor: this is the shape every later view, the replay and Codex inherit) · **Browser tests on port:** none in part one (4369 when part two comes) · **Branch:** `slice/0104-the-record-as-a-graph` · **Drafted:** 2026-10-11 · **Confirmed by owner:** pending (the owner starting the lane is his word)
+**Stage:** 25 · **Lane:** Opus 5.5 · **Effort:** extra high (high is the floor: this is the shape every later view, the replay and Codex inherit) · **Browser tests on port:** none in part one (4369 when part two comes) · **Branch:** `slice/0104-the-record-as-a-graph` · **Drafted:** 2026-10-11 · **Confirmed by owner:** 2026-10-11, on the review desk (card q86: one of the first four lanes)
 
 ## Objective
 

@@ -1,6 +1,6 @@
 # Handoff 0109 · A studio: ways to draw a watched session
 
-**Stage:** 25 · **Lane:** Opus 5.5 · **Effort:** high (medium is the floor; above high a drawing gets busier, not better) · **Browser tests on port:** 4370 (for pictures of the page only) · **Branch:** `slice/0109-a-studio-for-the-watched-graph` · **Drafted:** 2026-10-11 · **Confirmed by owner:** pending (the owner starting the lane is his word)
+**Stage:** 25 · **Lane:** Opus 5.5 · **Effort:** high (medium is the floor; above high a drawing gets busier, not better) · **Browser tests on port:** 4370 (for pictures of the page only) · **Branch:** `slice/0109-a-studio-for-the-watched-graph` · **Drafted:** 2026-10-11 · **Confirmed by owner:** 2026-10-11, on the review desk (card q86: second wave, when one of the first four lanes finishes)
 
 ## Objective
 

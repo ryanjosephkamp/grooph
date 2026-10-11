@@ -1,6 +1,6 @@
 # Handoff 0103 · The lab: the directing side in a folder of its own
 
-**Stage:** 25 · **Lane:** Opus 5.5 · **Effort:** extra high (high is the floor: below it a seam is cut in the wrong place and found four pull requests later) · **Browser tests on port:** 4367 · **Branches:** `slice/0103-lab-1-…` to `slice/0103-lab-6-…`, one per pull request, each from `main` · **Drafted:** 2026-10-11 · **Confirmed by owner:** the step, on 2026-10-11 in the driver's chat ("I'm fine with doing the lab after tomorrow's reset, but if you think we could or should do that before the reset, then that's fine as well"); the lines under "Design already decided" marked *his* wait for his word on the review desk
+**Stage:** 25 · **Lane:** Opus 5.5 · **Effort:** extra high (high is the floor: below it a seam is cut in the wrong place and found four pull requests later) · **Browser tests on port:** 4367 · **Branches:** `slice/0103-lab-1-…` to `slice/0103-lab-6-…`, one per pull request, each from `main` · **Drafted:** 2026-10-11 · **Confirmed by owner:** the step, on 2026-10-11 in the driver's chat ("I'm fine with doing the lab after tomorrow's reset, but if you think we could or should do that before the reset, then that's fine as well"); the five lines under "Design already decided" marked *his* were confirmed on the review desk that day (card q90: "All five as recommended")
 
 ## Objective
 
@@ -85,7 +85,7 @@ experiments/game/setup/make-repo.sh --out <a scratch folder>
   6. Labels and what is left: `lab/README.md` complete, a line at the head of each of the lab's documents, `AGENTS.md`'s layout. What the site stops publishing is in this pull request only as far as the owner has said (below).
 - **A draft pull request at the first push of each, and a fresh reader before it is marked ready.** Then send the driver the head, and push nothing more to it.
 
-**The owner's, proposed here and waiting for his word on the review desk.** Build to these; if he answers otherwise the driver tells you before the pull request it touches.
+**The owner's, confirmed on the review desk on 2026-10-11 (card q90: "All five as recommended").**
 
 - **A recorded run stays something the product can show.** The share kind, the `*.grooph-run.json` file, `#/open`, `#/embed` with its replay, `#/run/<key>` and import all stay. Only reading a run *folder* goes to the lab (`grooph-lab runs bundle` makes the file).
 - **The run screen stays as a reader.** Adopt and "Apply to a copy" leave it. Its live half stays in the app, fed only by `grooph-lab watch <run>`, so that a lab run can still be watched during the larger experiments he wants to keep possible.
