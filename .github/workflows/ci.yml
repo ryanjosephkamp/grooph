@@ -33,18 +33,19 @@ jobs:
       - run: pnpm -r build
       - run: pnpm -r test
 
-      # The packages a human reviews must still be the packages the compiler emits.
+      # The packages a human reviews must still be the packages the compiler emits. The compiler is the lab's
+      # (lab/README.md): its command, grooph-lab, does what grooph does and what left it.
       - name: export matches the golden packages
         run: |
           for graph in review-loop fix-until-green; do
-            pnpm exec grooph export "fixtures/valid/$graph.grooph.json" \
+            pnpm exec grooph-lab export "fixtures/valid/$graph.grooph.json" \
               --target claude-code --into "$RUNNER_TEMP/grooph-pkg-claude-code-$graph" > /dev/null
             diff -r "$RUNNER_TEMP/grooph-pkg-claude-code-$graph" "fixtures/golden/claude-code/$graph"
             # The fixtures name Claude Code, and an export for a harness the document does not name is refused
             # (E_NO_TARGET). The Codex package is of the same graph with Codex named in it, by the op.
             cp "fixtures/valid/$graph.grooph.json" "$RUNNER_TEMP/for-codex-$graph.grooph.json"
             echo '[{"op":"setTarget","harness":"codex"}]' | pnpm exec grooph apply "$RUNNER_TEMP/for-codex-$graph.grooph.json" --ops - --write > /dev/null
-            pnpm exec grooph export "$RUNNER_TEMP/for-codex-$graph.grooph.json" \
+            pnpm exec grooph-lab export "$RUNNER_TEMP/for-codex-$graph.grooph.json" \
               --target codex --into "$RUNNER_TEMP/grooph-pkg-codex-$graph" > /dev/null
             diff -r "$RUNNER_TEMP/grooph-pkg-codex-$graph" "fixtures/golden/codex/$graph"
           done
@@ -109,23 +110,18 @@ jobs:
           node --test scripts/perf-budget.test.mjs
           node scripts/perf-budget.mjs --check
 
-      # Study three's unpaid builds (slice 0095): the counter and the judge a brake experiment's result is read from,
-      # the two packages it compiles from one graph, the two derived arms, and the clean profile's command. None of
-      # these starts a model session: the last two files test the paid path, and the watching check's runner built on
-      # it (slice 0102), against a stand-in for the harness, which calls no model. The two --check modes fail when a
-      # kept prompt, or a line the pre-registration quotes from a package, is no longer what the compiler and the
-      # derivation rule give.
-      - name: the brake experiment's counter and packages, the derived arms and the comparison profile hold
+      # Study three's unpaid builds (slice 0095). The two --check modes fail when a kept prompt, or a line the
+      # pre-registration quotes from a package, is no longer what the compiler and the derivation rule give; the third
+      # holds the watching check's tables to its records. None of these starts a model session.
+      #
+      # The runners' own tests are not started here: `pnpm -r test` above runs every one of them through the lab's
+      # package (lab/package.json: scripts/lib/*.test.mjs and scripts/prove-codex.test.mjs), the tests of the paid
+      # path and of the watching check's runner among them, each against a stand-in for the harness that calls no model.
+      - name: the brake experiment's packages and the derived arms hold, and the watching check's tables are current
         run: |
-          node --test scripts/lib/brake-count.test.mjs scripts/lib/brake-run.test.mjs scripts/lib/compare-arms-ef.test.mjs scripts/lib/compare-profile.test.mjs scripts/lib/study-three-paid.test.mjs scripts/lib/watching-check-paid.test.mjs
           node scripts/lib/brake-run.mjs --check
           node scripts/lib/compare-arms-ef.mjs --check
           node experiments/watching/tables.mjs --check
-
-      # The Codex proving runner's own tests (slice 0076): what it reads of a kept record, the command it would start,
-      # and that what Codex says and prints goes where git ignores it. No model session: nothing here starts Codex.
-      - name: the Codex proving runner reads a record and keeps the transcript out of git
-        run: node --test scripts/prove-codex.test.mjs
 
       # The quickstart's by-hand path, in a fresh folder, against the built CLI.
       - name: the quickstart's first run works
@@ -186,7 +182,7 @@ jobs:
             --set task="Add a slugify function." --set test-command="pnpm test" --set checklist=docs/REVIEW-CHECKLIST.md \
             --out "$RUNNER_TEMP/try.grooph.json"
           pnpm exec grooph validate --for-export "$RUNNER_TEMP/try.grooph.json"
-          pnpm exec grooph export "$RUNNER_TEMP/try.grooph.json" --target claude-code --into "$RUNNER_TEMP/try-pkg" > /dev/null
+          pnpm exec grooph-lab export "$RUNNER_TEMP/try.grooph.json" --target claude-code --into "$RUNNER_TEMP/try-pkg" > /dev/null
 
       # The executive path without a model (docs/executive.md §4): shape, share a set, pick, export.
       - name: shape, share and pick from the command line
@@ -196,7 +192,7 @@ jobs:
           set=fixtures/proposals/valid/csv-export/csv-export.grooph-proposals.json
           pnpm exec grooph share "$set" --out "$RUNNER_TEMP/csv-export.grooph-proposals.json"
           pnpm exec grooph pick "$set" lean --out "$RUNNER_TEMP/lean.grooph.json"
-          pnpm exec grooph export "$RUNNER_TEMP/lean.grooph.json" --target claude-code --into "$RUNNER_TEMP/lean-pkg" > /dev/null
+          pnpm exec grooph-lab export "$RUNNER_TEMP/lean.grooph.json" --target claude-code --into "$RUNNER_TEMP/lean-pkg" > /dev/null
 
       # The owner's install script, against a throwaway HOME only.
       - name: install-local.sh installs, repeats, refuses and uninstalls

@@ -12,16 +12,15 @@ npx grooph --help
 
 ## A first graph
 
-Node 22 or later. This makes a graph from a template, checks it, draws it, and writes the package Claude Code runs:
+Node 22 or later. This makes a graph from a template, checks it and draws it:
 
 ```bash
 npx grooph template use grind-loop --name "Fix the flaky test" --set task="make the checkout test pass ten times in a row" --set test-command="pnpm test checkout" --out flaky.grooph.json
 npx grooph validate --for-export flaky.grooph.json
 npx grooph image flaky.grooph.json --out flaky.svg
-npx grooph export flaky.grooph.json --target claude-code --into .
 ```
 
-A package is for Claude Code or for Codex: `--target codex` writes one for a graph that names Codex. `grooph template list` shows every template with when to use it. `grooph explain flaky.grooph.json` says in plain words what the graph's brakes are. `grooph share flaky.grooph.json` prints a link that opens the graph in the [grooph app](https://ryanjosephkamp.github.io/grooph/) on any device; the graph travels after the `#`, which a browser sends to no server.
+`grooph template list` shows every template with when to use it. `grooph explain flaky.grooph.json` says in plain words what the graph's brakes are. `grooph share flaky.grooph.json` prints a link that opens the graph in the [grooph app](https://ryanjosephkamp.github.io/grooph/) on any device; the graph travels after the `#`, which a browser sends to no server.
 
 Install it once to drop the `npx`:
 

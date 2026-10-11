@@ -67,8 +67,8 @@ stamp="$(sed -n 's/^FROZEN_DATE=//p' "$here/frozen.env")"
 
 # The compiler, built from the source that is checked out, so that it is that commit's and not an older build's.
 [ -d "$root/node_modules" ] || stop "run 'pnpm install' in $root first."
-(cd "$root" && pnpm --silent --filter @grooph/core build >/dev/null && pnpm --silent --filter @grooph/cli build >/dev/null) || stop "the compiler did not build."
-grooph() { env -u GROOPH_MODELS node "$root/packages/cli/bin/grooph.js" "$@"; }
+(cd "$root" && pnpm --silent --filter @grooph/core build >/dev/null && pnpm --silent --filter @grooph/cli build >/dev/null && pnpm --silent --filter @grooph/lab build >/dev/null) || stop "the compiler did not build."
+grooph() { env -u GROOPH_MODELS node "$root/lab/bin/grooph-lab.js" "$@"; }
 
 mkdir "$out"
 cp "$root/LICENSE" "$out/LICENSE"

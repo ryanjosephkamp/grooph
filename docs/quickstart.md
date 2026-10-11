@@ -38,15 +38,13 @@ The same steps, typed. Most commands end with a `next:` line, when run in a term
 grooph template use grind-loop --name "Fix the flaky test" --set task="make the checkout test pass ten times in a row" --set test-command="pnpm test checkout" --out flaky.grooph.json
 grooph validate --for-export flaky.grooph.json
 grooph image flaky.grooph.json --out flaky.png
-grooph export flaky.grooph.json --target claude-code --into .
 ```
 
 1. `template use` makes a graph from a ready-made one (`grooph template list` shows them all).
 2. `validate --for-export` checks it. An error says what is wrong, and most say what to fix; [rules.md](rules.md) lists each code with an example.
 3. `image` draws it, to look at or to send.
-4. `export` writes the package into the folder (`.claude/agents/`, a skill, and `.grooph/<id>/` with the lead brief) and prints a kickoff prompt. Open Claude Code there and paste it.
 
-Before you paste it, `grooph explain flaky.grooph.json` says in plain words what its brakes are: rounds, budgets, who must say go, and the worst case.
+`grooph explain flaky.grooph.json` says in plain words what its brakes are: rounds, budgets, who must say go, and the worst case.
 
 ## Where next
 

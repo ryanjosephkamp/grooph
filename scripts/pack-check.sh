@@ -74,8 +74,10 @@ npx grooph share flaky.grooph.json | grep >/dev/null '^https://ryanjosephkamp.gi
 npx grooph image flaky.grooph.json --out flaky.svg
 npx grooph image flaky.grooph.json --out flaky.png
 [[ "$(head -c 4 flaky.png | od -An -tx1 | tr -d ' \n')" == "89504e47" ]] || fail "image wrote no PNG (the optional renderer did not install or did not load)"
-npx grooph export flaky.grooph.json --target claude-code --into . >/dev/null
-[[ -f .grooph/fix-the-flaky-test/LEAD.md ]] || fail "export wrote no package"
+# What directs a session is not in the package (decision 0032): export says where it went, and writes nothing.
+npx grooph export flaky.grooph.json --target claude-code --into . > export.out 2> export.err && fail "the package still has export"
+grep >/dev/null "^grooph: export is no longer part of grooph" export.err || fail "export did not say that it is no longer part of grooph"
+[[ ! -s export.out && ! -e .grooph/fix-the-flaky-test && ! -e .claude ]] || fail "export wrote something"
 
 # The event hook is installed from the package's own copy.
 npx grooph hooks install --dir . >/dev/null
