@@ -151,6 +151,8 @@ One line per event, in `.grooph/events/<session id>.jsonl`:
 
 It also writes only for its own project: the hook file knows the project it was installed in, and ignores a session working anywhere else. That is what keeps Codex's background memory session out of the file.
 
+And it writes through no link (on `main`; not yet in a version on npm). A harness runs a hook outside its sandbox, and a session can write inside its project, so a link put where the hook writes would have it write somewhere the session cannot. Before it writes, the hook looks at `.grooph`, at `.grooph/events` and at the session's file without following a link. Where one of them is a link, or the file is a second name (a hard link) for a file kept somewhere else, it writes nothing, and `grooph hooks status` says when a link stands at either folder. A folder named by `GROOPH_EVENTS_DIR` must itself be a folder; the folders above it are left to whoever set the variable. A test puts each of these in the hook's way and checks that nothing is written on the far side. Two things this does not cover. The folders are looked at a moment before the file is opened, and only the file's own name is refused by the system as it opens, so a folder swapped for a link in that moment is not caught. And the hook is itself a file in the project: nothing here keeps a session that can write in the project from changing it.
+
 ## 6. The live view
 
 ```bash

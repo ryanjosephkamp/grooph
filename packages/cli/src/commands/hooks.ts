@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -435,6 +435,13 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
     }
     const files = eventFiles(dir);
     io.out(`${plural(files.length, "session file")} in ${EVENTS_DIR}/`);
+    // The hook writes through no link and says nothing when it meets one: this is where a person hears of it.
+    for (const rel of [dirname(EVENTS_DIR), EVENTS_DIR]) {
+      const is = lstatSync(join(dir, rel), { throwIfNoEntry: false });
+      if (is === undefined || is.isDirectory()) continue;
+      io.out(`${rel.split(sep).join("/")} is ${is.isSymbolicLink() ? "a link" : "a file"}, not a folder: the hook records nothing while it is`);
+      break;
+    }
     // Run from inside a session, the harness says which one: whether that session itself has recorded anything.
     // Only when that session is working in this project: asked about another project (--dir), "nothing recorded"
     // would be about the wrong session.

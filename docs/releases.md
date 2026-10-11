@@ -2,6 +2,12 @@
 
 Each version of grooph, newest first: its date and what changed for a person using it. A version is a [tag on the repository](https://github.com/ryanjosephkamp/grooph/tags). The site and the app are published from `main`, so they are at least as new as the newest version here. To install or update, follow the [quickstart](quickstart.md).
 
+## Not yet released
+
+On `main`; in the command from npm with the next version.
+
+- **The event hook writes through no link.** A harness runs a hook outside its sandbox, and a session can write inside its project. The hook now looks at `.grooph`, at `.grooph/events` and at the session's file without following a link, and writes nothing where one of them is a link, or where the file is a second name (a hard link) for a file kept somewhere else. A folder named by `GROOPH_EVENTS_DIR` must itself be a folder. `grooph hooks status` says when a link stands at `.grooph` or at `.grooph/events`, since the hook itself says nothing. In 0.4.1 and before, the hook made the folder and appended its line through whatever stood there. What this does not cover is in [subagents](subagents.md), section 5.
+
 ## 0.4.1 · October 7, 2026
 
 A repair and corrected words, a day after 0.4.0. (Until the release this section stood as "Not yet released"; the dated notes under 0.4.0 name it so.)

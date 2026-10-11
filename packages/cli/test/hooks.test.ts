@@ -6,8 +6,8 @@
  */
 
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { cpSync, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -191,6 +191,96 @@ test("the hook is silent and exits 0 on anything it cannot use, and writes only 
       assert.equal(readFileSync(join(dir, "notes.txt"), "utf8"), "a file where a folder is wanted");
     } finally {
       rmSync(elsewhere, { recursive: true, force: true });
+    }
+  });
+});
+
+test("the hook writes through no link: not at .grooph/events, not at a session's file, not at a second name for a file kept elsewhere", async () => {
+  // A harness runs a hook outside its sandbox, and a session can write in its project: whatever stands where the
+  // hook writes, a line must not land anywhere but in the project's own events folder (or the one GROOPH_EVENTS_DIR names).
+  await withProject(async (dir) => {
+    assert.equal(await grooph(["hooks", "install", "--dir", dir]), 0);
+    const elsewhere = realpathSync(mkdtempSync(join(tmpdir(), "grooph-elsewhere-")));
+    const events = join(dir, ".grooph", "events");
+    const start = (session: string, env: Record<string, string> = {}) => fire(dir, "claude-code", { hook_event_name: "SessionStart", session_id: session, cwd: dir }, { CLAUDE_PROJECT_DIR: dir, ...env });
+    const quiet = (r: ReturnType<typeof fire>, what: string) => assert.deepEqual([r.status, r.stdout, r.stderr], [0, "", ""], what);
+    try {
+      // The events folder is a link to a folder somewhere else.
+      mkdirSync(join(elsewhere, "there"));
+      symlinkSync(join(elsewhere, "there"), events);
+      quiet(start("s1"), "a linked events folder");
+      assert.deepEqual(readdirSync(join(elsewhere, "there")), [], "a line went through a link at .grooph/events");
+
+      // The same, to a folder that is not there yet: nothing is made on the far side.
+      rmSync(events);
+      symlinkSync(join(elsewhere, "not-yet"), events);
+      quiet(start("s1"), "a link to nowhere at the events folder");
+      assert.equal(existsSync(join(elsewhere, "not-yet")), false, "the hook made a folder through a link");
+      rmSync(events);
+
+      // `grooph hooks status` says so, since the hook itself says nothing.
+      symlinkSync(join(elsewhere, "there"), events);
+      const io = capture();
+      assert.equal(await grooph(["hooks", "status", "--dir", dir], io), 0);
+      assert.match(text(io.stdout), /\.grooph\/events is a link, not a folder: the hook records nothing while it is/);
+      rmSync(events);
+
+      // A real folder, and in it one session's file is a link to a file somewhere else.
+      mkdirSync(events);
+      writeFileSync(join(elsewhere, "kept.txt"), "as it was\n");
+      symlinkSync(join(elsewhere, "kept.txt"), join(events, "s2.jsonl"));
+      quiet(start("s2"), "a linked session file");
+      assert.equal(readFileSync(join(elsewhere, "kept.txt"), "utf8"), "as it was\n", "a line was appended through a link at a session's file");
+
+      // A link to a file that is not there yet: it is not made.
+      symlinkSync(join(elsewhere, "made.txt"), join(events, "s3.jsonl"));
+      quiet(start("s3"), "a session file linked to nowhere");
+      assert.equal(existsSync(join(elsewhere, "made.txt")), false, "the hook made a file through a link");
+
+      // A second name (a hard link) for a file kept somewhere else is that file.
+      linkSync(join(elsewhere, "kept.txt"), join(events, "s4.jsonl"));
+      quiet(start("s4"), "a session file that is another file's second name");
+      assert.equal(readFileSync(join(elsewhere, "kept.txt"), "utf8"), "as it was\n", "a line was appended to a file kept elsewhere, through its second name");
+
+      // Beside all that, a session with nothing in its way is recorded as before.
+      quiet(start("s5"), "a plain session");
+      assert.deepEqual(linesOf(dir, "s5").map((l) => [l["event"], l["session"]]), [["session-start", "s5"]]);
+      assert.deepEqual(readdirSync(elsewhere).sort(), ["kept.txt", "there"]);
+      assert.deepEqual(readdirSync(join(elsewhere, "there")), []);
+
+      // GROOPH_EVENTS_DIR names a folder of the person's choosing: a real one is written in, a link by that name is not.
+      mkdirSync(join(elsewhere, "mine"));
+      quiet(start("s6", { GROOPH_EVENTS_DIR: join(elsewhere, "mine", "events") }), "a folder named by GROOPH_EVENTS_DIR");
+      assert.deepEqual(readdirSync(join(elsewhere, "mine", "events")), ["s6.jsonl"]);
+      symlinkSync(join(elsewhere, "there"), join(elsewhere, "mine", "linked"));
+      quiet(start("s7", { GROOPH_EVENTS_DIR: join(elsewhere, "mine", "linked") }), "a link named by GROOPH_EVENTS_DIR");
+      assert.deepEqual(readdirSync(join(elsewhere, "there")), [], "a line went through a link named by GROOPH_EVENTS_DIR");
+      symlinkSync(join(elsewhere, "kept.txt"), join(elsewhere, "mine", "events", "s8.jsonl"));
+      quiet(start("s8", { GROOPH_EVENTS_DIR: join(elsewhere, "mine", "events") }), "a linked session file in a folder named by GROOPH_EVENTS_DIR");
+      assert.equal(readFileSync(join(elsewhere, "kept.txt"), "utf8"), "as it was\n");
+    } finally {
+      rmSync(elsewhere, { recursive: true, force: true });
+    }
+  });
+});
+
+test("hooks that start at the same moment in a project with no events folder yet each leave their line", async () => {
+  // The folders are made one at a time, each looked at before the next: two hooks making the same one must not cost a line.
+  await withProject(async (dir) => {
+    assert.equal(await grooph(["hooks", "install", "--dir", dir]), 0);
+    for (let round = 0; round < 3; round += 1) {
+      rmSync(join(dir, ".grooph", "events"), { recursive: true, force: true });
+      const exits = await Promise.all(
+        Array.from({ length: 12 }, (_, i) =>
+          new Promise<number | null>((done) => {
+            const child = spawn(process.execPath, [join(dir, ".grooph", "hooks", "grooph-event.mjs"), "claude-code"], { cwd: dir, env: { PATH: process.env["PATH"] ?? "", CLAUDE_PROJECT_DIR: dir }, stdio: ["pipe", "ignore", "ignore"] });
+            child.on("close", done);
+            child.stdin.end(JSON.stringify({ hook_event_name: "SubagentStart", session_id: "together", cwd: dir, agent_id: `a${i}`, agent_type: "general-purpose" }));
+          }),
+        ),
+      );
+      assert.deepEqual(exits, Array.from({ length: 12 }, () => 0));
+      assert.deepEqual(linesOf(dir, "together").map((l) => l["agent"]).sort(), Array.from({ length: 12 }, (_, i) => `a${i}`).sort(), `round ${round}: a line was lost`);
     }
   });
 });
