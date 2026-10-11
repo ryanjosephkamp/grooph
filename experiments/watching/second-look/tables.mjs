@@ -7,7 +7,9 @@
  *                                                                while nothing has been run, exit 1 if a results page exists at all
  *
  * One row for each run, in the protocol's order (README.md, "Three rounds, in two blocks"). Every value is read from a
- * run's result.json and score.json. A run that was made once more is read from its rerun. No model, no network.
+ * run's result.json and score.json. A run that was made once more is read from its rerun. The row of the run recorded
+ * first in its block says so, and a run made from another checkout than that one is named under the table. No model,
+ * no network.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -21,6 +23,8 @@ const ROUNDS = [
   ["watched", "outside", "plain"],
   ["outside", "plain", "watched"],
 ];
+/** A block's own three rounds: the first block takes them as they stand, the second starts from the second. */
+const roundsOf = (block) => ROUNDS.map((_, at) => ROUNDS[(at + BLOCKS.indexOf(block)) % ROUNDS.length]);
 export const HEAD = ["Round", "Task", "Arm", "Ended by", "Cost", "Minutes", "Turns", "Subagents", "Most at once", "Unseen tests passed", "Tokens put out", "Written to the cache", "In the project: calls naming / shown", "Outside it: calls naming / shown / refused", "Final reply names the recorder", "Hook beside the harness: starts / stops · differences"];
 
 const read = (path) => JSON.parse(readFileSync(path, "utf8"));
@@ -36,8 +40,7 @@ function recordOf(root, block, task, arm, round) {
   return !first || first.result.ended_by === "the harness" ? (again ?? first) : first;
 }
 
-function row(root, block, task, arm, round) {
-  const record = recordOf(root, block, task, arm, round);
+function row(record, task, arm, round, first) {
   if (!record) return [String(round), `\`${task}\``, arm, "not run", ...HEAD.slice(4).map(() => "")];
   const { result, score } = record;
   const m = result.measures ?? {};
@@ -50,7 +53,7 @@ function row(root, block, task, arm, round) {
   const starts = each ? each.each.reduce((sum, agent) => sum + agent.runs.start_lines, 0) : null;
   const stops = each ? each.each.reduce((sum, agent) => sum + agent.runs.stop_lines, 0) : null;
   return [
-    String(round),
+    record === first ? `${round}, the block's first run` : String(round),
     `\`${task}\``,
     arm,
     result.ended_by ?? "",
@@ -73,14 +76,21 @@ function row(root, block, task, arm, round) {
 export function tables(root = here) {
   const out = [];
   for (const block of BLOCKS) {
-    const runs = ROUNDS.flatMap((arms, at) => arms.flatMap((arm) => TASKS.map((task) => [task, arm, at + 1])));
-    const first = runs.map(([task, arm, round]) => recordOf(root, block, task, arm, round)).find(Boolean);
-    if (!first) continue;
+    const runs = roundsOf(block).flatMap((arms, at) => arms.flatMap((arm) => TASKS.map((task) => [task, arm, at + 1])));
+    const records = runs.map(([task, arm, round]) => recordOf(root, block, task, arm, round));
+    const made = records.filter(Boolean);
+    if (made.length === 0) continue;
+    // The block's first run is the one recorded first: whatever a block's first run pays, it is this row's.
+    const first = made.reduce((earliest, record) => (String(record.result.recorded ?? "") < String(earliest.result.recorded ?? "") ? record : earliest));
     const lead = first.result.measures?.session?.models_that_answered ?? [];
     out.push(`### The \`${block}\` block (the session's own model answered as ${lead.map((model) => `\`${model}\``).join(", ") || "not recorded"})`, "");
     out.push(`| ${HEAD.join(" | ")} |`, `|${HEAD.map(() => "---").join("|")}|`);
-    for (const [task, arm, round] of runs) out.push(`| ${row(root, block, task, arm, round).join(" | ")} |`);
+    runs.forEach(([task, arm, round], at) => out.push(`| ${row(records[at], task, arm, round, first).join(" | ")} |`));
     out.push("");
+    // One checkout for both blocks: a run made from another commit, or with another hook, than the block's first is named.
+    const from = (record) => record.result.given?.the_runners_checkout ?? {};
+    const others = runs.filter((_, at) => records[at] && (from(records[at]).commit !== from(first).commit || from(records[at]).hook_sha256 !== from(first).hook_sha256)).map(([task, arm, round]) => `\`${task}\` ${arm} ${round}`);
+    if (others.length > 0) out.push(`Made from another checkout than the block's first run (another commit, or another hook's file): ${others.join(", ")}.`, "");
   }
   return out.join("\n");
 }

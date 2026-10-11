@@ -12,13 +12,14 @@ import { fileURLToPath } from "node:url";
 
 import { layout, settingsFor } from "./compare-profile.mjs";
 import { scoreHeldOut } from "./compare-score.mjs";
-import { NotStarted } from "./study-three-paid.mjs";
+import { NotStarted, runBounded } from "./study-three-paid.mjs";
 import { CLI, promptFor as firstChecksPromptFor, SUBAGENTS_SENTENCE } from "./watching-check-paid.mjs";
 import { agentByAgent, delegation, DIFFERENCES, EXPECTED, mostAtOnce, noticed, readSession } from "./watching-second-look-measures.mjs";
 import {
   ARMS,
   BLOCKS,
   build,
+  checkout,
   dryRun,
   eventsOf,
   groophHomeIn,
@@ -27,6 +28,7 @@ import {
   launcherText,
   LEAD,
   LEDGER,
+  madeFromAnother,
   nextRun,
   order,
   placesFor,
@@ -35,6 +37,7 @@ import {
   recordOf,
   rehearse,
   ROUNDS,
+  roundsOf,
   room,
   runAll,
   runOne,
@@ -42,11 +45,13 @@ import {
   settleLine,
   SHIPPED_HOOK,
   SIX_OPENS,
+  STARTED,
   stateOf,
   status,
   STOPS_AT_USD,
   TASKS,
   taskText,
+  theBet,
   theOwnersOwn,
   USER_ENTRY,
   WATCHDOG,
@@ -124,12 +129,15 @@ function place(plan = { uses: [] }, { decided = true, lines = [] } = {}) {
   const ledgerPath = join(top, "ledger.json");
   const kept = JSON.parse(readFileSync(LEDGER, "utf8"));
   writeFileSync(ledgerPath, JSON.stringify({ ...kept, invocations: lines, scoring_outside_the_sandbox: decided ? DECISION : { decided_by: null, on: null, words: null } }), "utf8");
+  // The stand-in is started through a wrapper that names node whole. Before it becomes the stand-in it writes down
+  // which process it is and which process group it is in: the same process goes on as the stand-in.
   const harness = join(top, "stand-in-harness");
-  writeFileSync(harness, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(STAND_IN)} "$@"\n`, { mode: 0o755 });
+  writeFileSync(harness, `#!/bin/sh\necho "$$ $(ps -o pgid= -p $$ | tr -d ' ')" > ${JSON.stringify(join(top, "the-harness-was-this-process"))}\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(STAND_IN)} "$@"\n`, { mode: 0o755 });
   const recordRoot = join(top, "records");
   const common = { home, claude: harness, ledgerPath, recordRoot, profileCheck: () => [], gameOpen: [], go: "the driver said: run the second look", grace: 300, firstCallGate: { ok: true, record: "record" }, cli: standInTool(top), rehearsal: () => REHEARSED };
-  return { top, home, at, harness, ledgerPath, recordRoot, common, opus: { ...common, block: "opus" }, setPlan, ledger: () => JSON.parse(readFileSync(ledgerPath, "utf8")), seen: () => JSON.parse(readFileSync(join(at.profile, "command-seen-by-the-stand-in.json"), "utf8")), settingsSeen: () => JSON.parse(readFileSync(join(at.profile, "settings-seen-by-the-stand-in.json"), "utf8")) };
+  return { top, home, at, harness, ledgerPath, recordRoot, common, opus: { ...common, block: "opus" }, setPlan, process: () => readFileSync(join(top, "the-harness-was-this-process"), "utf8").trim().split(" ").map(Number), ledger: () => JSON.parse(readFileSync(ledgerPath, "utf8")), seen: () => JSON.parse(readFileSync(join(at.profile, "command-seen-by-the-stand-in.json"), "utf8")), settingsSeen: () => JSON.parse(readFileSync(join(at.profile, "settings-seen-by-the-stand-in.json"), "utf8")) };
 }
+const sawAVariableOfGroophs = (p) => JSON.parse(readFileSync(join(p.at.profile, "command-seen-by-the-stand-in.json"), "utf8")).environment.some((name) => /CODEX_HOME|GROOPH/.test(name));
 /** Records put in the order's way as already made: a run with a result is a run that is recorded. */
 function inHand(recordRoot, runs, result = { ended_by: "the session" }) {
   for (const run of runs) {
@@ -140,6 +148,9 @@ function inHand(recordRoot, runs, result = { ended_by: "the session" }) {
 const blockOf = (block) => order().filter((run) => run.block === block);
 /** A line of the hook's file, as the hook writes it. `<session>` stands for the session's id in a stand-in's plan. */
 const line = (event, more = {}, t = "2026-10-05T00:00:00.000Z") => JSON.stringify({ v: 1, t, harness: "claude-code", event, session: "<session>", ...more });
+
+/** A stand-in's plan for one arm: a session that starts no subagent, and leaves the file the hook would have where that arm's hook writes it. */
+const quietPlan = (arm) => ({ uses: [{ tool: "Bash", input: { command: "npm test" }, result: "ok", ...(arm === "plain" ? {} : { appends: { [arm === "watched" ? ".grooph/events/<session>.jsonl" : "../../../home/.grooph/events/packages/<session>.jsonl"]: `${line("session-start")}\n${line("session-end")}\n` } }) }] });
 
 // ── the protocol's own words ─────────────────────────────────────────────
 
@@ -152,13 +163,20 @@ test("the thirty-six runs: three rounds of six in each block, the arms changing 
   // The page's own table, read from the page: each round's six runs in its words.
   const rows = [...page.matchAll(/^\| ([123]) \| (.+?) \|$/gm)].map((row) => [Number(row[1]), row[2].split(", ").map((part) => /^`(\w+)` (\w+)$/.exec(part).slice(1)).map(([task, arm]) => `${task}/${arm}`)]);
   assert.equal(rows.length, 3);
+  // The first block takes the table's rounds as they stand. The second starts from the table's second, so that the
+  // first run of a block is not the same arm's in both: its rounds 1, 2 and 3 are the table's 2, 3 and 1.
+  assert.ok(page.includes("The `sonnet` block starts from the second row: its three rounds are the table's 2, 3 and 1"));
+  assert.deepEqual([roundsOf("opus"), roundsOf("sonnet")], [ROUNDS, [ROUNDS[1], ROUNDS[2], ROUNDS[0]]]);
+  const starts = { opus: 0, sonnet: 1 };
   for (const block of BLOCKS) {
     assert.equal(blockOf(block).length, 18, block);
-    for (const [round, six] of rows) assert.deepEqual(blockOf(block).filter((run) => run.round === round).map((run) => `${run.task}/${run.arm}`), six, `${block}, round ${round}`);
+    for (let made = 1; made <= 3; made += 1) assert.deepEqual(blockOf(block).filter((run) => run.round === made).map((run) => `${run.task}/${run.arm}`), rows[(made - 1 + starts[block]) % 3][1], `${block}, the round it makes ${made}`);
+    for (const arm of ARMS) assert.deepEqual(blockOf(block).filter((run) => run.arm === arm && run.task === "four").map((run) => run.round), [1, 2, 3], `${block}: every arm has a run in every round`);
   }
+  assert.deepEqual([blockOf("opus")[0].arm, blockOf("sonnet")[0].arm], ["plain", "watched"], "a block's first run is not the same arm's in both");
   assert.ok(page.includes("\nThirty-six runs. "));
   assert.deepEqual([order().length, new Set(order().map((run) => run.name)).size, new Set(order().map((run) => recordOf(run, "/records"))).size], [36, 36, 36]);
-  assert.deepEqual([order()[0].name, order()[6].name, order()[12].name, order()[18].name, order()[35].name], ["opus/four/plain-1", "opus/four/watched-2", "opus/four/outside-3", "sonnet/four/plain-1", "sonnet/six/watched-3"]);
+  assert.deepEqual([order()[0].name, order()[6].name, order()[12].name, order()[18].name, order()[35].name], ["opus/four/plain-1", "opus/four/watched-2", "opus/four/outside-3", "sonnet/four/watched-1", "sonnet/six/outside-3"]);
   assert.equal(recordOf(order()[5]), join(root, "experiments", "watching", "second-look", "opus", "six", "outside-1"));
   for (const run of order()) assert.deepEqual([run.replicate, run.name], [run.round, `${run.block}/${run.task}/${run.arm}-${run.round}`]);
 });
@@ -227,7 +245,7 @@ test("the prompt is the same in every arm; `four` is the first check's wide task
 test("the next run, a block made without its outside arm or through an early round, and what holds the second block up", () => {
   const top = mkdtempSync(join(tmpdir(), "second-look-order-"));
   try {
-    assert.deepEqual([nextRun(top).name, nextRun(top, "sonnet").name], ["opus/four/plain-1", "sonnet/four/plain-1"]);
+    assert.deepEqual([nextRun(top).name, nextRun(top, "sonnet").name], ["opus/four/plain-1", "sonnet/four/watched-1"]);
     assert.match(heldUpBy("sonnet", top).why, /the `opus` block, which comes before it, has no whole round/);
     assert.equal(heldUpBy("opus", top), null);
     const opus = blockOf("opus");
@@ -341,7 +359,10 @@ test("every place an install outside the project is told of is named, and none m
   const text = launcherText({ harness: "/bin/the harness", node: "/usr/bin/node", cli: "/repo/grooph.js", groophHome: "/scratch/home/.grooph", configDir: "/scratch/profile", folder: "/scratch/work/a/it's here", harnessDir: "/scratch/work/a/harness" });
   assert.equal(text.match(/GROOPH_HOME='\/scratch\/home\/\.grooph' CLAUDE_CONFIG_DIR='\/scratch\/profile' CODEX_HOME='\/scratch\/home\/\.codex-is-not-used' '\/usr\/bin\/node' '\/repo\/grooph\.js' hooks/g).length, 2);
   assert.ok(text.includes(`hooks install --user --harness claude-code &&`) && text.includes(`hooks watch '/scratch/work/a/it'\\''s here'`));
-  assert.ok(text.includes(`if [ -z "$session" ]; then exec '/bin/the harness' "$@"; fi`) && text.trimEnd().endsWith(`exec '/bin/the harness' "$@"`));
+  // It starts a session and answers nothing else; the moment before it becomes the harness it leaves the file that says a session was started.
+  assert.match(text, /if \[ -z "\$session" \]; then\n {2}echo "this is the launcher of one run of the second look's outside arm: it starts that session and answers nothing else" >&2\n {2}exit 64\nfi/);
+  assert.equal(text.match(/exec /g).length, 1, "the harness is named once, to become it");
+  assert.ok(text.trimEnd().endsWith(`: >'/scratch/work/a/harness/${STARTED}' || exit 70\nexec '/bin/the harness' "$@"`));
   assert.ok(USER_ENTRY.test('node "/h/home/.grooph/hooks/grooph-event.mjs" claude-code --user') && !USER_ENTRY.test('node "$CLAUDE_PROJECT_DIR/.grooph/hooks/grooph-event.mjs" claude-code'));
 });
 
@@ -485,6 +506,14 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     assert.deepEqual(outsideResult.problems, []);
     const there = outsideResult.given.recorder_outside_the_project;
     assert.deepEqual([there.entries_in_the_settings_the_session_found, there.at_events, there.of_grooph_in_the_sessions_folder_afterwards, there.the_hook_wrote_under_groophs_own_folder, there.the_owners_own.as_they_were, there.the_rehearsal_before_it], [3, ["SessionStart", "SubagentStart", "SubagentStop"], [], true, true, REHEARSED.left]);
+    // The profile's settings three times, and the profile's own check after the run, on every line.
+    assert.deepEqual(there.the_profiles_settings.map((view) => [view.when, view.holds]), [["before the install", true], ["during the session", true], ["after it", true]]);
+    assert.equal(there.the_profiles_settings[1].they_are, "the repository's, and 3 entries that run the recorder; every other setting as it was");
+    assert.deepEqual(there.the_profile_afterwards, { checked_by: "scripts/lib/compare-profile.mjs --check, every line", holds: true, lines_that_do_not_hold: [] });
+    // The harness was the very process the profile's runner started: the launcher became it, in a process group of its own.
+    const [pid, group] = p.process();
+    assert.ok(Number.isInteger(pid) && pid === group, `the harness ran as process ${pid} in group ${group}`);
+    assert.ok(!sawAVariableOfGroophs(p));
     assert.deepEqual([outsideResult.given.hook_installed_in_the_project, outsideResult.given.closed_to_the_session], [[], []]);
     // What the stand-in was started with: the plain arm's arguments and environment, to the letter but for the session's id.
     const outsideSeen = p.seen();
@@ -503,6 +532,9 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     assert.ok(existsSync(join(outside.recordDir, "events", `${outsideResult.session_id}.jsonl`)));
     // grooph's own folder went aside with the session's, so the next run of the arm starts with none.
     assert.ok(!existsSync(join(p.home, "home")) && existsSync(join(outside.kept, "home", ".grooph", "hooks", "grooph-event.mjs")) && existsSync(join(outside.kept, "work", "launch-outside.sh")));
+    // The hook's file and the run's events are outside the session's folder, which holds nothing of grooph.
+    assert.deepEqual(readdirSync(join(outside.kept, "work", "packages")).filter((name) => name.startsWith(".grooph") || name === ".claude"), []);
+    assert.ok(existsSync(join(outside.kept, "home", ".grooph", "events", "packages", `${outsideResult.session_id}.jsonl`)));
     // Nothing of the account's is in a record: the home folder's path is taken out of every file.
     for (const dir of [plain.recordDir, watched.recordDir, outside.recordDir]) for (const file of filesUnder(dir)) assert.ok(!readFileSync(join(dir, file), "utf8").includes(homedir()), `${dir}/${file}`);
     assert.equal(p.ledger().invocations.length, 3);
@@ -512,29 +544,152 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
   }
 });
 
-test("a run of the outside arm is refused before anything is made when the install cannot be rehearsed, and a launcher that could not install is in the record", { skip: !built }, async () => {
-  const p = place({ uses: [] });
+test("a run of the outside arm is refused before anything is made when the install cannot be rehearsed; and if the launcher cannot install, no session starts and the run is not a result", { skip: !built }, async () => {
+  const p = place(quietPlan("outside"));
   try {
     inHand(p.recordRoot, order().slice(0, 4));
     await assert.rejects(runOne({ ...p.opus, rehearsal: () => ({ ok: false, why: "this checkout's grooph did not install the recorder outside a project (…). That install is slice 0108's: until it is on main and built here, a block is started with --without-outside" }) }), notStarted(/opus\/four\/outside-1 is a run of the outside arm, and this checkout's grooph did not install .* --without-outside/));
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length], [[], 0]);
     // Without the outside arm the block goes on to round two's watched runs.
     assert.equal(nextRun(p.recordRoot, "opus", { withoutOutside: true }).name, "opus/four/watched-2");
-    // A tool that fails when the launcher runs it, after a rehearsal that passed: the harness is never started, and the record says why.
-    const failed = await runOne({ ...p.opus, cli: standInTool(p.top, "refuses") });
-    assert.equal(failed.run.name, "opus/four/outside-1");
-    assert.deepEqual([failed.result.ended_by, failed.result.exit, failed.score], ["the harness", 70, null]);
-    assert.ok(failed.result.problems.some((problem) => /the session was started with no entry of the recorder in its user-level settings/.test(problem)), failed.result.problems.join("; "));
-    assert.match(readFileSync(join(failed.recordDir, "outside-install.txt"), "utf8"), /Unknown option '--user'/);
+    // A tool that fails when the launcher runs it, after a rehearsal that passed: the launcher starts nothing.
+    const failed = await runAll({ ...p.opus, cli: standInTool(p.top, "refuses") });
+    assert.deepEqual([failed.done.length, failed.stopped?.why], [1, "its record has problems"], "the block stops there, for a person");
+    const not = failed.done[0];
+    assert.deepEqual([not.run.name, not.notStarted, not.score, not.recordDir.endsWith("opus/four/outside-1-not-started")], ["opus/four/outside-1", true, null, true]);
+    assert.ok(!existsSync(join(p.top, "the-harness-was-this-process")) && !existsSync(join(p.at.profile, "command-seen-by-the-stand-in.json")), "the harness was never started");
+    assert.deepEqual([not.result.ended_by, not.result.counted_usd, not.result.scored], ["nobody: no session was started", 0, false]);
+    assert.match(not.result.not_started, /the launcher could not install the recorder outside the project, or could not list the session's folder \(grooph: Unknown option '--user'\), so it started nothing: no session ran and nothing was spent/);
+    assert.match(readFileSync(join(not.recordDir, "outside-install.txt"), "utf8"), /Unknown option '--user'/);
+    // It is no result: the run has no record of its own, its ledger line is settled at nothing under another name, and nothing is left in the next run's way.
+    assert.equal(stateOf(order()[4], p.recordRoot).state, "not recorded");
+    assert.deepEqual(p.ledger().invocations.map((entry) => [entry.run, entry.status, entry.cost_usd]), [["second-look/opus/four/outside-1-not-started", "failed", 0]]);
     assert.equal(readFileSync(join(p.at.profile, "settings.json"), "utf8"), `${JSON.stringify(settingsFor({ home: p.home }), null, 2)}\n`);
-    assert.equal(stateOf(order()[4], p.recordRoot).state, "ended by the harness, and not yet run again");
+    assert.deepEqual([readdirSync(p.at.work), existsSync(join(p.home, "home"))], [[], false]);
+    // Once a person has looked, the same command starts the same run, and it is recorded as any other.
+    const again = await runOne(p.opus);
+    assert.deepEqual([again.run.name, again.notStarted, again.result.ended_by, again.result.problems], ["opus/four/outside-1", undefined, "the session", []]);
+    assert.deepEqual(p.ledger().invocations.map((entry) => entry.run), ["second-look/opus/four/outside-1-not-started", "second-look/opus/four/outside-1"]);
+    assert.equal(stateOf(order()[4], p.recordRoot).state, "recorded and scored");
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
 });
 
-/** A stand-in's plan for one arm: a session that starts no subagent, and leaves the file the hook would have where that arm's hook writes it. */
-const quietPlan = (arm) => ({ uses: [{ tool: "Bash", input: { command: "npm test" }, result: "ok", ...(arm === "plain" ? {} : { appends: { [arm === "watched" ? ".grooph/events/<session>.jsonl" : "../../../home/.grooph/events/packages/<session>.jsonl"]: `${line("session-start")}\n${line("session-end")}\n` } }) }] });
+test("the launcher is the program started for the session and for nothing else: the profile's check asks the harness itself, and the launcher answers no other call", { skip: !built }, async () => {
+  const p = place(quietPlan("outside"));
+  try {
+    inHand(p.recordRoot, order().slice(0, 4));
+    // The profile's check is handed the program to ask: every time, before the run and after it, it is the harness.
+    const asked = [];
+    const done = await runOne({ ...p.opus, profileCheck: (given) => (asked.push(given.claude), []) });
+    assert.deepEqual([done.run.name, done.result.problems], ["opus/four/outside-1", []]);
+    assert.deepEqual(asked, [p.harness, p.harness], "once before the session, by the profile's runner, and once after it, by this one");
+    // What was started for the session was the launcher, and it is named in the record's command.
+    assert.ok(done.result.command[0].endsWith("/launch-outside.sh"));
+    const launcher = join(done.kept, "work", "launch-outside.sh");
+    // Asked for its version, its help text or whether it is signed in, the launcher is not the harness: it says so and does nothing.
+    for (const args of [["--version"], ["--help"], ["auth", "status"], ["-p", "a prompt with no session named"]]) {
+      const out = spawnSync(launcher, args, { encoding: "utf8", cwd: p.top });
+      assert.deepEqual([out.status, out.stdout, /it starts that session and answers nothing else/.test(out.stderr)], [64, "", true], args.join(" "));
+    }
+    assert.ok(!existsSync(join(p.home, "home")), "and installs nothing");
+    // A profile that does not hold on every line after a run of the arm is in the record, and stops the runs after it.
+    p.setPlan(quietPlan("outside"));
+    let calls = 0;
+    const after = await runAll({ ...p.opus, profileCheck: () => ((calls += 1) === 1 ? [] : [{ what: "its settings are the repository's", ok: false, how: "a test's stand-in" }]) });
+    assert.deepEqual([after.done.map((one) => one.run.name), after.stopped?.why], [["opus/six/outside-1"], "its record has problems"]);
+    assert.deepEqual(after.done[0].result.given.recorder_outside_the_project.the_profile_afterwards, { checked_by: "scripts/lib/compare-profile.mjs --check, every line", holds: false, lines_that_do_not_hold: ["its settings are the repository's: a test's stand-in"] });
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("the launcher becomes the harness: when the watchdog ends the process group, the harness and what it left running go with it", { skip: !built }, async () => {
+  const p = place({ hang_ms: 60_000, children: true });
+  try {
+    const run = order()[4];
+    const made = build({ run, home: p.home, cli: p.common.cli, harness: p.harness });
+    mkdirSync(made.harnessDir, { recursive: true });
+    writeFileSync(join(p.at.profile, "settings.json"), `${JSON.stringify(settingsFor({ home: p.home }), null, 2)}\n`, "utf8");
+    const began = Date.now();
+    const child = await runBounded({ program: made.outside.launcher, args: ["-p", "the prompt", "--session-id", "a-session"], cwd: made.cwd, env: { PATH: process.env.PATH, CLAUDE_CONFIG_DIR: p.at.profile, TMPDIR: p.at.temp }, outPath: join(made.harnessDir, "out.json"), errPath: join(made.harnessDir, "err.txt"), ms: 1500, grace: 300 });
+    assert.deepEqual([child.timed_out, Date.now() - began < 20_000], [true, true], "the watchdog's limit ended it, long before the stand-in would have ended itself");
+    assert.ok(existsSync(join(made.harnessDir, STARTED)), "the launcher had become the harness");
+    const [pid, group] = p.process();
+    assert.equal(pid, group, "the harness was the group's own first process");
+    // The stand-in's child ignores being asked to end; it is in the same group, and is gone.
+    const left = Number(readFileSync(join(p.at.profile, "child.pid"), "utf8"));
+    const alive = (id) => {
+      try {
+        process.kill(id, 0);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    assert.deepEqual([alive(pid), alive(left)], [false, false]);
+    rmSync(made.work, { recursive: true, force: true });
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("both blocks are run from one checkout: a run from another commit, or with another hook, than a run already recorded is refused unless it is asked for by name, and then its record says so", { skip: !built }, async () => {
+  const p = place(quietPlan("plain"));
+  try {
+    const now = checkout();
+    assert.ok(/^[0-9a-f]{40}$/.test(now.commit) && /^[0-9a-f]{64}$/.test(now.hook_sha256));
+    assert.equal(madeFromAnother(now, p.recordRoot), null);
+    const first = await runOne(p.opus);
+    assert.deepEqual([first.result.given.the_runners_checkout.commit, first.result.given.the_runners_checkout.hook_sha256, first.result.given.the_runners_checkout.another_than_a_run_before], [now.commit, now.hook_sha256, null]);
+    assert.equal(madeFromAnother(now, p.recordRoot), null, "a run from this checkout is from no other");
+    // A record made with another hook's file: as when a block was started before slice 0108 was merged, and the rest is made after it.
+    const earlier = JSON.parse(readFileSync(join(first.recordDir, "result.json"), "utf8"));
+    earlier.given.the_runners_checkout.hook_sha256 = "0".repeat(64);
+    writeFileSync(join(first.recordDir, "result.json"), JSON.stringify(earlier), "utf8");
+    assert.deepEqual(madeFromAnother(now, p.recordRoot), { run: "opus/four/plain-1", what: ["another hook"], its_commit: now.commit, its_hook_sha256: "0".repeat(64) });
+    await assert.rejects(runOne(p.opus), notStarted(/opus\/four\/plain-1 was made from another hook .*both blocks are run from one built checkout at one commit.*say so by name with --another-checkout/s));
+    assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length], [[], 1], "refused before anything was made or opened");
+    assert.match(status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }), /opus\/four\/plain-1 WAS MADE FROM ANOTHER HOOK/);
+    const said = await runOne({ ...p.opus, anotherCheckout: true });
+    assert.deepEqual([said.run.name, said.result.problems, said.result.given.the_runners_checkout.another_than_a_run_before], ["opus/six/plain-1", [], { run: "opus/four/plain-1", what: ["another hook"], its_commit: now.commit, its_hook_sha256: "0".repeat(64), said_by: "--another-checkout" }]);
+    // And the tables name the run under its block's table.
+    const { tables } = await import(TABLES);
+    assert.match(tables(p.recordRoot), /\nMade from another checkout than the block's first run \(another commit, or another hook's file\): `six` plain 1\.\n/);
+    // A record that does not say which checkout made it is passed over.
+    inHand(p.recordRoot, [order()[2]]);
+    assert.equal(madeFromAnother({ commit: earlier.given.the_runners_checkout.commit, hook_sha256: "0".repeat(64) }, p.recordRoot).run, "opus/six/plain-1");
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("how a block's sessions took the tasks' bet, as the status says it: how many started a subagent, and whether the protocol's own test finds the bet wrong", () => {
+  const top = mkdtempSync(join(tmpdir(), "second-look-bet-"));
+  try {
+    const record = (run, subagents) => {
+      mkdirSync(join(top, run.name), { recursive: true });
+      writeFileSync(join(top, run.name, "result.json"), JSON.stringify({ ended_by: "the session", measures: { subagents: { count: subagents } } }), "utf8");
+    };
+    assert.deepEqual(theBet("opus", top), { recorded: 0, delegated: 0, arms_with_no_run_that_delegated: [], wrong: null });
+    const opus = blockOf("opus");
+    opus.slice(0, 6).forEach((run) => record(run, run.arm === "watched" && run.task === "six" ? 0 : 4));
+    assert.deepEqual(theBet("opus", top), { recorded: 6, delegated: 5, arms_with_no_run_that_delegated: ["`six` watched"], wrong: null }, "a block that is not whole is counted and not judged");
+    assert.match(status({ ledgerPath: LEDGER, recordRoot: top }), /sessions that started a subagent: 5 of 6 with a record; no run that did, so far, in `six` watched/);
+    // A whole block: fifteen of eighteen with every arm of every task delegating at least once is not wrong; fourteen is.
+    opus.forEach((run, at) => record(run, at < 3 ? 0 : 6));
+    assert.deepEqual([theBet("opus", top).delegated, theBet("opus", top).wrong], [15, false]);
+    record(opus[3], 0);
+    assert.deepEqual([theBet("opus", top).delegated, theBet("opus", top).wrong], [14, true]);
+    assert.match(status({ ledgerPath: LEDGER, recordRoot: top }), /THE BET WAS WRONG for this block/);
+    // Sixteen, but one arm of one task never delegated: wrong by the second half of the test.
+    opus.forEach((run) => record(run, run.arm === "outside" && run.task === "four" ? 0 : 6));
+    assert.deepEqual([theBet("opus", top).delegated, theBet("opus", top).arms_with_no_run_that_delegated, theBet("opus", top).wrong], [15, ["`four` outside"], true]);
+  } finally {
+    rmSync(top, { recursive: true, force: true });
+  }
+});
 
 test("every run of a block still to come, one at a time: through a round or without the outside arm, never into the next block, and stopping at a refusal", { skip: !built }, async () => {
   const p = place(quietPlan("plain"));
@@ -552,9 +707,9 @@ test("every run of a block still to come, one at a time: through a round or with
     assert.deepEqual(p.ledger().invocations.map((entry) => entry.max_budget_usd), [12, 18, 12, 18, 12, 18]);
     assert.deepEqual(readdirSync(p.recordRoot), ["opus"], "nothing of the next block was started");
     // With one whole round of opus in hand the sonnet block may be started, by name, on its own model under its own ceilings.
-    p.setPlan(quietPlan("plain"));
+    p.setPlan(quietPlan("watched"));
     const sonnet = await runAll({ ...p.common, block: "sonnet", withoutOutside: true, throughRound: 1, each: before([]) });
-    assert.deepEqual([sonnet.done.map((done) => done.run.name), sonnet.stopped], [["sonnet/four/plain-1", "sonnet/six/plain-1", "sonnet/four/watched-1", "sonnet/six/watched-1"], null]);
+    assert.deepEqual([sonnet.done.map((done) => done.run.name), sonnet.stopped], [["sonnet/four/watched-1", "sonnet/six/watched-1", "sonnet/four/plain-1", "sonnet/six/plain-1"], null]);
     // A watched session whose hook left no file was not watched: its record says so, and the runs after it wait for a person.
     p.setPlan(quietPlan("plain"));
     const unwatched = await runAll({ ...p.common, block: "sonnet", throughRound: 1 });
@@ -794,9 +949,9 @@ test("the tables are made from the records: none and no results page while nothi
     await runOne(p.opus);
     const text = tables(p.recordRoot);
     assert.match(text, /^### The `opus` block \(the session's own model answered as `claude-opus-5-5`\)\n\n\| Round \| Task \| Arm \|/);
-    const rows = text.split("\n").filter((row) => /^\| [123] \|/.test(row));
+    const rows = text.split("\n").filter((row) => /^\| [123][ ,]/.test(row));
     assert.equal(rows.length, 18, "one row for each run of the block, made or not");
-    assert.equal(rows[0], "| 1 | `four` | plain | the session | $0.25 | 0 | 2 | 1 (1 general-purpose) | 1 | 0/55 · 0/88 · 38/73 · 0/62 | 0 | 0 | 0 / 0 | 0 / 0 / 0 | no |  |");
+    assert.equal(rows[0], "| 1, the block's first run | `four` | plain | the session | $0.25 | 0 | 2 | 1 (1 general-purpose) | 1 | 0/55 · 0/88 · 38/73 · 0/62 | 0 | 0 | 0 / 0 | 0 / 0 / 0 | no |  |");
     assert.equal(rows[1], `| 1 | \`six\` | plain | not run | ${HEAD.slice(4).map(() => "").join(" | ")} |`);
     assert.ok(!text.includes("`sonnet` block"), "a block with no record has no table");
     assert.deepEqual([check(p.recordRoot).ok, /does not hold the tables these records make/.test(check(p.recordRoot).says)], [false, true]);
