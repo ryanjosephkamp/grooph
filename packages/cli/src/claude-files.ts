@@ -12,12 +12,25 @@
  * subagent's id, one of three words for how it ended, and the time. No prompt, reply, tool input, tool result,
  * path or description is returned, logged or put in an error.
  *
- * It reads on the machine it runs on, when it is asked, and writes nothing. The shapes are as Claude Code 2.1.271
- * to 2.1.295 wrote them (`handoffs/0104-the-live-graph/RECORDS.md`); they are not a documented interface, and a
- * file that is not in that shape is passed over, never an error.
+ * What it returns is ids, times, a depth, one of two words for the shape, one of four for an ending, and three
+ * names: a subagent's type, the model asked for and the model that answered. A name is kept only if it is shaped
+ * like one (letters, digits and `. _ : @ / -`, no space, at most 100 characters). The type and the model asked
+ * for are what the call that started the subagent named; that they are names of agents and models, and not words
+ * a session made up, rests on the harness refusing a call that names neither.
+ *
+ * Two limits. The main transcript does not say who wrote a line it queued: text typed while the session was busy
+ * is kept in the same shape as the harness's own notice. So a message that begins exactly as a notice does, names
+ * one of the session's subagents, and is typed after that subagent's last line would be read as its ending. And a
+ * foreground subagent's run is taken to have ended when the call that started it returned: as completed unless
+ * the result is marked an error, which is read as ended with no more said.
+ *
+ * It reads on the machine it runs on, when it is asked, and writes nothing. Under `projects/` it follows no link
+ * and opens nothing but plain files. The shapes are as Claude Code 2.1.271 to 2.1.295 wrote them
+ * (`handoffs/0104-the-live-graph/RECORDS.md`); they are not a documented interface, and a file that is not in
+ * that shape is passed over, never an error.
  */
 
-import { closeSync, openSync, readFileSync, readSync, readdirSync, statSync } from "node:fs";
+import { closeSync, constants, fstatSync, lstatSync, openSync, readFileSync, readSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -38,47 +51,64 @@ export function claudeProjectsDir(options: ClaudeFilesOptions = {}): string {
   return join(config !== undefined && config !== "" ? config : join(options.home ?? homedir(), ".claude"), "projects");
 }
 
-const ID = /^[A-Za-z0-9_-]{1,128}$/;
+const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const SESSION = /^[A-Za-z0-9._-]{1,128}$/;
-/** A name as a harness writes one: a type or a model. One line, no control characters, not long. */
-const name = (v: unknown): string | undefined => (typeof v === "string" && v.length > 0 && v.length <= 200 && !/[\u0000-\u001f\u007f-\u009f]/.test(v) ? v : undefined);
+/** A name as a harness writes one: a type (`general-purpose`, `plugin:agent`) or a model (`opus`, `claude-opus-5-5`). No space in it, so no sentence. */
+const NAME = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,99}$/;
+const name = (v: unknown): string | undefined => (typeof v === "string" && NAME.test(v) ? v : undefined);
+/** A time as the harness writes one, given back in one form. */
+const TIME = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,9})?(Z|[+-]\d\d:\d\d)$/;
 const time = (v: unknown): string | undefined => {
-  if (typeof v !== "string" || v.length > 40) return undefined;
+  if (typeof v !== "string" || !TIME.test(v)) return undefined;
   const n = Date.parse(v);
   return Number.isNaN(n) ? undefined : new Date(n).toISOString();
 };
-const isFile = (path: string): boolean => {
-  try {
-    return statSync(path).isFile();
-  } catch {
-    return false;
-  }
-};
-const isDir = (path: string): boolean => {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
-};
-
 /** How the harness's notice that a background task is over begins: whose it was, then how it ended. */
-const NOTICE = /^\s*<task-notification>\s*<task-id>([A-Za-z0-9_-]{1,128})<\/task-id>\s*(?:<tool-use-id>[^<]{0,300}<\/tool-use-id>\s*)?(?:<output-file>[^<]{0,4000}<\/output-file>\s*)?<status>(completed|failed|killed)<\/status>/;
+const NOTICE = /^\s*<task-notification>\s*<task-id>([A-Za-z0-9_-]{1,64})<\/task-id>\s*(?:<tool-use-id>[^<]{0,300}<\/tool-use-id>\s*)?(?:<output-file>[^<]{0,4000}<\/output-file>\s*)?<status>(completed|failed|killed)<\/status>/;
+
+const isPlainFile = (path: string): boolean => {
+  try {
+    return lstatSync(path).isFile();
+  } catch {
+    return false;
+  }
+};
+const isPlainDir = (path: string): boolean => {
+  try {
+    return lstatSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+};
+/**
+ * A plain file, opened to read: never a link (which could lead out of the folder), nor a pipe or a device (which
+ * could hold a read for ever). Asked not to wait, so that even one put in a file's place between the look and the
+ * opening does not hang it.
+ */
+function openPlain(path: string): number | undefined {
+  if (!isPlainFile(path)) return undefined;
+  let fd: number | undefined;
+  try {
+    fd = openSync(path, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0));
+    if (fstatSync(fd).isFile()) return fd;
+  } catch {
+    // Not there any more, or not ours to read: passed over.
+  }
+  if (fd !== undefined) closeSync(fd);
+  return undefined;
+}
 
 /** A line longer than this is passed over unread: nothing this reader wants is that long. */
 const LONGEST_LINE = 64_000_000;
 
 /** Each line of a file, as bytes, without holding the file in memory: a main transcript can be hundreds of megabytes. */
 function eachLine(file: string, visit: (line: Buffer) => void): void {
-  let fd: number;
-  try {
-    fd = openSync(file, "r");
-  } catch {
-    return;
-  }
+  const fd = openPlain(file);
+  if (fd === undefined) return;
   try {
     const chunk = Buffer.allocUnsafe(1 << 20);
     let rest: Buffer[] = [];
+    // The length of the line in hand so far; past the limit its bytes are dropped as they come.
     let held = 0;
     for (;;) {
       const n = readSync(fd, chunk, 0, chunk.length, null);
@@ -87,14 +117,13 @@ function eachLine(file: string, visit: (line: Buffer) => void): void {
       for (;;) {
         const end = chunk.subarray(0, n).indexOf(10, from);
         if (end === -1) break;
-        if (held <= LONGEST_LINE) visit(rest.length > 0 ? Buffer.concat([...rest, chunk.subarray(from, end)]) : chunk.subarray(from, end));
+        if (held + (end - from) <= LONGEST_LINE) visit(rest.length > 0 ? Buffer.concat([...rest, chunk.subarray(from, end)]) : chunk.subarray(from, end));
         rest = [];
         held = 0;
         from = end + 1;
       }
       if (from < n) {
         held += n - from;
-        // Past the limit the line's bytes are dropped as they come; only its length is kept, to know to pass it over.
         if (held <= LONGEST_LINE) rest.push(Buffer.from(chunk.subarray(from, n)));
         else rest = [];
       }
@@ -116,17 +145,22 @@ const json = (line: Buffer): Record<string, unknown> | undefined => {
   }
 };
 
-/** The results a `user` line carries, as the ids of the calls they answer and whether each was an error. */
-function results(line: Record<string, unknown>): { call: string; error: boolean }[] {
-  const content = (line["message"] as { content?: unknown } | undefined)?.content;
+/**
+ * The results a `user` line carries: the id of the call each answers, and what it says of how the call went.
+ * `launched`: the harness says the call only started its subagent, which runs on in the background.
+ */
+function results(line: Record<string, unknown>): { call: string; how: "returned" | "error" | "launched" }[] {
+  const content = (line["message"] as { content?: unknown } | null | undefined)?.content;
   if (line["type"] !== "user" || !Array.isArray(content)) return [];
+  const status = (line["toolUseResult"] as { status?: unknown } | null | undefined)?.status;
   return content.flatMap((block: unknown) => {
     const b = block as { type?: unknown; tool_use_id?: unknown; is_error?: unknown } | null;
-    return b !== null && typeof b === "object" && b.type === "tool_result" && typeof b.tool_use_id === "string" ? [{ call: b.tool_use_id, error: b.is_error === true }] : [];
+    if (b === null || typeof b !== "object" || b.type !== "tool_result" || typeof b.tool_use_id !== "string") return [];
+    return [{ call: b.tool_use_id, how: b.is_error === true ? ("error" as const) : status === "async_launched" ? ("launched" as const) : ("returned" as const) }];
   });
 }
 
-type Found = { id: string; meta?: { type?: string; depth?: number; parent?: string; shape?: "background" | "foreground"; modelAsked?: string; call?: string }; runs: HarnessRun[]; model?: string };
+type Found = { id: string; /** the `subagents/` folder it was found in */ folder: string; meta?: { type?: string; depth?: number; parent?: string; shape?: "background" | "foreground"; modelAsked?: string; call?: string }; runs: HarnessRun[]; model?: string };
 
 /**
  * The folders that hold a session's files: each project folder with `<session>.jsonl` or `<session>/subagents/`
@@ -137,7 +171,11 @@ export function findClaudeSession(session: string, options: ClaudeFilesOptions =
   const projects = claudeProjectsDir(options);
   let folders: string[];
   try {
-    folders = readdirSync(projects).sort();
+    // A project's folder is a folder: a link standing where one would be is not looked into.
+    folders = readdirSync(projects, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
   } catch {
     return [];
   }
@@ -146,7 +184,7 @@ export function findClaudeSession(session: string, options: ClaudeFilesOptions =
     if (options.only !== undefined && !options.only(folder)) continue;
     const transcript = join(projects, folder, `${session}.jsonl`);
     const subagents = join(projects, folder, session, "subagents");
-    const found = { ...(isFile(transcript) ? { transcript } : {}), ...(isDir(subagents) ? { subagents } : {}) };
+    const found = { ...(isPlainFile(transcript) ? { transcript } : {}), ...(isPlainDir(join(projects, folder, session)) && isPlainDir(subagents) ? { subagents } : {}) };
     if (found.transcript !== undefined || found.subagents !== undefined) out.push(found);
   }
   return out;
@@ -170,16 +208,18 @@ export function readClaudeAgents(session: string, options: ClaudeFilesOptions = 
     } catch {
       continue;
     }
-    // What the harness wrote down as it started each one.
+    // What the harness wrote down as it started each one. A subagent is read from the first folder that holds it.
     for (const file of files) {
-      const id = /^agent-([^.]+)\.meta\.json$/.exec(file)?.[1];
-      if (id === undefined || !ID.test(id) || found.has(id)) continue;
-      const agent: Found = { id, runs: [] };
-      found.set(id, agent);
+      const id = /^agent-([^.]+)\.(meta\.json|jsonl)$/.exec(file)?.[1];
+      if (id !== undefined && ID.test(id) && !found.has(id)) found.set(id, { id, folder: place.subagents, runs: [] });
+    }
+    for (const agent of found.values()) {
+      if (agent.folder !== place.subagents) continue;
+      const fd = openPlain(join(place.subagents, `agent-${agent.id}.meta.json`));
+      if (fd === undefined) continue;
       try {
-        const path = join(place.subagents, file);
-        if (statSync(path).size > 1_000_000) continue;
-        const meta = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown> | null;
+        if (fstatSync(fd).size > 1_000_000) continue;
+        const meta = JSON.parse(readFileSync(fd, "utf8")) as Record<string, unknown> | null;
         if (typeof meta !== "object" || meta === null) continue;
         const depth = meta["spawnDepth"];
         const parent = meta["parentAgentId"];
@@ -196,52 +236,46 @@ export function readClaudeAgents(session: string, options: ClaudeFilesOptions = 
         };
       } catch {
         // A meta file that is not JSON: the subagent is still one, with nothing said of it.
+      } finally {
+        closeSync(fd);
       }
-    }
-    for (const file of files) {
-      const id = /^agent-([^.]+)\.jsonl$/.exec(file)?.[1];
-      if (id !== undefined && ID.test(id) && !found.has(id)) found.set(id, { id, runs: [] });
     }
   }
 
   /** A foreground subagent's run is over when the call that started it returns, in the transcript of whoever made it. */
   const waited = new Map<string, string>();
   for (const agent of found.values()) if (agent.meta?.shape === "foreground" && agent.meta.call !== undefined) waited.set(agent.meta.call, agent.id);
-  const returned = (line: Record<string, unknown>): void => {
+  /** `folder`: the `subagents/` folder the line's transcript belongs with. A line ends only a subagent kept in that folder. */
+  const returned = (line: Record<string, unknown>, folder: string | undefined): void => {
     const at = time(line["timestamp"]);
     if (at === undefined) return;
     for (const result of results(line)) {
       const agent = waited.get(result.call);
-      // An error is an end, and the files do not say of what kind.
-      if (agent !== undefined) endings.push({ agent, at, end: result.error ? "ended" : "completed" });
+      // An error is an end, and the files do not say of what kind. A call that only launched its subagent ended nothing.
+      if (agent !== undefined && found.get(agent)!.folder === folder && result.how !== "launched") endings.push({ agent, at, end: result.how === "error" ? "ended" : "completed" });
     }
   };
 
-  for (const place of places) {
-    if (place.subagents === undefined) continue;
-    for (const agent of found.values()) {
-      // One folder holds a subagent's transcript; were a second to, the first read stands.
-      if (agent.runs.length > 0) continue;
-      let run: HarnessRun | undefined;
-      eachLine(join(place.subagents, `agent-${agent.id}.jsonl`), (bytes) => {
-        const line = json(bytes);
-        const at = time(line?.["timestamp"]);
-        if (line === undefined || at === undefined) return;
-        // A run begins with the transcript, and again at each message that resumed the subagent.
-        const resumes = line["type"] === "user" && line["isMeta"] === true && (line["origin"] as { kind?: unknown } | undefined)?.kind === "coordinator";
-        if (run === undefined || resumes) {
-          run = { first: at, last: at };
-          agent.runs.push(run);
-        }
-        if (at > run.last) run.last = at;
-        if (line["type"] === "assistant") {
-          const model = name((line["message"] as { model?: unknown } | undefined)?.model);
-          // The harness writes a made-up name on a line it wrote itself (an error it reports as a reply).
-          if (model !== undefined && !model.startsWith("<")) agent.model = model;
-        }
-        if (waited.size > 0) returned(line);
-      });
-    }
+  for (const agent of found.values()) {
+    let run: HarnessRun | undefined;
+    eachLine(join(agent.folder, `agent-${agent.id}.jsonl`), (bytes) => {
+      const line = json(bytes);
+      const at = time(line?.["timestamp"]);
+      if (line === undefined || at === undefined) return;
+      // A run begins with the transcript, and again at each message that resumed the subagent.
+      const resumes = line["type"] === "user" && line["isMeta"] === true && (line["origin"] as { kind?: unknown } | null | undefined)?.kind === "coordinator";
+      if (run === undefined || resumes) {
+        run = { first: at, last: at };
+        agent.runs.push(run);
+      }
+      if (at > run.last) run.last = at;
+      if (line["type"] === "assistant") {
+        // The harness writes a made-up name (`<synthetic>`) on a line it wrote itself, which is not shaped like a name.
+        const model = name((line["message"] as { model?: unknown } | null | undefined)?.model);
+        if (model !== undefined) agent.model = model;
+      }
+      if (waited.size > 0) returned(line, agent.folder);
+    });
   }
 
   for (const place of places) {
@@ -254,7 +288,7 @@ export function readClaudeAgents(session: string, options: ClaudeFilesOptions = 
       if (!noticed && !calls.some((call) => bytes.includes(call))) return;
       const line = json(bytes);
       if (line === undefined) return;
-      returned(line);
+      returned(line, place.subagents);
       const content = line["content"];
       if (!noticed || line["type"] !== "queue-operation" || line["operation"] !== "enqueue" || typeof content !== "string") return;
       // The notice's own first tags and nothing after them: the summary and the result are the subagent's words, and
@@ -263,17 +297,19 @@ export function readClaudeAgents(session: string, options: ClaudeFilesOptions = 
       const agent = head?.[1];
       const end = head?.[2] as HarnessRunEnd | undefined;
       const at = time(line["timestamp"]);
-      if (agent !== undefined && end !== undefined && at !== undefined && found.has(agent)) endings.push({ agent, at, end });
+      if (agent !== undefined && end !== undefined && at !== undefined && found.get(agent)?.folder === place.subagents) endings.push({ agent, at, end });
     });
   }
 
-  // Each ending belongs to the run that had last begun when it was written; a run keeps the first it is given.
+  // An ending is the run's that had written its last line by then: of the runs with no ending yet, the latest such.
+  // A run that wrote a line after it had not ended, whatever a line in the transcript says; and a notice can be
+  // written after the same subagent has begun again.
   endings.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
   for (const ending of endings) {
-    const runs = found.get(ending.agent)!.runs;
+    const within = new Date(Date.parse(ending.at) + 1000).toISOString();
     let run: HarnessRun | undefined;
-    for (const r of runs) if (r.first <= ending.at) run = r;
-    if (run !== undefined && run.end === undefined) run.end = ending.end;
+    for (const r of found.get(ending.agent)!.runs) if (r.end === undefined && r.first <= ending.at && r.last <= within) run = r;
+    if (run !== undefined) run.end = ending.end;
   }
 
   return [...found.values()]
@@ -282,7 +318,8 @@ export function readClaudeAgents(session: string, options: ClaudeFilesOptions = 
         id: agent.id,
         ...(agent.meta?.type !== undefined ? { type: agent.meta.type } : {}),
         ...(agent.meta?.depth !== undefined ? { depth: agent.meta.depth } : {}),
-        ...(agent.meta?.parent !== undefined ? { parent: agent.meta.parent } : {}),
+        // A parent is one of this session's subagents, or it is not kept.
+        ...(agent.meta?.parent !== undefined && found.has(agent.meta.parent) && agent.meta.parent !== agent.id ? { parent: agent.meta.parent } : {}),
         ...(agent.meta?.shape !== undefined ? { shape: agent.meta.shape } : {}),
         ...(agent.meta?.modelAsked !== undefined ? { modelAsked: agent.meta.modelAsked } : {}),
         ...(agent.model !== undefined ? { model: agent.model } : {}),

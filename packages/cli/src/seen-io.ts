@@ -2,6 +2,9 @@
  * The shell side of one session's graph (`seen.ts` in core; decision 0032, point 3): finding the session's lines
  * among the events a person points at, reading what its harness kept beside it, and drawing the two as one graph.
  * It reads; it writes nothing, starts nothing and sends nothing.
+ *
+ * A session is read from one file: the one, among those pointed at, that holds the most of its lines. The hook
+ * writes one file a session, and a copy sent elsewhere part way through is a shorter one of the same.
  */
 
 import { readFileSync, statSync } from "node:fs";
@@ -16,6 +19,10 @@ import type { Output } from "./print.js";
 /** An events file larger than this is not read for a graph: a session's own file is a few hundred kilobytes after a week. */
 const LARGEST_FILE = 256_000_000;
 
+const MOMENT = /^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d(\.\d+)?)?(Z|[+-]\d\d:?\d\d)$/;
+/** Words from a file or from the command line, as they are put in a message: quoted, on one line, and not long. */
+const shown = (text: string): string => JSON.stringify(text.length > 80 ? `${text.slice(0, 80)}…` : text);
+
 export type SeenRead = { graph: SeenGraph; session: string; harnessRead: boolean } | { error: string };
 
 /**
@@ -23,7 +30,8 @@ export type SeenRead = { graph: SeenGraph; session: string; harnessRead: boolean
  * machine, from those files. `session` is its id, or enough of the id's beginning or end to name one session.
  */
 export function readSeen(sources: EventSource[], session: string, options: { at?: string; cwd?: string; claude?: ClaudeFilesOptions } = {}): SeenRead {
-  if (options.at !== undefined && Number.isNaN(Date.parse(options.at))) return { error: `--at takes a time, such as 2026-10-04T08:16:46Z; got ${JSON.stringify(options.at)}` };
+  // A time with no zone would be a different moment on each machine; one that is not a time would silently be the end.
+  if (options.at !== undefined && (!MOMENT.test(options.at) || Number.isNaN(Date.parse(options.at)))) return { error: `--at takes a time with its zone, such as 2026-10-04T08:16:46Z; got ${shown(options.at)}` };
   if (sources.some((source) => source.ref !== undefined)) return { error: "a git ref is not read as a graph yet: point at the events folder itself" };
   // Each file's lines for each session it holds. A session two sources hold is read from the one that holds most of it.
   const held = new Map<string, SessionEvent[]>();
@@ -50,8 +58,8 @@ export function readSeen(sources: EventSource[], session: string, options: { at?
     const id = key.slice(key.indexOf("\u0000") + 1);
     return id.startsWith(session) || id.endsWith(session);
   });
-  if (like.length === 0) return { error: `no session ${JSON.stringify(session)} among the events read (grooph sessions lists them, each with the end of its id)` };
-  if (like.length > 1) return { error: `${JSON.stringify(session)} names ${like.length} sessions: ${like.map(([, events]) => events[0]!.session).join(", ")}` };
+  if (like.length === 0) return { error: `no session ${shown(session)} among the events read (grooph sessions lists them, each with the end of its id)` };
+  if (like.length > 1) return { error: `${shown(session)} names ${like.length} sessions: ${like.map(([, events]) => `${shown(events[0]!.session)} (${shown(events[0]!.harness)})`).join(", ")}` };
   const events = like[0]![1];
   const id = events[0]!.session;
   // Claude Code keeps a session's files on the machine it ran on. Where this machine has none of them, the graph is

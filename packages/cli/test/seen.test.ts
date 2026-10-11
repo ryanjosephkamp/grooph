@@ -132,7 +132,10 @@ test("the graph is printed as JSON, at the end or at a moment, and nothing else 
   const bad = capture();
   assert.equal(seenCommand(bad, [{ path: dir }], "seen-five-at-once", { at: "teatime", claude }), 1);
   assert.deepEqual([bad.stdout, bad.stderr.length], [[], 1]);
-  assert.match(bad.stderr[0]!, /--at takes a time/);
+  assert.match(bad.stderr[0]!, /--at takes a time with its zone/);
+  // A time with no zone would be a different moment on each machine, and a bare number is no time: neither is taken.
+  for (const at of ["2026-01-01T00:13:12", "1", "2026"]) assert.equal(seenCommand(capture(), [{ path: dir }], "seen-five-at-once", { at, claude }), 1, at);
+  assert.equal(seenCommand(capture(), [{ path: dir }], "seen-five-at-once", { at: "2026-01-01T09:13:12+09:00", claude }), 0);
   // A git ref holds events and no place to read a graph's lines from yet.
   const ref = capture();
   assert.equal(seenCommand(ref, [{ ref: "origin/grooph-events/lane" }], "seen-five-at-once", { claude }), 1);
@@ -152,10 +155,13 @@ test("a session is named by its id, or by enough of its beginning or end to be t
   // `grooph sessions` prints the last eight characters of each id.
   assert.equal(named("eeee0001"), "11112222-aaaa-4bbb-8ccc-ddddeeee0001");
   assert.equal(named("11112222-aaaa-4bbb-8ccc-ddddf"), "11112222-aaaa-4bbb-8ccc-ddddffff0002");
-  assert.match(named("11112222"), /names 2 sessions: 11112222-aaaa-4bbb-8ccc-ddddeeee0001, 11112222-aaaa-4bbb-8ccc-ddddffff0002/);
+  assert.match(named("11112222"), /names 2 sessions: "11112222-aaaa-4bbb-8ccc-ddddeeee0001" \("claude-code"\), "11112222-aaaa-4bbb-8ccc-ddddffff0002" \("claude-code"\)/);
   assert.match(named("99990000"), /no session "99990000" among the events read/);
   // Too little to name one by: only a whole id will do.
   assert.match(named("111"), /no session "111"/);
+  // What is not found is said back on one line and not at length, whatever it holds.
+  const odd = named(`no\u001b[31msuch\n${"x".repeat(500)}`);
+  assert.ok(odd.length < 250 && !odd.includes("\u001b") && !odd.includes("\n"), odd);
   // What a lead said through the MCP server is kept in files of its own, and is no session to draw.
   writeFileSync(join(dir, ".grooph", "events", "said-mcp-1.jsonl"), `${JSON.stringify({ v: 1, t: "2026-01-01T00:00:01.000Z", harness: "claude-code", event: "note", session: "mcp-1", text: "a note" })}\n`);
   assert.match(named("mcp-1"), /no session "mcp-1"/);

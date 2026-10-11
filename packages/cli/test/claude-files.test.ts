@@ -5,7 +5,8 @@
  */
 
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, type TestContext } from "node:test";
@@ -31,7 +32,7 @@ const SAID = {
 };
 
 const first = (at: number, extra: object = {}): object => ({ type: "user", timestamp: t(at), isSidechain: true, sessionId: SESSION, cwd: SAID.path, gitBranch: SAID.branch, message: { role: "user", content: SAID.prompt }, ...extra });
-const reply = (at: number, model: string): object => ({
+const reply = (at: number, model: unknown): object => ({
   type: "assistant",
   timestamp: t(at),
   cwd: SAID.path,
@@ -39,31 +40,33 @@ const reply = (at: number, model: string): object => ({
 });
 const toolResult = (at: number, call: string, extra: object = {}): object => ({ type: "user", timestamp: t(at), cwd: SAID.path, message: { role: "user", content: [{ type: "tool_result", tool_use_id: call, content: SAID.result, ...extra }] }, toolUseResult: { stdout: SAID.result, prompt: SAID.prompt } });
 const resume = (at: number): object => ({ type: "user", isMeta: true, origin: { kind: "coordinator" }, timestamp: t(at), message: { role: "user", content: SAID.prompt } });
-const notice = (at: number, id: string, status: string, result = SAID.reply): object => ({
-  type: "queue-operation",
-  operation: "enqueue",
-  timestamp: t(at),
-  sessionId: SESSION,
-  content: `<task-notification>\n<task-id>${id}</task-id>\n<tool-use-id>${SAID.call}</tool-use-id>\n<output-file>${SAID.path}/tasks/${id}.output</output-file>\n<status>${status}</status>\n<summary>Agent "${SAID.description}" ${status}</summary>\n<result>${result}</result>\n</task-notification>`,
-});
-const meta = (extra: object): object => ({ agentType: "general-purpose", description: SAID.description, toolUseId: SAID.call, spawnDepth: 1, requestShape: "background", requestNonInteractive: true, ...extra });
+const noticeText = (id: string, status: string, result = SAID.reply): string =>
+  `<task-notification>\n<task-id>${id}</task-id>\n<tool-use-id>${SAID.call}</tool-use-id>\n<output-file>${SAID.path}/tasks/${id}.output</output-file>\n<status>${status}</status>\n<summary>Agent "${SAID.description}" ${status}</summary>\n<result>${result}</result>\n</task-notification>`;
+const notice = (at: number, id: string, status: string, result = SAID.reply): object => ({ type: "queue-operation", operation: "enqueue", timestamp: t(at), sessionId: SESSION, content: noticeText(id, status, result) });
+/** A meta file. Each subagent's is given the id of its own starting call. */
+const meta = (id: string, extra: object = {}): string => JSON.stringify({ agentType: "general-purpose", description: SAID.description, toolUseId: `${SAID.call}-${id}`, spawnDepth: 1, requestShape: "background", requestNonInteractive: true, ...extra });
 const jsonl = (lines: object[]): string => `${lines.map((l) => JSON.stringify(l)).join("\n")}\n`;
 
-/** A config folder with one session in it: `files` are the subagents' files by name, `main` the main transcript's lines. */
-function config(ctx: TestContext, files: Record<string, string>, main: object[] | string = [], project = "-work-demo"): { env: Record<string, string>; dir: string } {
-  const dir = mkdtempSync(join(tmpdir(), "grooph-claude-files-"));
+const temp = (ctx: TestContext, prefix: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
   ctx.after(() => rmSync(dir, { recursive: true, force: true }));
+  return dir;
+};
+
+/** A config folder with one session in it: `files` are the subagents' files by name, `main` the main transcript's lines. */
+function config(ctx: TestContext, files: Record<string, string>, main: object[] | string = [], project = "-work-demo"): { env: Record<string, string>; dir: string; subagents: string } {
+  const dir = temp(ctx, "grooph-claude-files-");
   const subagents = join(dir, "projects", project, SESSION, "subagents");
   mkdirSync(subagents, { recursive: true });
   for (const [name, text] of Object.entries(files)) writeFileSync(join(subagents, name), text);
   writeFileSync(join(dir, "projects", project, `${SESSION}.jsonl`), typeof main === "string" ? main : jsonl(main));
-  return { env: { CLAUDE_CONFIG_DIR: dir }, dir };
+  return { env: { CLAUDE_CONFIG_DIR: dir }, dir, subagents };
 }
 
-/** A session with one of everything: two runs, a nested foreground child, a failed run, one still running, one that is only a file. */
+/** A session with one of everything: two runs, a nested foreground child, a failed run, one still running, a foreground call that came back as an error, and one the harness moved to the background. */
 const FILES: Record<string, string> = {
   // Asked for on a short model name, answered by a full one; resumed once.
-  "agent-a1.meta.json": JSON.stringify(meta({ model: "opus", spawnedWithWorktree: true, worktreePath: SAID.path, worktreeBranch: SAID.branch })),
+  "agent-a1.meta.json": meta("a1", { model: "opus", spawnedWithWorktree: true, worktreePath: SAID.path, worktreeBranch: SAID.branch }),
   "agent-a1.jsonl": jsonl([
     first(10),
     reply(11, "claude-opus-5-5"),
@@ -78,32 +81,40 @@ const FILES: Record<string, string> = {
     reply(430, "claude-opus-5-5"),
   ]),
   // Started by a1 in the foreground: nothing in the main transcript says it ended.
-  "agent-a2.meta.json": JSON.stringify(meta({ agentType: "Explore", spawnDepth: 2, parentAgentId: "a1", requestShape: "foreground", toolUseId: "toolu-nested", inheritedWorktreePath: SAID.path })),
+  "agent-a2.meta.json": meta("a2", { agentType: "Explore", spawnDepth: 2, parentAgentId: "a1", requestShape: "foreground", toolUseId: "toolu-nested", inheritedWorktreePath: SAID.path }),
   "agent-a2.jsonl": jsonl([first(20), reply(21, "claude-haiku-4-5-20251001"), reply(59, "claude-haiku-4-5-20251001")]),
-  "agent-a3.meta.json": JSON.stringify(meta({ agentType: "Plan" })),
+  "agent-a3.meta.json": meta("a3", { agentType: "Plan" }),
   "agent-a3.jsonl": jsonl([first(30), reply(31, "claude-sonnet-5-5"), reply(45, "claude-sonnet-5-5")]),
   // Still running: no notice of its end.
-  "agent-a4.meta.json": JSON.stringify(meta({ model: "sonnet" })),
+  "agent-a4.meta.json": meta("a4", { model: "sonnet" }),
   "agent-a4.jsonl": jsonl([first(500), reply(501, "claude-sonnet-5-5")]),
   // A foreground call the main session made, which came back as an error.
-  "agent-a5.meta.json": JSON.stringify(meta({ requestShape: "foreground", toolUseId: "toolu-main" })),
+  "agent-a5.meta.json": meta("a5", { requestShape: "foreground", toolUseId: "toolu-main" }),
   "agent-a5.jsonl": jsonl([first(600), reply(601, "claude-opus-5-5")]),
+  // Asked for in the foreground and then put in the background: its call returned at once, and a notice ended it.
+  "agent-a6.meta.json": meta("a6", { requestShape: "foreground", toolUseId: "toolu-moved" }),
+  "agent-a6.jsonl": jsonl([first(690), reply(710, "claude-opus-5-5")]),
   // Beside them, files that are not a subagent's.
   "agent-a1.prefix.json": JSON.stringify({ note: SAID.prompt }),
   "notes.txt": SAID.reply,
 };
 const MAIN: object[] = [
   { type: "user", timestamp: t(0), message: { role: "user", content: SAID.prompt }, cwd: SAID.path },
-  // The tool call that started a1 returned at once: launched, not finished.
-  { ...(toolResult(10, SAID.call) as object), toolUseResult: { status: "async_launched", agentId: "a1", description: SAID.description, prompt: SAID.prompt, outputFile: SAID.path } },
+  // The tool call that started a1 returned at once: launched, not finished. A background call's result ends nothing.
+  { ...(toolResult(10, `${SAID.call}-a1`, { is_error: true }) as object), toolUseResult: { status: "async_launched", agentId: "a1", description: SAID.description, prompt: SAID.prompt, outputFile: SAID.path } },
   notice(46, "a3", "failed"),
   notice(71, "a1", "completed"),
   notice(431, "a1", "killed"),
   // A background shell command ends with the same kind of notice: its id is no subagent's.
   notice(440, "bash-7", "failed"),
-  // The same words on a line that is not the harness's notice (the lead is shown it as a message) say nothing.
-  { type: "user", timestamp: t(441), message: { role: "user", content: (notice(441, "a4", "failed") as { content: string }).content } },
+  // The same words on a line that is not the harness's notice say nothing: shown to the lead as a message, kept by
+  // another kind of line, or taken off the queue.
+  { type: "user", timestamp: t(502), message: { role: "user", content: noticeText("a4", "failed") } },
+  { type: "user", timestamp: t(503), content: noticeText("a4", "failed") },
+  { type: "queue-operation", operation: "dequeue", timestamp: t(504), content: noticeText("a4", "failed") },
   toolResult(650, "toolu-main", { is_error: true }),
+  { ...(toolResult(691, "toolu-moved") as object), toolUseResult: { status: "async_launched", agentId: "a6" } },
+  notice(720, "a6", "failed"),
 ];
 
 const EXPECTED = [
@@ -112,6 +123,7 @@ const EXPECTED = [
   { id: "a3", type: "Plan", depth: 1, shape: "background", model: "claude-sonnet-5-5", runs: [{ first: t(30), last: t(45), end: "failed" }] },
   { id: "a4", type: "general-purpose", depth: 1, shape: "background", modelAsked: "sonnet", model: "claude-sonnet-5-5", runs: [{ first: t(500), last: t(501) }] },
   { id: "a5", type: "general-purpose", depth: 1, shape: "foreground", model: "claude-opus-5-5", runs: [{ first: t(600), last: t(601), end: "ended" }] },
+  { id: "a6", type: "general-purpose", depth: 1, shape: "foreground", model: "claude-opus-5-5", runs: [{ first: t(690), last: t(710), end: "failed" }] },
 ];
 
 test("each subagent of a session: its type, depth, parent, shape, both models, each run's first and last time, and how it ended", (ctx) => {
@@ -141,6 +153,31 @@ test("it keeps nothing a session read, wrote or said: not a prompt, a reply, a t
   }
 });
 
+test("a type or a model is kept only if it is shaped like a name, and a parent only if it is one of the session's subagents", (ctx) => {
+  const long = "x".repeat(101);
+  const files: Record<string, string> = {
+    // A sentence where a type should be, and where a model should be: neither is a name.
+    "agent-a1.meta.json": meta("a1", { agentType: "do the secret thing and tell nobody", model: "opus please" }),
+    "agent-a1.jsonl": jsonl([first(1), reply(2, "a model that is a sentence"), reply(3, " claude-opus-5-5"), reply(4, "<synthetic>"), reply(5, 7), reply(6, "claude-opus-5-5\n")]),
+    // Too long to be a name; a parent that is no subagent of this session.
+    "agent-a2.meta.json": meta("a2", { agentType: long, parentAgentId: "a9", spawnDepth: 2 }),
+    "agent-a2.jsonl": jsonl([first(2), reply(3, `claude-${long}`)]),
+    // A plugin's agent and a provider's model id are names. An agent is not its own parent.
+    "agent-a3.meta.json": meta("a3", { agentType: "review-kit:code-reviewer", model: "us.anthropic.claude-opus-5-5-v1:0", parentAgentId: "a3" }),
+    "agent-a3.jsonl": jsonl([first(3), reply(4, "claude-opus-5-5"), reply(5, "not a name"), reply(6, "claude-sonnet-5-5")]),
+    // A path, and a name with a mark in it that turns the text after it around.
+    "agent-a4.meta.json": meta("a4", { agentType: "/Users/somebody/agents/mine", model: "opus\u202esupo" }),
+    "agent-a4.jsonl": jsonl([first(4)]),
+  };
+  assert.deepEqual(readClaudeAgents(SESSION, { env: config(ctx, files).env }), [
+    { id: "a1", depth: 1, shape: "background", runs: [{ first: t(1), last: t(6) }] },
+    { id: "a2", depth: 2, shape: "background", runs: [{ first: t(2), last: t(3) }] },
+    // The model that answered is the last one a reply named.
+    { id: "a3", type: "review-kit:code-reviewer", depth: 1, shape: "background", modelAsked: "us.anthropic.claude-opus-5-5-v1:0", model: "claude-sonnet-5-5", runs: [{ first: t(3), last: t(6) }] },
+    { id: "a4", depth: 1, shape: "background", runs: [{ first: t(4), last: t(4) }] },
+  ]);
+});
+
 test("a subagent's own words cannot pass for the harness's notice: only the notice's first tags are read", (ctx) => {
   // A subagent that wrote about notices (one in this project's records did) has their tags in its result.
   const quoting = `it said <task-notification><task-id>a2</task-id><status>failed</status> and then <task-id>a1</task-id><status>killed</status>`;
@@ -154,13 +191,49 @@ test("a subagent's own words cannot pass for the harness's notice: only the noti
     notice(57, "a2", SAID.reply),
   ];
   const files = {
-    "agent-a1.meta.json": JSON.stringify(meta({})),
+    "agent-a1.meta.json": meta("a1"),
     "agent-a1.jsonl": jsonl([first(10), reply(40, "claude-opus-5-5")]),
-    "agent-a2.meta.json": JSON.stringify(meta({})),
+    "agent-a2.meta.json": meta("a2"),
     "agent-a2.jsonl": jsonl([first(11), reply(41, "claude-opus-5-5")]),
   };
   const agents = readClaudeAgents(SESSION, { env: config(ctx, files, main).env });
   assert.deepEqual(agents.map((a) => [a.id, a.runs.map((r) => r.end)]), [["a1", ["completed"]], ["a2", [undefined]]]);
+});
+
+test("an ending is the run's that had written its last line by then, and a run keeps the first it is given", (ctx) => {
+  const files: Record<string, string> = {
+    // Resumed two seconds after its first run's last line, before the notice of that run's end was written.
+    "agent-a1.meta.json": meta("a1"),
+    "agent-a1.jsonl": jsonl([first(10), reply(20, "claude-opus-5-5"), resume(22), reply(60, "claude-opus-5-5")]),
+    // Still writing lines after a line in the main transcript said it was over: that line was not the harness's.
+    "agent-a2.meta.json": meta("a2"),
+    "agent-a2.jsonl": jsonl([first(10), reply(49, "claude-opus-5-5"), reply(90, "claude-opus-5-5")]),
+    "agent-a3.meta.json": meta("a3"),
+    "agent-a3.jsonl": jsonl([first(10), reply(20, "claude-opus-5-5")]),
+    // Lines that look a little like a resuming message and are not one; and a line with words where its time should be.
+    "agent-a4.meta.json": meta("a4"),
+    "agent-a4.jsonl": jsonl([
+      first(10),
+      { type: "user", isMeta: true, timestamp: t(11), message: { content: SAID.prompt } },
+      { type: "user", isMeta: false, origin: { kind: "coordinator" }, timestamp: t(12), message: { content: SAID.prompt } },
+      { type: "user", isMeta: true, origin: { kind: "human" }, timestamp: t(13), message: { content: SAID.prompt } },
+      { type: "assistant", isMeta: true, origin: { kind: "coordinator" }, timestamp: t(14), message: { content: [] } },
+      { type: "user", timestamp: "PLANTED 1 Jan 2031 10:00 GMT", message: { content: SAID.prompt } },
+      { type: "user", timestamp: "2031-01-01T10:00:00", message: { content: SAID.prompt } },
+      reply(15, "claude-opus-5-5"),
+    ]),
+    // A meta file too large to be one is not read.
+    "agent-a5.meta.json": JSON.stringify({ agentType: "Plan", spawnDepth: 1, padding: "x".repeat(1_100_000) }),
+    "agent-a5.jsonl": jsonl([first(10), reply(20, "claude-opus-5-5")]),
+  };
+  const main = [notice(23, "a1", "failed"), notice(50, "a2", "killed"), notice(21, "a3", "completed"), notice(22, "a3", "failed"), notice(61, "a1", "completed"), notice(91, "a2", "completed")];
+  assert.deepEqual(readClaudeAgents(SESSION, { env: config(ctx, files, main).env }), [
+    { id: "a1", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(20), end: "failed" }, { first: t(22), last: t(60), end: "completed" }] },
+    { id: "a2", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(90), end: "completed" }] },
+    { id: "a3", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(20), end: "completed" }] },
+    { id: "a4", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(15) }] },
+    { id: "a5", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(20) }] },
+  ]);
 });
 
 test("it honors CLAUDE_CONFIG_DIR, and without it reads ~/.claude; a session with no such files is an empty answer", (ctx) => {
@@ -169,27 +242,84 @@ test("it honors CLAUDE_CONFIG_DIR, and without it reads ~/.claude; a session wit
   assert.equal(claudeProjectsDir({ env: {}, home: "/home/someone" }), join("/home/someone", ".claude", "projects"));
   assert.equal(claudeProjectsDir({ env: { CLAUDE_CONFIG_DIR: "" }, home: "/home/someone" }), join("/home/someone", ".claude", "projects"));
   // The same folder as a home's `.claude`.
-  const home = mkdtempSync(join(tmpdir(), "grooph-claude-home-"));
-  ctx.after(() => rmSync(home, { recursive: true, force: true }));
+  const home = temp(ctx, "grooph-claude-home-");
   const subagents = join(home, ".claude", "projects", "-somewhere-else", SESSION, "subagents");
   mkdirSync(subagents, { recursive: true });
-  writeFileSync(join(subagents, "agent-b1.meta.json"), JSON.stringify(meta({ agentType: "Explore" })));
+  writeFileSync(join(subagents, "agent-b1.meta.json"), meta("b1", { agentType: "Explore" }));
   writeFileSync(join(subagents, "agent-b1.jsonl"), jsonl([first(1), reply(2, "claude-opus-5-5")]));
   assert.deepEqual(readClaudeAgents(SESSION, { env: {}, home }), [{ id: "b1", type: "Explore", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(1), last: t(2) }] }]);
   // The variable wins over the home folder.
-  assert.deepEqual(readClaudeAgents(SESSION, { env, home }).map((a) => a.id), ["a1", "a2", "a3", "a4", "a5"]);
+  assert.deepEqual(readClaudeAgents(SESSION, { env, home }).map((a) => a.id), ["a1", "a2", "a3", "a4", "a5", "a6"]);
 
-  // No such session, no such folder, or a name that is not a session id: nothing, and no error.
+  // No such session or no such folder: nothing, and no error.
   assert.deepEqual(readClaudeAgents("00000000-0000-4000-8000-000000000000", { env }), []);
   assert.deepEqual(readClaudeAgents(SESSION, { env: { CLAUDE_CONFIG_DIR: join(dir, "nowhere") } }), []);
-  for (const name of ["", ".", "..", "../-work-demo", `../${SESSION}`, "a/b", "a\\b", "x".repeat(200)]) {
-    assert.deepEqual(readClaudeAgents(name, { env }), [], JSON.stringify(name));
-    assert.deepEqual(findClaudeSession(name, { env }), []);
-  }
   // Told which project folders to look in, it looks in no other.
   assert.deepEqual(readClaudeAgents(SESSION, { env, only: (folder) => folder.startsWith("-another") }), []);
-  assert.equal(readClaudeAgents(SESSION, { env, only: (folder) => folder === "-work-demo" }).length, 5);
+  assert.equal(readClaudeAgents(SESSION, { env, only: (folder) => folder === "-work-demo" }).length, 6);
   assert.deepEqual(findClaudeSession(SESSION, { env }), [{ transcript: join(dir, "projects", "-work-demo", `${SESSION}.jsonl`), subagents: join(dir, "projects", "-work-demo", SESSION, "subagents") }]);
+});
+
+test("a name that is not a session's id reaches no file, though one lies where it would lead; a session in two folders is read from the first", (ctx) => {
+  const { env, dir } = config(ctx, FILES, MAIN);
+  // What `../elsewhere/<id>` would be, were it joined to a project's folder: the same session again, said otherwise.
+  const elsewhere = join(dir, "projects", "elsewhere", SESSION, "subagents");
+  mkdirSync(elsewhere, { recursive: true });
+  writeFileSync(join(dir, "projects", "elsewhere", `${SESSION}.jsonl`), jsonl([notice(9999, "a4", "killed"), notice(9999, "z1", "failed")]));
+  writeFileSync(join(elsewhere, "agent-z1.jsonl"), jsonl([first(1), reply(2, "claude-opus-5-5")]));
+  writeFileSync(join(elsewhere, "agent-a1.meta.json"), meta("a1", { agentType: "Plan" }));
+  writeFileSync(join(elsewhere, "agent-a1.jsonl"), jsonl([first(5000), reply(5001, "claude-haiku-4-5-20251001")]));
+  for (const name of ["", ".", "..", `../elsewhere/${SESSION}`, `..\\elsewhere\\${SESSION}`, `elsewhere/../-work-demo/${SESSION}`, `/${SESSION}`, "a/b", "x".repeat(200)]) {
+    assert.deepEqual(readClaudeAgents(name, { env }), [], JSON.stringify(name));
+    assert.deepEqual(findClaudeSession(name, { env }), [], JSON.stringify(name));
+  }
+  // Each subagent is read whole from the first folder that holds it: a1 is `-work-demo`'s, not a mix of the two.
+  const agents = readClaudeAgents(SESSION, { env });
+  assert.deepEqual(agents.map((a) => a.id), ["z1", "a1", "a2", "a3", "a4", "a5", "a6"]);
+  assert.deepEqual(agents[1], EXPECTED[0]);
+  // And a subagent's run is ended only by the transcript of its own folder: a4 is still running, whatever the other says.
+  assert.deepEqual(agents[4], EXPECTED[3]);
+  assert.deepEqual(agents[0], { id: "z1", model: "claude-opus-5-5", runs: [{ first: t(1), last: t(2), end: "failed" }] });
+});
+
+test("under projects/ it follows no link and opens nothing but a plain file: a pipe or a device in a file's place does not hold it", { timeout: 30_000, skip: process.platform === "win32" }, (ctx) => {
+  const { env, dir, subagents } = config(ctx, { "agent-a1.meta.json": meta("a1"), "agent-a1.jsonl": jsonl([first(10), reply(20, "claude-opus-5-5")]) }, [notice(21, "a1", "completed")]);
+  // Real files of the same shape somewhere else on the machine, and links to them where the reader looks.
+  const outside = temp(ctx, "grooph-claude-outside-");
+  writeFileSync(join(outside, "agent.jsonl"), jsonl([first(1), reply(2, "claude-outside-1")]));
+  writeFileSync(join(outside, "meta.json"), meta("l1", { agentType: "Outside" }));
+  writeFileSync(join(outside, "main.jsonl"), jsonl([notice(3, "o1", "failed")]));
+  mkdirSync(join(outside, "project", SESSION, "subagents"), { recursive: true });
+  writeFileSync(join(outside, "project", SESSION, "subagents", "agent-o1.jsonl"), jsonl([first(1), reply(2, "claude-outside-2")]));
+  mkdirSync(join(outside, "session", "subagents"), { recursive: true });
+  writeFileSync(join(outside, "session", "subagents", "agent-o2.jsonl"), jsonl([first(1), reply(2, "claude-outside-3")]));
+  symlinkSync(join(outside, "agent.jsonl"), join(subagents, "agent-l1.jsonl"));
+  symlinkSync(join(outside, "meta.json"), join(subagents, "agent-l1.meta.json"));
+  // A project's folder that is a link; a session's folder that is one; a main transcript that is one.
+  symlinkSync(join(outside, "project"), join(dir, "projects", "-linked-project"));
+  mkdirSync(join(dir, "projects", "-linked-session"));
+  symlinkSync(join(outside, "session"), join(dir, "projects", "-linked-session", SESSION));
+  mkdirSync(join(dir, "projects", "-linked-transcript", SESSION, "subagents"), { recursive: true });
+  writeFileSync(join(dir, "projects", "-linked-transcript", SESSION, "subagents", "agent-o1.jsonl"), jsonl([first(1), reply(2, "claude-opus-5-5")]));
+  symlinkSync(join(outside, "main.jsonl"), join(dir, "projects", "-linked-transcript", `${SESSION}.jsonl`));
+  // A device that never ends, and a pipe nobody writes to: a read of either would never come back.
+  symlinkSync("/dev/zero", join(subagents, "agent-l2.jsonl"));
+  let pipes = true;
+  try {
+    execFileSync("mkfifo", [join(subagents, "agent-l3.jsonl"), join(subagents, "agent-l3.meta.json")]);
+  } catch {
+    pipes = false;
+  }
+  assert.deepEqual(readClaudeAgents(SESSION, { env }), [
+    // What stands in a subagent's place by name is still a subagent, with nothing said of it.
+    { id: "l1", runs: [] },
+    { id: "l2", runs: [] },
+    ...(pipes ? [{ id: "l3", runs: [] }] : []),
+    // Its folder is a real one; the transcript beside it that would have ended its run is a link, and is not read.
+    { id: "o1", model: "claude-opus-5-5", runs: [{ first: t(1), last: t(2) }] },
+    { id: "a1", type: "general-purpose", depth: 1, shape: "background", model: "claude-opus-5-5", runs: [{ first: t(10), last: t(20), end: "completed" }] },
+  ]);
+  assert.deepEqual(findClaudeSession(SESSION, { env }).map((place) => Object.keys(place)), [["subagents"], ["transcript", "subagents"]]);
 });
 
 test("files that are not in the shape expected are passed over, never an error", (ctx) => {
@@ -202,11 +332,11 @@ test("files that are not in the shape expected are passed over, never an error",
     "agent-a1.jsonl": jsonl([first(10), reply(20, "claude-opus-5-5")]),
     // Lines that are not JSON, not objects, or carry no time; and a last line half written.
     "agent-a2.jsonl": `not json\n[]\n"text"\n${JSON.stringify({ type: "user", message: { content: SAID.prompt } })}\n${JSON.stringify(first(30))}\n${JSON.stringify({ type: "assistant", timestamp: "yesterday", message: { model: 5 } })}\n${JSON.stringify(reply(35, "claude-opus-5-5")).slice(0, 80)}`,
-    // A line longer than one read of the file (a tool's result can be megabytes), with a resumed run after it.
-    "agent-a3.jsonl": jsonl([first(40), { type: "user", timestamp: t(41), message: { content: [{ type: "tool_result", tool_use_id: "toolu-big", content: long }] } }, resume(90), reply(95, "claude-opus-5-5")]),
+    // A line longer than one read of the file (a tool's result can be megabytes), with a resumed run after it; and Windows line ends.
+    "agent-a3.jsonl": jsonl([first(40), { type: "user", timestamp: t(41), message: { content: [{ type: "tool_result", tool_use_id: "toolu-big", content: long }] } }, resume(90), reply(95, "claude-opus-5-5")]).replaceAll("\n", "\r\n"),
     // An empty transcript, and a meta file with no transcript at all.
     "agent-a4.jsonl": "",
-    "agent-a5.meta.json": JSON.stringify(meta({})),
+    "agent-a5.meta.json": meta("a5"),
     // A name that is not an id.
     "agent-a b.jsonl": jsonl([first(1)]),
     "agent-.jsonl": jsonl([first(1)]),
