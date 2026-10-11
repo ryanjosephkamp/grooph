@@ -239,7 +239,7 @@ The change to `events.ts` is commit `206e29e1`, with its tests (`packages/core/t
 
 **For `docs/subagents.md`**:
 
-- §2, after "Where its transcript is": "Beside each transcript is `agent-{agentId}.meta.json`: the subagent's type, its depth, the subagent that started it when one did, whether it was asked for in the background or the foreground, and the model its call named. [seen: 147 of 147, Claude Code 2.1.271 to 2.1.295] A run that fails fires no `SubagentStop`: the hook has its start and nothing more, and the main transcript holds the harness's notice that it failed. [seen: 1 of 1]"
+- §2, after "Where its transcript is": "Beside each transcript is `agent-{agentId}.meta.json`: the subagent's type, its depth, the subagent that started it when one did, whether it was asked for in the background or the foreground, and the model its call named. [seen: 163 of 163 subagents in this project's folders on 2026-10-11, Claude Code 2.1.271 to 2.1.295] A run that fails fires no `SubagentStop`: the hook has its start and nothing more, and the main transcript holds the harness's notice that it failed. [seen: 1 of 1]"
 - §5, in the row "Which agent started which": "The `Agent` tool's line is written when the call returns: at once for a subagent in the background, and for one in the foreground when it ends (4 of 4, 482 to 732 s after it started). [seen]"
 - §5, in the row "A subagent that is resumed": "Neither a hook nor the harness's files say who resumed it. [seen]"
 - §6, "What the view cannot show": "which agent resumed a subagent".
