@@ -1,0 +1,14 @@
+{
+  "what": "Made-up statements, one small set a sample. No session said any of this. They are here only so each drawing can show where the two marks would go: something said that never ran, and something that ran and was never said. A statement has the shape of today's grooph_plan call: so many subagents of a type. `before` and `seconds` place it that long before a real subagent's first start; `covers` are the real subagents it is taken to have meant; `unsaid` are real subagents the page marks as never said; `never` are subagents said and never seen.",
+  "small": [
+    { "before": "a01", "seconds": 4, "covers": ["a01", "a02", "a03"], "unsaid": ["a04"], "never": [{ "id": "s1", "type": "Explore", "after": "a03" }] }
+  ],
+  "large": [
+    { "before": "a11", "seconds": 20, "covers": ["a11", "a12", "a13", "a14"], "unsaid": ["a15"], "never": [{ "id": "s1", "type": "general-purpose", "after": "a14" }] },
+    { "before": "a50", "seconds": 30, "covers": ["a50", "a51", "a52"], "unsaid": [], "never": [] }
+  ],
+  "resumed": [
+    { "before": "a09", "seconds": 15, "covers": ["a09", "a10"], "unsaid": [], "never": [{ "id": "s1", "type": "general-purpose", "after": "a10" }] },
+    { "before": "a11", "seconds": 15, "covers": ["a11"], "unsaid": ["a12"], "never": [] }
+  ]
+}
