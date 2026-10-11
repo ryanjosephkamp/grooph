@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 import { layout, settingsFor } from "./compare-profile.mjs";
 import { scoreHeldOut } from "./compare-score.mjs";
-import { NotStarted, runBounded } from "./study-three-paid.mjs";
+import { findHarness, NotStarted, runBounded } from "./study-three-paid.mjs";
 import { CLI, promptFor as firstChecksPromptFor, SUBAGENTS_SENTENCE, WATCHDOG as FIRST_CHECKS } from "./watching-check-paid.mjs";
 import { agentByAgent, delegation, DIFFERENCES, EXPECTED, mostAtOnce, NOT_A_STATUS, noticed, readSession, stringsOf } from "./watching-second-look-measures.mjs";
 import {
@@ -345,9 +345,10 @@ test("the ledger as the repository keeps it: the protocol's cap and ceilings, no
   assert.ok(kept.cap_is.includes(`add up to $${(ceilingsOf("opus") + ceilingsOf("sonnet")).toFixed(2)} ($${ceilingsOf("opus").toFixed(2)} in the opus block, $${ceilingsOf("sonnet").toFixed(2)} in the sonnet block) and the cap is $${STOPS_AT_USD.toFixed(2)}`), "the ledger's own sentence about its cap");
   assert.deepEqual(Object.keys(kept.scoring_outside_the_sandbox), ["about", "decided_by", "on", "words"]);
   assert.match(kept.scoring_outside_the_sandbox.about, /for this look by name: the decision recorded for the first check, or for any other experiment, is not read here/);
-  // THE OWNER'S DECISION. He gave it on 2026-10-11 (the review desk, card q91) and the driver writes it into the ledger.
-  // Until then the three fields are empty and nothing starts. When the driver fills them, this line is the one that changes.
-  assert.deepEqual([kept.scoring_outside_the_sandbox.decided_by, kept.scoring_outside_the_sandbox.on, kept.scoring_outside_the_sandbox.words], [null, null, null]);
+  // THE OWNER'S DECISION. He gave it on 2026-10-11 (the review desk, card q91), and the driver wrote it into the ledger
+  // that day, with this line, in one commit. His words are his: a change to them is a change to this line.
+  assert.deepEqual([kept.scoring_outside_the_sandbox.decided_by, kept.scoring_outside_the_sandbox.on, kept.scoring_outside_the_sandbox.words], ["the owner, on the review desk (card q91-scoring-for-the-second-look)", "2026-10-11", "Yes, as for the first check"]);
+  assert.equal(decidedYes(kept).ok, true, "and the runner reads it as a yes");
   assert.ok(page.includes("The first check's decision is not read for this one."));
   assert.equal(kept.invocations.filter((entry) => entry.status === "running").length, 0);
   // A ledger that states other limits than the protocol's is a refusal, each number by name.
@@ -392,7 +393,12 @@ test("no run starts without the first call's yes, the owner's decision for this 
 });
 
 test("on the command line: a paid run without both flags or a block, a flag it does not know, a round that is none, and flags that do not go together are each refused", () => {
-  const run = (...args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: "utf8" });
+  // This starts the paid runner itself, with the flags that spend, on a machine where the owner's decision is recorded
+  // and the first call allows runs. Were a refusal ever lost, the runner could find no harness to start: it is given a
+  // path that holds none, and the runners' own lookup is asked first (as on main for the four other paid runners).
+  const noHarness = { ...process.env, PATH: join(here, "fixtures", "a-folder-that-is-not-there") };
+  assert.throws(() => findHarness((program, args, options) => spawnSync(program, args, { ...options, env: noHarness })), (error) => error instanceof NotStarted && /the harness was not found/.test(error.message), "the runners' own lookup finds no harness on the path this runner is given");
+  const run = (...args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: "utf8", env: noHarness });
   const refused = (out, pattern) => assert.deepEqual([out.status, pattern.test(out.stderr)], [64, true], out.stderr);
   refused(run("--all", "--block", "opus"), /will not without --spend and --go/);
   refused(run("--all", "--block", "opus", "--spend"), /will not without --go/);

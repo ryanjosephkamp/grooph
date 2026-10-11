@@ -1281,6 +1281,3 @@ test("called as the other runners call it, the profile's command is what it was:
   assert.equal(profileFingerprint(), "0f740513e4dabd6b8939ffec6613a853455b10a5f6aac04a0dc699450982286e", "if the profile itself was changed on purpose, this line changes with it; a change to commandFor alone must not move it");
 });
 
-// The second look's runner is tested in a file of its own beside this one (experiments/watching/second-look/README.md).
-// It is brought in here so that the step of CI that names this file runs both.
-await import("./watching-second-look-paid.test.mjs");

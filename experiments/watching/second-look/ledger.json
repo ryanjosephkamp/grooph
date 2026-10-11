@@ -31,9 +31,9 @@
   "once_more": "a run that fails for a reason outside the session (the sign-in, the network, a usage limit) may be run once more, with the reason written beside it: its line is <block>/<task>/<arm>-<n>-rerun",
   "scoring_outside_the_sandbox": {
     "about": "A run is scored by the repository's unseen suites, run against the packages the session left, and that runs the code the session wrote, outside the sandbox and with the account's rights. A session's commands run inside the sandbox; what it wrote does not when it is scored. Whether that may be done is the owner's to decide, for this look by name: the decision recorded for the first check, or for any other experiment, is not read here. Until his decision is written in the three fields below, no run of the second look is started and none is scored.",
-    "decided_by": null,
-    "on": null,
-    "words": null
+    "decided_by": "the owner, on the review desk (card q91-scoring-for-the-second-look)",
+    "on": "2026-10-11",
+    "words": "Yes, as for the first check"
   },
   "invocations": [],
   "spent_usd": 0,
