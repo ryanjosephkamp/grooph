@@ -77,8 +77,6 @@ export function pickCommand(raw: Output, file: string, query: string, flags: Pic
   if (needs.length > 0) {
     io.out(`"${candidate.label}" is ${planLine(graph, needs)}.`);
     io.out(`next: grooph plan ${shown(out)}`);
-    return 0;
   }
-  io.out(`next: grooph export ${shown(out)} --target ${graph.target?.harness ?? "claude-code"} --into .`);
   return 0;
 }

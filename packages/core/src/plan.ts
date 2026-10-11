@@ -138,7 +138,7 @@ function planMarkdown(kit: PlanKit, doc: Graph, toFix: readonly Issue[], picture
           : "As a plan for people to read and follow, this is whole."
     } ${
       errors.length === 0
-        ? `A coding harness could run it as it is: nothing in it is in error.${doc.target?.harness ? ` \`grooph export\` writes its package for ${plain(doc.target.harness)}.` : ""}`
+        ? "A coding harness could run it as it is: nothing in it is in error."
         : `**To run it in a coding harness, ${count(errors.length, "thing is", "things are")} to be fixed first**${own > 0 && own < errors.length ? ` (${own === 1 ? "that one" : `those ${own}`} among them)` : ""}, listed under "To fix before a harness can run this".`
     }`,
     "",

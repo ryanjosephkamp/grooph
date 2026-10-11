@@ -106,3 +106,6 @@ export const counted = (issues: readonly IssueLike[]): string => {
 
 /** A document's issues as lines: that there are none, or the count, each issue, and what to do about each code. */
 export const issuesBlock = (issues: readonly IssueLike[]): string[] => (issues.length === 0 ? ["issues: none"] : [counted(issues), ...issueLines(issues)]);
+
+/** A word of a command line as a shell takes it. */
+export const shellWord = (text: string): string => (/^[A-Za-z0-9_.:/@=+-]+$/.test(text) ? text : `'${text.replace(/'/g, "'\\''")}'`);

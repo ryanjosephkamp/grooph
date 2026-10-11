@@ -16,7 +16,8 @@
     "test": "node --test 'dist/test/*.test.js' ../scripts/lib/*.test.mjs ../scripts/prove-codex.test.mjs"
   },
   "dependencies": {
-    "@grooph/cli": "workspace:*"
+    "@grooph/cli": "workspace:*",
+    "@grooph/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

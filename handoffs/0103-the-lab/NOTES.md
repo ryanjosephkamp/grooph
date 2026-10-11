@@ -39,7 +39,70 @@ Taken on `main` at `da6c3874`, built there (`pnpm install --frozen-lockfile && p
 
 **One thing to weigh.** With the folder gone from the root, `grooph-lab runs list .` there lists nothing, and the three commands `handoffs/0008-runs/HANDBACK.md:78-80` gives for that folder no longer work as written.
 
+## Pull request 2 · the command line
+
+**What left the product's command line:** `export`, `adopt`, `runs`, `watch <folder>`, and `share` and `embed` of a run folder. `grooph` answers the first three, asked for or asked about (`grooph help export`, `grooph export --help`), with one line and exit code 1; `grooph watch <folder>` with another. No help page, and no "did you mean", names them.
+
+**`watch` takes no folder at all.** Through 0.4.1 a folder could also be a project's, and `grooph watch <project> --sessions` then served that project's sessions: undocumented, used by no script or document here, and a watching use. It is refused with the rest, because telling a project's folder from a run's is reading a run folder. `grooph watch --events <project>` adds another project's sessions, and the line for a folder says so.
+
+**Every removed line is in `lab/`, but for ten sentences that are in neither place.** They were the product's own words about `export`, and they were reworded or dropped, not moved: the two lines of `help apply`; `help plan`'s sentence; the end of the plan's second sentence, in the command and in `PLAN.md`; the `next:` lines of `pick` and of `validate --for-export`; share's ", or grooph runs bundle"; "export refuses unfilled slots" in `template use` and `sub`; and the old refusal to write a kept graph. Criterion 6 is met for code and not for those words.
+
+**Where each thing went.**
+
+| From the product | To |
+|---|---|
+| The `export`, `runs` and `adopt` cases of `packages/cli/src/index.ts`, and the `watch`, `share` and `embed` cases as they were | `lab/src/index.ts`, with a copy of the dispatcher's usage line and its error handling for the lab's own commands |
+| `EXPORT_HELP`, the tier lines, the overview and the list of commands as they were (`commands/help.ts`); `SHARE_HELP` and `EMBED_HELP` as they were | `lab/src/help.ts` |
+| `commands/adopt.ts`, `commands/runs.ts`, `run-io.ts` | `lab/src/commands/adopt.ts`, `lab/src/commands/runs.ts`, `lab/src/run-io.ts` (moved whole) |
+| `watchTarget`, `currentRun`, the run's line and `WATCH_HELP` as it was (`commands/watch.ts`) | `lab/src/commands/watch.ts` |
+
+**Files split, and where each half is.**
+
+- `packages/cli/src/commands/watch.ts`: the server, the sessions and the map stay; which run a folder means is the lab's (`lab/src/commands/watch.ts`). The product's `startWatch` and `watchCommand` take one optional argument, `follow`, that `grooph` never passes; the lab's `watch` passes it. So there is one server.
+- `packages/cli/src/commands/share.ts` and `embed.ts`: each takes one optional argument, a document already read, that `grooph` never passes. The lab reads a run folder into a bundle and hands it over (`runIn` in `lab/src/index.ts`).
+- `packages/cli/src/commands/help.ts`: what is said of the commands that stay, stays; the rest is `lab/src/help.ts`. `nearestCommand` takes a list, so the lab's "did you mean" still knows `export`.
+- `packages/cli/src/commands/export.ts`: **not moved yet.** The MCP tool `grooph_export` (`mcp-author.ts:78`) imports fourteen names from it, and that tool leaves in pull request 3. Nothing in the product's command line reaches it. Two helpers changed hands on the way: `shellWord`, which `plan` uses, is in `reply.ts`; `NOT_JUDGED`, which `adopt`, `export` and the MCP tool say, is defined in `export.ts` until that file moves.
+
+**The tests: split, each test living once.** No test file moved whole. A test that needs `export`, `adopt`, `runs`, `watch` with a folder, or `share` or `embed` of a run folder moved to `lab/test/` under its file's name and runs against the lab's command; the rest stayed. A test that mixed both was cut in two, or moved whole where its halves do not come apart.
+
+| File (`packages/cli/test/`) | Moved to `lab/test/` | Stayed | Cut in two |
+|---|---|---|---|
+| `cli.test.ts` | 7 (the six of export, and validate of a run's working copy) | 17 | "bad invocations fail with usage" (export's three lines) |
+| `export-brakes.test.ts` | 15 | 1, and a new half: no command of grooph's writes a kept graph, on a kept graph placed by hand | |
+| `friction.test.ts` | 1 | 11 | the overview and every command's page; what comes next at a terminal |
+| `map.test.ts` | 1 | 6 | |
+| `plan.test.ts` | 1 | 11 | the kept graph and the package beside it; a person's step and export; a plan template and export |
+| `runs.test.ts` | 23 (runs, adopt, share of a run folder, watch of a run) | 1, and two new halves: what `grooph watch` prints, and the sessions it serves | |
+| `third-pass.test.ts` | 6, whole (four also call the MCP tool, through `@grooph/cli/mcp`) | 15 (every one that reaches export only through the tool) | |
+| `template.test.ts`, `embed.test.ts` | | all | one each: export of a filled template; embed of a run folder |
+| `share.test.ts` | | all, with the pick's `next:` line now asserted absent | |
+| `codex-tiers.test.ts`, `mcp-author.test.ts`, `mcp.test.ts`, and eight more | | untouched: they call `exportCommand` or the tool, which move in pull request 3 | |
+
+New: `packages/cli/test/gone.test.ts` (6 tests) is the product's side of criterion 3. In `lab/test/command.test.ts` the comparison with the product is kept for what is still the product's, and the product is shown to answer with its one line for what left.
+
+Counts, built from clean: core 597 before and after; cli 242 to 197; the lab's own 8 to 70; 250 to 267 together. The 17 more: 6 in `gone.test.ts`, 8 lab halves of cut tests, 3 product halves. `packages/cli/test/runs.test.ts` now holds only `watch` tests and `export-brakes.test.ts` only the kept graph's; their names are left for pull request 3, which empties or renames them.
+
+**What was compared with the command as it was.** A scratch build of `da6c3874` (the `main` this slice began from), this pull request's `grooph`, and this pull request's `grooph-lab`, each started as a program on the same fifty invocations and compared by exit code, standard output and standard error (the script is the lane's, `compare.mjs`; its output is in the pull request).
+
+- `grooph-lab`: 48 of 50 the same. The two that differ are `help apply` and `help plan`, the product's own pages, which lost their sentences about `export`.
+- `grooph`: 21 the same, among them every `share` and `embed` of a file (a graph, a proposal set, a run's bundle, an operation map, with flags and with errors: 13 invocations). The 29 that differ are the commands that left, their pages, the overview, a folder given to `share`, `embed` or `watch`, two usage lines, and `help apply` and `help plan`.
+- `watch`, started and stopped in a project with no run, with a run, with `--sessions`, and on a run's own folder: `grooph-lab watch` prints what the old command printed in all five; `grooph watch` prints the sessions' lines without the run's, opens on the sessions, and refuses the folder.
+
+**What this pull request changed outside the command line, in one sentence each.** The MCP tool `grooph_export_plan`'s reply and the `PLAN.md` it returns lost "grooph export writes its package for <harness>." (`mcp-author.ts:956` builds its line with the command's `forAHarness`), and so does the app's plan export (`apps/web/src/doc/plan.ts:17`, through core). The run's endpoint of the product's `watch` answers, as JSON, that no run is followed; the app's run view shows that as its reason.
+
+**What the fresh reader found, at `5022e68e`.** No way for the product to reach export, adoption, a run folder or a followed run (500 invocations), and the lab's dispatcher the same as the old one on the six commands that moved. Wrong: the npm README and the agents' page each still said what `grooph export` does; the kept-graph refusal said "grooph does not write it" while the MCP tool does; the run's endpoint answered as plain text, which makes the app say there is no grooph watch; five reworded sentences were held by no test; and eight claims of the description. All fixed in `7130b18f`, which no reader but the lane has read.
+
+**Left for others, seen on the way.** `README.md:28,31` (the repository's own quickstart ends in `grooph export`); `plugins/grooph/skills/grooph-design/SKILL.md:43` (the design skill's step 7 tells an agent to run `grooph export`; it works only through the MCP tool until pull request 3, and not at all after it, so that step should change no later than pull request 3); `docs/subagents.md:178` and `docs/HANDBACK-operator.md:249` (`grooph watch <run folder>` shows the run view); `packages/cli/scripts/npm-package.mjs:163` (the published package's description says it compiles).
+
+**Why the handoff's order and not the MCP tool first.** With the tool first, each file would move once. The handoff fixes the order and keys the three shared files to pull request 2, and its order already implies `export.ts` stays while the tool does; so the order stands and one file waits.
+
+**Where the lab's command is not, word for word, what `grooph` 0.4.1 was.** In what it does, it is a superset. In what it says, it hands the product's commands on as they are now, so it differs exactly where the product's own words changed. The six pages it answers itself (`export`, `adopt`, `runs`, `watch`, `share`, `embed`), the overview and the "did you mean" are as they were. The fresh reader tried 500 invocations against the build of `da6c3874` and found 27 that differ: `help apply` and `help plan` (6), the plan's second line (5), `template use` with a slot unfilled (3), `pick`, whose `next: grooph export …` line went to a pipe as well as a terminal (2), the kept-graph refusal (6), and five odd names (`help constructor`, `toString -h`) that the old command answered with a function's text and the lab calls unknown. Two of these were true of the lab and are no longer said by it: `pick`'s next step, and that `grooph export` writes a kept graph. In a lab run, where the lab's command is on the path as `grooph`, a lead that tries to write the kept graph is now told "No command of grooph's writes it", though `export` there does. Whether the lab should say the old words is the owner's to decide; it would take the lab answering `pick`, `plan`, `apply` and `template` itself.
+
 ## Where `INVENTORY.md` was wrong, so far
 
 - §5, row 1 lists `experiments/game/setup/make-repo.sh:62-71` and the game's README for pull request 1. Lines 62 to 64 name the compiler's folder, which is still `packages/` until pull request 5; and the driver moved the script's change to pull request 2.
 - §5, row 1, "the five untested-in-CI runner tests may already be red *(inferred)*": they are green.
+- §5, row 2 misses `apps/web/e2e/adopt-brakes.spec.ts:360`, which starts the product's `adopt` as a program, so CI's browser job fails the moment `adopt` leaves the command line. Pull request 2 points that one line at the lab's command; pull request 4 parks the spec.
+- §5 puts `scripts/kit-check.sh:47` and the chat skill's last step in pull request 3 (the MCP server). Both name the command line's `export`, which the skill's script loses in pull request 2, so they changed there.
+- §4's row for the CLI reference names `docs/cli.md`'s opening sentence ("compiles") and not where it is written: `scripts/cli-reference.mjs:58`, the generator's own text.
+- §2 edge 10 says the product's `watch` "serves sessions and map only". It does; and `--sessions`, which chose the sessions over a run, is still taken and now changes nothing, since decision 0032 lists `watch --sessions` among what stays and `scripts/pack-check.sh` starts it that way.

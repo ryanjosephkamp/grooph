@@ -1,26 +1,28 @@
 /**
- * `grooph runs | adopt | share <run dir> | watch` (docs/runs.md §3), on copies
- * of the run folders in fixtures/runs/: the real record of slice 0007's run
- * and the synthetic ones. `watch` is started on a free port against a copy
- * that the test appends to, and serves a stand-in app, so these tests do not
- * depend on the web build.
+ * `grooph watch` (docs/subagents.md §6): the sessions the event hook recorded, served to this machine's browser.
+ * It is started on a free port in a scratch project and serves a stand-in app, so these tests do not depend on the
+ * web build.
+ *
+ * This file was `grooph runs | adopt | share <run dir> | watch`. Those tests moved to lab/test/runs.test.ts when the
+ * commands left this command line for the lab's (slice 0103), with every test of `watch` that follows a run. What is
+ * here is what `grooph watch` does with no run to follow, in its own words: the two tests marked "the product's half"
+ * are the parts of two of the moved tests that need no run folder, on `startWatch({ root })` and `grooph watch` with
+ * no folder.
  */
 
 import assert from "node:assert/strict";
-import { appendFileSync, copyFileSync, cpSync, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { request } from "node:http";
 import { tmpdir } from "node:os";
-import { dirname, join, relative } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { canonicalize, decodeSharePayload, parseGraphText, parseRunBundleText, sharePayloadFrom, summarizeRun, type Graph, type LiveView, type RunBundle } from "@grooph/core";
+import type { LiveView } from "@grooph/core";
 
-import { ENDPOINT, LIVE_ENDPOINT, findWebDist, startWatch, watchTarget } from "../src/commands/watch.js";
-import { NOT_JUDGED } from "../src/commands/adopt.js";
+import { ENDPOINT, LIVE_ENDPOINT, NO_RUN, findWebDist, startWatch } from "../src/commands/watch.js";
 import { run, type CliEnv } from "../src/index.js";
 import type { Output } from "../src/print.js";
-import { inflateRaw } from "../src/share-io.js";
 
 const repoRoot = (() => {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -30,8 +32,6 @@ const repoRoot = (() => {
   }
   throw new Error("workspace root not found");
 })();
-const runsFixtures = join(repoRoot, "fixtures", "runs");
-const REAL = "20260919-0057-66c8";
 
 type Capture = Output & { stdout: string[]; stderr: string[] };
 const capture = (): Capture => {
@@ -42,599 +42,23 @@ const capture = (): Capture => {
 const text = (lines: string[]): string => lines.join("\n");
 const grooph = (argv: string[], io = capture(), env: Partial<CliEnv> = {}) => run(argv, io, () => "", { openUrl: async () => {}, ...env });
 
-/** A project with `.grooph/<graph-id>/` copied from fixtures/runs/ for each graph named. */
-function project(...graphs: string[]): string {
-  const dir = mkdtempSync(join(tmpdir(), "grooph-runs-test-"));
-  for (const graph of graphs) cpSync(join(runsFixtures, graph), join(dir, ".grooph", graph), { recursive: true });
+/** A project with nothing recorded in it. `.grooph/` is there, so that this folder is the project and no folder above it is. */
+function emptyProject(): string {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "grooph-watch-test-")));
+  mkdirSync(join(dir, ".grooph"));
   return dir;
 }
-const runDir = (dir: string, graph: string): string => {
-  const runs = join(dir, ".grooph", graph, "runs");
-  return join(runs, readdirSync(runs)[0]!);
-};
-const readGraph = (path: string): Graph => parseGraphText(readFileSync(path, "utf8")).doc!;
 
-/** Every file under `dir` with its contents, to prove a command wrote nothing. */
-function tree(dir: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  const walk = (d: string): void => {
-    for (const name of readdirSync(d).sort()) {
-      const full = join(d, name);
-      if (statSync(full).isDirectory()) walk(full);
-      else out[relative(dir, full)] = readFileSync(full, "utf8");
-    }
-  };
-  walk(dir);
-  return out;
+/** Runs `body` from inside `dir`: `grooph watch` serves the project it is run in, and takes no folder. */
+async function inFolder<T>(dir: string, body: () => Promise<T>): Promise<T> {
+  const before = process.cwd();
+  process.chdir(dir);
+  try {
+    return await body();
+  } finally {
+    process.chdir(before);
+  }
 }
-
-// ─── runs list · show · bundle ────────────────────────────────────────────
-
-test("runs list: every run under a project, newest first, with state, rounds and the last stop", async () => {
-  const dir = project("slice-0007-sandwich", "run-gate", "run-nested");
-  try {
-    const io = capture();
-    assert.equal(await grooph(["runs", "list", dir], io), 0);
-    assert.deepEqual(io.stdout.map((l) => l.split(/\s{3,}/)), [
-      ["RUN", "GRAPH", "STATE", "ROUNDS", "STOP"],
-      ["20260919-1300-nest", "run-nested", "running", "grind 0 · phases 1", "grind: pass · phases: none fired"],
-      ["20260919-1200-gate", "run-gate", "halted", "0", "bar passed"],
-      [REAL, "slice-0007-sandwich", "ended · pass", "1", "bar passed"],
-    ]);
-    // A graph folder lists its own runs; an empty folder says there are none.
-    const one = capture();
-    await grooph(["runs", "list", join(dir, ".grooph", "run-gate")], one);
-    assert.equal(one.stdout.length, 2);
-    const none = capture();
-    assert.equal(await grooph(["runs", "list", mkdtempSync(join(tmpdir(), "grooph-empty-"))], none), 0);
-    assert.match(text(none.stdout), /^no runs under/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("runs show: states, loops, the three changes tied to n-0002, the proposal, the timeline", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const io = capture();
-    assert.equal(await grooph(["runs", "show", runDir(dir, "slice-0007-sandwich")], io), 0);
-    const out = text(io.stdout);
-    assert.match(out, /^Run 20260919-0057-66c8 · Slice 0007 sandwich \(slice-0007-sandwich\)\n  ended · pass · started 2026-09-19T04:57:20Z · ended 2026-09-19T05:38:15Z/);
-    assert.match(out, /cost noted: 26 minutes · 31 turns/);
-    assert.match(out, /builder {2}passed {3}2 runs · round 1 · last pass \(done\)/);
-    assert.match(out, /sandwich {2}round 1 · bar passed fired \(n-0012\)/);
-    assert.match(out, /Changed the graph's other limits \(constraints\.other\) {2}← n-0002\n {2}Changed the outputs of Builder \(builder\) {2}← n-0002\n {2}Changed the outputs of Critic \(critic\) {2}← n-0002/);
-    assert.match(out, /n-0008 · edge:e-checks-critic · let the critic also read/);
-    assert.match(out, /patch: 1 grooph op \(updateEdge\); grooph apply can replay it/);
-    assert.equal(io.stdout.filter((l) => /^ {2}n-00\d\d {2}/.test(l)).length, 15);
-
-    const json = capture();
-    assert.equal(await grooph(["runs", "show", runDir(dir, "slice-0007-sandwich"), "--json"], json), 0);
-    const data = JSON.parse(text(json.stdout));
-    assert.equal(data.summary.state, "ended");
-    assert.equal(data.exact, true);
-    assert.deepEqual(data.changes.map((c: { op: { op: string }; explainedBy: string[] }) => [c.op.op, c.explainedBy]), [
-      ["setConstraint", ["n-0002"]],
-      ["updateNode", ["n-0002"]],
-      ["updateNode", ["n-0002"]],
-    ]);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("runs show lists the lines it could not read; runs bundle writes the run as one file", async () => {
-  const dir = project("run-malformed");
-  try {
-    const io = capture();
-    assert.equal(await grooph(["runs", "show", runDir(dir, "run-malformed")], io), 0);
-    assert.match(text(io.stdout), /Lines of notes\.jsonl that could not be read \(2\)\n {2}line 3: not JSON/);
-
-    const out = join(dir, "bundle.grooph-run.json");
-    const written = capture();
-    assert.equal(await grooph(["runs", "bundle", runDir(dir, "run-malformed"), "--out", out], written), 0);
-    assert.match(text(written.stdout), /^wrote .*bundle\.grooph-run\.json \(run 20260919-1000-bad1, 3 notes, \d+ KB\)/);
-    const parsed = parseRunBundleText(readFileSync(out, "utf8"));
-    assert.ok(parsed.bundle);
-    assert.equal(parsed.bundle.run, "20260919-1000-bad1");
-    assert.deepEqual(parsed.bundle.issues!.map((i) => i.line), [3, 4]);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("runs: a folder that is not a run, or no subcommand, is a usage error, not a crash", async () => {
-  const bad = capture();
-  assert.equal(await grooph(["runs", "show", join(runsFixtures, "nowhere")], bad), 1);
-  assert.match(text(bad.stderr), /is not a folder/);
-  const noWorking = mkdtempSync(join(tmpdir(), "grooph-norun-"));
-  mkdirSync(join(noWorking, ".grooph", "g", "runs", "r1"), { recursive: true });
-  writeFileSync(join(noWorking, ".grooph", "g", "runs", "r1", "notes.jsonl"), "");
-  writeFileSync(join(noWorking, ".grooph", "g", "graph.grooph.json"), readFileSync(join(runsFixtures, "run-live", "graph.grooph.json")));
-  const early = capture();
-  assert.equal(await grooph(["runs", "show", join(noWorking, ".grooph", "g", "runs", "r1")], early), 1);
-  assert.match(text(early.stderr), /does not exist yet: the lead writes the working copy at kickoff/);
-  const usage = capture();
-  assert.equal(await grooph(["runs"], usage), 1);
-  assert.match(text(usage.stderr), /runs needs list, show or bundle/);
-  const help = capture();
-  assert.equal(await grooph(["runs", "--help"], help), 0);
-  assert.match(text(help.stdout), /^grooph runs list/);
-  rmSync(noWorking, { recursive: true, force: true });
-});
-
-// ─── adopt ────────────────────────────────────────────────────────────────
-
-test("adopt shows the diff and writes nothing; --write makes version 2, the same in meaning as the driver's by hand", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const run = runDir(dir, "slice-0007-sandwich");
-    const sourcePath = join(dir, ".grooph", "slice-0007-sandwich", "graph.grooph.json");
-    const source = readFileSync(sourcePath, "utf8");
-    const target = join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json");
-
-    const dry = capture();
-    assert.equal(await grooph(["adopt", run], dry), 0);
-    assert.match(text(dry.stdout), /Changed the outputs of Critic \(critic\) {2}← n-0002/);
-    assert.match(text(dry.stdout), /version 2 of slice-0007-sandwich, from slice-0007-sandwich@1 and run 20260919-0057-66c8, would go to .*graphs\/slice-0007-sandwich\.grooph\.json\ndry run: --write writes it/);
-    assert.equal(existsSync(target), false);
-
-    const io = capture();
-    assert.equal(await grooph(["adopt", run, "--write"], io), 0);
-    assert.match(text(io.stdout), /wrote .*slice-0007-sandwich\.grooph\.json \(version 2\); the source .* is unchanged/);
-    assert.equal(readFileSync(sourcePath, "utf8"), source);
-    const adopted = readGraph(target);
-    const byHand = readGraph(join(runsFixtures, "slice-0007-sandwich.adopted-by-hand.grooph.json"));
-    const aside = (g: Graph) => canonicalize({ ...g, description: undefined, lineage: { ...g.lineage, from: undefined } } as Graph);
-    assert.equal(aside(adopted), aside(byHand));
-    assert.equal(adopted.version, 2);
-    assert.equal(adopted.lineage?.from, "slice-0007-sandwich@1");
-    assert.equal(readFileSync(target, "utf8"), canonicalize(adopted), "written in canonical form");
-
-    const again = capture();
-    assert.equal(await grooph(["adopt", run, "--write"], again), 0);
-    assert.match(text(again.stdout), /already holds exactly this version; nothing to do/);
-
-    // Someone edits the adopted file: adopting over it is refused.
-    writeFileSync(target, canonicalize({ ...adopted, description: "edited since" }));
-    const over = capture();
-    assert.equal(await grooph(["adopt", run, "--write"], over), 1);
-    assert.match(text(over.stderr), /holds version 2, which is not the version 1 this run started from/);
-
-    // --into writes elsewhere.
-    const into = join(dir, "v2.grooph.json");
-    assert.equal(await grooph(["adopt", run, "--into", into, "--write"], capture()), 0);
-    assert.equal(readGraph(into).version, 2);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("adopt --write is refused when the source moved on after the run started", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const sourcePath = join(dir, ".grooph", "slice-0007-sandwich", "graph.grooph.json");
-    writeFileSync(sourcePath, canonicalize({ ...readGraph(sourcePath), version: 2 }));
-    const io = capture();
-    assert.equal(await grooph(["adopt", runDir(dir, "slice-0007-sandwich"), "--write"], io), 1);
-    assert.match(text(io.stdout), /note: the source is version 2, but this run worked on version 1/);
-    assert.match(text(io.stderr), /not written: this run worked on version 1, but the source is now version 2/);
-    assert.equal(existsSync(join(dir, ".grooph", "graphs")), false);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("adopt refuses a working copy with export errors, naming them", async () => {
-  const dir = project("run-broken");
-  try {
-    const io = capture();
-    assert.equal(await grooph(["adopt", runDir(dir, "run-broken"), "--write"], io), 1);
-    assert.match(text(io.stdout), /Added agent node Docs writer \(docs\) {2}← n-0002/);
-    assert.match(text(io.stdout), /not every change is a grooph op; adopting takes the working copy itself/);
-    assert.match(text(io.stderr), /cannot adopt: The working copy has an error that blocks export, so it cannot become version 2 of run-broken/);
-    assert.match(text(io.stderr), /E_DANGLING_REF/);
-    assert.equal(existsSync(join(dir, ".grooph", "graphs")), false);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-/** The run's working copy, changed by `change` as a run might have left it. */
-const amend = (run: string, change: (working: Graph) => void): void => {
-  const path = join(run, "graph.grooph.json");
-  const working = readGraph(path);
-  change(working);
-  writeFileSync(path, canonicalize(working));
-};
-const stopsOf = (doc: Graph): Graph["loops"][number]["stops"] => doc.loops[0]!.stops;
-
-test("adopt refuses a working copy that loosens a brake, names each, and takes it when asked by name (the audit's probe)", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const run = runDir(dir, "slice-0007-sandwich");
-    const target = join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json");
-    // What the audit lane did by hand: the round cap from 5 to 50, the budget from 80 turns to 800.
-    amend(run, (working) => {
-      working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 50 } : stop.kind === "budget" ? { ...stop, limit: 800 } : stop));
-    });
-    const before = tree(dir);
-
-    // Without --write: the same report, and nothing changed.
-    const dry = capture();
-    assert.equal(await grooph(["adopt", run], dry), 0);
-    assert.match(text(dry.stdout), /loosens a brake/);
-    assert.match(text(dry.stdout), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
-    assert.match(text(dry.stdout), /--allow loop:sandwich\.stops/);
-    assert.match(text(dry.stdout), /--write would be refused/);
-    assert.deepEqual(tree(dir), before);
-
-    // With --write: refused, each one named with how to say yes, nothing written.
-    const refused = capture();
-    assert.equal(await grooph(["adopt", run, "--write"], refused), 1);
-    assert.match(text(refused.stderr), /not written: the working copy loosens a brake/);
-    assert.match(text(refused.stdout), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
-    assert.deepEqual(tree(dir), before);
-    assert.equal(existsSync(target), false);
-
-    // The line it prints to adopt on purpose is one it takes, word for word (the app shows the same line).
-    const line = text(refused.stdout).match(/all of them, on purpose: (grooph adopt .*)$/m)![1]!;
-    assert.equal(line, `grooph adopt ${run} --write --allow loop:sandwich.stops`);
-    const again = project("slice-0007-sandwich");
-    try {
-      const other = runDir(again, "slice-0007-sandwich");
-      amend(other, (working) => {
-        working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 50 } : stop.kind === "budget" ? { ...stop, limit: 800 } : stop));
-      });
-      assert.equal(await grooph(line.replace(run, other).split(" ").slice(1), capture()), 0);
-      assert.equal(readGraph(join(again, ".grooph", "graphs", "slice-0007-sandwich.grooph.json")).version, 2);
-    } finally {
-      rmSync(again, { recursive: true, force: true });
-    }
-
-    // A name that is no change of this run is refused, and says so.
-    const wrong = capture();
-    assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.bar"], wrong), 1);
-    assert.match(text(wrong.stderr), /no change named "loop:sandwich\.bar"/);
-    assert.equal(existsSync(target), false);
-
-    // Asked for by name, it is adopted, and the report says what was allowed.
-    const allowed = capture();
-    assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.stops"], allowed), 0);
-    assert.match(text(allowed.stdout), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns {3}\(asked for by name\)/);
-    const adopted = readGraph(target);
-    assert.equal(adopted.version, 2);
-    assert.deepEqual(stopsOf(adopted).map((stop) => (stop.kind === "max-iterations" ? stop.n : stop.kind === "budget" ? stop.limit : undefined)), [undefined, 50, 800]);
-
-    // The next step it prints is the export, and the export holds the package's kept graph to the same brakes: so
-    // the line carries the names again and the project this run's package is in, and is one to run as it stands.
-    const next = text(allowed.stdout).match(/place it for the next run with: (grooph export .*)$/m)![1]!;
-    assert.ok(next.endsWith(" --allow loop:sandwich.stops") && !next.includes("<project>"), next);
-    const kept = join(dir, ".grooph", "slice-0007-sandwich", "graph.grooph.json");
-    // This project holds the graph's folder and its run, and no lead's brief: the package is not what its kept graph
-    // compiles to, so the export first says that nothing can be compared, and waits for the word.
-    const old = capture();
-    assert.equal(await grooph(["export", target, "--target", "claude-code", "--into", dir], old), 1);
-    assert.match(text(old.stderr), /not compared, so nothing was written\. The lead's brief or the mapping notes in the package there are not what the graph it keeps compiles to/);
-    // Against the graph it keeps the change still reads as loosening, and is held by name as well.
-    assert.match(text(old.stderr), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
-    // Brought up to date from its own kept graph, on that word, it is a baseline again.
-    assert.equal(await grooph(["export", kept, "--target", "claude-code", "--into", dir, "--uncompared"], capture()), 0);
-    const keptBefore = readFileSync(kept, "utf8");
-    // Without the name: refused, the same change under the same name with the same reasons, and nothing placed.
-    const bare = capture();
-    assert.equal(await grooph(["export", target, "--target", "claude-code", "--into", dir], bare), 1);
-    assert.match(text(bare.stderr), /1 change in .+ may remove or loosen a brake of the graph the package in .+ keeps, so nothing was written:/);
-    assert.match(text(bare.stderr), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
-    assert.equal(readFileSync(kept, "utf8"), keptBefore);
-    // As printed: placed, and said.
-    const placed = capture();
-    assert.equal(await grooph(next.split(" ").slice(1), placed), 0, text(placed.stderr));
-    assert.match(text(placed.stdout), /may remove or loosen a brake the package there had, and is placed because it was asked for by name \(--allow\):\n {2}loop:sandwich\.stops +raises the round cap from 5 to 50/);
-    assert.equal(text(placed.stdout).split("\n").at(-1), "brakes: placed with 1 change that may remove or loosen a brake the package there had, each asked for by name (--allow) and listed above the kickoff");
-    assert.equal(readGraph(kept).version, 2);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("adopt's next line names a project only when the run is where a package keeps its runs", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    // The same run, copied out from under .grooph: it names no project, and the line leaves a blank to fill.
-    cpSync(join(dir, ".grooph", "slice-0007-sandwich"), join(dir, "fix", "slice-0007-sandwich"), { recursive: true });
-    const runs = join(dir, "fix", "slice-0007-sandwich", "runs");
-    const copy = join(runs, readdirSync(runs)[0]!);
-    amend(copy, (working) => {
-      working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 50 } : stop));
-    });
-    const out = capture();
-    assert.equal(await grooph(["adopt", copy, "--write", "--allow", "loop:sandwich.stops"], out), 0, text(out.stderr));
-    const next = text(out.stdout).match(/place it for the next run with: (grooph export .*)$/m)![1]!;
-    assert.ok(next.endsWith(" --into '<project>' --allow loop:sandwich.stops"), next);
-    assert.ok(!existsSync(join(dir, "fix", ".claude")) && !existsSync(join(dir, ".claude")));
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("adopt never writes the source or the run's working copy, even when --into names one", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const run = runDir(dir, "slice-0007-sandwich");
-    const sourcePath = join(dir, ".grooph", "slice-0007-sandwich", "graph.grooph.json");
-    const before = tree(dir);
-    for (const [path, what] of [[sourcePath, "the source this run started from"], [join(run, "graph.grooph.json"), "the run's working copy"]] as const) {
-      const io = capture();
-      assert.equal(await grooph(["adopt", run, "--write", "--into", path], io), 1);
-      assert.match(text(io.stderr), new RegExp(`--into names ${what} .*which adopt never writes`));
-    }
-    assert.deepEqual(tree(dir), before);
-    // The same file by another name: a symbolic link to it, a hard link, a folder that is a link.
-    const links = mkdtempSync(join(tmpdir(), "grooph-links-"));
-    symlinkSync(sourcePath, join(links, "soft.grooph.json"));
-    linkSync(sourcePath, join(links, "hard.grooph.json"));
-    symlinkSync(dirname(sourcePath), join(links, "folder"));
-    for (const path of [join(links, "soft.grooph.json"), join(links, "hard.grooph.json"), join(links, "folder", "graph.grooph.json")]) {
-      const io = capture();
-      assert.equal(await grooph(["adopt", run, "--write", "--into", path], io), 1, path);
-      assert.match(text(io.stderr), /--into names the source this run started from .*which adopt never writes/);
-    }
-    assert.deepEqual(tree(dir), before);
-    rmSync(links, { recursive: true, force: true });
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("a refused adoption does not say that what tightens is adopted, and lists a change that does both under what it loosens", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const run = runDir(dir, "slice-0007-sandwich");
-    amend(run, (working) => {
-      // The cap lowered and the budget raised in the same field; and an approval added elsewhere.
-      working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 2 } : stop.kind === "budget" ? { ...stop, limit: 800 } : stop));
-      working.edges.find((edge) => edge.id === "e-critic-pass")!.approval = true;
-    });
-    const io = capture();
-    assert.equal(await grooph(["adopt", run, "--write"], io), 1);
-    const out = text(io.stdout);
-    assert.match(out, /loosens a brake[^\n]*\n {2}loop:sandwich\.stops +raises the budget from 80 to 800 turns/);
-    assert.match(out, /\ntightens a brake:\n {2}edge:e-critic-pass\.approval/);
-    assert.doesNotMatch(out, /adopted with the rest/);
-    assert.doesNotMatch(out, /tightens a brake:\n(?: {2}[^\n]*\n)* {2}loop:sandwich\.stops/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("adopt notes, without refusing, a loop whose cap would come to count the rounds between a person's decisions", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const run = runDir(dir, "slice-0007-sandwich");
-    amend(run, (working) => void working.loops[0]!.stops.push({ kind: "human", every: 2, then: "builder" }));
-    const io = capture();
-    assert.equal(await grooph(["adopt", run, "--write"], io), 0);
-    assert.match(text(io.stdout), /\nnote: the loop "sandwich": the round cap \(5\) and the budget \(80 turns\) would count the rounds between two of a person's decisions, and no longer the whole run\. A way round its nodes that they do not count is opened each time by the stop where a person is asked, which continues at "builder"/);
-    assert.doesNotMatch(text(io.stdout), /loosens a brake/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("adopt holds two limits swapped: the one that leads on, put ahead of the one that halts (round two of the audit)", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const run = runDir(dir, "slice-0007-sandwich");
-    const target = join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json");
-    // The graph as the run started from it, with a budget of dispatches that leads on to the end behind its cap of
-    // five rounds and its budget of 80 turns, which both halt. A budget may come due on the pass the cap does.
-    const lead = { kind: "budget", measure: "dispatches", limit: 15, then: "done" } as const;
-    for (const file of [join(dir, ".grooph", "slice-0007-sandwich"), run]) amend(file, (doc) => void stopsOf(doc).push(lead));
-    // The run leaves it ahead of them: the first that fires wins, and at the same pass the first in the list is first.
-    amend(run, (working) => {
-      working.loops[0]!.stops = [stopsOf(working)[0]!, lead, ...stopsOf(working).slice(1, -1)];
-    });
-    const before = tree(dir);
-    const refused = capture();
-    assert.equal(await grooph(["adopt", run, "--write"], refused), 1);
-    assert.match(text(refused.stderr), /not written: the working copy loosens a brake/);
-    assert.match(text(refused.stdout), /loop:sandwich\.stops +the budget of 15 dispatches that leads on to "done" would be moved ahead of the round cap of 5 that halts the run, and could fire on the same pass/);
-    assert.doesNotMatch(text(refused.stdout), /tightens a brake/);
-    assert.deepEqual(tree(dir), before);
-    assert.equal(existsSync(target), false);
-    // Asked for by name it is adopted; and nothing calls it a tightening.
-    const allowed = capture();
-    assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.stops"], allowed), 0);
-    assert.match(text(allowed.stdout), /would be moved ahead of the round cap of 5 that halts the run, and could fire on the same pass {3}\(asked for by name\)/);
-    assert.doesNotMatch(text(allowed.stdout), /tightens a brake/);
-    assert.deepEqual(stopsOf(readGraph(target)).map((stop) => stop.kind), ["bar-passed", "budget", "max-iterations", "budget"]);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("adopt names a new stop the run goes on from without calling it a tightening; one that ends at a stop that halts is a tightening, however it is written", async () => {
-  const sentence = "not judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, where it is new, changed or put ahead, lets a person or a run do what it could not before. A change that brings one is named here and not called a tightening, whatever else it does:";
-  assert.equal(NOT_JUDGED.new, sentence);
-  for (const [stop, above, undoing] of [
-    // A person is asked, and the loop goes on from one of its own steps.
-    [{ kind: "human", every: 2, then: "builder" }, sentence, "removes the stop where a person is asked"],
-    // A budget whose `then` is a stop that halts ends the run there, as one with no `then` does.
-    [{ kind: "budget", measure: "dispatches", limit: 60, then: "failed" }, "tightens a brake, and is adopted with the rest:", "removes the budget (60 dispatches)"],
-  ] as const) {
-    const dir = project("slice-0007-sandwich");
-    try {
-      const run = runDir(dir, "slice-0007-sandwich");
-      // (A stop that halts, to lead to: reached from the critic already, so that nothing is held for the way there.)
-      for (const file of [join(dir, ".grooph", "slice-0007-sandwich"), run]) {
-        amend(file, (doc) => {
-          doc.nodes.push({ id: "failed", kind: "stop", name: "Failed", outcome: "halt" });
-          doc.edges.push({ id: "e-critic-stuck", from: "critic", to: "failed", when: { verdict: "stuck" } });
-        });
-      }
-      amend(run, (working) => void stopsOf(working).push(stop));
-      const io = capture();
-      assert.equal(await grooph(["adopt", run, "--write"], io), 0, text(io.stderr));
-      const lines = text(io.stdout).split("\n");
-      const at = lines.indexOf(above);
-      assert.ok(at >= 0, text(io.stdout));
-      assert.match(lines[at + 1]!, /^ {2}loop:sandwich\.stops +undoing it: /);
-      assert.ok(lines[at + 1]!.endsWith(`undoing it: ${undoing}`), lines[at + 1]);
-      // One or the other, never both.
-      assert.equal(lines.includes(sentence), above === sentence);
-      assert.equal(lines.some((line) => line.startsWith("tightens a brake")), above !== sentence);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  }
-});
-
-test("adopt takes a working copy that tightens a brake, and says which", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const run = runDir(dir, "slice-0007-sandwich");
-    amend(run, (working) => {
-      working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 3 } : stop));
-      working.edges.find((edge) => edge.id === "e-critic-pass")!.approval = true;
-    });
-    const io = capture();
-    assert.equal(await grooph(["adopt", run, "--write"], io), 0);
-    assert.match(text(io.stdout), /tightens a brake, and is adopted with the rest/);
-    assert.match(text(io.stdout), /loop:sandwich\.stops/);
-    assert.match(text(io.stdout), /edge:e-critic-pass\.approval/);
-    assert.doesNotMatch(text(io.stdout), /loosens a brake/);
-    assert.equal(readGraph(join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json")).version, 2);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("adopt names a new step marked irreversible, and an answer a gate did not give, without calling either a tightening", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const run = runDir(dir, "slice-0007-sandwich");
-    // A release gate behind the critic's pass, which is a brake gained; and behind its yes a step told to publish,
-    // which is a thing the run could not do before. Printed under "tightens a brake" until the export door's reader
-    // asked whether that label was true of it.
-    amend(run, (working) => {
-      working.nodes.push(
-        { id: "release-gate", kind: "human-gate", name: "Release", prompt: "Publish this version?", options: ["approve", "reject"] },
-        { id: "ship", kind: "agent", name: "Ship", role: "builder", brief: "Run `npm publish`, once.", outputs: ["SHIP.md"], allow: ["read-files", "run-commands", "write-outputs"], irreversible: ["publishes the package to npm"] },
-        { id: "held", kind: "stop", name: "Held", outcome: "halt" },
-      );
-      working.edges.find((edge) => edge.id === "e-critic-pass")!.to = "release-gate";
-      working.edges.push(
-        { id: "e-gate-ship", from: "release-gate", to: "ship", when: "pass" },
-        { id: "e-gate-held", from: "release-gate", to: "held", when: "fail" },
-        { id: "e-ship-done", from: "ship", to: "done" },
-      );
-    });
-    const io = capture();
-    assert.equal(await grooph(["adopt", run, "--write"], io), 0, text(io.stdout) + text(io.stderr));
-    const out = text(io.stdout);
-    assert.match(out, /\ntightens a brake, and is adopted with the rest:\n(?: {2}[^\n]*\n)*? {2}node:release-gate +undoing it: removes a human gate/);
-    assert.match(out, /\nnot judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, where it is new, changed or put ahead, lets a person or a run do what it could not before\. A change that brings one is named here and not called a tightening, whatever else it does:\n {2}node:ship +undoing it: removes a node marked irreversible \(publishes the package to npm\)/);
-    assert.doesNotMatch(out, /tightens a brake[^\n]*\n(?: {2}[^\n]*\n)* {2}node:ship /);
-    assert.doesNotMatch(out, /loosens a brake/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-test("A-019: the audit lane's two check cases, and the two its reader got through the first cut, on the kept grind-loop record, through the command, are refused by name", async () => {
-  // As experiments/audits/0001-claims-as-of-0-3-0/tools/check-through-command.sh sets them up: the proving record's
-  // package graph as the source, its run folder beside it, and the working copy changed by hand.
-  const record = join(repoRoot, "experiments", "patterns", "grind-loop", "run");
-  const cases: [string, (working: Graph) => void, string[], RegExp][] = [
-    ["the check made to pass always", (w) => {
-      const tests = w.nodes.find((n) => n.kind === "check")! as Extract<Graph["nodes"][number], { kind: "check" }>;
-      tests.check = { ...tests.check, run: "true", pass: "exit code 0" };
-    }, ["node:tests.check"], /node:tests\.check +changes the check's definition \(run, pass\)/],
-    ["its two verdicts swapped", (w) => {
-      for (const edge of w.edges) if (edge.from === "tests") edge.when = edge.when === "pass" ? "fail" : edge.when === "fail" ? "pass" : edge.when;
-    }, ["edge:e-tests-fail.when", "edge:e-tests-pass.when"], /a way into "done" that does not pass "pass" from the check "tests"/],
-    // The reader of this change: a failure led to a second stop that ends in success, and passing to the first by a
-    // new edge that asks a person. The first cut printed all three under "tightens a brake" and wrote version 2.
-    ["a failure led to a stop of its own that ends in success", (w) => {
-      w.nodes.push({ id: "done-too", kind: "stop", name: "Done too", outcome: "success" });
-      Object.assign(w.edges.find((edge) => edge.id === "e-tests-pass")!, { when: "fail", to: "done-too" });
-      w.edges.push({ id: "e-tests-passed", from: "tests", to: "done", when: "pass", approval: true });
-    }, ["edge:e-tests-pass.to", "edge:e-tests-pass.when", "edge:e-tests-passed"], /edge:e-tests-pass\.when +.*changes "e-tests-pass", an edge that leaves the check "tests" \(when\)/],
-    // And a bar of the builder's own word, with a stop that leads on when it is passed.
-    ["the loop given a bar and a stop on it", (w) => {
-      w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
-      w.loops[0]!.stops.unshift({ kind: "bar-passed", then: "done" });
-      // (Held twice over since stops are compared as a run fires them: no critic of the loop's gives that verdict.)
-    }, ["loop:grind.stops", "loop:grind.bar"], /loop:grind\.stops +the stop on "bar passed" that leads on to "done" would come into the loop, and could fire before the round cap of 5 that halts the run; a stop of the loop would lead on to "done", a way that does not pass the check "tests"/],
-    // The driver's reader: the check under another id, with a bar put round it. One name is held, its line shows
-    // the check that comes in, and the bar is listed by name as not judged, where it was printed as a tightening.
-    ["the check under another id, with a bar given to its loop", (w) => {
-      const check = w.nodes.find((n) => n.id === "tests")!;
-      check.id = "test-suite";
-      for (const edge of w.edges) Object.assign(edge, { from: edge.from === "tests" ? "test-suite" : edge.from, to: edge.to === "tests" ? "test-suite" : edge.to });
-      w.loops[0]!.members = w.loops[0]!.members.map((member) => (member === "tests" ? "test-suite" : member));
-      w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
-    }, ["node:tests"], /node:tests +removes a check, while a check the graph has not comes in \("test-suite": runs "npm test"[\s\S]*\nnot judged: with a check removed in this copy, no change is called a tightening\.[\s\S]*\n  loop:grind\.bar +undoing it: removes the loop's bar/],
-  ];
-  for (const [what, change, allow, said] of cases) {
-    const dir = mkdtempSync(join(tmpdir(), "grooph-check-brake-"));
-    try {
-      mkdirSync(join(dir, ".grooph", "g", "runs"), { recursive: true });
-      copyFileSync(join(record, "package", "graph.grooph.json"), join(dir, ".grooph", "g", "graph.grooph.json"));
-      cpSync(join(record, "runs"), join(dir, ".grooph", "g", "runs"), { recursive: true });
-      const run = join(dir, ".grooph", "g", "runs", readdirSync(join(dir, ".grooph", "g", "runs"))[0]!);
-      amend(run, change);
-      const target = join(dir, "adopted.grooph.json");
-      const refused = capture();
-      assert.equal(await grooph(["adopt", run, "--write", "--into", target], refused), 1, what);
-      assert.match(text(refused.stdout), said, what);
-      assert.match(text(refused.stderr), /not written: the working copy loosens a brake/, what);
-      assert.equal(existsSync(target), false, what);
-      // Asked for by each name, it is written: the person who means it can say so.
-      assert.equal(await grooph(["adopt", run, "--write", "--into", target, ...allow.flatMap((name) => ["--allow", name])], capture()), 0, what);
-      assert.equal(readGraph(target).version, 2, what);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  }
-});
-
-// ─── share <run dir> ──────────────────────────────────────────────────────
-
-test("share <run dir> prints a kind run link that decodes to the bundle; --out writes the bundle", async () => {
-  const dir = project("slice-0007-sandwich");
-  try {
-    const out = join(dir, "run.grooph-run.json");
-    const io = capture();
-    assert.equal(await grooph(["share", runDir(dir, "slice-0007-sandwich"), "--out", out], io), 0);
-    assert.match(io.stdout[0]!, /^run 20260919-0057-66c8 · Slice 0007 sandwich \(slice-0007-sandwich\) · ended · pass$/);
-    assert.match(io.stdout[1]!, /15 notes · 1 amendment · 1 proposal/);
-    const link = io.stdout.filter((l) => l.startsWith("https://")).at(-1)!;
-    assert.ok(link.length < 32_000, `link is ${link.length} characters`);
-    const opened = decodeSharePayload(sharePayloadFrom(link)!, inflateRaw);
-    assert.ok(opened.ok);
-    assert.equal(opened.envelope.kind, "run");
-    const bundle = opened.envelope.doc as RunBundle;
-    assert.equal(bundle.run, REAL);
-    assert.equal(bundle.notes.length, 15);
-    assert.equal(summarizeRun(bundle.notes, bundle.working).state, "ended");
-    assert.deepEqual(parseRunBundleText(readFileSync(out, "utf8")).bundle, bundle);
-
-    // The bundle file shares the same way.
-    const again = capture();
-    assert.equal(await grooph(["share", out], again), 0);
-    assert.equal(again.stdout.filter((l) => l.startsWith("https://")).at(-1), link);
-
-    const notRun = capture();
-    assert.equal(await grooph(["share", join(dir, ".grooph")], notRun), 1);
-    assert.match(text(notRun.stderr), /is a folder but not a run folder/);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-// ─── watch ────────────────────────────────────────────────────────────────
 
 /** A stand-in for the built app: enough to prove what is served and from where. */
 function fakeDist(): string {
@@ -659,84 +83,7 @@ function get(port: number, path: string, options: { host?: string; method?: stri
   });
 }
 
-const line = (fields: Record<string, unknown>): string => `${JSON.stringify({ run: "20260919-1100-live", ...fields })}\n`;
-
-test("watch serves the app and the run, re-read from disk on every request, and writes nothing", async () => {
-  const dir = project("run-live");
-  const dist = fakeDist();
-  const run = runDir(dir, "run-live");
-  const watcher = await startWatch({ target: watchTarget(run), webDist: dist, port: 0, host: "127.0.0.1" });
-  try {
-    assert.match(watcher.url, /^http:\/\/127\.0\.0\.1:\d+\/grooph\/#\/run\?live$/);
-    const first = await get(watcher.port, ENDPOINT);
-    assert.equal(first.status, 200);
-    assert.equal(first.headers["cache-control"], "no-store");
-    const before = parseRunBundleText(first.body).bundle!;
-    assert.equal(summarizeRun(before.notes, before.working).nodes["critic"]!.state, "running");
-
-    // The lead appends; the next request sees it.
-    appendFileSync(join(run, "notes.jsonl"), line({ id: "n-0005", at: "node:critic", ended: "2026-09-19T11:12:00Z", outcome: "pass", verdict: "pass", round: 0 }));
-    appendFileSync(join(run, "notes.jsonl"), line({ id: "n-0006", at: "loop:review-cycle", outcome: "pass", round: 0, text: "bar passed fires" }));
-    const after = parseRunBundleText((await get(watcher.port, ENDPOINT)).body).bundle!;
-    const summary = summarizeRun(after.notes, after.working);
-    assert.equal(summary.nodes["critic"]!.state, "passed");
-    assert.equal(summary.loops["review-cycle"]!.lastStop?.fired, "bar-passed");
-    const snapshot = tree(dir);
-
-    // The app, and nothing outside it.
-    const index = await get(watcher.port, "/grooph/");
-    assert.equal(index.status, 200);
-    assert.match(index.headers["content-type"] as string, /^text\/html/);
-    assert.equal((await get(watcher.port, "/grooph/assets/app.js")).headers["content-type"], "text/javascript; charset=utf-8");
-    const root = await get(watcher.port, "/");
-    assert.equal(root.status, 302);
-    assert.equal(root.headers["location"], "/grooph/#/run?live");
-    assert.equal((await get(watcher.port, "/grooph/%2e%2e/%2e%2e/etc/passwd")).status, 404);
-    assert.equal((await get(watcher.port, "/grooph/..%2fpackage.json")).status, 404);
-    assert.equal((await get(watcher.port, "/elsewhere")).status, 404);
-    assert.equal((await get(watcher.port, ENDPOINT, { method: "POST" })).status, 405);
-    assert.equal((await get(watcher.port, ENDPOINT, { method: "HEAD" })).status, 200);
-    // Bound to this machine, it answers only to this machine's names (no DNS rebinding).
-    assert.equal((await get(watcher.port, ENDPOINT, { host: "evil.example:80" })).status, 421);
-    assert.equal((await get(watcher.port, ENDPOINT, { host: `localhost:${watcher.port}` })).status, 200);
-
-    assert.deepEqual(tree(dir), snapshot, "serving wrote nothing");
-  } finally {
-    await watcher.close();
-    rmSync(dir, { recursive: true, force: true });
-    rmSync(dist, { recursive: true, force: true });
-  }
-});
-
-test("watch on a graph folder follows the newest run, and says so while there is none", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "grooph-watch-graph-"));
-  const dist = fakeDist();
-  const graphDir = join(dir, ".grooph", "run-live");
-  mkdirSync(graphDir, { recursive: true });
-  cpSync(join(runsFixtures, "run-live", "graph.grooph.json"), join(graphDir, "graph.grooph.json"));
-  const watcher = await startWatch({ target: watchTarget(graphDir), webDist: dist, port: 0, host: "127.0.0.1" });
-  try {
-    const empty = await get(watcher.port, ENDPOINT);
-    assert.equal(empty.status, 404);
-    assert.match(JSON.parse(empty.body).error, /no runs under .* yet/);
-
-    cpSync(join(runsFixtures, "run-live", "runs"), join(graphDir, "runs"), { recursive: true });
-    assert.equal(parseRunBundleText((await get(watcher.port, ENDPOINT)).body).bundle!.run, "20260919-1100-live");
-
-    // A later run starts: the endpoint follows it.
-    const next = join(graphDir, "runs", "20260919-1500-next");
-    mkdirSync(next);
-    cpSync(join(graphDir, "graph.grooph.json"), join(next, "graph.grooph.json"));
-    writeFileSync(next + "/notes.jsonl", line({ id: "n-0001", run: "20260919-1500-next", at: "graph", started: "2026-09-19T15:00:00Z", text: "run started" }));
-    assert.equal(parseRunBundleText((await get(watcher.port, ENDPOINT)).body).bundle!.run, "20260919-1500-next");
-  } finally {
-    await watcher.close();
-    rmSync(dir, { recursive: true, force: true });
-    rmSync(dist, { recursive: true, force: true });
-  }
-});
-
-async function watchUntilListening(argv: string[], env: NodeJS.ProcessEnv, endpoint: string = ENDPOINT): Promise<{ io: Capture; code: number }> {
+async function watchUntilListening(argv: string[], env: NodeJS.ProcessEnv): Promise<{ io: Capture; code: number }> {
   const io = capture();
   const stop = new AbortController();
   const running = grooph(argv, io, { signal: stop.signal, env });
@@ -744,29 +91,33 @@ async function watchUntilListening(argv: string[], env: NodeJS.ProcessEnv, endpo
   const url = io.stdout.find((l) => l.startsWith("open http"))?.slice("open ".length);
   if (url) {
     const port = Number(new URL(url).port);
-    assert.equal((await get(port, endpoint)).status, 200);
+    assert.equal((await get(port, LIVE_ENDPOINT)).status, 200);
   }
   stop.abort();
   return { io, code: await running };
 }
 
-test("grooph watch prints where to look; with --host it warns that the network can read the run", async () => {
-  const dir = project("run-live");
+// The product's half of "grooph watch prints where to look; with --host it warns that the network can read the run"
+// (lab/test/runs.test.ts), with no run: the last line and the warning say the events and these sessions, and no more.
+test("grooph watch prints where to look; with --host it warns that the network can read the sessions", async () => {
+  const dir = emptyProject();
   const dist = fakeDist();
   try {
-    const local = await watchUntilListening(["watch", runDir(dir, "run-live"), "--port", "0"], { GROOPH_WEB_DIST: dist });
+    const local = await inFolder(dir, () => watchUntilListening(["watch", "--port", "0"], { GROOPH_WEB_DIST: dist }));
     assert.equal(local.code, 0);
-    assert.match(text(local.io.stdout), /watching .*20260919-1100-live: running\nsessions: none recorded under .*\.grooph\/events\/ yet \(grooph hooks install records them\)\nopen http:\/\/127\.0\.0\.1:\d+\/grooph\/#\/run\?live\nread-only/);
+    assert.match(
+      text(local.io.stdout),
+      /^sessions: none recorded under .*\.grooph\/events\/ yet \(grooph hooks install records them\)\nopen http:\/\/127\.0\.0\.1:\d+\/grooph\/#\/live\nread-only: re-reads the events on every request and writes nothing\. Ctrl-C stops it\.\nstopped$/,
+    );
     assert.deepEqual(local.io.stderr, []);
     assert.equal(local.io.stdout.at(-1), "stopped");
 
-    const lan = await watchUntilListening(["watch", join(dir, ".grooph", "run-live"), "--port", "0", "--host", "0.0.0.0"], { GROOPH_WEB_DIST: dist });
+    const lan = await inFolder(dir, () => watchUntilListening(["watch", "--port", "0", "--host", "0.0.0.0"], { GROOPH_WEB_DIST: dist }));
     assert.equal(lan.code, 0);
-    assert.match(text(lan.io.stdout), /the newest run under .*run-live\/runs\/ \(now 20260919-1100-live\)/);
-    assert.match(text(lan.io.stderr), /warning: listening on 0\.0\.0\.0, so anyone on this network can read this run and these sessions while watch runs; there is no password\./);
+    assert.match(text(lan.io.stderr), /warning: listening on 0\.0\.0\.0, so anyone on this network can read these sessions while watch runs; there is no password\./);
 
     const unbuilt = capture();
-    assert.equal(await grooph(["watch", runDir(dir, "run-live"), "--port", "0"], unbuilt, { env: { GROOPH_WEB_DIST: join(dist, "nope") }, signal: AbortSignal.abort() }), 1);
+    assert.equal(await grooph(["watch", "--port", "0"], unbuilt, { env: { GROOPH_WEB_DIST: join(dist, "nope") }, signal: AbortSignal.abort() }), 1);
     assert.match(text(unbuilt.stderr), /the web app is not built/);
     const badPort = capture();
     assert.equal(await grooph(["watch", "--port", "http"], badPort), 1);
@@ -777,16 +128,27 @@ test("grooph watch prints where to look; with --host it warns that the network c
   }
 });
 
-test("watch serves the sessions the event hook recorded: the project's own, more with --events, and the run's nodes as the hooks saw them", async () => {
-  const dir = project("run-live");
+// The product's half of "watch serves the sessions the event hook recorded: the project's own, more with --events, and
+// the run's nodes as the hooks saw them" (lab/test/runs.test.ts), with no run: the bare address is the sessions', and
+// the run's endpoint is not found.
+test("watch serves the sessions the event hook recorded: the project's own, and more with --events", async () => {
+  const dir = emptyProject();
   const dist = fakeDist();
   const eventsFixtures = join(repoRoot, "fixtures", "events");
   const other = mkdtempSync(join(tmpdir(), "grooph-watch-other-"));
   try {
-    // No events yet: the bare address lands on the run, and the sessions are an empty list.
-    let watcher = await startWatch({ target: watchTarget(runDir(dir, "run-live")), webDist: dist, port: 0, host: "127.0.0.1" });
+    // No events yet: the bare address lands on the sessions, and they are an empty list. grooph follows no run.
+    let watcher = await startWatch({ root: dir, webDist: dist, port: 0, host: "127.0.0.1" });
     try {
-      assert.match(watcher.url, /#\/run\?live$/);
+      assert.match(watcher.url, /^http:\/\/127\.0\.0\.1:\d+\/grooph\/#\/live$/);
+      const bare = await get(watcher.port, "/");
+      assert.equal(bare.status, 302);
+      assert.equal(bare.headers["location"], "/grooph/#/live");
+      // The run's endpoint says, as JSON, that no run is followed: the app's run view shows that reason, and not "there is no grooph watch here".
+      const noRun = await get(watcher.port, ENDPOINT);
+      assert.equal(noRun.status, 404);
+      assert.match(String(noRun.headers["content-type"]), /^application\/json/);
+      assert.deepEqual(JSON.parse(noRun.body), { error: NO_RUN });
       const empty = JSON.parse((await get(watcher.port, LIVE_ENDPOINT)).body) as LiveView;
       assert.equal(empty.groophLive, 0);
       assert.deepEqual(empty.sessions, []);
@@ -802,12 +164,11 @@ test("watch serves the sessions the event hook recorded: the project's own, more
       await watcher.close();
     }
 
-    // Several sessions' files merge, each under the name it was given; --sessions lands on them.
+    // Several sessions' files merge, each under the name it was given.
     copyFileSync(join(eventsFixtures, "codex-two-subagents.jsonl"), join(other, "codex.jsonl"));
-    watcher = await startWatch({ target: watchTarget(runDir(dir, "run-live")), webDist: dist, port: 0, host: "127.0.0.1", sessions: true, events: [{ name: "mac-codex", path: other }] });
+    watcher = await startWatch({ root: dir, webDist: dist, port: 0, host: "127.0.0.1", events: [{ name: "mac-codex", path: other }] });
     try {
       assert.match(watcher.url, /#\/live$/);
-      assert.equal((await get(watcher.port, "/")).headers["location"], "/grooph/#/live");
       const both = JSON.parse((await get(watcher.port, LIVE_ENDPOINT)).body) as LiveView;
       assert.deepEqual(both.sessions.map((s) => [s.source, s.harness]).sort(), [[undefined, "claude-code"], ["mac-codex", "codex"]]);
     } finally {
@@ -817,7 +178,7 @@ test("watch serves the sessions the event hook recorded: the project's own, more
     // With --map, the operation map travels with the sessions, read again on each request; a source named for a map session is that session's.
     const mapFile = join(other, "ops.grooph-map.json");
     copyFileSync(join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json"), mapFile);
-    watcher = await startWatch({ target: watchTarget(runDir(dir, "run-live")), webDist: dist, port: 0, host: "127.0.0.1", sessions: true, map: mapFile, events: [{ name: "codex", path: join(other, "codex.jsonl") }] });
+    watcher = await startWatch({ root: dir, webDist: dist, port: 0, host: "127.0.0.1", map: mapFile, events: [{ name: "codex", path: join(other, "codex.jsonl") }] });
     try {
       const withMap = JSON.parse((await get(watcher.port, LIVE_ENDPOINT)).body) as LiveView;
       assert.equal(withMap.map!.id, "ryans-operation-2026-09-30");
@@ -828,19 +189,16 @@ test("watch serves the sessions the event hook recorded: the project's own, more
       await watcher.close();
     }
     const badMap = capture();
-    assert.equal(await grooph(["watch", runDir(dir, "run-live"), "--map", mapFile, "--port", "0"], badMap, { env: { GROOPH_WEB_DIST: dist }, signal: AbortSignal.abort() }), 1);
+    assert.equal(await grooph(["watch", "--map", mapFile, "--port", "0"], badMap, { env: { GROOPH_WEB_DIST: dist }, signal: AbortSignal.abort() }), 1);
     assert.match(text(badMap.stderr), /--map .* is not an operation map grooph can read/);
 
-    // A project with no run at all opens on the sessions.
-    const bare = mkdtempSync(join(tmpdir(), "grooph-watch-bare-"));
+    // Through the command, from a project's folder: the sessions it names with --events, and where to open them.
+    const bare = emptyProject();
     try {
-      watcher = await startWatch({ target: watchTarget(bare), webDist: dist, port: 0, host: "127.0.0.1" });
-      assert.match(watcher.url, /#\/live$/);
-      await watcher.close();
-      const said = await watchUntilListening(["watch", bare, "--port", "0", "--events", `lane-a=${other}`], { GROOPH_WEB_DIST: dist }, LIVE_ENDPOINT);
+      const said = await inFolder(bare, () => watchUntilListening(["watch", "--port", "0", "--events", `lane-a=${other}`], { GROOPH_WEB_DIST: dist }));
       assert.match(text(said.io.stdout), /sessions: 1 recorded, 0 working \(codex · ended · 0 running, 2 done\)\nopen http:\/\/127\.0\.0\.1:\d+\/grooph\/#\/live/);
       const missing = capture();
-      assert.equal(await grooph(["watch", bare, "--events", join(bare, "nope")], missing), 1);
+      assert.equal(await grooph(["watch", "--events", join(bare, "nope")], missing), 1);
       assert.match(text(missing.stderr), /--events .*nope: no such file or folder/);
     } finally {
       rmSync(bare, { recursive: true, force: true });
@@ -852,14 +210,31 @@ test("watch serves the sessions the event hook recorded: the project's own, more
   }
 });
 
-test("watch tells a run folder from a graph folder, even a graph folder inside a folder named runs", () => {
-  assert.equal(watchTarget(join(runsFixtures, "run-live")).kind, "graph");
-  assert.equal(watchTarget(join(runsFixtures, "run-live", "runs", "20260919-1100-live")).kind, "run");
-  assert.equal(watchTarget(runsFixtures).kind, "project");
-});
-
 test("watch finds the built app in this clone when there is one", () => {
   const dist = findWebDist({});
   if (!existsSync(join(repoRoot, "apps", "web", "dist", "index.html"))) return;
   assert.equal(dist, join(repoRoot, "apps", "web", "dist"));
+});
+
+test("in a project that has a run, grooph watch still follows none: the bare address is the sessions', and the run's endpoint says so", async () => {
+  const dir = emptyProject();
+  const dist = fakeDist();
+  try {
+    // The recorded run of slice 0007, placed as a package's run: what `grooph watch` opened on through 0.4.1.
+    cpSync(join(repoRoot, "fixtures", "runs", "slice-0007-sandwich"), join(dir, ".grooph", "slice-0007-sandwich"), { recursive: true });
+    const watcher = await startWatch({ root: dir, webDist: dist, port: 0, host: "127.0.0.1" });
+    try {
+      assert.match(watcher.url, /^http:\/\/127\.0\.0\.1:\d+\/grooph\/#\/live$/);
+      assert.equal((await get(watcher.port, "/")).headers["location"], "/grooph/#/live");
+      const noRun = await get(watcher.port, ENDPOINT);
+      assert.equal(noRun.status, 404);
+      assert.deepEqual(JSON.parse(noRun.body), { error: NO_RUN });
+      assert.doesNotMatch(noRun.body, /20260919-0057-66c8|slice-0007-sandwich/);
+    } finally {
+      await watcher.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(dist, { recursive: true, force: true });
+  }
 });

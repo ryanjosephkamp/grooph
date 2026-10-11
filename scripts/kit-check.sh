@@ -44,7 +44,7 @@ G share flaky.grooph.json | grep >/dev/null '^https://ryanjosephkamp.github.io/g
 G image flaky.grooph.json --out flaky.svg
 head -c 5 flaky.svg | grep >/dev/null "<svg" || fail "image wrote no SVG"
 # Every command the skill's instructions rely on is named in them and is one the script has.
-for command in template new apply validate explain share image plan export; do
+for command in template new apply validate explain share image plan; do
   grep >/dev/null -E "(^|[ \`])$command " "$SKILL/SKILL.md" || fail "the skill's instructions no longer name the command $command"
   G help "$command" >/dev/null || fail "the skill names the command $command, which the script does not have"
 done

@@ -2,6 +2,7 @@
  * `grooph plan` and the tool `grooph_export_plan`: a plan for any document that reads as a graph (handoff 0100).
  * Nothing is refused for a rule; a plan is never a package; a file that is not the plan's is left alone; and the
  * places that only draw, share or pick a document do not call what a package asks for an error of a plan.
+ * What of this needs `export`, which left this command line for the lab's (slice 0103), is in lab/test/plan.test.ts.
  */
 
 import assert from "node:assert/strict";
@@ -13,7 +14,6 @@ import { fileURLToPath } from "node:url";
 
 import { canonicalize, planBundle, type Graph } from "@grooph/core";
 
-import { PLAN_STILL } from "../src/commands/export.js";
 import { isPlanOf } from "../src/commands/plan.js";
 import { run } from "../src/index.js";
 import { handle, toolNames, type McpContext } from "../src/mcp.js";
@@ -97,7 +97,7 @@ test("grooph plan writes the plan's three files for a graph a harness could run,
     assert.equal(ready.err, "");
     assert.deepEqual(ready.out.split(LF).slice(0, 4), [`wrote 3 files into ${join(dir, "review-loop-plan")}`, ...FILES.map((name) => `  ${name}`)]);
     // PLAN.md's own opening, in its order: the plan first, then the harness.
-    assert.deepEqual(ready.out.split(LF).slice(4, 6), ["As a plan for people to read and follow, this is whole.", "A coding harness could run it as it is: nothing in it is in error. grooph export writes its package for claude-code."], ready.out);
+    assert.deepEqual(ready.out.split(LF).slice(4, 6), ["As a plan for people to read and follow, this is whole.", "A coding harness could run it as it is: nothing in it is in error."], ready.out);
     const bundle = planBundle(graph);
     assert.ok(bundle.files["PLAN.md"]!.includes("As a plan for people to read and follow, this is whole. A coding harness could run it as it is: nothing in it is in error."));
     for (const name of FILES) assert.equal(readFileSync(join(dir, "review-loop-plan", name), "utf8"), bundle.files[name], name);
@@ -232,15 +232,15 @@ test("a file in the folder that is not this plan's is left alone until --force: 
 test("grooph plan writes through no link and never the graph a package keeps", async () => {
   await withFolder(async (dir) => {
     const file = put(join(dir, "g.grooph.json"), graph);
-    // A graph whose id is "graph", planned into a package's folder, would be that package's kept graph.
+    // A graph whose id is "graph", planned into a package's folder, would be that package's kept graph. grooph knows
+    // that file by where it is, with a package there or without. (With one in place, which the lab's export puts
+    // there, and nothing of it changed: lab/test/plan.test.ts.)
     const named = put(join(dir, "named.grooph.json"), { ...graph, id: "graph" });
     const project = join(dir, "project");
-    assert.equal((await grooph(["export", file, "--target", "claude-code", "--into", project])).code, 0);
-    const before = tree(project);
     const kept = await grooph(["plan", named, "--into", join(project, ".grooph", "review-loop"), "--force"]);
     assert.equal(kept.code, 1);
-    assert.match(kept.err, /is the graph a package keeps\. Only grooph export writes it/);
-    assert.equal(tree(project), before);
+    assert.match(kept.err, /is the graph a package keeps\. No command of grooph's writes it: what placed the package compares the next graph with it/);
+    assert.equal(existsSync(project), false, "nothing was written");
 
     // A link where a file would go is not written through, with --force or without.
     const into = join(dir, "linked");
@@ -264,28 +264,6 @@ test("grooph plan writes through no link and never the graph a package keeps", a
     }
     assert.equal((await grooph(["plan", file, "--into", join(dir, "repo", ".git", "plan")])).code, 1);
     assert.equal(existsSync(join(dir, "repo")), false);
-  });
-});
-
-test("an export refused for what the graph lacks, or for a harness grooph has no compiler for, ends by naming the plan", async () => {
-  await withFolder(async (dir) => {
-    const file = put(join(dir, "p.grooph.json"), planOnly);
-    const refused = await grooph(["export", file, "--target", "claude-code", "--into", join(dir, "project")]);
-    assert.equal(refused.code, 1);
-    assert.equal(refused.err.split(LF).at(-1), PLAN_STILL(file));
-    assert.equal(existsSync(join(dir, "project")), false);
-    const custom = await grooph(["export", file, "--target", "my-own-harness", "--into", join(dir, "project")]);
-    assert.equal(custom.code, 1);
-    assert.equal(custom.err.split(LF).at(-1), PLAN_STILL(file));
-    // The plan is named only for a file that reads as a graph: not for one that is not there.
-    const missing = await grooph(["export", join(dir, "not-there.grooph.json"), "--target", "my-own-harness", "--into", join(dir, "project")]);
-    assert.equal(missing.code, 1);
-    assert.ok(!missing.err.includes("grooph plan"), missing.err);
-    assert.ok(PLAN_STILL(file).startsWith("No package was written. A plan can still be: grooph plan "));
-    // A graph with nothing in error is exported with no such line.
-    const fine = await grooph(["export", put(join(dir, "g.grooph.json"), graph), "--target", "claude-code", "--into", join(dir, "project")]);
-    assert.equal(fine.code, 0, fine.err);
-    assert.ok(!`${fine.out}${fine.err}`.includes("grooph plan"));
   });
 });
 
@@ -358,7 +336,7 @@ test("the tool grooph_export_plan returns the plan's files for any graph that re
     assert.equal(own.isError, undefined, textOf(own));
     assert.match(textOf(own), /^note: As a plan this is not whole yet: it breaks a rule a graph itself is held to, and until that is fixed, parts of the plan may be missing or drawn wrong\.\nto fix: To run it in a coding harness, 3 things are to be fixed first \(that one among them\), each listed below\./m);
     const ready = await call(ctx, "grooph_export_plan", { graph });
-    assert.match(textOf(ready), /^note: As a plan for people to read and follow, this is whole\.\nto fix: nothing\. A coding harness could run it as it is: nothing in it is in error\. grooph export writes its package for claude-code\. A package would be written with 1 warning\.$/m);
+    assert.match(textOf(ready), /^note: As a plan for people to read and follow, this is whole\.\nto fix: nothing\. A coding harness could run it as it is: nothing in it is in error\. A package would be written with 1 warning\.$/m);
     assert.equal(ready.structuredContent!["runnable"], true);
 
     // Written into a folder of the project, whole; a person's file there stops it until "replace".
@@ -516,18 +494,13 @@ test("a step is made a person's with the apply tool, and a graph with one is a p
   });
 });
 
-test("a graph with a person's step is a plan at the commands: picked, shared and planned as one, and export writes no package", async () => {
+// (That export writes no package of it is in lab/test/plan.test.ts.)
+test("a graph with a person's step is a plan at the commands: picked, shared and planned as one", async () => {
   await withFolder(async (dir) => {
     const file = put(join(dir, "g.grooph.json"), graph);
     const applied = await grooph(["apply", file, "--ops", put(join(dir, "ops.json"), BY_PERSON), "--write"]);
     assert.equal(applied.code, 0, applied.err);
     assert.equal(readFileSync(file, "utf8"), canonicalize(personStep));
-
-    const exported = await grooph(["export", file, "--target", "claude-code", "--into", join(dir, "project")]);
-    assert.equal(exported.code, 1);
-    assert.match(exported.err, /^error {2}E_PERSON_STEP_NOT_COMPILED /m);
-    assert.equal(exported.err.split(LF).at(-1), PLAN_STILL(file));
-    assert.equal(existsSync(join(dir, "project")), false);
 
     // At a terminal, the check for a package ends with the plan, not with "fix what is listed".
     const checked = await grooph(["validate", "--for-export", file], undefined, true);
@@ -649,9 +622,7 @@ test("each plan template is found by name, makes a graph that is a plan with not
       assert.equal(used.code, 0, `${id}: ${used.err}`);
       assert.equal(used.out.split(LF).at(-1), `next: grooph plan ${file}`, id);
       assert.equal((await grooph(["validate", file])).code, 0, id);
-      // No package is made of it, and the plan is written whole.
-      assert.equal((await grooph(["export", file, "--target", "claude-code", "--into", join(dir, "project")])).code, 1, id);
-      assert.equal(existsSync(join(dir, "project")), false, id);
+      // The plan is written whole. (That no package is made of it is in lab/test/plan.test.ts.)
       const planned = await grooph(["plan", file, "--into", join(dir, "out", id)]);
       assert.equal(planned.code, 0, `${id}: ${planned.err}`);
       assert.equal(planned.out.split(LF)[4], "As a plan for people to read and follow, this is whole.", `${id}: ${planned.out}`);

@@ -6,8 +6,7 @@ import { CompileError, canonicalize, checkAdoption, formatIssue, getProfile, isM
 import { readText } from "../io.js";
 import { isLink, putAll, within, type Place } from "../place.js";
 import { printIssues, printNext, plural, type Output } from "../print.js";
-import { NOT_JUDGED } from "./adopt.js";
-import { ID, Refusal, oneLine } from "../reply.js";
+import { ID, Refusal, oneLine, shellWord } from "../reply.js";
 
 export type ExportFlags = { target: CompileTarget; into: string; models?: CompileOptions["models"]; modelsFrom?: string; changeModels?: boolean; allow?: string[]; uncompared?: boolean };
 
@@ -339,7 +338,15 @@ function writtenFrom(root: string, kept: Graph, target: CompileTarget, models: C
 /** A text as a file holds it once written as UTF-8 and read back. */
 export const asWritten = (text: string): string => Buffer.from(text, "utf8").toString("utf8");
 
-export { NOT_JUDGED };
+/**
+ * What is said above the changes core names and does not call a tightening (`unjudged`), by why: a check that goes
+ * while another comes in (`swapped`), or an answer, an irreversible step or a stop that leads on that is new. One place, so that `adopt`,
+ * the export command and the MCP tool's export say it in the same words.
+ */
+export const NOT_JUDGED = {
+  swapped: "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:",
+  new: "not judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, where it is new, changed or put ahead, lets a person or a run do what it could not before. A change that brings one is named here and not called a tightening, whatever else it does:",
+} as const;
 
 /**
  * The ids of the packages in `root` other than `id`'s: each folder under `.grooph` that is named as a graph's id is,
@@ -384,8 +391,6 @@ export function sharedAgentFiles(root: string, id: string, places: readonly { pa
   return shared;
 }
 
-/** A word of a command line as a shell takes it. */
-export const shellWord = (text: string): string => (/^[A-Za-z0-9_.:/@=+-]+$/.test(text) ? text : `'${text.replace(/'/g, "'\\''")}'`);
 
 /** A line of the kickoff as the command prints it: the prompt's own text, with nothing in it that moves a terminal's cursor or ends the line early. A tab stays. */
 const KICKOFF_CONTROL = new RegExp(`[${[[0, 8], [11, 31], [127, 159], [0x2028, 0x2029]].map(([from, to]) => `\\u{${from!.toString(16)}}-\\u{${to!.toString(16)}}`).join("")}]+`, "gu");

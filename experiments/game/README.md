@@ -21,7 +21,7 @@ The page for the owner is [`handoffs/briefs/game-experiment.html`](../../handoff
 ```bash
 pnpm -r build
 node packages/cli/bin/grooph.js validate --for-export experiments/game/arena.grooph.json
-node packages/cli/bin/grooph.js export experiments/game/arena.grooph.json --target claude-code --into "$TMPDIR/game-package" \
+node lab/bin/grooph-lab.js export experiments/game/arena.grooph.json --target claude-code --into "$TMPDIR/game-package" \
   --models frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5
 node packages/cli/bin/grooph.js image experiments/game/arena.grooph.json --out "$TMPDIR/arena.svg"
 ```

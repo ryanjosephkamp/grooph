@@ -357,8 +357,9 @@ const CASES: [string, () => Graph, (working: Graph) => void][] = [
 
 test("the app and the command agree on every working copy, the readers' attacks among them; and the command the app shows is one the command takes", async ({ page }) => {
   test.setTimeout(120_000);
-  const bin = join(repoRoot, "packages/cli/bin/grooph.js");
-  expect(existsSync(join(repoRoot, "packages/cli/dist/src/index.js")), "the command is built (pnpm -r build)").toBe(true);
+  // The lab's command: adopt left grooph's own (lab/README.md).
+  const bin = join(repoRoot, "lab/bin/grooph-lab.js");
+  expect(existsSync(join(repoRoot, "lab/dist/src/main.js")), "the lab's command is built (pnpm -r build)").toBe(true);
   const root = mkdtempSync(join(tmpdir(), "grooph-two-doors-"));
   try {
     for (const [index, [what, from, change]] of CASES.entries()) {

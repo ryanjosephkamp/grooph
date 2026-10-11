@@ -3,13 +3,14 @@
   "version": "0.4.1",
   "private": true,
   "type": "module",
-  "description": "grooph command line: create, edit (apply ops), validate, canonicalize and export graph documents.",
+  "description": "grooph command line: create, edit (apply ops), validate, canonicalize, draw and share graph documents, and watch a session's agents.",
   "license": "MIT",
   "bin": {
     "grooph": "./bin/grooph.js"
   },
   "exports": {
-    ".": "./dist/src/index.js"
+    ".": "./dist/src/index.js",
+    "./*": "./dist/src/*.js"
   },
   "files": [
     "bin",

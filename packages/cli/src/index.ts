@@ -10,22 +10,19 @@ import { homedir } from "node:os";
 import { parse, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { KNOWN_TARGETS, PICTURE_THEMES, TemplateError, parseGraphText, readTheme, type CompileTarget } from "@grooph/core";
+import { PICTURE_THEMES, TemplateError, readTheme } from "@grooph/core";
 
 import { oneLine } from "./reply.js";
-import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
-import { MODELS_ENV, PLAN_STILL, exportCommand, parseModels } from "./commands/export.js";
 import { explainCommand } from "./commands/explain.js";
-import { APPLY_HELP, CANONICALIZE_HELP, EXPLAIN_HELP, EXPORT_HELP, NEW_HELP, VALIDATE_HELP, nearestCommand, overview } from "./commands/help.js";
+import { APPLY_HELP, CANONICALIZE_HELP, EXPLAIN_HELP, GONE, NEW_HELP, VALIDATE_HELP, WATCH_GONE, gone, nearestCommand, overview } from "./commands/help.js";
 import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
 import { eventsCommand, hooksCommand, sessionsCommand, EVENTS_HELP, HOOKS_HELP, SESSIONS_HELP } from "./commands/hooks.js";
 import { imageCommand, outlineCommand, pageCommand, IMAGE_HELP, OUTLINE_HELP, PAGE_HELP } from "./commands/image.js";
 import { newCommand } from "./commands/new.js";
 import { pickCommand, PICK_HELP } from "./commands/pick.js";
 import { planCommand, PLAN_HELP } from "./commands/plan.js";
-import { runsBundleCommand, runsListCommand, runsShowCommand, RUNS_HELP } from "./commands/runs.js";
 import { shapeCommand, SHAPE_HELP } from "./commands/shape.js";
 import { embedCommand, EMBED_HELP } from "./commands/embed.js";
 import { shareCommand, SHARE_HELP } from "./commands/share.js";
@@ -54,6 +51,13 @@ export async function run(
   env: Partial<CliEnv> = {},
 ): Promise<number> {
   const [command, ...rest] = argv;
+
+  // What grooph no longer has says so in one line and does nothing: asked for, or asked about (`grooph help export`).
+  const left = command === "help" ? rest[0] : command;
+  if (left !== undefined && GONE.includes(left)) {
+    io.err(gone(left));
+    return 1;
+  }
 
   // `grooph help <command>` is `grooph <command> --help`.
   if (command === "help" && rest[0] !== undefined) {
@@ -160,45 +164,6 @@ export async function run(
         const file = positionals[0];
         if (file === undefined) return usageError(io, "canonicalize needs a file: grooph canonicalize <file> [--write]");
         return canonicalizeCommand(io, file, { write: values["write"] === true });
-      }
-
-      case "export": {
-        const { positionals, values } = parseArgs({
-          args: rest,
-          allowPositionals: true,
-          options: { target: { type: "string" }, into: { type: "string" }, models: { type: "string" }, "change-models": { type: "boolean" }, allow: { type: "string", multiple: true }, uncompared: { type: "boolean" } },
-        });
-        const file = positionals[0];
-        if (file === undefined) {
-          return usageError(io, "export needs a file: grooph export <file> --target <harness> --into <dir>");
-        }
-        const target = values["target"];
-        // Which model a tier means, for this export: the flag, typed for this export whichever its target; or else
-        // the machine's own map for this target's harness, so a machine can say it once. A machine's map names one
-        // harness's models, so each target reads a variable of its own and never another's (decision 0030):
-        // a map of Claude Code's models in GROOPH_MODELS does not reach a Codex package, nor the reverse.
-        const modelsEnv = target !== undefined && Object.hasOwn(MODELS_ENV, target) ? MODELS_ENV[target as CompileTarget] : undefined;
-        const fromEnv = modelsEnv === undefined ? undefined : (env.env ?? process.env)[modelsEnv];
-        const modelsText = values["models"] ?? (fromEnv !== undefined && fromEnv.trim() !== "" ? fromEnv : undefined);
-        const modelsFrom = values["models"] !== undefined ? "--models" : (modelsEnv ?? "--models");
-        const tierMap = modelsText === undefined ? undefined : parseModels(modelsText);
-        if (tierMap && "error" in tierMap) return usageError(io, `${modelsFrom}: ${tierMap.error}`);
-        if (target === undefined) return usageError(io, `export needs --target (${KNOWN_TARGETS.join(", ")})`);
-        if (!KNOWN_TARGETS.includes(target)) {
-          // A harness grooph has no compiler for: no package, and the document is a plan as it is.
-          const code = usageError(io, `unknown target "${target}"; known targets: ${KNOWN_TARGETS.join(", ")}`);
-          let reads = false;
-          try {
-            reads = parseGraphText(readFileSync(file, "utf8")).doc !== undefined;
-          } catch {
-            reads = false;
-          }
-          if (reads) io.err(oneLine(PLAN_STILL(file)));
-          return code;
-        }
-        const into = values["into"];
-        if (into === undefined || into === "") return usageError(io, "export needs --into <dir>, the project to write the package into");
-        return exportCommand(io, file, { target: target as CompileTarget, into, ...(tierMap ? { models: tierMap.models, modelsFrom } : {}), changeModels: values["change-models"] === true, allow: values["allow"] ?? [], uncompared: values["uncompared"] === true });
       }
 
       case "shape": {
@@ -334,42 +299,17 @@ export async function run(
         return planCommand(io, file, { ...(values["into"] !== undefined ? { into: values["into"] } : {}), force: values["force"] === true });
       }
 
-      case "runs": {
-        const [sub, ...args] = rest;
-        const { positionals, values } = parseArgs({
-          args,
-          allowPositionals: true,
-          options: { json: { type: "boolean" }, out: { type: "string" } },
-        });
-        if (sub === "list") return runsListCommand(io, positionals[0] ?? ".");
-        if (sub === "show") {
-          if (positionals[0] === undefined) return usageError(io, "runs show needs a run folder: grooph runs show .grooph/<graph-id>/runs/<run-id>");
-          return runsShowCommand(io, positionals[0], { json: values["json"] === true });
-        }
-        if (sub === "bundle") {
-          if (positionals[0] === undefined) return usageError(io, "runs bundle needs a run folder: grooph runs bundle <run dir> --out <file>");
-          if (values["out"] === undefined) return usageError(io, "runs bundle needs --out <file>, for example run.grooph-run.json");
-          return runsBundleCommand(io, positionals[0], values["out"]);
-        }
-        return usageError(io, sub === undefined ? "runs needs list, show or bundle (grooph runs --help)" : `unknown runs command "${sub}"; it is list, show or bundle`);
-      }
-
-      case "adopt": {
-        const { positionals, values } = parseArgs({
-          args: rest,
-          allowPositionals: true,
-          options: { into: { type: "string" }, allow: { type: "string", multiple: true }, write: { type: "boolean" } },
-        });
-        if (positionals[0] === undefined) return usageError(io, "adopt needs a run folder: grooph adopt .grooph/<graph-id>/runs/<run-id> [--write]");
-        return adoptCommand(io, positionals[0], { ...(values["into"] !== undefined ? { into: values["into"] } : {}), allow: values["allow"] ?? [], write: values["write"] === true });
-      }
-
       case "watch": {
         const { positionals, values } = parseArgs({
           args: rest,
           allowPositionals: true,
           options: { port: { type: "string" }, host: { type: "string" }, open: { type: "boolean" }, sessions: { type: "boolean" }, events: { type: "string", multiple: true }, map: { type: "string" } },
         });
+        // A folder named a run to follow (a run's own, a graph's, or a project's newest), and following a run is the lab's (lab/README.md).
+        if (positionals[0] !== undefined) {
+          io.err(WATCH_GONE);
+          return 1;
+        }
         if (values["map"] !== undefined && !existsSync(values["map"])) return usageError(io, `--map ${values["map"]}: no such file`);
         const port = values["port"] === undefined ? 4174 : Number(values["port"]);
         if (!Number.isInteger(port) || port < 0 || port > 65535) return usageError(io, `--port must be a port number from 0 to 65535, got "${values["port"]}"`);
@@ -379,10 +319,11 @@ export async function run(
         for (const source of events) {
           if (source.ref === undefined && !existsSync(source.path)) return usageError(io, `--events ${source.path}: no such file or folder`);
         }
-        return await watchCommand(io, positionals[0], { port, host, open: values["open"] === true, sessions: values["sessions"] === true || values["map"] !== undefined, ...(events.length > 0 ? { events } : {}), ...(values["map"] !== undefined ? { map: values["map"] } : {}) }, {
+        return await watchCommand(io, { port, host, open: values["open"] === true, ...(events.length > 0 ? { events } : {}), ...(values["map"] !== undefined ? { map: values["map"] } : {}) }, {
           openUrl: env.openUrl ?? openUrl,
           ...(env.signal ? { signal: env.signal } : {}),
           ...(env.env ? { env: env.env } : {}),
+          ...(env.cwd !== undefined ? { cwd: env.cwd } : {}),
         });
       }
 
@@ -562,14 +503,11 @@ const COMMAND_HELP: Record<string, string> = {
   apply: APPLY_HELP,
   validate: VALIDATE_HELP,
   canonicalize: CANONICALIZE_HELP,
-  export: EXPORT_HELP,
   explain: EXPLAIN_HELP,
   template: TEMPLATE_USAGE,
   sub: SUB_HELP,
   share: SHARE_HELP,
   embed: EMBED_HELP,
-  runs: RUNS_HELP,
-  adopt: ADOPT_HELP,
   watch: WATCH_HELP,
   pick: PICK_HELP,
   plan: PLAN_HELP,

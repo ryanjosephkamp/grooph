@@ -63,6 +63,9 @@ importers:
       '@grooph/cli':
         specifier: workspace:*
         version: link:../packages/cli
+      '@grooph/core':
+        specifier: workspace:*
+        version: link:../packages/core
     devDependencies:
       '@types/node':
         specifier: ^22.10.2

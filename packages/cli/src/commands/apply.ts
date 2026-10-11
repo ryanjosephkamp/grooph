@@ -69,7 +69,7 @@ export function applyCommand(io: Output, file: string, flags: ApplyFlags, readSt
   const issues = validate(schema.doc, { forExport: flags.forExport === true });
   const written = flags.write === true;
   // The graph a package keeps is what an export compares the next graph with. Changed here it would move that
-  // comparison with no word said, so it is not written here: only `grooph export` writes it (../io.ts).
+  // comparison with no word said, so it is not written here: only the lab's export writes it (../io.ts).
   if (written && isKeptGraph(file)) {
     if (flags.json === true) report({ ok: false, written: false, ids: result.ids, issues, error: { message: keptGraphRefusal(file) } });
     else io.err(`grooph: ${keptGraphRefusal(file)}`);

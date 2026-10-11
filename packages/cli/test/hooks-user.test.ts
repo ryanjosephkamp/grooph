@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import type { LiveView } from "@grooph/core";
 
 import { hookEntries, hookSource, storeName } from "../src/commands/hooks.js";
-import { LIVE_ENDPOINT, projectRoot, startWatch, watchTarget } from "../src/commands/watch.js";
+import { LIVE_ENDPOINT, projectRoot, startWatch } from "../src/commands/watch.js";
 import { STORE_NAME, ownSources, readList, storeLine } from "../src/events-io.js";
 import { run } from "../src/index.js";
 import type { Output } from "../src/print.js";
@@ -921,12 +921,14 @@ test("in a listed folder with no events of its own, sessions, hooks status and w
     const dist = mkdtempSync(join(tmpdir(), "grooph-dist-"));
     writeFileSync(join(dist, "index.html"), "<!doctype html><title>grooph</title>\n");
     try {
-      const printed = await h.grooph(["watch", a, "--sessions", "--port", "0"], { env: { GROOPH_WEB_DIST: dist }, signal: AbortSignal.abort() });
+      // Since the lab took the following of a run (slice 0103), watch takes no folder: it is started in the folder,
+      // and a listed folder's record is found from the folder it was started in.
+      const printed = await h.grooph(["watch", "--sessions", "--port", "0"], { cwd: a, env: { GROOPH_WEB_DIST: dist }, signal: AbortSignal.abort() });
       assert.equal(printed.code, 0, printed.err);
-      assert.match(printed.out, new RegExp(`\\nsessions: 1 recorded, .*\\n${literally(said())}\\nopen http`));
+      assert.match(printed.out, new RegExp(`^sessions: 1 recorded, .*\\n${literally(said())}\\nopen http`));
       const live = async (port: number): Promise<string[]> => ((await (await fetch(`http://127.0.0.1:${port}${LIVE_ENDPOINT}`)).json()) as LiveView).sessions.map((s) => s.id).sort();
       for (const folder of [a, inner]) {
-        const watcher = await startWatch({ target: watchTarget(folder), webDist: dist, port: 0, host: "127.0.0.1", sessions: true, env: { ...scratchEnv, ...h.env } });
+        const watcher = await startWatch({ root: folder, webDist: dist, port: 0, host: "127.0.0.1", sessions: true, env: { ...scratchEnv, ...h.env } });
         try {
           assert.deepEqual(await live(watcher.port), ["s1"]);
         } finally {
@@ -935,9 +937,9 @@ test("in a listed folder with no events of its own, sessions, hooks status and w
       }
       // A listed folder whose record does not exist yet: the view is empty, and shows the first session when it comes.
       assert.equal((await h.grooph(["hooks", "watch", b])).code, 0);
-      const empty = await h.grooph(["watch", b, "--sessions", "--port", "0"], { env: { GROOPH_WEB_DIST: dist }, signal: AbortSignal.abort() });
-      assert.match(empty.out, new RegExp(`\\nsessions: none recorded under ${literally(h.store(b))}/ yet \\(grooph hooks install --user records them\\)\\n`));
-      const watcher = await startWatch({ target: watchTarget(b), webDist: dist, port: 0, host: "127.0.0.1", sessions: true, env: { ...scratchEnv, ...h.env } });
+      const empty = await h.grooph(["watch", "--sessions", "--port", "0"], { cwd: b, env: { GROOPH_WEB_DIST: dist }, signal: AbortSignal.abort() });
+      assert.match(empty.out, new RegExp(`^sessions: none recorded under ${literally(h.store(b))}/ yet \\(grooph hooks install --user records them\\)\\n`));
+      const watcher = await startWatch({ root: b, webDist: dist, port: 0, host: "127.0.0.1", sessions: true, env: { ...scratchEnv, ...h.env } });
       try {
         assert.deepEqual(await live(watcher.port), []);
         quiet(start(h.hook, "s-b", b), "the first session in a listed folder");

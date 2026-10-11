@@ -20,7 +20,11 @@ node lab/bin/grooph-lab.js --help
 pnpm exec grooph-lab --help        # the same, from the repository's root
 ```
 
-**Where the move stands.** The lab is being made by slice 0103 in six pull requests ([`handoffs/0103-the-lab/HANDOFF.md`](../handoffs/0103-the-lab/HANDOFF.md)). After the first, which added this package, nothing has left the product: `grooph-lab` hands every command on, and `grooph export`, `grooph adopt`, `grooph runs` and `grooph watch <run>` still answer too. The runners below already start `grooph-lab`, so they do not notice when those commands leave.
+**Where the move stands.** The lab is being made by slice 0103 in six pull requests ([`handoffs/0103-the-lab/HANDOFF.md`](../handoffs/0103-the-lab/HANDOFF.md)). After the second:
+
+- **The command line.** `export`, `adopt`, `runs`, `watch` with a run to follow, and `share` and `embed` of a run folder are the lab's. `grooph` answers the first four with one line that says where they went, and reads no run folder. `grooph-lab --help` and its pages for those commands are what `grooph` printed through 0.4.1, word for word, so they say `grooph export`: a run finds the lab's command under that name on its path.
+- **Still to move.** The MCP tool `grooph_export`, and `packages/cli/src/commands/export.ts` with it, which that tool stands on; the app's package half; the compilers, brakes and adoption in `packages/core`.
+- **What `grooph-lab` hands on is the product's as it is now.** Where the product's own words changed (a `next:` line that named `export`, the refusal to write a package's kept graph), `grooph-lab validate` and the rest say the new words.
 
 ## From the repository
 
@@ -35,6 +39,10 @@ node lab/bin/grooph-lab.js export <graph> --target codex --into <project>     # 
 node lab/bin/grooph-lab.js runs list <project>
 node lab/bin/grooph-lab.js runs show <project>/.grooph/<id>/runs/<run>
 node lab/bin/grooph-lab.js adopt <project>/.grooph/<id>/runs/<run> [--allow …] [--write]
+
+# A run as one file the product's app, `grooph share` and `grooph embed` open; and a run followed live in a browser.
+node lab/bin/grooph-lab.js runs bundle <project>/.grooph/<id>/runs/<run> --out run.grooph-run.json
+node lab/bin/grooph-lab.js watch <project>/.grooph/<id>/runs/<run> [--port 4174]
 
 # The runners, in the mode that builds everything and starts nothing.
 scripts/prove-pattern.sh <template> --dry-run
@@ -52,8 +60,11 @@ Code moves into this folder. Records, runner scripts, fixtures and the lab's doc
 
 | What | Where |
 |---|---|
-| The lab's command | `lab/bin/grooph-lab.js`, `lab/src/` |
-| The compilers, tier maps, brakes, adoption, and the commands over them | still under `packages/core/src/` and `packages/cli/src/` until the slice's later pull requests move them here |
+| The lab's command, and the pages it prints | `lab/bin/grooph-lab.js`, `lab/src/index.ts`, `lab/src/help.ts` |
+| `adopt`, `runs`, and reading a run folder | `lab/src/commands/adopt.ts`, `lab/src/commands/runs.ts`, `lab/src/run-io.ts` |
+| `watch` with a run to follow | `lab/src/commands/watch.ts`, on the product's own server (`packages/cli/src/commands/watch.ts` takes a run to follow, and `grooph` gives it none) |
+| `export` | its case in `lab/src/index.ts`; the command itself is still `packages/cli/src/commands/export.ts` until the MCP tool that stands on it moves |
+| The compilers, tier maps, brakes and adoption | still under `packages/core/src/` until the slice's fifth pull request moves them here |
 | The proving runners | `scripts/prove-pattern.sh`, `scripts/prove-codex.mjs`, `scripts/lib/prove-*.mjs`, `scripts/e2e-claude-code.sh` |
 | The comparison runners | `scripts/compare.sh`, `scripts/lib/compare-*.mjs` |
 | The brake experiment and study three | `scripts/lib/brake-*.mjs`, `scripts/lib/study-three-paid.mjs`, and the three `*-paid.mjs` probes beside them |
@@ -72,7 +83,7 @@ pnpm --filter @grooph/lab test
 
 That is two sets:
 
-- **`lab/test/`**: the command started as a program; export for both harnesses against `fixtures/golden/`, byte for byte; the frozen game experiment's package against its manifest (`experiments/game/setup/starting-contents.claude-code.sha256`); adoption; and the two proving runners' dry runs.
+- **`lab/test/`**: the tests of `export`, `adopt`, `runs` and `watch <run>` that were the command line's, moved here with the commands; the command started as a program; export for both harnesses against `fixtures/golden/`, byte for byte; the frozen game experiment's package against its manifest (`experiments/game/setup/starting-contents.claude-code.sha256`); and the two proving runners' dry runs.
 - **Every runner test**: `scripts/lib/*.test.mjs` and `scripts/prove-codex.test.mjs`. Five of these ran nowhere in CI before the lab had a test script: the tests of `compare-run`, `compare-prompt`, `compare-lead`, `compare-score` and `compare-projects`. One is not the lab's own: `watching-check-paid.test.mjs` tests the watching check's runner, which is built on these.
 
 What the tests do not reach, measured with Node's own coverage over the lab's tests and every runner test:

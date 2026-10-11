@@ -39,13 +39,13 @@ export function isKeptGraph(path: string): boolean {
   return basename(real).toLowerCase() === "graph.grooph.json" && basename(dirname(dirname(real))) === ".grooph" && /^[a-z][a-z0-9-]*$/.test(folder) && !NOT_A_PACKAGE.includes(folder);
 }
 
-/** Said by every command but `export` that is asked to write the graph a package keeps. */
+/** Said by every command of grooph's that is asked to write the graph a package keeps. What placed the package is the lab's export (lab/README.md). */
 export const keptGraphRefusal = (path: string): string =>
-  `${path} is the graph a package keeps. Only grooph export writes it: an export compares the next graph with it, and a change made to it here would move that comparison with no word said. Nothing was written. Work on a copy of your own (.grooph/graphs/<id>.grooph.json is the usual place) and export that.`;
+  `${path} is the graph a package keeps. No command of grooph's writes it: what placed the package compares the next graph with it, and a change made to it here would move that comparison with no word said. Nothing was written. Work on a copy of your own (.grooph/graphs/<id>.grooph.json is the usual place).`;
 
 export function writeText(path: string, contents: string): void {
-  // The graph a package keeps is the baseline an export holds the next graph to. `grooph export` places it with the
-  // rest of the package (../place.ts); no other command writes it, whatever it was asked.
+  // The graph a package keeps is the baseline an export holds the next graph to. The lab's export places it with the
+  // rest of the package (./place.ts); no command of grooph's writes it, whatever it was asked.
   if (isKeptGraph(path)) throw Object.assign(new Error(keptGraphRefusal(path)), { code: "KEPT_GRAPH" });
   const full = resolve(path);
   mkdirSync(dirname(full), { recursive: true });

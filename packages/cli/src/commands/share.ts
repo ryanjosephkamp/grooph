@@ -31,20 +31,19 @@ import {
 import { writeText } from "../io.js";
 import { plural, type Output } from "../print.js";
 import { asAPlan, ownAndPackage, planLine } from "./plan.js";
-import { isRunDir, readRun } from "../run-io.js";
 import { LoadError, deflateRaw, loadShareable, shown, type Loaded, type OpenUrl } from "../share-io.js";
 
 export type ShareFlags = { base?: string; open?: boolean; out?: string };
 
-export const SHARE_HELP = `grooph share <graph | proposal set | run dir | run bundle | operation map> [--base <url>] [--open] [--out <file>]
+export const SHARE_HELP = `grooph share <graph | proposal set | run bundle | operation map> [--base <url>] [--open] [--out <file>]
 
-Turn a graph, a set of one to four candidate graphs, a run or an operation map into a link
+Turn a graph, a set of one to four candidate graphs, a recorded run or an operation map into a link
 that opens it in the grooph app on any device. The document travels in the link's #fragment, which browsers
 do not send to any server; nothing is uploaded.
 
-A run folder (.grooph/<graph-id>/runs/<run-id>/) or a *.grooph-run.json bundle opens in the
-run view: what ran, what the run changed and why, its proposals, and its notes. --out then
-writes the bundle, the fallback when the link is too long.
+A recorded run (a *.grooph-run.json bundle) opens in the run view: what ran, what the run
+changed and why, its proposals, and its notes. --out then writes the bundle again, the
+fallback when the link is too long.
 
 An operation map (*.grooph-map.json, docs/operation-map.md) opens as its picture with its
 handoffs listed. A map is never compiled, so one with rule errors still shares: the view
@@ -91,16 +90,16 @@ A proposal set, <set-id>.grooph-proposals.json (docs/executive.md §1):
 /**
  * `grooph share <file> [--base <url>] [--open] [--out <file>]` (docs/executive.md §2, §4).
  * Exit 0 with the link, 1 when the document cannot be shared.
+ *
+ * `given` is a document already read, in place of the file: the lab's `share` reads a run folder into a bundle and
+ * hands it here (lab/README.md). grooph's own command gives none, and reads no folder.
  */
-export async function shareCommand(io: Output, file: string, flags: ShareFlags, open: OpenUrl): Promise<number> {
+export async function shareCommand(io: Output, file: string, flags: ShareFlags, open: OpenUrl, given?: Loaded): Promise<number> {
   let loaded: Loaded;
   try {
-    if (existsSync(file) && statSync(file).isDirectory()) {
-      if (!isRunDir(file)) {
-        throw new LoadError(`${file} is a folder but not a run folder; share takes a graph, a proposal set, a run folder (.grooph/<graph-id>/runs/<run-id>/) or a run bundle`);
-      }
-      loaded = { kind: "run", doc: readRun(file).bundle };
-    } else loaded = loadShareable(file);
+    if (given !== undefined) loaded = given;
+    else if (existsSync(file) && statSync(file).isDirectory()) throw new LoadError(`${file} is a folder; share takes a file: a graph, a proposal set, a run bundle (*.grooph-run.json) or an operation map`);
+    else loaded = loadShareable(file);
   } catch (err) {
     if (!(err instanceof LoadError)) throw err;
     io.err(`grooph: ${err.message}`);
@@ -152,7 +151,7 @@ export async function shareCommand(io: Output, file: string, flags: ShareFlags, 
     io.err(
       `warning: the link is ${link.length.toLocaleString("en")} characters; messengers often cut links over ${SHARE_LINK_WARN.toLocaleString("en")}. ` +
         (envelope.kind === "run"
-          ? "The run is too big for a link: send the bundle instead (--out <file>.grooph-run.json, or grooph runs bundle) and import it in the app."
+          ? "The run is too big for a link: send the bundle instead (--out <file>.grooph-run.json) and import it in the app."
           : "The graphs are too big for a link: shorten the briefs or drop a candidate, or send the file from --out and import it in the app."),
     );
   }

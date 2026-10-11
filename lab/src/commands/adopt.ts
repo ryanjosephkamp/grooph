@@ -3,10 +3,12 @@ import { basename, dirname, join, resolve } from "node:path";
 
 import { adoptCommandLine, adoptWorkingCopy, canonicalize, canonicalizeWithoutLayout, checkAdoption, formatIssue, parseGraphText, type Graph } from "@grooph/core";
 
-import { readText, writeText } from "../io.js";
-import type { Output } from "../print.js";
+import { NOT_JUDGED } from "@grooph/cli/commands/export";
+import { readText, writeText } from "@grooph/cli/io";
+import type { Output } from "@grooph/cli/print";
+import { shown } from "@grooph/cli/share-io";
+
 import { readRun } from "../run-io.js";
-import { shown } from "../share-io.js";
 import { printChanges } from "./runs.js";
 
 export const ADOPT_HELP = `grooph adopt <run dir> [--into <graph file>] [--allow <change> ...] [--write]
@@ -56,16 +58,6 @@ const sameFile = (a: string, b: string): boolean => {
     return false;
   }
 };
-
-/**
- * What is said above the changes core names and does not call a tightening (`unjudged`), by why: a check that goes
- * while another comes in (`swapped`), or an answer, an irreversible step or a stop that leads on that is new. One place, so that `adopt`,
- * the export command and the MCP tool's export say it in the same words.
- */
-export const NOT_JUDGED = {
-  swapped: "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:",
-  new: "not judged: an answer a gate did not give, a step marked irreversible that the graph did not have, or a stop of a loop that leads on, where it is new, changed or put ahead, lets a person or a run do what it could not before. A change that brings one is named here and not called a tightening, whatever else it does:",
-} as const;
 
 /** `grooph adopt <run dir> [--into <graph file>] [--allow <change> ...] [--write]` (docs/runs.md §3). */
 export function adoptCommand(io: Output, dir: string, flags: { into?: string; allow?: string[]; write: boolean }): number {
