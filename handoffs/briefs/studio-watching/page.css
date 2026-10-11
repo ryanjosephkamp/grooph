@@ -45,7 +45,7 @@ h1, h2 { margin: 0; line-height: 1.15; text-wrap: balance; }
 h1 { font-size: clamp(2rem, 1.5rem + 2.4vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
 h2 { font-size: clamp(1.35rem, 1.15rem + 0.9vw, 1.7rem); font-weight: 700; letter-spacing: -0.012em; }
 p { margin: 0; max-width: 65ch; text-wrap: pretty; }
-code { font-family: var(--mono); font-size: 0.86em; }
+code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 0.3rem; }
 .eyebrow { font: 500 0.78rem/1.3 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
 .mast { display: flex; flex-direction: column; gap: 0.9rem; }
@@ -79,7 +79,7 @@ code { font-family: var(--mono); font-size: 0.86em; }
 .bar button { flex: none; min-width: 2.75rem; color: var(--ink); font-size: 0.92rem; }
 .bar button[data-do="play"] { min-width: 4.2rem; }
 .bar button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
-.bar input { flex: 1 1 4rem; min-width: 0; height: 2.75rem; accent-color: var(--accent); }
+.bar input { flex: 1 1 2rem; min-width: 0; height: 2.75rem; accent-color: var(--accent); }
 .says { display: block; min-height: 4.05em; font-size: 0.93rem; line-height: 1.35; color: var(--ink-2); }
 .says b { font-weight: 600; color: var(--ink); font-family: var(--mono); font-size: 0.88em; }
 .who { display: block; min-height: 1.4em; font-size: 0.9rem; line-height: 1.45; color: var(--ink-3); }
@@ -140,7 +140,10 @@ code { font-family: var(--mono); font-size: 0.86em; }
 .tie.live { stroke: var(--m); stroke-width: 1.9; }
 .tie.bg { stroke-dasharray: 4 3.2; }
 .tie.unknown { stroke: var(--ink-3); stroke-dasharray: 1.2 3.4; stroke-width: 1.6; }
-.said { fill: none; stroke: var(--said); stroke-width: 1.5; stroke-dasharray: 3 2.6; }
+.said { stroke: var(--said); stroke-width: 1.5; stroke-dasharray: 3 2.6; }
+/* Wider than it looks: a thin line or a small bead is touched through this. */
+.hit { fill: transparent; stroke: transparent; pointer-events: all; }
+[data-go] { cursor: pointer; }
 [data-id] { cursor: pointer; }
 .sel { stroke: var(--ink); stroke-width: 2.2; fill: none; pointer-events: none; }
 .halo { fill: var(--m); opacity: 0.22; transform-box: fill-box; transform-origin: center; animation: sw-pulse 1.7s ease-in-out infinite; pointer-events: none; }

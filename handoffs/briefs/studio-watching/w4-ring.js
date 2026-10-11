@@ -83,6 +83,7 @@ DRAW.ring = (P, v, W, o) => {
       if (s.unsaid) g.push(diamond(x - br * 0.76, y - br * 0.76, 5.5));
       if (o.sel === a.id) g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(br + 4), class: "sel" }));
     } else {
+      g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(Math.max(rb + 2, 7)), class: "hit" }));
       g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(rb), class: "f-surface s-m", "stroke-width": 2 }));
       if (s.state === "failed") g.push(cross(x, y, rb * 0.62));
       if (rb >= 7.5 && s.state !== "failed") g.push(text(x, y + 3, a.m.letter, { size: 8.5, weight: 700, anchor: "middle", class: "t-m" }));

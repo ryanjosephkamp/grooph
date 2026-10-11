@@ -111,7 +111,7 @@ function viewAt(P, i, saidOn) {
   if (saidOn) for (const p of said) for (const id of p.unsaid) state.get(id).unsaid = state.get(id).exists;
   const all = [...state.values()].filter((s) => s.exists);
   return {
-    i, t: mo.t, mo, of: state, all, said: saidOn ? said : [], ghosts,
+    i, t: mo.t, mo, of: state, all, said: saidOn ? said : [], saidOn, ghosts,
     running: all.filter((s) => s.state === "running"),
     working: P.sample.turns.some(([a, b]) => a <= mo.t && mo.t < b),
     ended: mo.kind === "end",
@@ -139,6 +139,7 @@ function sayMoment(P, v) {
   if (mo.kind === "end") return `${head}The last line of the record: ${count(P.agents.length, "subagent")}, ${count(P.agents.reduce((t, x) => t + x.runs.length, 0), "run")}${P.agents.some((x) => x.runs.some((r) => r.end === "failed")) ? ", one of them failed" : ""}.`;
   if (mo.kind === "said") {
     const p = P.plans[mo.plan];
+    if (!v.saidOn) return `${head}Nothing changes in the record here. With Said on, a made-up statement stands at this moment.${tail}`;
     return `${head}<i>Made up, to show the place:</i> the session says it will start ${planWords(p, P.byId)}.${tail}`;
   }
   if (mo.kind === "start") {
@@ -169,7 +170,7 @@ function sayAgent(P, v, id) {
 /* ── small things every drawing draws with ─────────────────────────────────────────────────────────────────── */
 const attrs = (o) => Object.entries(o).filter(([, v]) => v !== undefined && v !== false && v !== null).map(([k, v]) => ` ${k}="${v}"`).join("");
 const tag = (name, o, inner) => (inner === undefined ? `<${name}${attrs(o)}/>` : `<${name}${attrs(o)}>${inner}</${name}>`);
-const text = (x, y, s, o = {}) => tag("text", { x: r1(x), y: r1(y), "font-size": o.size ?? 10, "text-anchor": o.anchor, "font-weight": o.weight, class: o.class, "pointer-events": "none" }, s);
+const text = (x, y, s, o = {}) => tag("text", { x: r1(x), y: r1(y), "font-size": o.size ?? 10, "text-anchor": o.anchor, "font-weight": o.weight, class: o.class, "data-id": o.id }, s);
 const line = (x1, y1, x2, y2, o = {}) => tag("line", { x1: r1(x1), y1: r1(y1), x2: r1(x2), y2: r1(y2), ...o });
 const path = (d, o = {}) => tag("path", { d, ...o });
 /** A small red cross: a run that failed. */

@@ -90,6 +90,11 @@ for (const view of views) {
     go(Number(view.range.value));
   });
   view.stage.addEventListener("click", (e) => {
+    const jump = e.target.closest("[data-go]")?.dataset.go;
+    if (jump !== undefined) {
+      stop();
+      return go(Number(jump));
+    }
     const id = e.target.closest("[data-id]")?.dataset.id ?? null;
     state.sel = id === state.sel ? null : id;
     refresh();

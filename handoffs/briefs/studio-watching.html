@@ -50,7 +50,7 @@ h1, h2 { margin: 0; line-height: 1.15; text-wrap: balance; }
 h1 { font-size: clamp(2rem, 1.5rem + 2.4vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
 h2 { font-size: clamp(1.35rem, 1.15rem + 0.9vw, 1.7rem); font-weight: 700; letter-spacing: -0.012em; }
 p { margin: 0; max-width: 65ch; text-wrap: pretty; }
-code { font-family: var(--mono); font-size: 0.86em; }
+code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 0.3rem; }
 .eyebrow { font: 500 0.78rem/1.3 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
 .mast { display: flex; flex-direction: column; gap: 0.9rem; }
@@ -84,7 +84,7 @@ code { font-family: var(--mono); font-size: 0.86em; }
 .bar button { flex: none; min-width: 2.75rem; color: var(--ink); font-size: 0.92rem; }
 .bar button[data-do="play"] { min-width: 4.2rem; }
 .bar button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
-.bar input { flex: 1 1 4rem; min-width: 0; height: 2.75rem; accent-color: var(--accent); }
+.bar input { flex: 1 1 2rem; min-width: 0; height: 2.75rem; accent-color: var(--accent); }
 .says { display: block; min-height: 4.05em; font-size: 0.93rem; line-height: 1.35; color: var(--ink-2); }
 .says b { font-weight: 600; color: var(--ink); font-family: var(--mono); font-size: 0.88em; }
 .who { display: block; min-height: 1.4em; font-size: 0.9rem; line-height: 1.45; color: var(--ink-3); }
@@ -145,7 +145,10 @@ code { font-family: var(--mono); font-size: 0.86em; }
 .tie.live { stroke: var(--m); stroke-width: 1.9; }
 .tie.bg { stroke-dasharray: 4 3.2; }
 .tie.unknown { stroke: var(--ink-3); stroke-dasharray: 1.2 3.4; stroke-width: 1.6; }
-.said { fill: none; stroke: var(--said); stroke-width: 1.5; stroke-dasharray: 3 2.6; }
+.said { stroke: var(--said); stroke-width: 1.5; stroke-dasharray: 3 2.6; }
+/* Wider than it looks: a thin line or a small bead is touched through this. */
+.hit { fill: transparent; stroke: transparent; pointer-events: all; }
+[data-go] { cursor: pointer; }
 [data-id] { cursor: pointer; }
 .sel { stroke: var(--ink); stroke-width: 2.2; fill: none; pointer-events: none; }
 .halo { fill: var(--m); opacity: 0.22; transform-box: fill-box; transform-origin: center; animation: sw-pulse 1.7s ease-in-out infinite; pointer-events: none; }
@@ -269,7 +272,7 @@ code { font-family: var(--mono); font-size: 0.86em; }
     <div class="view-head">
       <p class="label"><b>W5</b><span class="eyebrow">the app's columns, fed by what was seen</span></p>
       <h2>The skyline</h2>
-      <p class="shows"><b>Every subagent is a column on the session's floor, as tall as the time it ran, one block for each run.</b> A column grows while its agent runs and is lit on top. A subagent's subagent stands a step up beside it when it ran in the background, and on top of it when its parent waited for it.</p>
+      <p class="shows"><b>Every subagent is a column on the session's floor, as tall as the time it ran, one block for each run.</b> A column grows while its agent runs and is lit on top. A subagent's subagent stands on a step of its own, tied across the floor to the one that started it, when it ran in the background; when its parent waited for it, it stands on its parent's column.</p>
     </div>
     <div class="stage"></div>
     <div class="deck">
@@ -437,7 +440,7 @@ function viewAt(P, i, saidOn) {
   if (saidOn) for (const p of said) for (const id of p.unsaid) state.get(id).unsaid = state.get(id).exists;
   const all = [...state.values()].filter((s) => s.exists);
   return {
-    i, t: mo.t, mo, of: state, all, said: saidOn ? said : [], ghosts,
+    i, t: mo.t, mo, of: state, all, said: saidOn ? said : [], saidOn, ghosts,
     running: all.filter((s) => s.state === "running"),
     working: P.sample.turns.some(([a, b]) => a <= mo.t && mo.t < b),
     ended: mo.kind === "end",
@@ -465,6 +468,7 @@ function sayMoment(P, v) {
   if (mo.kind === "end") return `${head}The last line of the record: ${count(P.agents.length, "subagent")}, ${count(P.agents.reduce((t, x) => t + x.runs.length, 0), "run")}${P.agents.some((x) => x.runs.some((r) => r.end === "failed")) ? ", one of them failed" : ""}.`;
   if (mo.kind === "said") {
     const p = P.plans[mo.plan];
+    if (!v.saidOn) return `${head}Nothing changes in the record here. With Said on, a made-up statement stands at this moment.${tail}`;
     return `${head}<i>Made up, to show the place:</i> the session says it will start ${planWords(p, P.byId)}.${tail}`;
   }
   if (mo.kind === "start") {
@@ -495,7 +499,7 @@ function sayAgent(P, v, id) {
 /* ── small things every drawing draws with ─────────────────────────────────────────────────────────────────── */
 const attrs = (o) => Object.entries(o).filter(([, v]) => v !== undefined && v !== false && v !== null).map(([k, v]) => ` ${k}="${v}"`).join("");
 const tag = (name, o, inner) => (inner === undefined ? `<${name}${attrs(o)}/>` : `<${name}${attrs(o)}>${inner}</${name}>`);
-const text = (x, y, s, o = {}) => tag("text", { x: r1(x), y: r1(y), "font-size": o.size ?? 10, "text-anchor": o.anchor, "font-weight": o.weight, class: o.class, "pointer-events": "none" }, s);
+const text = (x, y, s, o = {}) => tag("text", { x: r1(x), y: r1(y), "font-size": o.size ?? 10, "text-anchor": o.anchor, "font-weight": o.weight, class: o.class, "data-id": o.id }, s);
 const line = (x1, y1, x2, y2, o = {}) => tag("line", { x1: r1(x1), y1: r1(y1), x2: r1(x2), y2: r1(y2), ...o });
 const path = (d, o = {}) => tag("path", { d, ...o });
 /** A small red cross: a run that failed. */
@@ -522,7 +526,7 @@ DRAW.tree = (P, v, W, o) => {
   const left = pad + 28;
   const gap = tier === "tok" ? 8 : 10;
   const wide = W >= 600;
-  const cols = tier === "card" ? (wide ? 4 : 2) : tier === "mid" ? (wide ? 6 : 3) : Math.floor((W - left - pad + gap) / (30 + gap));
+  const cols = tier === "card" ? (wide ? 4 : W < 340 ? 1 : 2) : tier === "mid" ? (wide ? 6 : 3) : Math.floor((W - left - pad + gap) / (30 + gap));
   const tw = tier === "tok" ? 30 : (W - left - pad - gap * (cols - 1)) / cols;
   const th = tier === "card" ? 62 : tier === "mid" ? 44 : 30;
   const under = tier === "tok" ? 13 : 0;
@@ -574,7 +578,7 @@ DRAW.tree = (P, v, W, o) => {
 
   for (const g of v.ghosts) {
     const p = at.get(g.id);
-    out.push(line(p.x + tw / 2, p.rail, p.x + tw / 2, p.y, { class: "said" }));
+    out.push(line(p.x + tw / 2, p.rail, p.x + tw / 2, p.y, { class: "said f-none" }));
     out.push(`<g data-id="${g.id}"${g.fresh ? ' class="fresh"' : ""}>${tag("rect", { x: r1(p.x), y: p.y, width: r1(tw), height: th, rx: tier === "tok" ? 8 : 10, class: "said f-said" })}${tier === "tok" ? text(p.x + tw / 2, p.y + th + 10, "said", { size: 8.5, anchor: "middle", class: "t-said" }) : `${text(p.x + 12, p.y + 18, "said, never seen", { size: tier === "card" ? 11.5 : 9.5, weight: 600, class: "t-said" })}${text(p.x + 12, p.y + (tier === "card" ? 36 : 33), `${g.type}${tier === "card" ? " · made up" : ""}`, { size: tier === "card" ? 10.5 : 9, class: "t2" })}`}${o.sel === g.id ? tag("rect", { x: r1(p.x - 3), y: p.y - 3, width: r1(tw + 6), height: th + 6, rx: 11, class: "sel" }) : ""}</g>`);
   }
 
@@ -663,7 +667,7 @@ DRAW.lanes = (P, v, W, o) => {
   if (many) {
     // The whole session: one block a burst, as tall as the most that ran at once in it. A tick where a new day begins.
     const bw = (W - pad * 2) / P.bursts.length;
-    out.push(text(pad, y + 8, `the whole session · ${P.bursts.length} bursts of work · a mark where a day has gone by`, { size: 9.5, class: "t3" }));
+    out.push(text(pad, y + 8, `the whole session · ${P.bursts.length} bursts of work${W < 340 ? "" : " · a mark where a day has gone by"}`, { size: 9.5, class: "t3" }));
     const base = y + 54;
     let day = 0;
     P.bursts.forEach((burst, k) => {
@@ -679,6 +683,8 @@ DRAW.lanes = (P, v, W, o) => {
       const here = burst === b;
       out.push(tag("rect", { x: r1(x + 1), y: r1(base - h), width: r1(Math.max(2, bw - 2)), height: r1(h), rx: 1.5, class: here ? "f-accent" : past ? "f-ink" : "f-none s-line", opacity: here ? 1 : past ? 0.5 : 1, "stroke-width": 1 }));
       if (here) out.push(path(`M${r1(x + bw / 2 - 4)} ${base + 5}h8l-4 5z`, { class: "f-accent" }));
+      // Touch a burst to go to its first moment.
+      out.push(tag("rect", { x: r1(x), y: base - 30, width: r1(bw), height: 36, class: "hit", "data-go": P.moments.find((m) => m.t >= burst.from && (m.kind === "start" || m.kind === "resume")).i }));
     });
     y = base + 20;
   }
@@ -807,14 +813,24 @@ DRAW.lines = (P, v, W, o) => {
       }
     });
     const tk = one ? 14 : 11;
-    const rowH = 12 + most * tk + 30;
-    L = { stations, cols, dx, col, tracks: [...tracks.values()], most, tk, rowH, rows: Math.ceil(n / cols) };
+    // A row is as tall as the highest track that crosses it.
+    const rows = Math.ceil(n / cols);
+    const high = Array.from({ length: rows }, () => 1);
+    for (const r of tracks.values()) for (let k = Math.floor(r.c0 / cols); k <= Math.floor((r.c1 ?? n - 1) / cols); k++) high[k] = Math.max(high[k], r.track);
+    const tops = [];
+    let y = pad;
+    for (const h of high) {
+      tops.push(y);
+      y += 12 + h * tk + 30;
+    }
+    tops.push(y);
+    L = { stations, cols, dx, col, tracks: [...tracks.values()], high, tops, tk, rows };
     P.cache.set(key, L);
   }
-  const { stations, cols, dx, col, tk, rowH } = L;
+  const { stations, cols, dx, col, tk } = L;
   const X = (c) => pad + ((c % cols) + 0.5) * dx;
   const row = (c) => Math.floor(c / cols);
-  const trunkY = (r) => pad + r * rowH + 12 + L.most * tk;
+  const trunkY = (r) => L.tops[r] + 12 + L.high[r] * tk;
   const Y = (c, track) => trunkY(row(c)) - track * tk;
   // Where the clock is: the last station at or before this moment.
   const now = Math.max(-1, ...stations.filter((m) => m.i <= v.i).map((m) => col.get(m.i)));
@@ -864,6 +880,7 @@ DRAW.lines = (P, v, W, o) => {
     const g = [];
     if (o.sel === a.id) g.push(path(d.join(""), { class: "f-none s-ink", "stroke-width": 8, opacity: 0.22, "stroke-linecap": "round" }));
     g.push(path(d.join(""), { class: "f-none s-m", "stroke-width": running ? 3.6 : 2.6, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    g.push(path(d.join(""), { fill: "none", stroke: "transparent", "stroke-width": 11, "pointer-events": "stroke" }));
     // The line that waits for a foreground child is drawn hollow for as long.
     if (fore && r.under > 0) {
       const y = Y(r.c0, r.under);
@@ -878,15 +895,15 @@ DRAW.lines = (P, v, W, o) => {
     if (running) g.push(tag("circle", { cx: r1(X(end)), cy: r1(Y(end, r.track)), r: 7.5, class: "halo" }), tag("circle", { cx: r1(X(end)), cy: r1(Y(end, r.track)), r: 4.6, class: "f-m" }));
     out.push(`<g data-id="${a.id}" class="m-${a.m.key}">${g.join("")}</g>`);
     // Stations: where it left, and where it came back.
-    marks.push(tag("circle", { cx: r1(X(r.c0)), cy: r1(Y(r.c0, r.under)), r: 3, class: "f-surface s-ink", "stroke-width": 1.5 }));
+    marks.push(tag("circle", { cx: r1(X(r.c0)), cy: r1(Y(r.c0, r.under)), r: 3, class: "f-surface s-ink", "stroke-width": 1.5, "data-id": a.id }));
     if (s.unsaid && r.run === 0) marks.push(diamond(X(r.c0), Y(r.c0, r.under) + 9, 4));
     if (!running) {
       const ey = Y(end, fore ? r.under : 0);
-      marks.push(r.failed ? cross(X(end), ey, 4.5) : tag("circle", { cx: r1(X(end)), cy: r1(ey), r: 3, class: "f-surface s-ink", "stroke-width": 1.5 }));
+      marks.push(r.failed ? cross(X(end), ey, 4.5) : tag("circle", { cx: r1(X(end)), cy: r1(ey), r: 3, class: "f-surface s-ink", "stroke-width": 1.5, "data-id": a.id }));
     }
     const label = `${a.id}${r.run > 0 ? `·${r.run + 1}` : ""}`;
     const lx = X(r.c0) + bend + 1;
-    if (lx + label.length * 4.9 < W - 2) names.push(text(lx, Y(r.c0, r.track) - 3.5, label, { size: 8, weight: 600, class: `mono t-m lift m-${a.m.key}` }));
+    if (lx + label.length * 4.9 < W - 2) names.push(text(lx, Y(r.c0, r.track) - 3.5, label, { size: 8, weight: 600, class: `mono t-m lift m-${a.m.key}`, id: a.id }));
   }
 
   // What was said, under the trunk: a flag where it was said, and a stub that ends in nothing for what never ran.
@@ -899,14 +916,14 @@ DRAW.lines = (P, v, W, o) => {
     names.push(text(x - 3, y + 23, "said", { size: 8, weight: 600, anchor: "end", class: "t-said lift" }));
     p.never.forEach((g, k) => {
       const x2 = x + 20 + k * 12;
-      marks.push(`<g data-id="${g.id}">${path(`M${r1(x)} ${y + 20}H${r1(x2 - 4)}`, { class: "said" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 4, class: "said f-said" })}${o.sel === g.id ? tag("circle", { cx: r1(x2), cy: y + 20, r: 7, class: "sel" }) : ""}</g>`);
+      marks.push(`<g data-id="${g.id}">${path(`M${r1(x)} ${y + 20}H${r1(x2 - 4)}`, { class: "said f-none" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 4, class: "said f-said" })}${tag("circle", { cx: r1(x2), cy: y + 20, r: 10, class: "hit" })}${o.sel === g.id ? tag("circle", { cx: r1(x2), cy: y + 20, r: 7, class: "sel" }) : ""}</g>`);
     });
   }
   // The clock: a ring on the trunk at the station it is at.
   if (now >= 0) marks.push(tag("circle", { cx: r1(X(now)), cy: trunkY(row(now)), r: 6.5, class: "f-none s-accent", "stroke-width": 2.2 }));
   else names.push(text(pad, trunkY(0) + 4, "The session has begun. Nothing has left it yet.", { size: 10.5, class: "t3" }));
   // The map is as long as the session has gone.
-  return { h: pad + (row(Math.max(now, 0)) + 1) * rowH + 2, body: `${out.join("")}${marks.join("")}${names.join("")}` };
+  return { h: L.tops[row(Math.max(now, 0)) + 1] + 2, body: `${out.join("")}${marks.join("")}${names.join("")}` };
 };
 
 /* W4 · The ring. What is running stands close around the session; what has finished goes out to the rim and stays
@@ -994,6 +1011,7 @@ DRAW.ring = (P, v, W, o) => {
       if (s.unsaid) g.push(diamond(x - br * 0.76, y - br * 0.76, 5.5));
       if (o.sel === a.id) g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(br + 4), class: "sel" }));
     } else {
+      g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(Math.max(rb + 2, 7)), class: "hit" }));
       g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r1(rb), class: "f-surface s-m", "stroke-width": 2 }));
       if (s.state === "failed") g.push(cross(x, y, rb * 0.62));
       if (rb >= 7.5 && s.state !== "failed") g.push(text(x, y + 3, a.m.letter, { size: 8.5, weight: 700, anchor: "middle", class: "t-m" }));
@@ -1221,7 +1239,9 @@ DRAW.bursts = (P, v, W, o) => {
       }
       if (o.said) for (const p of v.said) if (burstAt(P, P.byId.get(p.before).runs[0].from) === burst) p.never.forEach((ghost, j) => g.push(tag("circle", { cx: r1(x0 + cw - 8), cy: r1(y0 + 8 + j * 8), r: 3, class: "said f-said", "stroke-width": 1.2 })));
       g.push(text(x0 + cw / 2, y0 + ch - 11, short(burst.from), { size: 8, anchor: "middle", class: `mono ${here ? "" : "t3"}` }));
-      out.push(`<g>${g.join("")}</g>`);
+      // Touch a burst to go to its first moment.
+      g.push(tag("rect", { x: r1(x0), y: y0, width: r1(cw), height: ch - 4, class: "hit" }));
+      out.push(`<g data-go="${P.moments.find((m) => m.t >= burst.from && (m.kind === "start" || m.kind === "resume")).i}">${g.join("")}</g>`);
     });
     // The sentence is as long as the session has gone.
     y += Math.ceil((P.bursts.filter((x) => x.from <= t).length || 1) / per) * ch + 6;
@@ -1233,7 +1253,7 @@ DRAW.bursts = (P, v, W, o) => {
   const started = b.runs.filter((r) => r.from <= t);
   const ids = [...new Set(started.map((r) => r.id))];
   const ghosts = v.ghosts.filter((g) => burstAt(P, P.byId.get(P.plans[g.plan].before).runs[0].from) === b);
-  out.push(text(pad, y + 9, many ? `burst ${b.k + 1} of ${P.bursts.length} · begins ${dur(b.from)} in · ${dur(b.to - b.from)} long` : `the whole session · one burst · ${dur(b.to - b.from)} of subagents' work`, { size: 10.5, class: "t2", weight: 600 }));
+  out.push(text(pad, y + 9, many ? `burst ${b.k + 1} of ${P.bursts.length} · begins ${dur(b.from)} in · ${dur(b.to - b.from)} long` : `one burst · ${dur(b.to - b.from)} of subagents' work`, { size: 10.5, class: "t2", weight: 600 }));
   y += 20;
   // Children under their parents, a step in.
   const order = [];
@@ -1259,7 +1279,7 @@ DRAW.bursts = (P, v, W, o) => {
     const cy = top + k * pitch;
     const w = W - pad - x;
     if (row.ghost) {
-      cards.push(path(`M${sx + sr + 2} ${r1(sy)}C${r1(left - 14)} ${r1(sy)} ${r1(sx + sr + 16)} ${r1(cy + ch / 2)} ${r1(x)} ${r1(cy + ch / 2)}`, { class: "said" }));
+      cards.push(path(`M${sx + sr + 2} ${r1(sy)}C${r1(left - 14)} ${r1(sy)} ${r1(sx + sr + 16)} ${r1(cy + ch / 2)} ${r1(x)} ${r1(cy + ch / 2)}`, { class: "said f-none" }));
       cards.push(`<g data-id="${row.ghost.id}"${row.ghost.fresh ? ' class="fresh"' : ""}>${tag("rect", { x: r1(x), y: r1(cy), width: r1(w), height: ch, rx: 10, class: "said f-said" })}${text(x + 14, cy + 17, "said, never seen", { size: 11.5, weight: 700, class: "t-said" })}${text(x + 14, cy + 32, `${row.ghost.type} · made up`, { size: 10, class: "t2" })}${o.sel === row.ghost.id ? tag("rect", { x: r1(x - 3), y: r1(cy - 3), width: r1(w + 6), height: ch + 6, rx: 12, class: "sel" }) : ""}</g>`);
       return;
     }
@@ -1384,6 +1404,11 @@ for (const view of views) {
     go(Number(view.range.value));
   });
   view.stage.addEventListener("click", (e) => {
+    const jump = e.target.closest("[data-go]")?.dataset.go;
+    if (jump !== undefined) {
+      stop();
+      return go(Number(jump));
+    }
     const id = e.target.closest("[data-id]")?.dataset.id ?? null;
     state.sel = id === state.sel ? null : id;
     refresh();

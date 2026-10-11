@@ -39,7 +39,7 @@ DRAW.lanes = (P, v, W, o) => {
   if (many) {
     // The whole session: one block a burst, as tall as the most that ran at once in it. A tick where a new day begins.
     const bw = (W - pad * 2) / P.bursts.length;
-    out.push(text(pad, y + 8, `the whole session · ${P.bursts.length} bursts of work · a mark where a day has gone by`, { size: 9.5, class: "t3" }));
+    out.push(text(pad, y + 8, `the whole session · ${P.bursts.length} bursts of work${W < 340 ? "" : " · a mark where a day has gone by"}`, { size: 9.5, class: "t3" }));
     const base = y + 54;
     let day = 0;
     P.bursts.forEach((burst, k) => {
@@ -55,6 +55,8 @@ DRAW.lanes = (P, v, W, o) => {
       const here = burst === b;
       out.push(tag("rect", { x: r1(x + 1), y: r1(base - h), width: r1(Math.max(2, bw - 2)), height: r1(h), rx: 1.5, class: here ? "f-accent" : past ? "f-ink" : "f-none s-line", opacity: here ? 1 : past ? 0.5 : 1, "stroke-width": 1 }));
       if (here) out.push(path(`M${r1(x + bw / 2 - 4)} ${base + 5}h8l-4 5z`, { class: "f-accent" }));
+      // Touch a burst to go to its first moment.
+      out.push(tag("rect", { x: r1(x), y: base - 30, width: r1(bw), height: 36, class: "hit", "data-go": P.moments.find((m) => m.t >= burst.from && (m.kind === "start" || m.kind === "resume")).i }));
     });
     y = base + 20;
   }

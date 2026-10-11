@@ -9,7 +9,7 @@ DRAW.tree = (P, v, W, o) => {
   const left = pad + 28;
   const gap = tier === "tok" ? 8 : 10;
   const wide = W >= 600;
-  const cols = tier === "card" ? (wide ? 4 : 2) : tier === "mid" ? (wide ? 6 : 3) : Math.floor((W - left - pad + gap) / (30 + gap));
+  const cols = tier === "card" ? (wide ? 4 : W < 340 ? 1 : 2) : tier === "mid" ? (wide ? 6 : 3) : Math.floor((W - left - pad + gap) / (30 + gap));
   const tw = tier === "tok" ? 30 : (W - left - pad - gap * (cols - 1)) / cols;
   const th = tier === "card" ? 62 : tier === "mid" ? 44 : 30;
   const under = tier === "tok" ? 13 : 0;
@@ -61,7 +61,7 @@ DRAW.tree = (P, v, W, o) => {
 
   for (const g of v.ghosts) {
     const p = at.get(g.id);
-    out.push(line(p.x + tw / 2, p.rail, p.x + tw / 2, p.y, { class: "said" }));
+    out.push(line(p.x + tw / 2, p.rail, p.x + tw / 2, p.y, { class: "said f-none" }));
     out.push(`<g data-id="${g.id}"${g.fresh ? ' class="fresh"' : ""}>${tag("rect", { x: r1(p.x), y: p.y, width: r1(tw), height: th, rx: tier === "tok" ? 8 : 10, class: "said f-said" })}${tier === "tok" ? text(p.x + tw / 2, p.y + th + 10, "said", { size: 8.5, anchor: "middle", class: "t-said" }) : `${text(p.x + 12, p.y + 18, "said, never seen", { size: tier === "card" ? 11.5 : 9.5, weight: 600, class: "t-said" })}${text(p.x + 12, p.y + (tier === "card" ? 36 : 33), `${g.type}${tier === "card" ? " · made up" : ""}`, { size: tier === "card" ? 10.5 : 9, class: "t2" })}`}${o.sel === g.id ? tag("rect", { x: r1(p.x - 3), y: p.y - 3, width: r1(tw + 6), height: th + 6, rx: 11, class: "sel" }) : ""}</g>`);
   }
 

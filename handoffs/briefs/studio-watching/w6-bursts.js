@@ -65,7 +65,9 @@ DRAW.bursts = (P, v, W, o) => {
       }
       if (o.said) for (const p of v.said) if (burstAt(P, P.byId.get(p.before).runs[0].from) === burst) p.never.forEach((ghost, j) => g.push(tag("circle", { cx: r1(x0 + cw - 8), cy: r1(y0 + 8 + j * 8), r: 3, class: "said f-said", "stroke-width": 1.2 })));
       g.push(text(x0 + cw / 2, y0 + ch - 11, short(burst.from), { size: 8, anchor: "middle", class: `mono ${here ? "" : "t3"}` }));
-      out.push(`<g>${g.join("")}</g>`);
+      // Touch a burst to go to its first moment.
+      g.push(tag("rect", { x: r1(x0), y: y0, width: r1(cw), height: ch - 4, class: "hit" }));
+      out.push(`<g data-go="${P.moments.find((m) => m.t >= burst.from && (m.kind === "start" || m.kind === "resume")).i}">${g.join("")}</g>`);
     });
     // The sentence is as long as the session has gone.
     y += Math.ceil((P.bursts.filter((x) => x.from <= t).length || 1) / per) * ch + 6;
@@ -77,7 +79,7 @@ DRAW.bursts = (P, v, W, o) => {
   const started = b.runs.filter((r) => r.from <= t);
   const ids = [...new Set(started.map((r) => r.id))];
   const ghosts = v.ghosts.filter((g) => burstAt(P, P.byId.get(P.plans[g.plan].before).runs[0].from) === b);
-  out.push(text(pad, y + 9, many ? `burst ${b.k + 1} of ${P.bursts.length} · begins ${dur(b.from)} in · ${dur(b.to - b.from)} long` : `the whole session · one burst · ${dur(b.to - b.from)} of subagents' work`, { size: 10.5, class: "t2", weight: 600 }));
+  out.push(text(pad, y + 9, many ? `burst ${b.k + 1} of ${P.bursts.length} · begins ${dur(b.from)} in · ${dur(b.to - b.from)} long` : `one burst · ${dur(b.to - b.from)} of subagents' work`, { size: 10.5, class: "t2", weight: 600 }));
   y += 20;
   // Children under their parents, a step in.
   const order = [];
@@ -103,7 +105,7 @@ DRAW.bursts = (P, v, W, o) => {
     const cy = top + k * pitch;
     const w = W - pad - x;
     if (row.ghost) {
-      cards.push(path(`M${sx + sr + 2} ${r1(sy)}C${r1(left - 14)} ${r1(sy)} ${r1(sx + sr + 16)} ${r1(cy + ch / 2)} ${r1(x)} ${r1(cy + ch / 2)}`, { class: "said" }));
+      cards.push(path(`M${sx + sr + 2} ${r1(sy)}C${r1(left - 14)} ${r1(sy)} ${r1(sx + sr + 16)} ${r1(cy + ch / 2)} ${r1(x)} ${r1(cy + ch / 2)}`, { class: "said f-none" }));
       cards.push(`<g data-id="${row.ghost.id}"${row.ghost.fresh ? ' class="fresh"' : ""}>${tag("rect", { x: r1(x), y: r1(cy), width: r1(w), height: ch, rx: 10, class: "said f-said" })}${text(x + 14, cy + 17, "said, never seen", { size: 11.5, weight: 700, class: "t-said" })}${text(x + 14, cy + 32, `${row.ghost.type} · made up`, { size: 10, class: "t2" })}${o.sel === row.ghost.id ? tag("rect", { x: r1(x - 3), y: r1(cy - 3), width: r1(w + 6), height: ch + 6, rx: 12, class: "sel" }) : ""}</g>`);
       return;
     }
