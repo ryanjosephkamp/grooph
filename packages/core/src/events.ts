@@ -132,8 +132,7 @@ export type LiveAgent = {
   type: string;
   /** the agent that started it, when the harness said; absent for one the main session started, or when unknown */
   parent?: string;
-  /** not-seen-to-finish: its session ended with no stop on record for it. It is not running, and nothing says it finished. */
-  state: "running" | "done" | "not-seen-to-finish";
+  state: "running" | "done";
   started: string;
   /** its last stop; a subagent that is resumed stops more than once */
   ended?: string;
@@ -224,19 +223,17 @@ export function summarizeSessions(events: readonly (SessionEvent & { source?: st
     if (e.cwd !== undefined && s.cwd === undefined && e.agent === undefined) s.cwd = e.cwd;
     if (e.model !== undefined && e.agent === undefined) s.model = e.model;
 
-    // `own`: the line is the agent's own. A child named by its parent's tool line takes nothing else from that line:
-    // the type and model on it are the parent's.
-    const agent = (id: string, own = true): LiveAgent => {
+    const agent = (id: string): LiveAgent => {
       const k = `${key}\u0000${id}`;
       let a = agents.get(k);
       if (!a) {
         // A stop or a tool call from a subagent whose start was not seen (the hook was installed mid-session) still names it.
-        a = { id, type: (own ? e.type : undefined) ?? "subagent", state: "running", started: e.t, stops: 0, tools: 0, lastAt: e.t };
+        a = { id, type: e.type ?? "subagent", state: "running", started: e.t, stops: 0, tools: 0, lastAt: e.t };
         agents.set(k, a);
         s!.agents.push(a);
       }
-      if (own && e.type !== undefined && (a.type === "subagent" || e.event === "subagent-start")) a.type = e.type;
-      if (own && e.model !== undefined) a.model = e.model;
+      if (e.type !== undefined && a.type === "subagent") a.type = e.type;
+      if (e.model !== undefined) a.model = e.model;
       if (e.t > a.lastAt) a.lastAt = e.t;
       return a;
     };
@@ -247,9 +244,6 @@ export function summarizeSessions(events: readonly (SessionEvent & { source?: st
         break;
       case "session-end":
         s.ended = e.t;
-        // The session closed. A subagent with no stop on record (a run that failed fires none) is not running any
-        // more, and was not seen to finish; a stop that arrives after this still ends it.
-        for (const a of s.agents) if (a.state === "running") a.state = "not-seen-to-finish";
         break;
       case "turn-start":
         turnOpen.set(key, true);
@@ -282,14 +276,14 @@ export function summarizeSessions(events: readonly (SessionEvent & { source?: st
           const a = agent(e.agent);
           a.tools += 1;
           if (e.tool !== undefined) a.lastTool = e.tool;
-          // Work seen from a subagent after its stop means it was resumed; from one not seen to finish, that it is running.
-          if ((a.state === "done" && a.ended !== undefined && e.t > a.ended) || a.state === "not-seen-to-finish") a.state = "running";
+          // Work seen from a subagent after its stop means it was resumed.
+          if (a.state === "done" && a.ended !== undefined && e.t > a.ended) a.state = "running";
         } else {
           s.tools += 1;
           if (e.tool !== undefined) s.lastTool = e.tool;
         }
         if (e.spawned !== undefined) {
-          const child = agent(e.spawned, e.spawned === e.agent);
+          const child = agent(e.spawned);
           if (e.agent !== undefined && e.agent !== e.spawned) child.parent = e.agent;
         }
         break;
@@ -375,14 +369,11 @@ export const isQuiet = (s: Pick<LiveSession, "state" | "lastAt">, at: string | u
  */
 export function sessionLine(s: LiveSession, at?: string): string {
   const running = s.agents.filter((a) => a.state === "running").length;
-  // Not seen to finish: left open when its session ended, or (in a session gone quiet) with no stop on record.
-  const unseen = s.agents.filter((a) => a.state === "not-seen-to-finish").length;
-  const done = s.agents.length - running - unseen;
+  const done = s.agents.length - running;
   const quiet = isQuiet(s, at);
   const parts = [s.harness, quiet ? `last seen ${durationText(secondsBetween(s.lastAt, at!))} ago, ${s.state} then` : s.state];
   if (s.agents.length === 0) parts.push("no subagents yet");
-  else if (quiet && running > 0) parts.push(`${running + unseen} not seen to finish, ${done} done`);
-  else parts.push(`${running} running, ${done} done${unseen > 0 ? `, ${unseen} not seen to finish` : ""}`);
+  else parts.push(quiet && running > 0 ? `${running} not seen to finish, ${done} done` : `${running} running, ${done} done`);
   return parts.join(" · ");
 }
 
@@ -487,7 +478,7 @@ export function mapLive(sessions: readonly LiveSession[], map: OperationMap, at?
     for (const a of s.agents) {
       // A subagent a quiet session never reported as finished is not running, as far as anyone can tell.
       if (a.state === "running" && !quiet) m.agentsRunning += 1;
-      else if (a.state === "done") m.agentsDone += 1;
+      else if (a.state !== "running") m.agentsDone += 1;
     }
     if (s.lastAt > m.lastAt) m.lastAt = s.lastAt;
   }
