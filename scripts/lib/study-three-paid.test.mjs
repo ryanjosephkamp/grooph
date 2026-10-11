@@ -18,7 +18,7 @@ import { asOfToday, capFiles, changeSince, copyPlain, endedBy, findHarness, firs
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
 const STAND_IN = join(here, "fixtures", "stand-in-harness.mjs");
-const built = existsSync(join(root, "packages", "cli", "dist"));
+const built = existsSync(join(root, "packages", "cli", "dist")) && existsSync(join(root, "lab", "dist", "src", "main.js"));
 const MARK = JSON.parse(readFileSync(join(root, "experiments", "brakes", "budget", "expect.json"), "utf8")).check_line_begins;
 const LINE = `${MARK}: this check fails every round, by design. Nothing in the project makes it pass.`;
 const RUN = ".grooph/brake-budget/runs/20261005-000000";

@@ -88,7 +88,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.error("usage: brake-run.mjs --dry-run [--write] | --check\nThis script starts no model session. The paid runs are not built: they wait for the owner's yes.");
     process.exit(64);
   }
-  if (!existsSync(grooph) || !existsSync(join(root, "packages", "cli", "dist"))) fail("build the tool first: pnpm -r build");
+  if (!existsSync(grooph) || !existsSync(join(root, "packages", "cli", "dist")) || !existsSync(join(root, "lab", "dist", "src", "main.js"))) fail("build the tool first: pnpm -r build");
   const expect = JSON.parse(readFileSync(join(experiment, "expect.json"), "utf8"));
   const work = mkdtempSync(join(tmpdir(), "brake-"));
   try {
