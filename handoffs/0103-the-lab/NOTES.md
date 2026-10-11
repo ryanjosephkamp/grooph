@@ -59,6 +59,25 @@ Taken on `main` at `da6c3874`, built there (`pnpm install --frozen-lockfile && p
 - `packages/cli/src/commands/help.ts`: what is said of the commands that stay, stays; the rest is `lab/src/help.ts`. `nearestCommand` takes a list, so the lab's "did you mean" still knows `export`.
 - `packages/cli/src/commands/export.ts`: **not moved yet.** The MCP tool `grooph_export` (`mcp-author.ts:78`) imports fourteen names from it, and that tool leaves in pull request 3. Nothing in the product's command line reaches it. Two helpers changed hands on the way: `shellWord`, which `plan` uses, is in `reply.ts`; `NOT_JUDGED`, which `adopt`, `export` and the MCP tool say, is defined in `export.ts` until that file moves.
 
+**The tests: split, each test living once.** No test file moved whole. A test that needs `export`, `adopt`, `runs`, `watch` with a folder, or `share` or `embed` of a run folder moved to `lab/test/` under its file's name and runs against the lab's command; the rest stayed. A test that mixed both was cut in two, or moved whole where its halves do not come apart.
+
+| File (`packages/cli/test/`) | Moved to `lab/test/` | Stayed | Cut in two |
+|---|---|---|---|
+| `cli.test.ts` | 7 (the six of export, and validate of a run's working copy) | 17 | "bad invocations fail with usage" (export's three lines) |
+| `export-brakes.test.ts` | 15 | 1, and a new half: no command of grooph's writes a kept graph, on a kept graph placed by hand | |
+| `friction.test.ts` | 1 | 11 | the overview and every command's page; what comes next at a terminal |
+| `map.test.ts` | 1 | 6 | |
+| `plan.test.ts` | 1 | 11 | the kept graph and the package beside it; a person's step and export; a plan template and export |
+| `runs.test.ts` | 23 (runs, adopt, share of a run folder, watch of a run) | 1, and two new halves: what `grooph watch` prints, and the sessions it serves | |
+| `third-pass.test.ts` | 6, whole (four also call the MCP tool, through `@grooph/cli/mcp`) | 15 (every one that reaches export only through the tool) | |
+| `template.test.ts`, `embed.test.ts` | | all | one each: export of a filled template; embed of a run folder |
+| `share.test.ts` | | all, with the pick's `next:` line now asserted absent | |
+| `codex-tiers.test.ts`, `mcp-author.test.ts`, `mcp.test.ts`, and eight more | | untouched: they call `exportCommand` or the tool, which move in pull request 3 | |
+
+New: `packages/cli/test/gone.test.ts` (6 tests) is the product's side of criterion 3. In `lab/test/command.test.ts` the comparison with the product is kept for what is still the product's, and the product is shown to answer with its one line for what left.
+
+Counts, built from clean: core 597 before and after; cli 242 to 197; the lab's own 8 to 70; 250 to 267 together. The 17 more: 6 in `gone.test.ts`, 8 lab halves of cut tests, 3 product halves. `packages/cli/test/runs.test.ts` now holds only `watch` tests and `export-brakes.test.ts` only the kept graph's; their names are left for pull request 3, which empties or renames them.
+
 **Why the handoff's order and not the MCP tool first.** With the tool first, each file would move once. The handoff fixes the order and keys the three shared files to pull request 2, and its order already implies `export.ts` stays while the tool does; so the order stands and one file waits.
 
 **Where the lab's command is not, word for word, what `grooph` 0.4.1 was.** In what it does, it is a superset. In what it says, it hands the product's commands on as they are now, so it differs exactly where the product's own words changed (each listed in the pull request). The six pages it answers itself (`export`, `adopt`, `runs`, `watch`, `share`, `embed`), the overview and the "did you mean" are as they were. One more difference: a usage error of `share` or `embed` on a file shows the product's usage line, which no longer names a run folder.
