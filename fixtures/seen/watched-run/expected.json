@@ -1,21 +1,21 @@
 {
-  "moments": ["2026-01-01T00:00:00.000Z","2026-01-01T00:00:16.280Z","2026-01-01T00:00:16.282Z","2026-01-01T00:00:18.374Z","2026-01-01T00:00:21.761Z","2026-01-01T00:00:24.439Z","2026-01-01T00:00:24.442Z","2026-01-01T00:01:12.880Z","2026-01-01T00:01:23.719Z","2026-01-01T00:01:41.095Z","2026-01-01T00:02:35.194Z","2026-01-01T00:02:35.241Z","2026-01-01T00:02:43.870Z","2026-01-01T00:02:43.988Z"],
+  "moments": ["2026-01-01T00:00:00.000Z","2026-01-01T00:00:16.280Z","2026-01-01T00:00:18.374Z","2026-01-01T00:00:21.761Z","2026-01-01T00:00:24.439Z","2026-01-01T00:01:12.880Z","2026-01-01T00:01:23.719Z","2026-01-01T00:01:41.095Z","2026-01-01T00:02:35.194Z","2026-01-01T00:02:35.241Z","2026-01-01T00:02:43.870Z","2026-01-01T00:02:43.988Z"],
   "record": {"hook":{"lines":24,"last":"2026-01-01T00:02:43.988Z","stopsNotDrawn":0},"harness":{"agents":4}},
   "graphs": [
     {
-      "at": "2026-01-01T00:00:24.442Z",
+      "at": "2026-01-01T00:00:24.439Z",
       "nodes": [
         {"id":"seen-watched-run","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z"},
-        {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"running","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:16.280Z","source":"both"}],"source":"both"},
-        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"running","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:18.374Z","source":"both"}],"source":"both"},
-        {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"running","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:21.761Z","source":"both"}],"source":"both"},
-        {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"running","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:24.439Z","source":"both"}],"source":"both"}
+        {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:16.280Z","source":"both"}],"source":"both"},
+        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:18.374Z","source":"both"}],"source":"both"},
+        {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:21.761Z","source":"both"}],"source":"both"},
+        {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:24.439Z","source":"both"}],"source":"both"}
       ],
       "edges": [
-        {"from":"seen-watched-run","to":"a01","kind":"started","at":"2026-01-01T00:00:16.280Z","knownAt":"2026-01-01T00:00:16.282Z","source":"hook"},
-        {"from":"seen-watched-run","to":"a02","kind":"started","at":"2026-01-01T00:00:18.374Z","knownAt":"2026-01-01T00:00:18.374Z","source":"hook"},
-        {"from":"seen-watched-run","to":"a03","kind":"started","at":"2026-01-01T00:00:21.761Z","knownAt":"2026-01-01T00:00:21.761Z","source":"hook"},
-        {"from":"seen-watched-run","to":"a04","kind":"started","at":"2026-01-01T00:00:24.439Z","knownAt":"2026-01-01T00:00:24.442Z","source":"hook"}
+        {"from":"seen-watched-run","to":"a01","kind":"started","at":"2026-01-01T00:00:16.280Z","knownAt":"2026-01-01T00:00:16.280Z","source":"both"},
+        {"from":"seen-watched-run","to":"a02","kind":"started","at":"2026-01-01T00:00:18.374Z","knownAt":"2026-01-01T00:00:18.374Z","source":"both"},
+        {"from":"seen-watched-run","to":"a03","kind":"started","at":"2026-01-01T00:00:21.761Z","knownAt":"2026-01-01T00:00:21.761Z","source":"both"},
+        {"from":"seen-watched-run","to":"a04","kind":"started","at":"2026-01-01T00:00:24.439Z","knownAt":"2026-01-01T00:00:24.439Z","source":"both"}
       ],
       "differs": []
     },
@@ -23,16 +23,16 @@
       "at": "2026-01-01T00:02:43.988Z",
       "nodes": [
         {"id":"seen-watched-run","kind":"session","harness":"claude-code","depth":0,"state":"ended","started":"2026-01-01T00:00:00.000Z","ended":"2026-01-01T00:02:43.988Z"},
-        {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"done","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:16.280Z","to":"2026-01-01T00:01:41.095Z","source":"both"}],"source":"both"},
-        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"done","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:18.374Z","to":"2026-01-01T00:01:12.880Z","source":"both"}],"source":"both"},
-        {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"done","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:21.761Z","to":"2026-01-01T00:02:35.194Z","source":"both"}],"source":"both"},
-        {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"done","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:24.439Z","to":"2026-01-01T00:01:23.719Z","source":"both"}],"source":"both"}
+        {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:16.280Z","to":"2026-01-01T00:01:41.095Z","end":"completed","source":"both"}],"source":"both"},
+        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:18.374Z","to":"2026-01-01T00:01:12.880Z","end":"completed","source":"both"}],"source":"both"},
+        {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:21.761Z","to":"2026-01-01T00:02:35.194Z","end":"completed","source":"both"}],"source":"both"},
+        {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:24.439Z","to":"2026-01-01T00:01:23.719Z","end":"completed","source":"both"}],"source":"both"}
       ],
       "edges": [
-        {"from":"seen-watched-run","to":"a01","kind":"started","at":"2026-01-01T00:00:16.280Z","knownAt":"2026-01-01T00:00:16.282Z","source":"hook"},
-        {"from":"seen-watched-run","to":"a02","kind":"started","at":"2026-01-01T00:00:18.374Z","knownAt":"2026-01-01T00:00:18.374Z","source":"hook"},
-        {"from":"seen-watched-run","to":"a03","kind":"started","at":"2026-01-01T00:00:21.761Z","knownAt":"2026-01-01T00:00:21.761Z","source":"hook"},
-        {"from":"seen-watched-run","to":"a04","kind":"started","at":"2026-01-01T00:00:24.439Z","knownAt":"2026-01-01T00:00:24.442Z","source":"hook"}
+        {"from":"seen-watched-run","to":"a01","kind":"started","at":"2026-01-01T00:00:16.280Z","knownAt":"2026-01-01T00:00:16.280Z","source":"both"},
+        {"from":"seen-watched-run","to":"a02","kind":"started","at":"2026-01-01T00:00:18.374Z","knownAt":"2026-01-01T00:00:18.374Z","source":"both"},
+        {"from":"seen-watched-run","to":"a03","kind":"started","at":"2026-01-01T00:00:21.761Z","knownAt":"2026-01-01T00:00:21.761Z","source":"both"},
+        {"from":"seen-watched-run","to":"a04","kind":"started","at":"2026-01-01T00:00:24.439Z","knownAt":"2026-01-01T00:00:24.439Z","source":"both"}
       ],
       "differs": []
     }

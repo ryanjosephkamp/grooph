@@ -3,13 +3,12 @@
  * Makes the fixtures under `fixtures/seen/` from real sessions of this project (slice 0104).
  *
  *   pnpm -r build
- *   node handoffs/0104-the-live-graph/tools/make-fixtures.mjs <folder of event files> <project-folder prefix> [<config folder of the watched run> <its project folder>]
+ *   node handoffs/0104-the-live-graph/tools/make-fixtures.mjs <folder of event files> <project-folder prefix> <config folder of the watched run> <its project folder>
  *   node handoffs/0104-the-live-graph/tools/make-fixtures.mjs --expected      # only expected.json again, from the files in the repository
  *
- * The watched run (`experiments/watching/haiku/four/invited-1/`) was a session in a profile of its own, so its
- * events are read from the repository and its subagents' files from that profile's folder, when the two last
- * arguments name it. Without them its `harness.json` is made from the run's committed `transcript-digest.json`,
- * which holds less: a type, the model that answered, and a first and a last time.
+ * The watched run (`experiments/watching/haiku/four/invited-1/`) was a session in a profile of its own: its events
+ * are read from the repository, and its subagents' files from that profile, in the one project folder the last
+ * argument names (the folder of that run's own session, and no other run's).
  *
  * Each fixture is a run of consecutive lines from one session's events file, and what the harness's own files said
  * of the subagents that began inside those lines. Three files:
@@ -50,7 +49,7 @@ const FIXTURES = [
   // Two subagents that had come and gone before the hook was installed.
   { name: "before-the-hook", session: "3e9d2b43-91b3-40a4-9859-23f9fc76c901", lines: [1, 8], before: true, at: [1, 3], alone: [] },
   // The run of the watching check that the repository holds: four subagents started in one turn.
-  { name: "watched-run", session: "8636ef98-4c57-4312-9a58-279d2590405d", run: "experiments/watching/haiku/four/invited-1", lines: [1, 24], at: [6], alone: [4] },
+  { name: "watched-run", session: "8636ef98-4c57-4312-9a58-279d2590405d", run: "experiments/watching/haiku/four/invited-1", lines: [1, 24], at: [4], alone: [4] },
 ];
 
 const START = Date.parse("2026-01-01T00:00:00.000Z");
@@ -90,8 +89,8 @@ if (args[0] === "--expected") {
   process.exit(0);
 }
 const [eventsDir, prefix, watchedConfig, watchedProject] = args;
-if (!eventsDir || !prefix) {
-  console.error("usage: make-fixtures.mjs <folder of event files> <project-folder prefix>   |   make-fixtures.mjs --expected");
+if (!eventsDir || !prefix || !watchedConfig || !watchedProject) {
+  console.error("usage: make-fixtures.mjs <folder of event files> <project-folder prefix> <config folder of the watched run> <its project folder>   |   make-fixtures.mjs --expected");
   process.exit(1);
 }
 
@@ -107,16 +106,7 @@ for (const fixture of FIXTURES) {
   const to = Math.max(...kept.map((e) => Date.parse(e.t)));
 
   // The subagents that began inside these lines (and, for one fixture, the ones that had come and gone before them).
-  const read =
-    fixture.run === undefined
-      ? readClaudeAgents(fixture.session, { only: (folder) => folder.startsWith(prefix) })
-      : watchedConfig !== undefined && watchedProject !== undefined
-        ? readClaudeAgents(fixture.session, { env: { CLAUDE_CONFIG_DIR: watchedConfig }, only: (folder) => folder === watchedProject })
-        : // What the runner's digest of that run's transcripts kept of each subagent, and no more.
-          JSON.parse(readFileSync(join(root, fixture.run, "transcript-digest.json"), "utf8"))
-            .filter((entry) => /^agent-[A-Za-z0-9_-]+\.jsonl$/.test(entry.transcript))
-            .map((entry) => ({ id: entry.transcript.slice(6, -6), type: entry.who, ...(entry.models.length === 1 ? { model: entry.models[0] } : {}), runs: [{ first: entry.started, last: entry.ended }] }))
-            .sort((a, b) => (a.runs[0].first < b.runs[0].first ? -1 : 1));
+  const read = fixture.run === undefined ? readClaudeAgents(fixture.session, { only: (folder) => folder.startsWith(prefix) }) : readClaudeAgents(fixture.session, { env: { CLAUDE_CONFIG_DIR: watchedConfig }, only: (folder) => folder === watchedProject });
   const harness = read
     .map((agent) => ({ ...agent, runs: agent.runs.filter((run) => Date.parse(run.first) <= to) }))
     .filter((agent) => agent.runs.length > 0 && (Date.parse(agent.runs[0].first) >= from || (fixture.before === true && agent.runs.every((run) => Date.parse(run.last) < from))));

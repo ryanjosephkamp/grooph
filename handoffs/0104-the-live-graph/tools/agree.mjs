@@ -31,7 +31,7 @@ const stats = (xs) => {
   return s.length === 0 ? "none" : `n=${s.length} min=${s[0].toFixed(2)} median=${s[Math.floor(s.length / 2)].toFixed(2)} max=${s[s.length - 1].toFixed(2)} s`;
 };
 
-const total = { sessions: 0, noFiles: 0, harnessAgents: 0, harnessRuns: 0, hookStarted: 0, hookStopped: 0, startLines: 0, typedStops: 0, matchedIds: 0, runsEqual: 0, parentAgree: 0, parentBoth: 0, typeAgree: 0, typeBoth: 0, spawnedLines: 0, nested: 0, stopsNotDrawn: 0, lateParents: 0, resumedEdges: 0 };
+const total = { sessions: 0, noFiles: 0, harnessAgents: 0, harnessRuns: 0, hookStarted: 0, hookStopped: 0, startLines: 0, typedStops: 0, matchedIds: 0, runsEqual: 0, parentAgree: 0, parentBoth: 0, typeAgree: 0, typeBoth: 0, spawnedLines: 0, nested: 0, stopsNotDrawn: 0, lateParents: 0, resumedEdges: 0, toolFirst: 0, toolFirstNested: 0, sessionEnds: 0, sessionStarts: 0, leftOpen: 0 };
 const startDelay = [];
 const stopDelay = [];
 const knownLate = [];
@@ -109,11 +109,27 @@ for (const file of readdirSync(eventsDir).filter((n) => n.endsWith(".jsonl") && 
   }
   for (const n of both.nodes) if (n.kind === "subagent" && (n.state === "running" || n.state === "not-seen-to-finish")) rows.push(`${short} ${n.id} (${n.type ?? "?"}): ${n.state} at the end of the record, with the harness's files read`);
 
-  // The same reading as `grooph sessions` makes: its states and the graph's, from the hook alone, are one.
+  // Where the graph from the hook alone and the list `grooph sessions` prints do not say the same of an agent or of
+  // the session. Until the list's reading is put right (the slice's second pull request) there are two known kinds:
+  // a run left open at its session's end, and a child first met through its parent's tool line.
   const [live] = summarizeSessions(events);
-  const a = live.agents.map((x) => `${x.id}:${x.state}`).sort().join(" ");
-  const b = alone.nodes.filter((n) => n.kind === "subagent").map((n) => `${n.id}:${n.state}`).sort().join(" ");
-  if (a !== b || live.state !== alone.nodes[0].state) rows.push(`${short}: the list and the graph disagree from the hook alone (session ${live.state} / ${alone.nodes[0].state})`);
+  const listed = new Map(live.agents.map((x) => [x.id, x]));
+  for (const n of alone.nodes) {
+    if (n.kind !== "subagent") continue;
+    const x = listed.get(n.id);
+    if (!x || x.state !== n.state || x.type !== (n.type ?? "subagent")) rows.push(`${short} ${n.id}: the graph from the hook alone says ${n.type ?? "no type"}, ${n.state}; the list says ${x ? `${x.type}, ${x.state}` : "nothing"}`);
+  }
+  if (live.state !== alone.nodes[0].state) rows.push(`${short}: the graph from the hook alone says the session is ${alone.nodes[0].state}; the list says ${live.state}`);
+  // A tool line written before the child's own start line: how the child is first met, and whether its parent is a subagent.
+  const startAt = new Map(events.filter((e) => e.event === "subagent-start" && e.agent).map((e) => [e.agent, e.t]));
+  for (const e of events) {
+    if (e.event !== "tool" || !e.spawned || !startAt.has(e.spawned) || e.t >= startAt.get(e.spawned)) continue;
+    total.toolFirst += 1;
+    if (e.agent) total.toolFirstNested += 1;
+  }
+  total.sessionEnds += events.filter((e) => e.event === "session-end").length;
+  total.sessionStarts += events.filter((e) => e.event === "session-start").length;
+  total.leftOpen += alone.nodes.filter((n) => n.kind === "subagent").reduce((count, n) => count + n.runs.filter((r) => r.notSeenToFinish).length, 0);
 
   // Stepping the moment: each graph is the one before with something added, dated that moment; the last is the whole.
   for (const [graph, opts] of [[alone, {}], [both, { harness }]]) {
@@ -151,6 +167,8 @@ console.log(`a start line after its run's first line: ${stats(startDelay)}`);
 console.log(`a typed stop line after its run's last line: ${stats(stopDelay)}`);
 console.log(`a parent known to the hook after the child started: ${stats(knownLate)}; later than 5 s for ${total.lateParents}`);
 console.log(`differences by kind: ${[...kinds].map(([k, n]) => `${k} ${n}`).join(", ") || "none"}`);
-console.log(`graphs stepped through: ${stepped}; runs that were open at a session's end and stopped after it: ${reopened}`);
+console.log(`tool lines written before the child's own start line: ${total.toolFirst} of ${total.spawnedLines}, of which ${total.toolFirstNested} from inside a subagent`);
+console.log(`session-end lines: ${total.sessionEnds} (session-start lines: ${total.sessionStarts}); runs with no stop on record when one came, or when the same agent began again: ${total.leftOpen}; runs open at a session's end that a later stop line ended: ${reopened}`);
+console.log(`graphs stepped through: ${stepped}`);
 console.log("");
 for (const row of rows) console.log(row);
