@@ -21,7 +21,8 @@ import { derive, readPackage } from "./compare-prompt.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const experiment = join(root, "experiments", "brakes", "budget");
-const grooph = join(root, "packages", "cli", "bin", "grooph.js");
+// The lab's command (lab/README.md): it does everything `grooph` does, `export` included.
+const grooph = join(root, "lab", "bin", "grooph-lab.js");
 
 const fail = (message) => {
   console.error(message);

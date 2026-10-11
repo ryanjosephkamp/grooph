@@ -69,7 +69,8 @@ import { DONE_LINE, derive, deriveD, iterationPrompt, loopScript, readPackage, r
 import { scoreTree } from "./compare-score.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const CLI = join(root, "packages", "cli", "bin", "grooph.js");
+// The lab's command (lab/README.md): it does everything `grooph` does, `export` included, and is what arm A's lead finds as `grooph`.
+const CLI = join(root, "lab", "bin", "grooph-lab.js");
 const CORE = join(root, "packages", "core", "dist", "src", "index.js");
 export const COMPARISONS = join(root, "experiments", "comparisons");
 const HOME = process.env.HOME ?? "";
@@ -1245,7 +1246,7 @@ async function main() {
     return out.status ?? 1;
   }
   if (!args.project) fail("usage: scripts/compare.sh <project> <A|B|C|D> [--replicate n] [--retry <why>] [--dry-run] | <project> --derive | <project> --judge [--dry-run] | <project> --next [--dry-run] | --score <run dir> [--write] | --status");
-  if (!existsSync(CORE) || !existsSync(join(root, "packages", "cli", "dist", "src", "index.js"))) fail("build the repo first: pnpm install && pnpm -r build");
+  if (!existsSync(CORE) || !existsSync(join(root, "packages", "cli", "dist", "src", "index.js")) || !existsSync(join(root, "lab", "dist", "src", "main.js"))) fail("build the repo first: pnpm install && pnpm -r build");
   const core = await import(CORE);
   const proj = loadProject(args.project);
   // Study one is finished and ran on models no call of this runner uses now: its folders are read (--status, --score, the summary), never run.
