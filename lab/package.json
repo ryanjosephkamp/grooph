@@ -1,0 +1,25 @@
+{
+  "name": "@grooph/lab",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "grooph's lab: what directs a session, kept in the repository and never published (decision 0032). Its command, grooph-lab, does everything grooph does.",
+  "license": "MIT",
+  "bin": {
+    "grooph-lab": "./bin/grooph-lab.js"
+  },
+  "exports": {
+    ".": "./dist/src/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test 'dist/test/*.test.js' ../scripts/lib/*.test.mjs ../scripts/prove-codex.test.mjs"
+  },
+  "dependencies": {
+    "@grooph/cli": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}
