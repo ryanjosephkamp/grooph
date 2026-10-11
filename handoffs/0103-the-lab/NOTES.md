@@ -78,6 +78,12 @@ New: `packages/cli/test/gone.test.ts` (6 tests) is the product's side of criteri
 
 Counts, built from clean: core 597 before and after; cli 242 to 197; the lab's own 8 to 70; 250 to 267 together. The 17 more: 6 in `gone.test.ts`, 8 lab halves of cut tests, 3 product halves. `packages/cli/test/runs.test.ts` now holds only `watch` tests and `export-brakes.test.ts` only the kept graph's; their names are left for pull request 3, which empties or renames them.
 
+**What was compared with the command as it was.** A scratch build of `da6c3874` (the `main` this slice began from), this pull request's `grooph`, and this pull request's `grooph-lab`, each started as a program on the same fifty invocations and compared by exit code, standard output and standard error (the script is the lane's, `compare.mjs`; its output is in the pull request).
+
+- `grooph-lab`: 48 of 50 the same. The two that differ are `help apply` and `help plan`, the product's own pages, which lost their sentences about `export`.
+- `grooph`: 21 the same, among them every `share` and `embed` of a file (a graph, a proposal set, a run's bundle, an operation map, with flags and with errors: 13 invocations). The 29 that differ are the commands that left, their pages, the overview, a folder given to `share`, `embed` or `watch`, two usage lines, and `help apply` and `help plan`.
+- `watch`, started and stopped in a project with no run, with a run, with `--sessions`, and on a run's own folder: `grooph-lab watch` prints what the old command printed in all five; `grooph watch` prints the sessions' lines without the run's, opens on the sessions, and refuses the folder.
+
 **Why the handoff's order and not the MCP tool first.** With the tool first, each file would move once. The handoff fixes the order and keys the three shared files to pull request 2, and its order already implies `export.ts` stays while the tool does; so the order stands and one file waits.
 
 **Where the lab's command is not, word for word, what `grooph` 0.4.1 was.** In what it does, it is a superset. In what it says, it hands the product's commands on as they are now, so it differs exactly where the product's own words changed (each listed in the pull request). The six pages it answers itself (`export`, `adopt`, `runs`, `watch`, `share`, `embed`), the overview and the "did you mean" are as they were. One more difference: a usage error of `share` or `embed` on a file shows the product's usage line, which no longer names a run folder.
@@ -86,3 +92,7 @@ Counts, built from clean: core 597 before and after; cli 242 to 197; the lab's o
 
 - §5, row 1 lists `experiments/game/setup/make-repo.sh:62-71` and the game's README for pull request 1. Lines 62 to 64 name the compiler's folder, which is still `packages/` until pull request 5; and the driver moved the script's change to pull request 2.
 - §5, row 1, "the five untested-in-CI runner tests may already be red *(inferred)*": they are green.
+- §5, row 2 misses `apps/web/e2e/adopt-brakes.spec.ts:360`, which starts the product's `adopt` as a program, so CI's browser job fails the moment `adopt` leaves the command line. Pull request 2 points that one line at the lab's command; pull request 4 parks the spec.
+- §5 puts `scripts/kit-check.sh:47` and the chat skill's last step in pull request 3 (the MCP server). Both name the command line's `export`, which the skill's script loses in pull request 2, so they changed there.
+- §4's row for the CLI reference names `docs/cli.md`'s opening sentence ("compiles") and not where it is written: `scripts/cli-reference.mjs:58`, the generator's own text.
+- §2 edge 10 says the product's `watch` "serves sessions and map only". It does; and `--sessions`, which chose the sessions over a run, is still taken and now changes nothing, since decision 0032 lists `watch --sessions` among what stays and `scripts/pack-check.sh` starts it that way.
