@@ -74,8 +74,13 @@ test("a paid step needs both flags, and the driver's words are more than a word"
   const known = { plain: ["--dry-run", "--spend"], valued: ["--go", "--form"] };
   assert.deepEqual(unknownFlags(["--spend", "--go", "the driver's words", "--form", "package", "--dry-run"], known), []);
   assert.deepEqual(unknownFlags(["--dryrun", "--spend", "--go", "the driver's words", "extra"], known), ["--dryrun", "extra"]);
+  // These are the paid runners themselves, given the two flags that spend. Were a refusal ever lost, no runner could
+  // find a harness to start: each is given a path that holds none, and the runners' own lookup is asked first.
+  const noHarness = { ...process.env, PATH: join(here, "fixtures", "a-folder-that-is-not-there") };
+  const lookedFrom = (env) => (program, args, options) => spawnSync(program, args, { ...options, env });
+  assert.throws(() => findHarness(lookedFrom(noHarness)), (err) => err instanceof NotStarted && /the harness was not found/.test(err.message), "the runners' own lookup finds no harness on the path the four are given");
   for (const [script, flags] of [["brake-run-paid.mjs", ["--form", "package", "--budget", "2", "--dryrun", "--spend", "--go", "the driver's words"]], ["profile-first-call-paid.mjs", ["--dry_run", "--spend", "--go", "the driver's words"]], ["resume-step-paid.mjs", ["--next", "--spend", "--go", "the driver's words"]], ["roles-or-information-paid.mjs", ["--dryrun", "--spend", "--go", "the driver's words"]]]) {
-    const out = spawnSync(process.execPath, [join(here, script), ...flags], { encoding: "utf8" });
+    const out = spawnSync(process.execPath, [join(here, script), ...flags], { encoding: "utf8", env: noHarness });
     assert.deepEqual([out.status, /not a flag of this script\. Nothing was started\./.test(out.stderr)], [64, true], script);
   }
 });
