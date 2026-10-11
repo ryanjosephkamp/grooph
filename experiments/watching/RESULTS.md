@@ -51,6 +51,13 @@ The one session that used subagents was an invited one (`haiku/four/invited-1`: 
 - **The two tools were not used the one time there was occasion, and what the server hands a session does not mention them.** Its one sentence for a session's lead lies past the 2,048 characters the harness hands over, and what does arrive is about authoring graphs. What a session may say needs a short server of its own.
 - **The next look needs work that calls for subagents.** What a model chooses, and whether the record of it is true, can only be seen where it chooses something.
 
+## Two things found in the records afterward
+
+**2026-10-11.** Nothing above is changed. The protocol has the same note at its end, with where each figure is read from.
+
+- **Every session was told its dollar ceiling**, in a reminder from the harness with each of the model's messages: 4 to 58 reminders a run, and in all thirty-six records as many as the model's own messages. The protocol said no session is told. The ceiling was the same in the three arms of a task, so the arms are still set side by side on equal terms; what is not shown is what any session would have done untold.
+- **On the narrow task, cost holds a run's place in the order as well as its arm.** The plain arm went first in each round. On Sonnet and on Haiku the block's first run, `one` plain, wrote 1.7 to 2.7 times as much to the cache as the five later runs of that task (29,087 tokens against 10,721 to 12,785; 32,932 against 14,180 to 19,536), and on Opus the six runs of `one` cost less one after another as they were made ($0.35 down to $0.21). Read the answer to the first question with that: of the three cases listed there, the one on the narrow task (Haiku, where both arms with the hook cost less than plain) has the block's first run as one of its two plain runs. The two cases on the wide task are not explained this way: a block's first run of `four` is the second run made, and what it wrote to the cache does not stand out from the later runs of that task.
+
 ## The thirty-six runs
 
 In each table: cost is the harness's own figure; minutes are by the runner's clock; "unseen tests passed" is the package's hidden suite, and for the wide task the four packages in the order `settingskit`, `textwrap`, `csvline`, `semver-mini`; the last three columns are empty where an arm has nothing to count.
