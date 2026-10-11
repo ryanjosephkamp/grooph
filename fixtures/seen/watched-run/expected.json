@@ -1,0 +1,78 @@
+{
+  "moments": ["2026-01-01T00:00:00.000Z","2026-01-01T00:00:16.280Z","2026-01-01T00:00:16.282Z","2026-01-01T00:00:18.374Z","2026-01-01T00:00:21.761Z","2026-01-01T00:00:24.439Z","2026-01-01T00:00:24.442Z","2026-01-01T00:01:12.880Z","2026-01-01T00:01:23.719Z","2026-01-01T00:01:41.095Z","2026-01-01T00:02:35.194Z","2026-01-01T00:02:35.241Z","2026-01-01T00:02:43.870Z","2026-01-01T00:02:43.988Z"],
+  "record": {"hook":{"lines":24,"last":"2026-01-01T00:02:43.988Z","stopsNotDrawn":0},"harness":{"agents":4}},
+  "graphs": [
+    {
+      "at": "2026-01-01T00:00:24.442Z",
+      "nodes": [
+        {"id":"seen-watched-run","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z"},
+        {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"running","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:16.280Z","source":"both"}],"source":"both"},
+        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"running","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:18.374Z","source":"both"}],"source":"both"},
+        {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"running","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:21.761Z","source":"both"}],"source":"both"},
+        {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"running","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:24.439Z","source":"both"}],"source":"both"}
+      ],
+      "edges": [
+        {"from":"seen-watched-run","to":"a01","kind":"started","at":"2026-01-01T00:00:16.280Z","knownAt":"2026-01-01T00:00:16.282Z","source":"hook"},
+        {"from":"seen-watched-run","to":"a02","kind":"started","at":"2026-01-01T00:00:18.374Z","knownAt":"2026-01-01T00:00:18.374Z","source":"hook"},
+        {"from":"seen-watched-run","to":"a03","kind":"started","at":"2026-01-01T00:00:21.761Z","knownAt":"2026-01-01T00:00:21.761Z","source":"hook"},
+        {"from":"seen-watched-run","to":"a04","kind":"started","at":"2026-01-01T00:00:24.439Z","knownAt":"2026-01-01T00:00:24.442Z","source":"hook"}
+      ],
+      "differs": []
+    },
+    {
+      "at": "2026-01-01T00:02:43.988Z",
+      "nodes": [
+        {"id":"seen-watched-run","kind":"session","harness":"claude-code","depth":0,"state":"ended","started":"2026-01-01T00:00:00.000Z","ended":"2026-01-01T00:02:43.988Z"},
+        {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"done","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:16.280Z","to":"2026-01-01T00:01:41.095Z","source":"both"}],"source":"both"},
+        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"done","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:18.374Z","to":"2026-01-01T00:01:12.880Z","source":"both"}],"source":"both"},
+        {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"done","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:21.761Z","to":"2026-01-01T00:02:35.194Z","source":"both"}],"source":"both"},
+        {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"done","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:24.439Z","to":"2026-01-01T00:01:23.719Z","source":"both"}],"source":"both"}
+      ],
+      "edges": [
+        {"from":"seen-watched-run","to":"a01","kind":"started","at":"2026-01-01T00:00:16.280Z","knownAt":"2026-01-01T00:00:16.282Z","source":"hook"},
+        {"from":"seen-watched-run","to":"a02","kind":"started","at":"2026-01-01T00:00:18.374Z","knownAt":"2026-01-01T00:00:18.374Z","source":"hook"},
+        {"from":"seen-watched-run","to":"a03","kind":"started","at":"2026-01-01T00:00:21.761Z","knownAt":"2026-01-01T00:00:21.761Z","source":"hook"},
+        {"from":"seen-watched-run","to":"a04","kind":"started","at":"2026-01-01T00:00:24.439Z","knownAt":"2026-01-01T00:00:24.442Z","source":"hook"}
+      ],
+      "differs": []
+    }
+  ],
+  "fromTheHookAlone": {
+    "moments": ["2026-01-01T00:00:00.000Z","2026-01-01T00:00:16.280Z","2026-01-01T00:00:16.282Z","2026-01-01T00:00:18.374Z","2026-01-01T00:00:21.761Z","2026-01-01T00:00:21.762Z","2026-01-01T00:00:24.439Z","2026-01-01T00:00:24.442Z","2026-01-01T00:01:12.880Z","2026-01-01T00:01:23.719Z","2026-01-01T00:01:41.095Z","2026-01-01T00:02:35.194Z","2026-01-01T00:02:35.241Z","2026-01-01T00:02:43.870Z","2026-01-01T00:02:43.988Z"],
+    "record": {"hook":{"lines":24,"last":"2026-01-01T00:02:43.988Z","stopsNotDrawn":0}},
+    "graphs": [
+      {
+        "at": "2026-01-01T00:00:21.761Z",
+        "nodes": [
+          {"id":"seen-watched-run","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z"},
+          {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"running","runs":[{"from":"2026-01-01T00:00:16.280Z","source":"hook"}],"source":"hook"},
+          {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"running","runs":[{"from":"2026-01-01T00:00:18.374Z","source":"hook"}],"source":"hook"},
+          {"id":"a03","kind":"subagent","depth":1,"state":"running","runs":[{"from":"2026-01-01T00:00:21.761Z","source":"hook"}],"source":"hook"}
+        ],
+        "edges": [
+          {"from":"seen-watched-run","to":"a01","kind":"started","at":"2026-01-01T00:00:16.280Z","knownAt":"2026-01-01T00:00:16.282Z","source":"hook"},
+          {"from":"seen-watched-run","to":"a02","kind":"started","at":"2026-01-01T00:00:18.374Z","knownAt":"2026-01-01T00:00:18.374Z","source":"hook"},
+          {"from":"seen-watched-run","to":"a03","kind":"started","at":"2026-01-01T00:00:21.761Z","knownAt":"2026-01-01T00:00:21.761Z","source":"hook"}
+        ],
+        "differs": []
+      },
+      {
+        "at": "2026-01-01T00:02:43.988Z",
+        "nodes": [
+          {"id":"seen-watched-run","kind":"session","harness":"claude-code","depth":0,"state":"ended","started":"2026-01-01T00:00:00.000Z","ended":"2026-01-01T00:02:43.988Z"},
+          {"id":"a01","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T00:00:16.280Z","to":"2026-01-01T00:01:41.095Z","source":"hook"}],"source":"hook"},
+          {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T00:00:18.374Z","to":"2026-01-01T00:01:12.880Z","source":"hook"}],"source":"hook"},
+          {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T00:00:21.761Z","to":"2026-01-01T00:02:35.194Z","source":"hook"}],"source":"hook"},
+          {"id":"a04","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T00:00:24.439Z","to":"2026-01-01T00:01:23.719Z","source":"hook"}],"source":"hook"}
+        ],
+        "edges": [
+          {"from":"seen-watched-run","to":"a01","kind":"started","at":"2026-01-01T00:00:16.280Z","knownAt":"2026-01-01T00:00:16.282Z","source":"hook"},
+          {"from":"seen-watched-run","to":"a02","kind":"started","at":"2026-01-01T00:00:18.374Z","knownAt":"2026-01-01T00:00:18.374Z","source":"hook"},
+          {"from":"seen-watched-run","to":"a03","kind":"started","at":"2026-01-01T00:00:21.761Z","knownAt":"2026-01-01T00:00:21.761Z","source":"hook"},
+          {"from":"seen-watched-run","to":"a04","kind":"started","at":"2026-01-01T00:00:24.439Z","knownAt":"2026-01-01T00:00:24.442Z","source":"hook"}
+        ],
+        "differs": []
+      }
+    ]
+  }
+}

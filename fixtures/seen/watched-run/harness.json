@@ -1,0 +1,6 @@
+[
+  {"id":"a01","type":"general-purpose","model":"claude-haiku-4-5-20251001","runs":[{"first":"2026-01-01T00:00:16.182Z","last":"2026-01-01T00:01:40.979Z"}]},
+  {"id":"a02","type":"general-purpose","model":"claude-haiku-4-5-20251001","runs":[{"first":"2026-01-01T00:00:18.275Z","last":"2026-01-01T00:01:12.773Z"}]},
+  {"id":"a03","type":"general-purpose","model":"claude-haiku-4-5-20251001","runs":[{"first":"2026-01-01T00:00:21.666Z","last":"2026-01-01T00:02:35.099Z"}]},
+  {"id":"a04","type":"general-purpose","model":"claude-haiku-4-5-20251001","runs":[{"first":"2026-01-01T00:00:24.341Z","last":"2026-01-01T00:01:23.587Z"}]}
+]

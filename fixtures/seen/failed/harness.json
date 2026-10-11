@@ -1,0 +1,3 @@
+[
+  {"id":"a01","type":"general-purpose","depth":1,"shape":"background","modelAsked":"opus","model":"claude-opus-5-5","runs":[{"first":"2026-01-01T00:00:33.959Z","last":"2026-01-01T00:21:52.769Z","end":"failed"}]}
+]
