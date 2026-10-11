@@ -1,0 +1,9 @@
+Sun Oct 11 14:51:45 EDT 2026
+RESULT layout=user race=hardlink-other calls=4000 conc=8 seconds=41.6 attacker-rounds=85053 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+RESULT layout=project race=hardlink-other calls=4000 conc=8 seconds=39.8 attacker-rounds=80550 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+RESULT layout=user race=hardlink-ours calls=4000 conc=8 seconds=42.4 attacker-rounds=89520 | outside: 11 lines, 0 new files or folders [victim (+11 lines)] | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+RESULT layout=project race=hardlink-ours calls=4000 conc=8 seconds=45.8 attacker-rounds=86109 | outside: 5 lines, 0 new files or folders [victim (+5 lines)] | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+RESULT layout=user race=hardlink-empty calls=4000 conc=8 seconds=43.1 attacker-rounds=87392 | outside: 10 lines, 0 new files or folders [victim (+10 lines)] | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+RESULT layout=project race=hardlink-empty calls=4000 conc=8 seconds=39.2 attacker-rounds=79518 | outside: 21 lines, 0 new files or folders [victim (+21 lines)] | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+Sun Oct 11 14:56:01 EDT 2026
+done

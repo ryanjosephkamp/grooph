@@ -1,0 +1,45 @@
+Sun Oct 11 14:36:03 EDT 2026
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=user race=dir-name attacker=node calls=2000 conc=8 seconds=22.9 attacker-rounds=76839 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 1056
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=user race=dir-name attacker=swap calls=2000 conc=8 seconds=21.7 attacker-rounds=154000 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 944
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=user race=dir-events attacker=node calls=2000 conc=8 seconds=26.3 attacker-rounds=74664 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 870
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=user race=dir-events attacker=swap calls=2000 conc=8 seconds=26.2 attacker-rounds=162000 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 896
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=user race=hardlink-other calls=4000 conc=8 seconds=52.4 attacker-rounds=83476 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=user race=hardlink-ours calls=4000 conc=8 seconds=47.3 attacker-rounds=94116 | outside: 12 lines, 0 new files or folders [victim (+12 lines)] | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=user race=hardlink-empty calls=4000 conc=8 seconds=44.6 attacker-rounds=89288 | outside: 9 lines, 0 new files or folders [victim (+9 lines)] | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=user race=pipe calls=600 conc=8 seconds=6.4 attacker-rounds=38464 | outside: 0 lines, 0 new files or folders, 0 bytes into the pipe | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=project race=dir-name attacker=node calls=2000 conc=8 seconds=21.5 attacker-rounds=70259 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 1075
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=project race=dir-name attacker=swap calls=2000 conc=8 seconds=27.1 attacker-rounds=174000 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 991
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=project race=hardlink-other calls=4000 conc=8 seconds=39.9 attacker-rounds=80503 | outside: 0 lines, 0 new files or folders | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=project race=hardlink-ours calls=4000 conc=8 seconds=40.1 attacker-rounds=80061 | outside: 11 lines, 0 new files or folders [victim (+11 lines)] | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=project race=hardlink-empty calls=4000 conc=8 seconds=40.5 attacker-rounds=80237 | outside: 10 lines, 0 new files or folders [victim (+10 lines)] | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+build: /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e51272118/scratchpad/pin-1418/packages/cli/bin/grooph.js
+       hooks.js 2ce2fd72936b · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+RESULT layout=project race=pipe calls=600 conc=8 seconds=7.0 attacker-rounds=44388 | outside: 0 lines, 0 new files or folders, 0 bytes into the pipe | hung 0, printed 0, exit non-zero 0 | lines in the real record: 0
+Sun Oct 11 14:43:16 EDT 2026
+done

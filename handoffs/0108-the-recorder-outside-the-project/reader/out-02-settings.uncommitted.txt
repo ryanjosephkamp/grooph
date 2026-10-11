@@ -1,0 +1,42 @@
+build: <TMP>/wip-1426/packages/cli/bin/grooph.js
+       hooks.js 23f02f47a29f · events-io.js b09a460f7b0c · grooph-event.mjs d2701dfd1a8e
+       node v26.10.0, darwin arm64
+[HELD] install --user on valid settings written in odd ways: every other value as it was | tries: 19 | 19 of 19 kept every value (as JSON.parse reads it)
+[LIMIT] the same: what a person wrote, letter for letter (numbers, escapes, a repeated key, lists on one line, CRLF, key order) | tries: 19 | 12 of 19 still hold their own text. Lost: short lists kept on one line, as people write them: no longer in the file as written: "\"allow\": [\"Bash(ls:*... | a number past 2^53: no longer in the file as written: "12345678901234567890" | a number past 1e308: no longer in the file as written: "1e400" | 1.0, -0, 1E5, 0.10: no longer in the file as written: "1.0", "1E5", "0.10" | escapes written out (\u00e9, \/, \u0041): no longer in the file as written: "\\u00e9", "\\/", "\\u0041" | the same key twice: no longer in the file as written: "\"first\"" | keys that are numbers, out of order: no longer in the file as written: "\"b\": 1,\n  \"10\": \"ten\",\n  \"2\"...
+[HELD] install --user run a second time | tries: 19 | 19 of 19 left the file byte for byte
+[BROKE] install then remove: back to what it was | tries: 19 | 6 byte for byte, 18 in value. Not in value: "hooks": {} and nothing else: was {\n  "hooks": {}\n}\n is {}\n. Not byte for byte: one line, no line break at the end; short lists kept on one line, as people write them; a number past 2^53; a number past 1e308; 1.0, -0, 1E5, 0.10; escapes written out (\u00e9, \/, \u0041); the same key twice; a key named __proto__, at the top and among the hooks; keys that are numbers, out of order; nested 2,000 deep; "hooks": {} and nothing else; hook entries that are not objects; spaces before the brace and after the end
+    details:
+     - short lists kept on one line, as people write them: no longer in the file as written: "\"allow\": [\"Bash(ls:*)\", \"Read\"]"
+     - a number past 2^53: no longer in the file as written: "12345678901234567890"
+     - a number past 1e308: no longer in the file as written: "1e400"
+     - 1.0, -0, 1E5, 0.10: no longer in the file as written: "1.0", "1E5", "0.10"
+     - escapes written out (\u00e9, \/, \u0041): no longer in the file as written: "\\u00e9", "\\/", "\\u0041"
+     - the same key twice: no longer in the file as written: "\"first\""
+     - keys that are numbers, out of order: no longer in the file as written: "\"b\": 1,\n  \"10\": \"ten\",\n  \"2\": \"two\""
+[HELD] settings that are not a JSON object with lists of hooks (a byte-order mark, comments, a trailing comma, empty, null, half a file, 200,000 deep, UTF-16) | tries: 16 | 16 of 16 left every file under the person's folders as it was (the hook's file not written either); 16 said "Nothing was changed" and exited non-zero. 
+[BROKE] entries that are NOT grooph's but look like them | tries: 3 | 2 taken out by install or remove: someone else's script that ends the same way (after install: REPLACED/REMOVED; after remove: gone) | a command of the person's that only mentions it (after install: REPLACED/REMOVED; after remove: gone)
+[LIMIT] grooph's own entry written another way by hand (other quotes, a path to node, a word after it) | tries: 9 | 4 still run the hook after remove --user, which then reports the hook's file removed: grooph's, in single quotes; grooph's, with something after it; grooph's, inside sh -c; grooph's, with a comment. After install: REPLACED/REMOVED / kept beside the new one (2 entries now run the hook at Stop)
+[HELD] an entry in which a person put their own command beside grooph's | tries: 2 | their command is still there after install --user again: true; after remove --user: true
+[HELD] settings.json is a link to a file kept elsewhere | tries: 1 | exit 0; still a link: true; the far file has grooph's entries: true; files in that folder now: claude-settings.json
+[HELD] settings.json is a link to nothing | tries: 1 | exit 1: grooph: cannot read /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e5127...; changed: nothing
+[HELD] settings.json is a link that leads back to itself | tries: 1 | exit 1: grooph: cannot read /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26ff1457-8a6b-4c27-b195-a98e5127...
+[LIMIT] settings.json is a second name (hard link) for a file kept elsewhere | tries: 1 | the two names are still one file: false; the other name's contents: {}\n
+[HELD] a settings file only its owner can read (600) | tries: 1 | mode after: 600
+[LIMIT] a settings file marked read-only (444) in a folder that can be written | tries: 1 | exit 0; the file was changed all the same: true; mode after: 444; said: wrote /private/tmp/claude-501/-Users-noir-Documents-grooph--...
+[HELD] a settings file that cannot be read (000) | tries: 1 | exit 1: grooph: cannot read /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26...; changed: nothing
+[LIMIT] the folder takes no new file (555), the settings file itself can be written | tries: 1 | exit 0; written in place (not beside and renamed): true; leftovers: none. A stop in the middle of that write would leave part of a file: reasoned, not caught
+[HELD] neither the folder nor the file can be written | tries: 1 | exit 1: grooph: could not write <S>/u58/claude/settings.json: EACC...; the settings are as they were: true; the hook's file was written before that: true
+[HELD] a settings file locked in the Finder (chflags uchg) | tries: 1 | exit 1: grooph: could not write <S>/u59/claude...; as it was: true; leftovers: none
+[HELD] settings.json is a folder | tries: 1 | exit 1: grooph: cannot read /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26...
+[HELD] both harnesses asked for, Codex's hooks.json cannot be read | tries: 1 | exit 1: grooph: cannot read /private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-recorder-4a4073/26...; changed: nothing
+[HELD] both harnesses asked for, Codex's hooks.json cannot be written | tries: 1 | exit 1: grooph: could not write <S>/u62/codex/hooks.json: EACCES: permission denied, open '/private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-0108-rec...
+[HELD] Codex's hooks.json: install, install, remove | tries: 3 | other values kept: true; back byte for byte: true
+[HELD] remove --user: what is left in grooph's own folder | tries: 1 | changed: - hooks/grooph-event.mjs f 12544; settings.json after: {}\n
+[HELD] remove --user a second time | tries: 1 | exit 0: The list of folders (/private/tmp/claude-501/-Users-noir-Documents-grooph--claude-worktrees-slice-01...
+[HELD] install --user with --dir, --local, --push, --push-branch | tries: 4 | 4 refused with "Nothing was changed"
+[BROKE] grooph hooks install run in the home folder itself (a project install where the project is ~), after install --user | tries: 1 | user-level entries in ~/.claude/settings.json before: 7, after: 0. install said nothing of it (no word of the user-level install). grooph hooks status in the listed project then says:   claude-code: no entries in ~/.claude/settings.json
+[HELD] install --user, then with --tools, then without | tries: 3 | entries of grooph's: 7, 7, 7; with --tools the Agent-only entry is replaced; the person's own two entries still there: true
+[HELD] both harnesses installed; remove --user --harness codex; then remove --user | tries: 2 | after the first: Claude Code's entries 7, Codex's file "{}", the hook's file kept: yes; after the second the hook's file is gone: true
+[LIMIT] who can read the list of folders | tries: 1 | watched.json has mode 644, grooph's folder 755 (the events folders are 700 and the files 600; the list holds the same folder paths)
+
+29 attacks: 20 held, 3 broke, 6 a limit worth saying
