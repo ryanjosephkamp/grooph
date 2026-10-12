@@ -586,6 +586,94 @@ export function theOwnersOwnAsFound(userHome = homedir()) {
   return { his_settings: sumOf(join(userHome, ".claude", "settings.json")), his_hooks_in_codex: sumOf(join(userHome, ".codex", "hooks.json")), his_list_of_watched_folders: sumOf(join(userHome, ".grooph", "watched.json")), a_hook_in_his_own_grooph_folder: sumOf(join(userHome, ".grooph", "hooks", "grooph-event.mjs")) };
 }
 
+/**
+ * The harness's own folder in a project, by its name: `.cc-writes` in a `.claude`. In every run of this look that was
+ * kept before this was written, the plain ones too, the session's folder held one at its top, empty; and in three of
+ * the five (both plain runs and the outside one) each package's folder held one of its own as well. Thirty of the
+ * first check's thirty-six kept folders hold one at the top, and eight hold them below it, in each of its arms. Every
+ * run was under Claude Code 2.1.289, and what makes it leave one is not known here. It is nothing of grooph's: it is
+ * there where nothing of grooph's was installed.
+ */
+export const THE_HARNESSS_OWN = join(".claude", ".cc-writes");
+/** What an install puts under a project's `.claude`, by name: the settings that run the hook. */
+const SETTINGS_OF_AN_INSTALL = ["settings.json", "settings.local.json"];
+/** How many folders of a session's are looked in before the looking stops and says so. */
+const FOLDERS_LOOKED_IN = 20_000;
+
+/**
+ * What a session's folder holds that a project of the `outside` arm should not, anywhere in it, told three ways, each
+ * by its path from the folder. Its `.git` and any `node_modules` are not looked in, and no link is followed. A name
+ * is taken whatever its case.
+ *
+ *   of_an_install   what `grooph hooks install` leaves in a project: a `.grooph`, a settings file in a `.claude`, or a
+ *                   `hooks.json` in a `.codex`
+ *   not_known       anything else in a `.claude` that is not the harness's own folder, empty: a `.claude` that is no
+ *                   folder, another name in it, or the harness's own folder with something in it (named, up to
+ *                   four); a `.codex` that is no folder; and a folder that could not be read
+ *   the_harnesss    the harness's own folder, there and empty
+ *
+ * The first two are for a person to look at. The third is no trace of a recorder, and before 2026-10-12 this runner
+ * took it for one: it asked only whether a `.claude` was at the top of the session's folder.
+ */
+export function inTheSessionsFolder(cwd) {
+  const found = { of_an_install: [], not_known: [], the_harnesss: [] };
+  const kind = (path) => {
+    try {
+      return lstatSync(path);
+    } catch {
+      return null;
+    }
+  };
+  const named = (from, name) => (from === "" ? name : `${from}/${name}`);
+  /** The names in a folder, in order; a folder that cannot be read is said to be so, and holds none. */
+  const namesIn = (dir, from) => {
+    try {
+      return readdirSync(dir).sort();
+    } catch (error) {
+      found.not_known.push(`${from || "the folder itself"}, which could not be read (${error.code ?? error.message})`);
+      return [];
+    }
+  };
+  // A name is taken whatever its case: on a disk that does not tell the cases apart, a harness reads `.Claude` as `.claude`.
+  const is = (name, lower) => name.toLowerCase() === lower;
+  const inClaude = (dir, from) => {
+    for (const name of namesIn(dir, from)) {
+      const path = named(from, name);
+      if (SETTINGS_OF_AN_INSTALL.some((one) => is(name, one))) found.of_an_install.push(path);
+      else if (!is(name, ".cc-writes")) found.not_known.push(path);
+      else if (!kind(join(dir, name))?.isDirectory()) found.not_known.push(`${path}, which is no folder`);
+      else {
+        const before = found.not_known.length;
+        const inside = namesIn(join(dir, name), path);
+        if (inside.length > 0) found.not_known.push(...inside.slice(0, 4).map((one) => `${path}/${one}`), ...(inside.length > 4 ? [`${path}: ${inside.length - 4} more`] : []));
+        else if (found.not_known.length === before) found.the_harnesss.push(path);
+      }
+    }
+  };
+  let looked = 0;
+  const lookIn = (dir, from) => {
+    for (const name of namesIn(dir, from)) {
+      const path = named(from, name);
+      const it = kind(join(dir, name));
+      if (it === null) continue;
+      if (is(name, ".grooph")) found.of_an_install.push(path);
+      else if (is(name, ".claude")) {
+        if (it.isDirectory()) inClaude(join(dir, name), path);
+        else found.not_known.push(`${path}, which is no folder`);
+      } else if (is(name, ".codex")) {
+        if (!it.isDirectory()) found.not_known.push(`${path}, which is no folder`);
+        else found.of_an_install.push(...namesIn(join(dir, name), path).filter((one) => is(one, "hooks.json")).map((one) => `${path}/${one}`));
+      } else if (!is(name, ".git") && !is(name, "node_modules") && it.isDirectory()) {
+        looked += 1;
+        if (looked <= FOLDERS_LOOKED_IN) lookIn(join(dir, name), path);
+        else if (looked === FOLDERS_LOOKED_IN + 1) found.not_known.push(`more than ${FOLDERS_LOOKED_IN} folders: not all of them were looked in`);
+      }
+    }
+  };
+  lookIn(cwd, "");
+  return found;
+}
+
 // ── the three arms ───────────────────────────────────────────────────────
 
 /**
@@ -674,15 +762,45 @@ export function checkout() {
   return { commit: asked("rev-parse", "HEAD") || null, files_changed_since_it: asked("status", "--porcelain").split("\n").filter(Boolean).length, grooph_version: version, hook_sha256: sha256Of(SHIPPED_HOOK), tool_sha256: sumOfAll(TOOL), runner_sha256: sumOfAll(RUNNER) };
 }
 
+/** The runner's five other files, by one checksum: what the one correction of this look did not change. */
+export const theRestOfTheRunner = () => sumOfAll(RUNNER.filter((path) => path !== "scripts/lib/watching-second-look-paid.mjs"));
+
+/**
+ * The one correction made to the runner while the look was being run (the protocol's note of 2026-10-12), as
+ * experiments/watching/second-look/the-corrected-runner.json names it: the checksum of the runner before it, the
+ * checksum of the runner after it, and why the two are one for a session. Null when the file is not there or does
+ * not hold two checksums and a reason: then there is no exception at all.
+ *
+ * It is a file of its own and not a line of this script because a script cannot hold its own checksum. BOTH runners
+ * are named: a run made by the earlier one counts as made with the same things only for the corrected one, checksum
+ * for checksum. Any other runner, on either side, is another runner.
+ */
+export function theCorrection(path = join(HOME, "the-corrected-runner.json")) {
+  try {
+    const kept = JSON.parse(readFileSync(path, "utf8"));
+    const sums = [kept?.the_earlier_runner, kept?.the_corrected_runner];
+    if (sums.every((sum) => typeof sum === "string" && /^[0-9a-f]{64}$/.test(sum)) && sums[0] !== sums[1] && typeof kept.why === "string" && kept.why.trim().length > 20) return { the_earlier_runner: sums[0], the_corrected_runner: sums[1], why: kept.why };
+  } catch {}
+  return null;
+}
+
 /** What two runs have to share to have been made with the same things, each with what it is called when it differs. */
 const MADE_WITH = [["hook_sha256", "another hook"], ["tool_sha256", "another build of the tool"], ["grooph_version", "another version of grooph"], ["runner_sha256", "another runner"]];
+
+/**
+ * What this checkout cannot say of itself: its hook, its built tool, its version or its runner, where no checksum
+ * could be made of it (a file that cannot be read, a build that is not there). A thing that is not told cannot be set
+ * beside a record's, so a difference in it would pass unseen: a checkout with one starts no run, whatever it is told.
+ */
+export const notTold = (now) => [["hook_sha256", "its hook"], ["tool_sha256", "its built tool"], ["grooph_version", "its version of grooph"], ["runner_sha256", "its runner"]].filter(([key]) => typeof now?.[key] !== "string" || now[key] === "").map(([, name]) => name);
+const whyNotTold = (untold) => `this checkout cannot say what ${untold.join(" and ")} ${untold.length === 1 ? "is" : "are"} (no checksum could be made: a file that cannot be read, or a build that is not there), so it cannot be set beside the runs already recorded`;
 
 /**
  * Both blocks are run with one hook, one built tool and one runner (the protocol, "Three rounds, in two blocks"). This
  * is the first run already recorded that was made with another of them than `now`; or null. A record that does not
  * say what made it is passed over.
  */
-export function madeFromAnother(now, recordRoot = HOME) {
+export function madeFromAnother(now, recordRoot = HOME, correction = theCorrection()) {
   for (const run of order()) {
     for (const dir of [recordOf(run, recordRoot), `${recordOf(run, recordRoot)}-rerun`]) {
       let was;
@@ -693,11 +811,36 @@ export function madeFromAnother(now, recordRoot = HOME) {
       }
       if (!was || typeof was.hook_sha256 !== "string") continue;
       // A thing is another only where the record and this checkout both say what theirs is, and say differently.
-      const what = MADE_WITH.filter(([key]) => typeof was[key] === "string" && typeof now[key] === "string" && was[key] !== now[key]).map(([, name]) => name);
+      // The one exception is the runner's own checksum, and only between the two runners the correction names: the
+      // record's is the earlier one AND this checkout's is the corrected one.
+      const corrected = (key) => key === "runner_sha256" && correction !== null && was[key] === correction.the_earlier_runner && now[key] === correction.the_corrected_runner;
+      const what = MADE_WITH.filter(([key]) => typeof was[key] === "string" && typeof now[key] === "string" && was[key] !== now[key] && !corrected(key)).map(([, name]) => name);
       if (what.length > 0) return { run: run.name, what, its_commit: was.commit ?? null, its_hook_sha256: was.hook_sha256, its_tool_sha256: was.tool_sha256 ?? null, its_runner_sha256: was.runner_sha256 ?? null };
     }
   }
   return null;
+}
+
+/**
+ * The runs already recorded that were made with the earlier runner the correction names, when this runner is the
+ * corrected one it names: they count as made with the same things, and every record made after them says which they
+ * are and why. Null for any other runner.
+ */
+export function madeWithTheEarlierRunner(now, recordRoot = HOME, correction = theCorrection()) {
+  if (correction === null || now.runner_sha256 !== correction.the_corrected_runner) return null;
+  const runs = [];
+  for (const run of order()) {
+    for (const dir of [recordOf(run, recordRoot), `${recordOf(run, recordRoot)}-rerun`]) {
+      let was;
+      try {
+        was = JSON.parse(readFileSync(join(dir, "result.json"), "utf8")).given?.the_runners_checkout;
+      } catch {
+        continue;
+      }
+      if (was?.runner_sha256 === correction.the_earlier_runner) runs.push(dir.endsWith("-rerun") ? `${run.name}-rerun` : run.name);
+    }
+  }
+  return runs.length === 0 ? null : { runner_sha256: correction.the_earlier_runner, runs, counted_as_the_same_for_a_session_because: correction.why };
 }
 
 // ── the score ────────────────────────────────────────────────────────────
@@ -759,7 +902,7 @@ export function holdSignals(say = (text) => console.error(text)) {
  * One run, start to record. Before the call, a refusal throws `NotStarted` and nothing was spent. After it, nothing
  * is thrown and nothing is removed. `rehearsal` is the rehearsal's own function, and is another only in a test.
  */
-export async function runOne({ go, block = null, rerun = null, withoutOutside = false, throughRound = null, anotherCheckout = false, home = DEFAULT_HOME, claude, ledgerPath = LEDGER, recordRoot = HOME, profileCheck, gameOpen, firstCallGate = firstCallAllows(), grace, node = process.execPath, cli = CLI, rehearsal = rehearse, findProgram = findHarness }) {
+export async function runOne({ go, block = null, rerun = null, withoutOutside = false, throughRound = null, anotherCheckout = false, home = DEFAULT_HOME, claude, ledgerPath = LEDGER, recordRoot = HOME, profileCheck, gameOpen, firstCallGate = firstCallAllows(), grace, node = process.execPath, cli = CLI, rehearsal = rehearse, findProgram = findHarness, thisCheckout = checkout }) {
   if (rerun === null && !BLOCKS.includes(block)) throw new NotStarted(`${block === null ? "no block was named" : `${JSON.stringify(block)} is not a block of the second look`}: ${SAY_WHICH_BLOCK}`);
   if (rerun !== null && block !== null) throw new NotStarted(`--rerun names its run whole, its block in its name (${BLOCKS[0]}/four/plain-1): --block does not go with it`);
   if (!firstCallGate.ok) throw new NotStarted(firstCallGate.why);
@@ -798,7 +941,9 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
   if (!has.ok) throw new NotStarted(has.why);
   // One checkout for both blocks: the watched arm's hook is the checkout's own file. A run from another commit, or
   // with another hook, than a run already recorded is refused unless it was asked for by name; the record then says so.
-  const now = checkout();
+  const now = thisCheckout();
+  const untold = notTold(now);
+  if (untold.length > 0) throw new NotStarted(`${whyNotTold(untold)}: no run is started from it, and --another-checkout does not change that`);
   const other = madeFromAnother(now, recordRoot);
   if (other && !anotherCheckout) throw new NotStarted(`${withWhat(now)}, and ${other.run} was made with ${other.what.join(" and ")}: both blocks are run with one hook, one built tool and one runner (${PAGE}, "Three rounds, in two blocks"). To run with another on purpose, say so by name with --another-checkout: the record and the results page then say it`);
   // The harness is found now, in every arm, before anything is made: with none to be found this is a refusal, and no
@@ -843,7 +988,7 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
       return otherwise;
     }
   };
-  const theCheckout = { ...now, another_than_a_run_before: other ? { ...other, said_by: "--another-checkout" } : null };
+  const theCheckout = { ...now, another_than_a_run_before: other ? { ...other, said_by: "--another-checkout" } : null, runs_before_made_with_an_earlier_runner: madeWithTheEarlierRunner(now, recordRoot) };
   const profile = layout(home).profile;
   /** The session's folder, and grooph's own folder for the run, moved out of the next run's way. Null when they could not be. */
   const aside = () => {
@@ -919,7 +1064,7 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
         const commands = hookCommands(found);
         const entries = commands.filter((entry) => USER_ENTRY.test(entry.command) && entry.command.includes(built.outside.grooph_home));
         const { hooks: _hooks, ...rest } = found;
-        const inTheFolder = [".grooph", ".claude"].filter((name) => existsSync(join(built.cwd, name)));
+        const inTheFolder = inTheSessionsFolder(built.cwd);
         const ownAfter = theOwnersOwnAsFound();
         return {
           installed_by: "grooph hooks install --user --harness claude-code, then grooph hooks watch <the session's folder>, run by the launcher when the session was started",
@@ -932,7 +1077,9 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
             { when: "after it", holds: readFileSync(join(profile, "settings.json"), "utf8") === repositorys, they_are: "the repository's again" },
           ],
           the_rehearsal_before_it: rehearsed.left,
-          of_grooph_in_the_sessions_folder_afterwards: inTheFolder,
+          of_grooph_in_the_sessions_folder_afterwards: inTheFolder.of_an_install,
+          not_known_to_be_the_harnesss_own_in_the_sessions_folder_afterwards: inTheFolder.not_known,
+          the_harnesss_own_in_the_sessions_folder_afterwards: inTheFolder.the_harnesss,
           the_hook_wrote_under_groophs_own_folder: theirs !== null,
           the_owners_own: { before: ownBefore, after: ownAfter, as_they_were: JSON.stringify(ownBefore) === JSON.stringify(ownAfter) },
         };
@@ -942,6 +1089,7 @@ export async function runOne({ go, block = null, rerun = null, withoutOutside = 
     if (outside && outside.entries_in_the_settings_the_session_found === 0) problems.push("the session was started with no entry of the recorder in its user-level settings: this is no run of the outside arm");
     for (const view of outside?.the_profiles_settings ?? []) if (!view.holds) problems.push(`the profile's settings ${view.when} were not ${view.they_are}`);
     if (outside && outside.of_grooph_in_the_sessions_folder_afterwards.length > 0) problems.push(`the session's folder holds ${outside.of_grooph_in_the_sessions_folder_afterwards.join(", ")}, and in the outside arm the project holds nothing of grooph`);
+    if (outside && outside.not_known_to_be_the_harnesss_own_in_the_sessions_folder_afterwards.length > 0) problems.push(`the session's folder holds what is not known to be the harness's own: ${outside.not_known_to_be_the_harnesss_own_in_the_sessions_folder_afterwards.join(", ")}. Only its empty folder (${THE_HARNESSS_OWN}) is known to be: a person looks before another run of the outside arm is made`);
     if (outside && !outside.the_owners_own.as_they_were) problems.push(`the owner's own files are not as they were before the run (${Object.keys(ownBefore).filter((key) => ownBefore[key] !== outside.the_owners_own.after[key]).join(", ")}): this run may not have changed them, and a person looks before anything else is started`);
   }
   const copied = copyRecord({ home, cwd: built.cwd, base: built.base, gitDir: built.gitDir, call, recordDir, prompt: built.prompt, annotate: namesOnly, excludes: run.arm === "watched" ? [join(".grooph", "events")] : [] });
@@ -1078,6 +1226,7 @@ export function dryRun({ run, home = DEFAULT_HOME, ledgerPath = LEDGER, recordRo
     const rehearsed = run.arm === "outside" ? rehearsal({ cli, node, home }) : null;
     if (rehearsed && !rehearsed.ok) refused.push(rehearsed.why);
     const now = checkout();
+    if (notTold(now).length > 0) refused.push(`${whyNotTold(notTold(now))}: no run is started from it`);
     const other = madeFromAnother(now, recordRoot);
     if (other) refused.push(`${withWhat(now)}, and ${other.run} was made with ${other.what.join(" and ")}: both blocks are run with one hook, one built tool and one runner, unless --another-checkout says otherwise by name`);
     const sample = commandFor({ home, claude: built.outside ? built.outside.launcher : things.claude, cwd: built.cwd, prompt: built.prompt, ...lead, sessionId: "<a new id>", maxBudgetUsd: watchdog.usd, closed: built.closed, unpinned: LEFT_TO_THE_HARNESS });
@@ -1107,7 +1256,7 @@ export function dryRun({ run, home = DEFAULT_HOME, ledgerPath = LEDGER, recordRo
 }
 
 /** The ledger and the thirty-six runs, block by block and round by round, in words. Starts nothing and builds nothing in the profile. */
-export function status({ ledgerPath = LEDGER, recordRoot = HOME, firstCallGate, rehearsed } = {}) {
+export function status({ ledgerPath = LEDGER, recordRoot = HOME, firstCallGate, rehearsed, thisCheckout = checkout } = {}) {
   const lines = [];
   let ledger = null;
   try {
@@ -1121,9 +1270,12 @@ export function status({ ledgerPath = LEDGER, recordRoot = HOME, firstCallGate, 
     lines.push(error.message);
   }
   if (firstCallGate) lines.push(firstCallGate.ok ? `the profile's first call: on record (${firstCallGate.record}), and says later runs may start` : `the profile's first call: ${firstCallGate.why}`);
-  const now = checkout();
+  const now = thisCheckout();
   const other = madeFromAnother(now, recordRoot);
   lines.push(`${withWhat(now)} (commit ${short(now.commit)}${now.files_changed_since_it > 0 ? `, with ${now.files_changed_since_it} file(s) changed since it` : ""}; grooph ${now.grooph_version})${other ? `; ${other.run} WAS MADE WITH ${other.what.join(" AND ").toUpperCase()}, so a run from here is refused unless --another-checkout says so by name` : "; no run already recorded was made with another"}`);
+  if (notTold(now).length > 0) lines.push(`${whyNotTold(notTold(now))}: A RUN FROM HERE IS REFUSED`);
+  const earlier = madeWithTheEarlierRunner(now, recordRoot);
+  if (earlier) lines.push(`${earlier.runs.length} run(s) already recorded (${earlier.runs.join(", ")}) were made with the runner ${short(earlier.runner_sha256)}, which is counted as handing a session the same as this one: ${earlier.counted_as_the_same_for_a_session_because}`);
   if (rehearsed) lines.push(rehearsed.ok ? `the outside arm: this checkout's grooph installs the recorder outside a project, and a rehearsal in a scratch folder left what the protocol says (${rehearsed.left.entries} entries, at ${rehearsed.left.at_events.join(", ")})` : `the outside arm: cannot be made as things stand: ${rehearsed.why}`);
   const runs = order().map((run) => ({ ...run, ...stateOf(run, recordRoot) }));
   const isRecorded = (run) => run.state !== "not recorded";

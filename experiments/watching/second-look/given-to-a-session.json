@@ -1,0 +1,214 @@
+{
+  "about": "What the second look's runner hands a session in each of its thirty-six runs, as checksums, with one run in full: made by `node experiments/watching/second-look/given-to-a-session.mjs <the root of a checkout>` and never by hand. `made_by_the_runner` is the checksum of the runner that made it. The runner was corrected once while the look was being run (README.md, the note of 2026-10-12), and a test holds the runner as it is now to this file run by run, so that runs made before the correction and after it were handed the same thing. Every path is a stand-in. It is put together from the pieces a runner starts a session with; a test of the three arms sets it beside a session really started. The hook, the built tool and what an install leaves are not here: the runner compares their checksums itself. `the_modules_the_runners_script_loads` is every module that script loads, found by following its imports, each with a checksum of its bytes as it was when this file was made (the script itself is left out): the runner's own checksum covers four of them, and `--check` sets a checkout beside all of them.",
+  "made_by_the_runner": "e70aa3a0adcde19564dc2514cd4c0be7d0c5169f3714004ffbb08754cb8d153a",
+  "runs": {
+    "opus/four/plain-1": "c9d9a849d7d48fe1526d2ba9f914b74d9139cee6932b3aff7cc9d03e071681fd",
+    "opus/six/plain-1": "683ecb1f31b6918fde6a6d73692935c1df489ffcfe53fa313132df7c70427900",
+    "opus/four/watched-1": "068f023791b3fe262d1db2e33baf41f22636f9acdcb3f1f1bfce39af97a6a969",
+    "opus/six/watched-1": "3c542de250273e815bcf371423086e3593cb60b07539da829569d55d8cc31002",
+    "opus/four/outside-1": "b90612b87fc8eb1db946954476b7c8340726a32cdb6ca5aafe4100d5cdf55cd3",
+    "opus/six/outside-1": "4e3d7f0fb24ba1f6f3e62fcaacbce9f7cc7cd84f6ebc8230a04e820ff46339e8",
+    "opus/four/watched-2": "0423fd5d179316ae9dca72f6d6d862eb4bcd8fc5c181cd976f4ab3b77d303736",
+    "opus/six/watched-2": "27f3d886298d9237e93dd490a0dbd25ac22ace362084f78d0d1ce9c260730357",
+    "opus/four/outside-2": "ec8bd8c896585ffefe1aa40b05c67c497db8f96cfec9b54d943a19ca5368d8e4",
+    "opus/six/outside-2": "007f8d8f702f53c8742da79fa5d12f6a4cacca6cc6847d78a6ba8905f4ffae73",
+    "opus/four/plain-2": "2ea90e5644fbe31cf86df46293ab7195d2ce9e52cf9113689088f9f50afc5d4d",
+    "opus/six/plain-2": "4ec2f55db6fc851fa30d000b4912402d0bfa4628c80eadb04b0c3343cbc2e931",
+    "opus/four/outside-3": "1f2c361293103e8975b1fbce226633dcb663b78a010e2856bd2d41316bf115e7",
+    "opus/six/outside-3": "c9e542a74ac5a30a35dd5c6f07cee8c608b178f4deca5732089380c4eae8b515",
+    "opus/four/plain-3": "04d77f7396382f74fa9b842aaf4402f2fb0707efa89b0125dee22930b623b4a0",
+    "opus/six/plain-3": "f37d69c61915c339cf0ed34a174de241c90ea731ede089b481c89c9d75d93e3d",
+    "opus/four/watched-3": "944709821663cc5ff998bd4c243696eb3eaa43611ce5c0ca0370932920303cc4",
+    "opus/six/watched-3": "8233a49a335d7b1c3706c0b0019b97358bc68632842c3262369d6e28f682f18c",
+    "sonnet/four/watched-1": "93c4342dba57a3438222e5cc4ad63bf102b7f9d5be5a525d54b4b0e2b8b1c61e",
+    "sonnet/six/watched-1": "ebf8c4c7fcf77711b881aa3891138353e952b2b0c00b0c029918993f355f811e",
+    "sonnet/four/plain-1": "35b7b3864d6598858e0d5be568e09d23fcd74446ce35f572d177572bf01a9049",
+    "sonnet/six/plain-1": "1ea26bef285d6130d114fe2acaedd1b9f5b988ba5b0ee1f231080f2e9340dee8",
+    "sonnet/four/outside-1": "589968780def99b25213e85ba1496bfc8bbc278e163fc508ff53c734a1f55bc8",
+    "sonnet/six/outside-1": "3df0404516c409524b905eb9417098147955d2458e1e720aa086620b8c4008e7",
+    "sonnet/four/plain-2": "3435dc5d994da8db15ff010ebf6b460703cc37fad81eeea048f91fea8be5388e",
+    "sonnet/six/plain-2": "3f3eabda85086ce378ac197e6eabeee5ad0012a26d34b195325395c6086f3150",
+    "sonnet/four/outside-2": "2b0e7309ead1b6c69ee540989fea7c08027e8cc35856951630f5352d334617fd",
+    "sonnet/six/outside-2": "369410b4f21b8c72ab22d89629eb7dad55a1d07c43761c0688b9289e1370ebb4",
+    "sonnet/four/watched-2": "95344d10d4c6e229d83cfd723939da79a1f52009d48c54bfd92e24dabbed498b",
+    "sonnet/six/watched-2": "039504a64266092c3d2543f7f854d150be344979dfcb425373cc375f6b3d6b6d",
+    "sonnet/four/outside-3": "a5312410ec88e2b65c6685cd1576dd04b727f8868c824d9e85eb7c3055501c4c",
+    "sonnet/six/outside-3": "2ce68b271352e8ed69293e079dbae1536a4d00e94730a21f9d6885f2b1f4fd9a",
+    "sonnet/four/watched-3": "88c2b465febd3cdd39caa5d4a9624a1a76eea00e03a524d43c531725ce12856f",
+    "sonnet/six/watched-3": "3f9b506803285fe5692a6619e721855c30e59655458dcea0574e787b9d2e3a35",
+    "sonnet/four/plain-3": "7e7e07c3209128203521365038dc24c4fc199a15ae8d91e9568220b6a3ad7765",
+    "sonnet/six/plain-3": "1bb254361664807896fcd856fc26df420629cbd482703850bebbaaddaa1ab94c"
+  },
+  "one_in_full": {
+    "opus/six/outside-1": {
+      "round": 1,
+      "prompt_sha256": "98581932bea334a04bc5ef85f8b1244642cac001b62e23a91f5086dd182804ef",
+      "prompt_characters": 4747,
+      "the_folder_is_made_of": {
+        "repository": "packages",
+        "packages": [
+          {
+            "folder": "settingskit",
+            "project": "review-gate-2",
+            "its_files_sha256": "8a7cead0425ed8653dd90f5ac286b16258c7f5e5c47869eed589921b4648da65"
+          },
+          {
+            "folder": "textwrap",
+            "project": "spec-then-loop",
+            "its_files_sha256": "272ce7c8ced407608522183904dd681592db3da091f95b61823548f77ca0179d"
+          },
+          {
+            "folder": "csvline",
+            "project": "red-team-loop",
+            "its_files_sha256": "8958b27e4b2f867f5e1f9ba54d748b56c32e3a3a6e43260488d2578b38da7ec4"
+          },
+          {
+            "folder": "semver-mini",
+            "project": "grind-loop",
+            "its_files_sha256": "1e7993c5bc56ecb330110fffca2acfaaabdeec94cd87beb0cbb93dbd1757ef7f"
+          },
+          {
+            "folder": "printkit",
+            "project": "heterogeneous-critic",
+            "its_files_sha256": "455200b81ef471e63176cd33025a114e4e4ba3b1858c7edd2b46c88e877a845c"
+          },
+          {
+            "folder": "textkit",
+            "project": "review-gate",
+            "its_files_sha256": "7c627079e8b6cce6907e1e977b99b324e106f8c0c183f9f5939409597179c604"
+          }
+        ]
+      },
+      "closed_to_the_session": [],
+      "stops_at_minutes": 60,
+      "started_with": [
+        "/the/profiles/home/home/launch-outside.sh",
+        "-p",
+        "<the prompt>",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high",
+        "--output-format",
+        "json",
+        "--max-budget-usd",
+        "15",
+        "--permission-mode",
+        "dontAsk",
+        "--allowedTools",
+        "Edit(/**)",
+        "--strict-mcp-config",
+        "--setting-sources",
+        "user,project",
+        "--no-chrome",
+        "--disable-slash-commands",
+        "--session-id",
+        "<the session's id>"
+      ],
+      "environment": {
+        "HOME": "/Users/someone",
+        "USER": "someone",
+        "LOGNAME": "someone",
+        "SHELL": "/bin/zsh",
+        "ZDOTDIR": "/the/profiles/home/profile/no-shell-startup",
+        "TERM": "dumb",
+        "LANG": "en_US.UTF-8",
+        "TMPDIR": "/the/profiles/home/t",
+        "CLAUDE_CODE_TMPDIR": "/the/profiles/home/t",
+        "PATH": "/opt/homebrew/bin:/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+        "CLAUDE_CONFIG_DIR": "/the/profiles/home/profile",
+        "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+        "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
+        "DISABLE_AUTOUPDATER": "1",
+        "CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL": "1",
+        "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK": "1",
+        "CLAUDE_CODE_AUTO_CONNECT_IDE": "false",
+        "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5"
+      },
+      "the_profiles_settings": {
+        "permissions": {
+          "defaultMode": "dontAsk",
+          "blockReadsOutsideWorkingDirectories": true,
+          "deny": [
+            "WebFetch",
+            "WebSearch",
+            "AskUserQuestion",
+            "ListAgents",
+            "SendMessage",
+            "Bash(git push)",
+            "Bash(git push *)",
+            "Bash(mdfind *)",
+            "Bash(mdls *)",
+            "Bash(security *)",
+            "Bash(launchctl *)",
+            "Bash(osascript *)",
+            "Bash(open *)",
+            "Bash(pbpaste)",
+            "Bash(pbpaste *)",
+            "Bash(screencapture *)"
+          ]
+        },
+        "sandbox": {
+          "enabled": true,
+          "failIfUnavailable": true,
+          "autoAllowBashIfSandboxed": true,
+          "allowUnsandboxedCommands": false,
+          "filesystem": {
+            "allowWrite": [
+              "/the/profiles/home/npm-cache"
+            ],
+            "allowRead": [
+              "/the/profiles/home/npm-cache"
+            ],
+            "denyRead": [
+              "/tmp",
+              "/private/tmp",
+              "/the/users/temp",
+              "/private/the/users/temp",
+              "/the/profiles/home/kept",
+              "/the/profiles/home/profile/projects"
+            ],
+            "denyWrite": []
+          },
+          "network": {
+            "allowedDomains": [],
+            "strictAllowlist": true,
+            "allowLocalBinding": false
+          }
+        },
+        "env": {
+          "npm_config_cache": "/the/profiles/home/npm-cache",
+          "npm_config_userconfig": "/the/profiles/home/npm-cache/npmrc",
+          "npm_config_update_notifier": "false"
+        },
+        "autoMemoryEnabled": false,
+        "disableClaudeAiConnectors": true,
+        "syncClaudeAiSkills": false,
+        "syncClaudeAiPlugins": false,
+        "crossSessionInbound": "refuse",
+        "disableRemoteControl": true,
+        "enableArtifact": false,
+        "respondToBashCommands": false,
+        "cleanupPeriodDays": 3650
+      },
+      "launcher": "#!/bin/sh\n# Written by scripts/lib/watching-second-look-paid.mjs for one run of the `outside` arm (experiments/watching/second-look/README.md).\nsession=\nfor arg in \"$@\"; do\n  if [ \"$arg\" = \"--session-id\" ]; then session=1; fi\ndone\nif [ -z \"$session\" ]; then\n  echo \"this is the launcher of one run of the second look's outside arm: it starts that session and answers nothing else\" >&2\n  exit 64\nfi\n(\n  mkdir -p '/the/profiles/home/home/tool-home' &&\n  cd '/the/profiles/home/home' &&\n  HOME='/the/profiles/home/home/tool-home' GROOPH_HOME='/the/profiles/home/home/.grooph' CLAUDE_CONFIG_DIR='/the/profiles/home/profile' CODEX_HOME='/the/profiles/home/home/.codex-is-not-used' '/the/node' '/the/tool' hooks install --user --harness claude-code &&\n  HOME='/the/profiles/home/home/tool-home' GROOPH_HOME='/the/profiles/home/home/.grooph' CLAUDE_CONFIG_DIR='/the/profiles/home/profile' CODEX_HOME='/the/profiles/home/home/.codex-is-not-used' '/the/node' '/the/tool' hooks watch '/the/profiles/home/work/a-session/packages' &&\n  if [ -n \"$(ls -A '/the/profiles/home/home/tool-home')\" ]; then echo \"the tool wrote under its own home folder: it did not keep to the places it was told of\"; exit 1; fi &&\n  if [ ! -f '/the/profiles/home/home/.grooph/hooks/grooph-event.mjs' ]; then echo \"no hook was left in grooph's own folder for the run\"; exit 1; fi &&\n  if ! grep -q 'grooph-event\\.mjs.* claude-code --user' '/the/profiles/home/profile/settings.json'; then echo \"the profile's settings hold no entry that runs the recorder\"; exit 1; fi &&\n  if [ ! -x '/the/harness' ]; then echo \"the harness is not there to be started\"; exit 1; fi\n) >'/the/profiles/home/home/outside-install.txt' 2>&1 || exit 70\ncp '/the/profiles/home/profile/settings.json' '/the/profiles/home/home/settings-with-the-recorder.json' || exit 70\n: >'/the/profiles/home/home/the-launcher-started-the-harness' || exit 70\n# The harness is started with the environment this was given, to the letter: what a shell adds of its own is taken off.\nexec /usr/bin/env -u PWD -u OLDPWD -u SHLVL -u _ '/the/harness' \"$@\"\n"
+    }
+  },
+  "the_modules_the_runners_script_loads": {
+    "scripts/lib/compare-arms-ef.mjs": "e040eead2106c0d1d4fcdb394e12445f4cd0e9e8d1e41358b92c040411f1fa17",
+    "scripts/lib/compare-ledger.mjs": "6a87f72349e3ca8b96b29908d1c023a446f142875c6ac13fa6a8666f2e5185cd",
+    "scripts/lib/compare-profile.mjs": "e39095ac5c7c1934d74c374b43ff71b36c2fefeec3a66fc06357acbe478575c1",
+    "scripts/lib/compare-prompt.mjs": "9b04fe9d17dc2d47fe0cd52a2ef6b0c12481c5b0c5d2b8bba7463fc5e681cc6b",
+    "scripts/lib/compare-score.mjs": "568c68f39d48bddddff282c6ac64209c08e723f9d3cc845c396cfeb5da88c86f",
+    "scripts/lib/prove-check.mjs": "400cacf94bf25922e5f6bdd9d25fb618726fd78336877bb8d2bf082d9b0bc25d",
+    "scripts/lib/prove-evidence.mjs": "476fd67b7e9d831095054abd03489f7c722b3eecfb6f8c0a96dff0d94eedc262",
+    "scripts/lib/prove-ledger.mjs": "fe419cbe95bf5cabd613185244fae8d2d4adc06158eaae5c2296012e3a0c441c",
+    "scripts/lib/prove-pattern.mjs": "01e9a5837563e6ea50fcb046f0937c195fa31f5ce2eebbc48715b53ec99e767a",
+    "scripts/lib/roles-or-information-paid.mjs": "c7eecc26fa4b24312af95aad6a5575e0d29cc4ea23deeb38f3ae5163994127d2",
+    "scripts/lib/study-three-paid.mjs": "04a17d0dd41a47a2bb00925e9139b3ba8933527b7a27db9646af77e366c6ce8a",
+    "scripts/lib/watching-check-paid.mjs": "ff360fad7441a05ad7780a69d0d2dfd5136da2487f573c771d9ae01a6ae640ec",
+    "scripts/lib/watching-second-look-measures.mjs": "e5eea9de86be3b71db211de9b3b38c38766e37fe62ca41e4d9acbf45dbcfa198"
+  }
+}
