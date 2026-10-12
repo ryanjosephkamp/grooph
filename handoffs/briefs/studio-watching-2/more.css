@@ -1,0 +1,11 @@
+/* What the second page adds to the first page's stylesheet. */
+.f-mm { fill: color-mix(in oklab, var(--m) 52%, var(--surface)); }
+.f-plate { fill: color-mix(in srgb, var(--surface) 84%, transparent); }
+.back { opacity: 0.42; }
+/* The end, as one picture: what an export of the drawing would hold. Not played; the large session's last moment. */
+.end { margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.end figcaption { font-size: 0.9rem; color: var(--ink-3); }
+.end .stage { min-height: 0; }
+.exports { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.5rem; max-width: 65ch; font-size: 0.98rem; }
+.exports b { font-weight: 600; font-family: var(--mono); font-size: 0.9em; }
+.three li.why b { font-family: var(--mono); font-size: 0.9em; }
