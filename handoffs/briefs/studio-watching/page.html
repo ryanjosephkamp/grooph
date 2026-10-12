@@ -1,0 +1,151 @@
+<title>grooph Watching Studio</title>
+<style>
+/*CSS*/
+</style>
+
+<div class="page">
+  <header class="mast">
+    <p class="eyebrow">Slice 0109 · sketches, not the product</p>
+    <h1>Six ways to draw a session while it is watched</h1>
+    <p class="lede">grooph is to show what a session's agents are doing while they do it, and to play it back afterward. What exists today is a list. Here are six drawings to choose from, W1 to W6: each one works, and each is fed by the same records of three real sessions.</p>
+    <p class="how">Play steps a session through every moment at which something changed: a start, an end, a resume, a failure. All six keep the same moment, so you can stop one and scroll to another. Touch anything in a drawing to read what the record has of it. The three buttons that stay at the top change the session for all six.</p>
+    <p class="how">Amber is the place kept for what a session <em>says</em> it will do, beside what was seen. No session said anything here: the statements are made up, to show where the two marks would go. Each drawing says so under itself, and <b>Said</b>, at the top, takes them away. <button type="button" class="chip" data-theme-switch>Theme: auto</button></p>
+    <ul class="words" aria-label="What the drawings share">
+      <li><svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="13" rx="4" class="f-livet s-live" /><circle cx="13.5" cy="9" r="2.5" class="f-live" /></svg>green: running</li>
+      <li><svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="13" rx="4" class="f-card s-hair" /></svg>plain: finished</li>
+      <li><svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="13" rx="4" class="f-card s-bad" /><g class="s-bad" stroke-width="1.5" stroke-linecap="round"><line x1="11" y1="6.5" x2="16" y2="11.5" /><line x1="11" y1="11.5" x2="16" y2="6.5" /></g></svg>red cross: failed</li>
+      <li><svg width="36" height="18" viewBox="0 0 36 18" aria-hidden="true"><rect x="2" y="5.5" width="7" height="7" rx="2" class="m-opus f-m" /><rect x="14" y="5.5" width="7" height="7" rx="2" class="m-sonnet f-m" /><rect x="26" y="5.5" width="7" height="7" rx="2" class="m-haiku f-m" /></svg>Opus, Sonnet, Haiku</li>
+      <li><svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true"><line x1="2" y1="9.5" x2="24" y2="9.5" class="tie bg" /></svg>dashed tie: started in the background</li>
+      <li><svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="13" rx="4" class="said f-said" /></svg>amber, dashed: said, never ran (made up here)</li>
+      <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 4L14 9L9 14L4 9Z" class="s-said f-said" stroke-width="1" /></svg>amber diamond: ran, never said (made up here)</li>
+    </ul>
+  </header>
+
+  <noscript><p class="noscript">This viewer runs no script, so nothing here plays. Each drawing below is a still of one moment of the largest session (58 subagents over nearly nine days): the moment its fifth runs at once. Opened in a browser, every drawing steps through every moment of three sessions.</p></noscript>
+
+  <nav class="docs" aria-label="The session every drawing draws">
+    <div class="docs-row" role="radiogroup" aria-label="Session">
+      <button type="button" role="radio" data-doc aria-checked="false">Four at once</button>
+      <button type="button" role="radio" data-doc aria-checked="true">Dozens over days</button>
+      <button type="button" role="radio" data-doc aria-checked="false">Resumed often</button>
+    </div>
+    <div class="docs-more">
+      <small data-about></small>
+      <button type="button" class="chip" data-said aria-pressed="true">Said: on</button>
+    </div>
+  </nav>
+
+  <section class="view" data-view="tree" data-name="The tree that grows" id="w1">
+    <div class="view-head">
+      <p class="label"><b>W1</b><span class="eyebrow">nothing moves once it has a place</span></p>
+      <h2>The tree that grows</h2>
+      <p class="shows"><b>The session at the top, and under it everything it started, in the order it started them.</b> A new subagent takes the next place on the rail and keeps it for good; what changes is how it is drawn where it stands. A subagent's own subagent hangs under it.</p>
+    </div>
+    <div class="stage"></div>
+    <!--BAR-->
+    <ul class="three">
+      <li><b>Good at:</b> who exists and who started whom, at any size, with every agent in a place you can find again. With a handful it is the app's own cards, and nothing needs explaining.</li>
+      <li><b>Where it breaks:</b> time. It shows order and not how long anything took or what overlapped, and with dozens the cards become small tiles that carry a square of color and a letter for the model, and lean on the words above.</li>
+      <li><b>To build:</b> the least of the six. It stands on the canvas the app has (its cards, its ties, the six themes) with a layout of its own in place of the editor's. As drawn here the drawing itself is about 3 KB of script, compressed; it can be fetched when the live screen is opened and weigh nothing before.</li>
+    </ul>
+  </section>
+
+  <section class="view" data-view="lanes" data-name="Lanes over time" id="w2">
+    <div class="view-head">
+      <p class="label"><b>W2</b><span class="eyebrow">how long, and what overlapped</span></p>
+      <h2>Lanes over time</h2>
+      <p class="shows"><b>Time runs left to right, and every run is a bar as long as it took.</b> The strip on top is the whole session, one block for each burst of work and as tall as the most that ran at once; under it is the burst the clock is in, opened to the full width. A tie drops from whoever started a run to where it begins.</p>
+    </div>
+    <div class="stage"></div>
+    <!--BAR-->
+    <ul class="three">
+      <li><b>Good at:</b> what is running now, for how long, and beside what: five at once is five bars one over another. A resume is the same name coming back on its lane, and a foreground call is a bar that holds its parent still.</li>
+      <li><b>Where it breaks:</b> a session of days is mostly waiting, so it is drawn a burst at a time and the eye loses the whole; the strip on top is the price. Who started whom is a thin tie, easy to miss.</li>
+      <li><b>To build:</b> middling. Nothing in the app has a time axis yet, so the bars and the strip stand on none of its pieces but the themes' colors. About 3.5 KB compressed for the drawing itself as drawn here, fetched only when chosen.</li>
+    </ul>
+  </section>
+
+  <section class="view" data-view="lines" data-name="The line map" id="w3">
+    <div class="view-head">
+      <p class="label"><b>W3</b><span class="eyebrow">order, not duration</span></p>
+      <h2>The line map</h2>
+      <p class="shows"><b>The session is the trunk line. A subagent is a line that leaves it at one station and comes back at another.</b> A station is a moment, and stations are evenly spaced, so days of waiting cost nothing and the whole session fits one screen, folded like the strip map over a train's doors. A line is the color of its model.</p>
+    </div>
+    <div class="stage"></div>
+    <!--BAR-->
+    <ul class="three">
+      <li><b>Good at:</b> the shape of the whole session at a glance: where it fanned out to five, where one agent kept going back out, where a line left another line and not the trunk. It is the only one that shows dozens over days whole on one screen, with every run in it.</li>
+      <li><b>Where it breaks:</b> a run of an hour and a run of a minute look alike; only the marks on the trunk say that a night went by. A line's model is only its color. Dense stretches need a wide screen to keep their names.</li>
+      <li><b>To build:</b> middling. The Transit theme has the look (thick route lines); the stations, the folding and the tracks are new. About 3 KB compressed for the drawing itself as drawn here, fetched only when chosen.</li>
+    </ul>
+  </section>
+
+  <section class="view" data-view="ring" data-name="The ring" id="w4">
+    <div class="view-head">
+      <p class="label"><b>W4</b><span class="eyebrow">now in the middle</span></p>
+      <h2>The ring</h2>
+      <p class="shows"><b>What is running stands close around the session; what has finished goes out to the rim and stays there.</b> The middle is the present and the rim is the past, one bead for each subagent in the order it started. A resumed agent comes back in from its bead.</p>
+    </div>
+    <div class="stage"></div>
+    <!--BAR-->
+    <ul class="three">
+      <li><b>Good at:</b> the question asked most while a session runs: what is going on right now, and who is in charge of it. It is the most alive of the six, and it reads at arm's length on a phone.</li>
+      <li><b>Where it breaks:</b> the past is only a count of beads: no order of events, no durations, and on the rim a bead's model is only its color. On a live session the rim has to be spaced again as it fills, since nobody knows how many will come.</li>
+      <li><b>To build:</b> small. Circles and ties, in the themes' colors; the move from the middle to the rim is what the app's view transitions already do between the picture and the scene. About 2.5 KB compressed for the drawing itself as drawn here, fetched when the live screen is opened.</li>
+    </ul>
+  </section>
+
+  <section class="view" data-view="skyline" data-name="The skyline" id="w5">
+    <div class="view-head">
+      <p class="label"><b>W5</b><span class="eyebrow">the app's columns, fed by what was seen</span></p>
+      <h2>The skyline</h2>
+      <p class="shows"><b>Every subagent is a column on the session's floor, as tall as the time it ran, one block for each run.</b> A column grows while its agent runs and is lit on top. A subagent's subagent stands on a step of its own, tied across the floor to the one that started it, when it ran in the background; when its parent waited for it, it stands on its parent's column.</p>
+    </div>
+    <div class="stage"></div>
+    <!--BAR-->
+    <ul class="three">
+      <li><b>Good at:</b> where the time went and on which model, and how often an agent was sent back out: eight runs are eight blocks. It is the one that makes a person want to look.</li>
+      <li><b>Where it breaks:</b> who started whom is only the floor and the step, and a column in front hides one behind. Without names on the ground it leans on touch.</li>
+      <li><b>To build:</b> it stands on the most: the stage, the columns and the floors of the five kinds in three dimensions, pieces that are already fetched only when chosen (and are Paper in every theme). The work is feeding it from the record and letting a column grow; little new weight, and none before it is asked for.</li>
+    </ul>
+  </section>
+
+  <section class="view" data-view="bursts" data-name="A sentence of shapes" id="w6">
+    <div class="view-head">
+      <p class="label"><b>W6</b><span class="eyebrow">the session as its bursts</span></p>
+      <h2>A sentence of shapes</h2>
+      <p class="shows"><b>A long session is not one graph: it is a string of small ones.</b> Each burst of work is drawn as its own little graph, and they are set in a row like words. The burst the clock is in is opened above them at full size, as the app's cards.</p>
+    </div>
+    <div class="stage"></div>
+    <!--BAR-->
+    <ul class="three">
+      <li><b>Good at:</b> turning days into something to read: a fan of five, a single, a pair, one sent back three times. The open burst answers everything in words. These small graphs are the shapes a guide could collect from what was seen.</li>
+      <li><b>Where it breaks:</b> a burst is this page's reading (runs with less than ten minutes between them) and no record says the word. A short session is one word, and then this is W1.</li>
+      <li><b>To build:</b> small to middling. The open burst is the canvas's cards, and the small graphs are close kin of the glyphs the library already shows. About 3 KB compressed for the drawing itself as drawn here, fetched when the live screen is opened. The rule for a burst has to be agreed first.</li>
+    </ul>
+  </section>
+
+  <section class="pick">
+    <h2>If I had to pick</h2>
+    <p><b>W1 first, and W3 second.</b> The contract asks for four things from the record: who exists, who started whom, what is running or finished, and on which model. The tree answers all four at any size, keeps every agent where you last saw it, and is the app's own canvas with a different layout, so it looks like the rest of the app in every theme. It is the least to build and the hardest to misread, which is what the first screen should be while you try it on work of your own.</p>
+    <p>The line map is the one I would add for the replay. It is the only drawing here that holds dozens over days in one look, with every run in it, and it has the clearest place for what a session said: seen above the trunk, said under it.</p>
+    <ul>
+      <li><b>W6</b> is less a rival to W1 than a way to keep it readable on a long session: cards for the burst that is live, small shapes for what is past. I would take its idea into W1 and not build it apart.</li>
+      <li><b>W4</b> is the one to put where a glance is all there is: the head of the live screen, or the front page. It is small enough to add beside whichever is chosen.</li>
+      <li><b>W2</b> answers "how long, and beside what", which the others cannot. It earns a place as a second view of a burst, later.</li>
+      <li><b>W5</b> is the most fun and answers the least. It costs the least new weight, since its stage is built; I would add it last.</li>
+    </ul>
+    <p>Three things the record made hard, whichever is built. A session of days is almost all waiting (here a subagent was running for about fifteen hours of nearly nine days), so anything with a time axis has to fold. Nothing in the record says an agent is running now: it is the absence of an end. And effort, which you asked to see beside role and model, is kept in neither record for a subagent: Claude Code's documentation says a hook is usually handed one, grooph's hook does not keep it, and whether it would be the subagent's own I did not check.</p>
+    <p class="foot">Every drawing on this page is drawn from the same three records, and the page fetches nothing. <b>Four at once</b> is the watched run the repository holds (<code>experiments/watching/haiku/four/invited-1</code>). The other two are real sessions of this project, kept as a shape and nothing else: how many subagents, who started whom, background or foreground, which model, and when each run began and ended. Every id is renumbered and every time is counted from the session's first line. Nothing a session read, wrote or said is here, and no description, path or prompt. The amber marks stand where a session's own statements would go; every statement on this page is made up, and each drawing says so under itself. The figures for weight are each drawing's own script as written for this page; all six also share about 7 KB compressed (the record made ready, the clock, the words for a moment). Typeface: Atkinson Hyperlegible Next and Mono, SIL Open Font License.</p>
+  </section>
+</div>
+
+<script>
+window.STUDIO_DATA = /*DATA*/;
+</script>
+<script>
+(() => {
+"use strict";
+/*SCRIPT*/
+})();
+</script>

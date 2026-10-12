@@ -1,0 +1,187 @@
+/* The watching studio (slice 0109). One reading column, the switch of sessions held at the top of the screen, and
+   each drawing in a framed stage of its own under its label. The tokens are the app's own (`apps/web/src/styles.css`):
+   its neutrals that lean toward the brand green, its accent, its type. A model's color is one of the app's loop
+   colors, since a watched session has no loops to spend them on. Every drawing is SVG that takes its colors from
+   these tokens, so light and dark are one drawing. */
+/*FONTS*/
+:root {
+  color-scheme: light dark;
+  --bg: oklch(0.968 0.005 165); --surface: oklch(0.996 0.002 165); --surface-2: oklch(0.944 0.007 165);
+  --ink: oklch(0.22 0.012 165); --ink-2: oklch(0.4 0.014 165); --ink-3: oklch(0.5 0.014 165);
+  --line: oklch(0.9 0.007 165); --line-strong: oklch(0.8 0.01 165); --edge: oklch(0.55 0.012 165);
+  --accent: #1f5f4a; --accent-ink: #ffffff; --accent-soft: oklch(0.93 0.03 165);
+  --error: #b42318; --said: #b45309; --said-soft: #fcf0d9;
+  --m-opus: #7a4cc2; --m-sonnet: #0f7c8c; --m-haiku: #c2410c; --on-m: #ffffff;
+  --dots: oklch(0.83 0.01 165); --stage: oklch(0.985 0.003 165);
+  --lift: drop-shadow(0 1px 1px oklch(0.2 0.01 165 / 0.07)) drop-shadow(0 3px 8px oklch(0.2 0.01 165 / 0.06));
+  --font: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: oklch(0.17 0.006 165); --surface: oklch(0.215 0.007 165); --surface-2: oklch(0.25 0.008 165);
+    --ink: oklch(0.94 0.006 165); --ink-2: oklch(0.8 0.008 165); --ink-3: oklch(0.68 0.01 165);
+    --line: oklch(0.3 0.008 165); --line-strong: oklch(0.41 0.01 165); --edge: oklch(0.66 0.01 165);
+    --accent: #5dbb94; --accent-ink: #0d1a14; --accent-soft: oklch(0.3 0.04 165);
+    --error: #ff8f80; --said: #f5a524; --said-soft: #362a15;
+    --m-opus: #a883f0; --m-sonnet: #3cc0d0; --m-haiku: #f0874f; --on-m: #10141a;
+    --dots: oklch(0.3 0.008 165); --stage: oklch(0.19 0.006 165);
+    --lift: drop-shadow(0 1px 2px rgb(0 0 0 / 0.45));
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: oklch(0.17 0.006 165); --surface: oklch(0.215 0.007 165); --surface-2: oklch(0.25 0.008 165);
+  --ink: oklch(0.94 0.006 165); --ink-2: oklch(0.8 0.008 165); --ink-3: oklch(0.68 0.01 165);
+  --line: oklch(0.3 0.008 165); --line-strong: oklch(0.41 0.01 165); --edge: oklch(0.66 0.01 165);
+  --accent: #5dbb94; --accent-ink: #0d1a14; --accent-soft: oklch(0.3 0.04 165);
+  --error: #ff8f80; --said: #f5a524; --said-soft: #362a15;
+  --m-opus: #a883f0; --m-sonnet: #3cc0d0; --m-haiku: #f0874f; --on-m: #10141a;
+  --dots: oklch(0.3 0.008 165); --stage: oklch(0.19 0.006 165);
+  --lift: drop-shadow(0 1px 2px rgb(0 0 0 / 0.45));
+  color-scheme: dark;
+}
+:root[data-theme="light"] { color-scheme: light; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { overflow-x: clip; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 1.0625rem/1.55 var(--font); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+.page { max-width: 47.5rem; margin-inline: auto; padding: 2rem 1rem 4rem; display: flex; flex-direction: column; gap: 2.75rem; }
+h1, h2 { margin: 0; line-height: 1.15; text-wrap: balance; }
+h1 { font-size: clamp(2rem, 1.5rem + 2.4vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.35rem, 1.15rem + 0.9vw, 1.7rem); font-weight: 700; letter-spacing: -0.012em; }
+p { margin: 0; max-width: 65ch; text-wrap: pretty; }
+code { font-family: var(--mono); font-size: 0.86em; overflow-wrap: anywhere; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 0.3rem; }
+.eyebrow { font: 500 0.78rem/1.3 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
+.mast { display: flex; flex-direction: column; gap: 0.9rem; }
+.lede { font-size: 1.18rem; line-height: 1.45; color: var(--ink-2); }
+.how { color: var(--ink-2); }
+.words { display: flex; flex-wrap: wrap; gap: 0.3rem 1.1rem; margin: 0; padding: 0; list-style: none; font-size: 0.93rem; color: var(--ink-2); }
+.words li { display: inline-flex; align-items: center; gap: 0.4rem; }
+.words svg { flex: none; }
+
+/* The switch of sessions stays at the top of the screen: every drawing below draws the one chosen, at one moment. */
+.docs { position: sticky; top: 0; z-index: 5; margin-inline: -1rem; padding: 0.6rem 1rem 0.7rem; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.45rem; }
+.docs-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; }
+.docs button, .bar button, .chip { min-height: 2.75rem; padding: 0.3rem 0.45rem; border: 1px solid var(--line-strong); border-radius: 0.6rem; background: var(--surface); color: var(--ink-2); font: 600 0.84rem/1.15 var(--font); cursor: pointer; text-wrap: balance; }
+.docs button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.docs-more { display: flex; align-items: center; gap: 0.5rem; }
+.docs small { flex: 1 1 auto; min-width: 0; font-size: 0.84rem; line-height: 1.3; color: var(--ink-3); }
+.chip { flex: none; min-height: 2.1rem; font-weight: 500; font-size: 0.8rem; }
+.chip[aria-pressed="true"] { background: var(--said-soft); border-color: var(--said); color: var(--ink); }
+
+.view { display: flex; flex-direction: column; gap: 0.75rem; border-top: 1px solid var(--line-strong); padding-top: 1.2rem; min-width: 0; scroll-margin-top: 8rem; }
+.view-head { display: flex; flex-direction: column; gap: 0.45rem; }
+.label { display: inline-flex; align-items: center; gap: 0.55rem; }
+.label b { display: inline-grid; place-items: center; min-width: 2.4rem; height: 1.6rem; padding-inline: 0.4rem; border-radius: 0.4rem; background: var(--accent); color: var(--accent-ink); font: 600 0.8rem/1 var(--mono); }
+.shows b { font-weight: 600; }
+/* The stage is the app's canvas: its paper, and its grid of dots. */
+.stage { border: 1px solid var(--line-strong); border-radius: 0.6rem; background: var(--stage) radial-gradient(circle, var(--dots) 0.55px, transparent 0.9px) 8px 8px / 16px 16px; overflow: hidden; min-height: 8rem; }
+.stage svg { display: block; width: 100%; height: auto; }
+.noscript { font-size: 0.93rem; color: var(--ink-2); border-left: 0; padding: 0.6rem 0.8rem; background: var(--surface-2); border-radius: 0.5rem; }
+/* The bar and the words for the moment stay at the bottom of the screen for as long as their drawing is on it: a
+   tall drawing is watched with a thumb on Play. */
+.deck { position: sticky; bottom: 0; z-index: 4; margin-inline: -1rem; padding: 0.5rem 1rem 0.55rem; background: color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter: blur(6px); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.35rem; }
+.bar { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.35rem; }
+.bar button { flex: none; min-width: 2.75rem; color: var(--ink); font-size: 0.92rem; }
+.bar button[data-do="play"] { min-width: 4.2rem; }
+.bar button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.bar input { flex: 1 1 2rem; min-width: 0; height: 2.75rem; accent-color: var(--accent); }
+.says { display: block; min-height: 2.7em; font-size: 0.93rem; line-height: 1.35; color: var(--ink-2); }
+.says b { font-weight: 600; color: var(--ink); font-family: var(--mono); font-size: 0.88em; }
+.who { display: block; min-height: 1.4em; font-size: 0.9rem; line-height: 1.45; color: var(--ink-3); }
+.three { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.4rem; max-width: 65ch; font-size: 0.98rem; }
+.three b { font-weight: 600; }
+.true { font-size: 0.93rem; line-height: 1.45; color: var(--ink-3); }
+.pick { display: flex; flex-direction: column; gap: 0.8rem; border-top: 1px solid var(--line-strong); padding-top: 1.2rem; }
+.pick ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.45rem; max-width: 65ch; }
+.foot { font-size: 0.93rem; color: var(--ink-3); }
+
+/* ── what every drawing is drawn with ────────────────────────────────────────────────────────────────────────
+   Hairlines, one weight of border, and the app's paper. One accent, the app's green, for what is running; a
+   model is a small swatch of its color beside its name or its letter; a thing that has finished is quiet. A dashed
+   tie is a start in the background. Amber, dashed, is something a session said (made up on this page).
+   Every stroke keeps its width when a drawing is scaled (a still, in a viewer that runs no script). */
+.stage svg { font-variant-numeric: tabular-nums; text-rendering: geometricPrecision; }
+.stage svg * { vector-effect: non-scaling-stroke; }
+.stage text { font-family: var(--font); fill: var(--ink); }
+.stage .mono { font-family: var(--mono); letter-spacing: -0.01em; }
+.stage .t2 { fill: var(--ink-2); }
+.stage .t3 { fill: var(--ink-3); }
+.m-opus { --m: var(--m-opus); }
+.m-sonnet { --m: var(--m-sonnet); }
+.m-haiku { --m: var(--m-haiku); }
+.m-none { --m: var(--ink-3); }
+.f-m { fill: var(--m); }
+.f-mt { fill: color-mix(in oklab, var(--m) 16%, var(--surface)); }
+.s-m { stroke: var(--m); }
+.s-mh { stroke: color-mix(in oklab, var(--m) 62%, var(--surface)); }
+.t-m { fill: var(--m) !important; }
+.t-on { fill: var(--on-m) !important; }
+.t-clock { fill: var(--accent-ink) !important; }
+.f-card { fill: var(--surface); }
+.f-surface { fill: var(--surface); }
+.f-ground { fill: var(--stage); }
+.f-ink { fill: var(--ink); }
+.f-line { fill: var(--line-strong); }
+.f-none { fill: none; }
+.f-live { fill: var(--accent); }
+.f-livet { fill: color-mix(in oklab, var(--accent) 9%, var(--surface)); }
+.s-live { stroke: var(--accent); }
+.t-live { fill: var(--accent) !important; }
+.s-ink { stroke: var(--ink); }
+.s-hair { stroke: var(--line-strong); }
+.s-line { stroke: var(--line-strong); }
+.s-rule { stroke: var(--line); }
+.s-edge { stroke: var(--edge); }
+.s-ground { stroke: var(--stage); }
+.s-bad { stroke: var(--error); }
+.t-bad { fill: var(--error) !important; }
+.s-said { stroke: var(--said); }
+.f-said { fill: color-mix(in oklab, var(--said) 10%, var(--surface)); }
+.t-said { fill: var(--said) !important; }
+.key-d { fill: color-mix(in oklab, var(--said) 10%, var(--surface)); stroke: var(--said); }
+.s-accent { stroke: var(--accent); }
+.f-accent { fill: var(--accent); }
+/* A card or a disc stands a hair off the paper. */
+.lift-1 { filter: var(--lift); }
+/* A word that may lie over a line keeps a rim of the paper's color. */
+.lift { paint-order: stroke; stroke: var(--stage); stroke-width: 3px; stroke-linejoin: round; }
+.tie { fill: none; stroke: var(--line-strong); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
+.tie.live { stroke: var(--ink-2); }
+.tie.bg { stroke-dasharray: 3 3; }
+.tie.unknown { stroke: var(--ink-3); stroke-dasharray: 0.5 3.5; stroke-width: 1.5; }
+.said { stroke: var(--said); stroke-width: 1; stroke-dasharray: 3 2.5; }
+/* Wider than it looks: a thin line or a small bead is touched through this. */
+.hit { fill: transparent; stroke: transparent; pointer-events: all; }
+[data-go], [data-id] { cursor: pointer; }
+.sel { stroke: var(--ink); stroke-width: 1.5; fill: none; pointer-events: none; }
+/* The skyline's faces. Running: solid in the model's color, darker down each side. Finished: paper, with a roof
+   in a tint of its model. */
+.on-t { fill: var(--m); stroke: color-mix(in oklab, var(--m) 70%, #000); stroke-width: 0.75; stroke-linejoin: round; }
+.on-l { fill: color-mix(in oklab, var(--m) 82%, #000); stroke: color-mix(in oklab, var(--m) 62%, #000); stroke-width: 0.75; stroke-linejoin: round; }
+.on-r { fill: color-mix(in oklab, var(--m) 66%, #000); stroke: color-mix(in oklab, var(--m) 62%, #000); stroke-width: 0.75; stroke-linejoin: round; }
+.off-t { fill: color-mix(in oklab, var(--m) 30%, var(--surface)); stroke: color-mix(in oklab, var(--m) 70%, var(--surface)); stroke-width: 0.75; stroke-linejoin: round; }
+.off-l { fill: var(--surface); stroke: var(--line-strong); stroke-width: 0.75; stroke-linejoin: round; }
+.off-r { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 0.75; stroke-linejoin: round; }
+.step-t { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 0.75; }
+.step-l { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 0.75; }
+.step-r { fill: var(--line); stroke: var(--line-strong); stroke-width: 0.75; }
+.slab-l { fill: var(--line); stroke: var(--line-strong); stroke-width: 0.75; }
+.slab-r { fill: var(--line-strong); stroke: var(--line-strong); stroke-width: 0.75; }
+/* Alive: a ring that leaves a running thing, a breath on a lit roof, and a quick arrival. Nothing bounces. */
+.halo { fill: none; stroke: var(--accent); stroke-width: 1; transform-box: fill-box; transform-origin: center; animation: sw-ping 2s cubic-bezier(0.16, 1, 0.3, 1) infinite; pointer-events: none; }
+.halo.wide { animation-name: sw-ping-wide; }
+.fresh { transform-box: fill-box; transform-origin: center; animation: sw-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.glow { animation: sw-glow 2s ease-in-out infinite; }
+.on-t { animation: sw-glow 2s ease-in-out infinite; }
+@keyframes sw-ping { from { transform: scale(1); opacity: 0.7; } 70%, to { transform: scale(2.4); opacity: 0; } }
+@keyframes sw-ping-wide { from { transform: scale(1); opacity: 0.6; } 70%, to { transform: scale(1.22); opacity: 0; } }
+@keyframes sw-in { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes sw-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+  .halo, .fresh, .glow, .on-t { animation: none; }
+  .halo { opacity: 0; }
+}
