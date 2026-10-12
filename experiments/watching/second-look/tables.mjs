@@ -17,6 +17,19 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
+/**
+ * The one correction made to the runner while the look was being run, as the-corrected-runner.json beside this script
+ * names it: the runner before it and the runner after it, each by its whole checksum. Null when the file is not there
+ * or does not hold both. The runner reads the same file the same way, and a test holds the two to each other.
+ */
+export function theCorrection(path = join(here, "the-corrected-runner.json")) {
+  try {
+    const kept = JSON.parse(readFileSync(path, "utf8"));
+    const sums = [kept?.the_earlier_runner, kept?.the_corrected_runner];
+    if (sums.every((sum) => typeof sum === "string" && /^[0-9a-f]{64}$/.test(sum)) && sums[0] !== sums[1] && typeof kept.why === "string" && kept.why.trim().length > 20) return { the_earlier_runner: sums[0], the_corrected_runner: sums[1], why: kept.why };
+  } catch {}
+  return null;
+}
 const BLOCKS = ["opus", "sonnet"];
 const TASKS = ["four", "six"];
 /** The arms' places in each block's three rounds, as the block makes them: scripts/lib/watching-second-look-paid.mjs holds the same table, and a test holds the two to each other. */
@@ -209,6 +222,13 @@ export function tables(root = here) {
     const named = (list) => list.map((run) => `\`${run.task}\` ${run.arm} ${run.round}`).join(", ");
     const others = runs.filter((run) => run.record && !sameCheckout(run.record, looksFirst));
     if (others.length > 0) out.push(`Made with another hook's file, or another build of the tool, than the first run of the look: ${named(others)}.`, "");
+    // A block whose records name more than one runner says which made which. Only where they are the two that the one
+    // correction names (the-corrected-runner.json, beside this script), checksum for checksum, is it said that they
+    // hand a session the same; of any other two, or of three, only the fact. No record's own word is taken for it.
+    const runners = new Map();
+    for (const run of runs.filter((one) => one.record && typeof checkoutOf(one.record).runner_sha256 === "string")) runners.set(checkoutOf(run.record).runner_sha256, [...(runners.get(checkoutOf(run.record).runner_sha256) ?? []), run]);
+    const correction = theCorrection();
+    if (runners.size > 1) out.push(correction && runners.size === 2 && runners.has(correction.the_earlier_runner) && runners.has(correction.the_corrected_runner) ? `Made with two runners that hand a session the same thing (README.md, the note of 2026-10-12): the runner \`${short(correction.the_earlier_runner)}\` made ${named(runners.get(correction.the_earlier_runner))}, and the corrected runner \`${short(correction.the_corrected_runner)}\` made the rest. No run is kept from being read with the others for its runner.` : `Made with more than one runner: ${[...runners].map(([sum, made]) => `\`${short(sum)}\` made ${named(made)}`).join("; ")}.`, "");
     const later = madeLater(runs);
     if (later.length > 0) out.push(`Made with another hook's file, or another build of the tool, than this block's own first run, and so published as rows and not read with the block's other runs: ${named(later)}.`, "");
     out.push(...readingsTable(root, block));

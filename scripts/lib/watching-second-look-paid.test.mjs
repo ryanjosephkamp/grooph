@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -28,12 +28,15 @@ import {
   heldUpBy,
   holdSignals,
   installOutside,
+  inTheSessionsFolder,
   launcherText,
   LEAD,
   LEDGER,
   madeFromAnother,
+  madeWithTheEarlierRunner,
   markNotObtained,
   nextRun,
+  notTold,
   order,
   placesFor,
   promptFor,
@@ -57,7 +60,9 @@ import {
   TASKS,
   taskText,
   theBet,
+  theCorrection,
   theOwnersOwn,
+  theRestOfTheRunner,
   unbuild,
   USER_ENTRY,
   WATCHDOG,
@@ -70,6 +75,7 @@ const comparisons = join(root, "experiments", "comparisons");
 const STAND_IN = join(here, "fixtures", "stand-in-harness.mjs");
 const SCRIPT = join(here, "watching-second-look-paid.mjs");
 const TABLES = join(root, "experiments", "watching", "second-look", "tables.mjs");
+const GIVEN = join(root, "experiments", "watching", "second-look", "given-to-a-session.mjs");
 const built = existsSync(join(root, "packages", "cli", "dist"));
 const page = readFileSync(join(root, "experiments", "watching", "second-look", "README.md"), "utf8");
 const DECISION = { decided_by: "the owner", on: "2026-10-11", words: "a test's stand-in for his words" };
@@ -141,10 +147,11 @@ function place(plan = { uses: [] }, { decided = true, lines = [] } = {}) {
   // The stand-in is started through a wrapper that names node whole. Before it becomes the stand-in it writes down
   // which process it is and which process group it is in: the same process goes on as the stand-in.
   const harness = join(top, "stand-in-harness");
-  writeFileSync(harness, `#!/bin/sh\necho "$$ $(ps -o pgid= -p $$ | tr -d ' ')" > ${JSON.stringify(join(top, "the-harness-was-this-process"))}\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(STAND_IN)} "$@"\n`, { mode: 0o755 });
+  // And the environment it was given, values and all (a shell adds a few variables of its own to it).
+  writeFileSync(harness, `#!/bin/sh\necho "$$ $(ps -o pgid= -p $$ | tr -d ' ')" > ${JSON.stringify(join(top, "the-harness-was-this-process"))}\nenv > ${JSON.stringify(join(top, "the-environment-the-harness-was-given"))}\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(STAND_IN)} "$@"\n`, { mode: 0o755 });
   const recordRoot = join(top, "records");
   const common = { home, claude: harness, ledgerPath, recordRoot, profileCheck: () => [], gameOpen: [], go: "the driver said: run the second look", grace: 300, firstCallGate: { ok: true, record: "record" }, cli: standInTool(top), rehearsal: () => REHEARSED };
-  return { top, home, at, harness, ledgerPath, recordRoot, common, opus: { ...common, block: "opus" }, setPlan, process: () => readFileSync(join(top, "the-harness-was-this-process"), "utf8").trim().split(" ").map(Number), ledger: () => JSON.parse(readFileSync(ledgerPath, "utf8")), seen: () => JSON.parse(readFileSync(join(at.profile, "command-seen-by-the-stand-in.json"), "utf8")), settingsSeen: () => JSON.parse(readFileSync(join(at.profile, "settings-seen-by-the-stand-in.json"), "utf8")) };
+  return { top, home, at, harness, ledgerPath, recordRoot, common, opus: { ...common, block: "opus" }, setPlan, process: () => readFileSync(join(top, "the-harness-was-this-process"), "utf8").trim().split(" ").map(Number), environment: () => Object.fromEntries(readFileSync(join(top, "the-environment-the-harness-was-given"), "utf8").split("\n").filter((line) => line.includes("=")).map((line) => [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)])), ledger: () => JSON.parse(readFileSync(ledgerPath, "utf8")), seen: () => JSON.parse(readFileSync(join(at.profile, "command-seen-by-the-stand-in.json"), "utf8")), settingsSeen: () => JSON.parse(readFileSync(join(at.profile, "settings-seen-by-the-stand-in.json"), "utf8")) };
 }
 const sawAVariableOfGroophs = (p) => JSON.parse(readFileSync(join(p.at.profile, "command-seen-by-the-stand-in.json"), "utf8")).environment.some((name) => /CODEX_HOME|GROOPH/.test(name));
 /** Records put in the order's way as already made: a run with a result is a run that is recorded. */
@@ -157,6 +164,38 @@ function inHand(recordRoot, runs, result = { ended_by: "the session" }) {
 const blockOf = (block) => order().filter((run) => run.block === block);
 /** A line of the hook's file, as the hook writes it. `<session>` stands for the session's id in a stand-in's plan. */
 const line = (event, more = {}, t = "2026-10-05T00:00:00.000Z") => JSON.stringify({ v: 1, t, harness: "claude-code", event, session: "<session>", ...more });
+
+/**
+ * What given-to-a-session.mjs says a run is handed, with this place's own paths where its stand-ins are, set beside
+ * what the stand-in for the harness was really started with in that run: every argument, its environment's variables
+ * by name and by value, the settings the profile held, the limits, and in the outside arm the launcher as it was
+ * kept. The file kept beside that script is made of the same pieces: this is what ties it to a session as the runner
+ * starts one. (Call it straight after the run: the stand-in's notes are those of the last session started.)
+ */
+async function startedAsSaid(p, one, seen, settingsSeen) {
+  const { givenBy } = await import(GIVEN);
+  const [runner, first, profile] = [await import("./watching-second-look-paid.mjs"), await import("./watching-check-paid.mjs"), await import("./compare-profile.mjs")];
+  const result = JSON.parse(readFileSync(join(one.recordDir, "result.json"), "utf8"));
+  // The session's folder as it was: its transcripts' folder is named for it.
+  const id = /-work-([0-9A-Za-z]+)-packages\/[^/]+$/.exec(result.transcript)?.[1];
+  assert.ok(id, `${one.run.name}: ${result.transcript}`);
+  const said = givenBy({ runner, first, profile, root, places: { home: p.home, folder: join(p.at.work, id, TASKS[one.run.task].repository), harness: p.harness, node: process.execPath, cli: p.common.cli, session: result.session_id } })[one.run.name];
+  assert.deepEqual(seen.args, said.started_with.slice(1).map((arg) => (arg === "<the prompt>" ? promptFor(one.run) : arg)), `${one.run.name}: every argument`);
+  // The test's own wrapper is a shell script, and a shell adds these of its own; macOS adds the last.
+  const aShellsOwn = ["PWD", "OLDPWD", "SHLVL", "_", "__CF_USER_TEXT_ENCODING"];
+  assert.deepEqual(seen.environment.filter((name) => !aShellsOwn.includes(name)), Object.keys(said.environment).sort(), `${one.run.name}: the names of the environment's variables`);
+  const given = p.environment();
+  assert.deepEqual(Object.fromEntries(Object.keys(said.environment).map((name) => [name, given[name]])), said.environment, `${one.run.name}: the values of the environment's variables`);
+  // The limits the session was really run under, as its record keeps them.
+  assert.deepEqual([result.watchdog?.usd, result.watchdog?.minutes], [WATCHDOG[one.run.block][one.run.task].usd, said.stops_at_minutes], `${one.run.name}: the ceiling and the minutes`);
+  // The settings: the profile's as the lab's runner wrote them, and in the outside arm the recorder's entries, which the tool added.
+  const { hooks, ...theProfiles } = settingsSeen;
+  assert.deepEqual(theProfiles, said.the_profiles_settings, `${one.run.name}: the profile's settings`);
+  assert.equal(hooks !== undefined, one.run.arm === "outside", `${one.run.name}: the recorder's entries`);
+  assert.deepEqual(said.the_profiles_settings.sandbox.filesystem.denyWrite.length, one.run.arm === "watched" ? 1 : 0);
+  if (one.run.arm === "outside") assert.equal(readFileSync(join(one.kept, "home", "launch-outside.sh"), "utf8"), said.launcher, "the launcher's whole text");
+  else assert.equal(said.launcher, null);
+}
 
 /** A stand-in's plan for one arm: a session that starts no subagent, and leaves the file the hook would have where that arm's hook writes it. */
 const quietPlan = (arm) => ({ uses: [{ tool: "Bash", input: { command: "npm test" }, result: "ok", ...(arm === "plain" ? {} : { appends: { [arm === "watched" ? ".grooph/events/<session>.jsonl" : "../../../home/.grooph/events/packages/<session>.jsonl"]: `${line("session-start")}\n${line("session-end")}\n` } }) }] });
@@ -594,6 +633,7 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     const plain = await runOne(p.opus);
     assert.equal(plain.run.name, "opus/four/plain-1");
     const plainSeen = p.seen();
+    await startedAsSaid(p, plain, plainSeen, p.settingsSeen());
     const plainResult = JSON.parse(readFileSync(join(plain.recordDir, "result.json"), "utf8"));
     assert.deepEqual([plainResult.ended_by, plainResult.arm, plainResult.round, plainResult.problems, plainResult.scored], ["the session", "plain", 1, [], true]);
     assert.deepEqual([plainResult.measures.subagents.count, plainResult.measures.delegation.any, plainResult.measures.delegation.subagents_in_the_transcripts], [2, true, 2]);
@@ -618,6 +658,7 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     p.setPlan(plan(".grooph/events/<session>.jsonl"));
     const watched = await runOne(p.opus);
     assert.equal(watched.run.name, "opus/four/watched-1");
+    await startedAsSaid(p, watched, p.seen(), p.settingsSeen());
     const watchedResult = JSON.parse(readFileSync(join(watched.recordDir, "result.json"), "utf8"));
     assert.deepEqual([watchedResult.problems, watchedResult.given.hook_installed_in_the_project, watchedResult.given.closed_to_the_session], [[], [".claude/settings.json", ".grooph/hooks/grooph-event.mjs", ".grooph/hooks/grooph-events-push.mjs"], [".grooph"]]);
     const each = watchedResult.the_hooks_file_agent_by_agent;
@@ -652,6 +693,7 @@ test("the three arms of one task, with a stand-in for the harness: built, starte
     assert.deepEqual([outsideResult.given.hook_installed_in_the_project, outsideResult.given.closed_to_the_session], [[], []]);
     // What the stand-in was started with: the plain arm's arguments and environment, to the letter but for the session's id.
     const outsideSeen = p.seen();
+    await startedAsSaid(p, outside, outsideSeen, p.settingsSeen());
     const withoutId = (args) => args.filter((_, at) => args[at - 1] !== "--session-id");
     assert.deepEqual(withoutId(outsideSeen.args), withoutId(plainSeen.args), "the same command as the plain arm's");
     assert.deepEqual(outsideSeen.environment.filter((name) => name !== "__CF_USER_TEXT_ENCODING"), plainSeen.environment.filter((name) => name !== "__CF_USER_TEXT_ENCODING"), "the same environment: no variable names grooph's folder");
@@ -1124,6 +1166,296 @@ test("the harness of the outside arm is started with the arguments and the envir
   }
 });
 
+// ── the correction of 2026-10-12 ─────────────────────────────────────────
+
+test("what a session's folder holds that a project of the outside arm should not, at its top or in any folder of it: the harness's own empty folder is no trace of a recorder, what an install leaves is, and anything else in a .claude is looked at", () => {
+  const top = realpathSync(mkdtempSync(join(tmpdir(), "second-look-folder-")));
+  try {
+    let n = 0;
+    const folder = (make) => {
+      const dir = join(top, `case-${(n += 1)}`);
+      mkdirSync(dir, { recursive: true });
+      make(dir);
+      return inTheSessionsFolder(dir);
+    };
+    const dirs = (dir, ...paths) => paths.forEach((path) => mkdirSync(join(dir, path), { recursive: true }));
+    const file = (dir, path, text = "x") => (mkdirSync(dirname(join(dir, path)), { recursive: true }), writeFileSync(join(dir, path), text));
+    const nothing = { of_an_install: [], not_known: [], the_harnesss: [] };
+    assert.deepEqual(folder(() => {}), nothing, "a folder with neither");
+    assert.deepEqual(folder((dir) => dirs(dir, "settingskit/src")), nothing, "the task's own packages");
+    // The harness's own folder, empty: what Claude Code 2.1.289 left at the top of all five kept runs of the look, the plain ones too.
+    assert.deepEqual(folder((dir) => dirs(dir, ".claude/.cc-writes")), { ...nothing, the_harnesss: [".claude/.cc-writes"] });
+    // What an install leaves: grooph's own folder, and a settings file under .claude.
+    assert.deepEqual(folder((dir) => dirs(dir, ".grooph/hooks")), { ...nothing, of_an_install: [".grooph"] });
+    assert.deepEqual(folder((dir) => file(dir, ".grooph", "a file of that name")), { ...nothing, of_an_install: [".grooph"] });
+    assert.deepEqual(folder((dir) => (dirs(dir, ".claude/.cc-writes"), file(dir, ".claude/settings.json", "{}"))), { of_an_install: [".claude/settings.json"], not_known: [], the_harnesss: [".claude/.cc-writes"] }, "a settings file beside the harness's own folder, as a watched run's folder holds");
+    assert.deepEqual(folder((dir) => file(dir, ".claude/settings.local.json", "{}")), { ...nothing, of_an_install: [".claude/settings.local.json"] });
+    // The harness's own folder with something in it is not known to be the harness's: it is named, up to four of what it holds.
+    assert.deepEqual(folder((dir) => file(dir, ".claude/.cc-writes/left.tmp")), { ...nothing, not_known: [".claude/.cc-writes/left.tmp"] });
+    assert.deepEqual(folder((dir) => ["a", "b", "c", "d", "e", "f"].forEach((name) => file(dir, `.claude/.cc-writes/${name}`))).not_known, [".claude/.cc-writes/a", ".claude/.cc-writes/b", ".claude/.cc-writes/c", ".claude/.cc-writes/d", ".claude/.cc-writes: 2 more"]);
+    // Anything else under .claude, a .claude that is no folder, and the harness's own name on a file or a link.
+    assert.deepEqual(folder((dir) => (dirs(dir, ".claude/hooks"), file(dir, ".claude/CLAUDE.md"))), { ...nothing, not_known: [".claude/CLAUDE.md", ".claude/hooks"] });
+    assert.deepEqual(folder((dir) => file(dir, ".claude", "a file of that name")), { ...nothing, not_known: [".claude, which is no folder"] });
+    assert.deepEqual(folder((dir) => file(dir, ".claude/.cc-writes")), { ...nothing, not_known: [".claude/.cc-writes, which is no folder"] });
+    assert.deepEqual(folder((dir) => (dirs(dir, ".claude", "elsewhere"), symlinkSync(join(dir, "elsewhere"), join(dir, ".claude", ".cc-writes")))), { ...nothing, not_known: [".claude/.cc-writes, which is no folder"] }, "a link is not followed");
+
+    // BELOW THE TOP. As the harness left the first outside run's folder on 2026-10-11: its own empty folder at the top and in each package's folder.
+    const packages = ["csvline", "semver-mini", "settingskit", "textwrap"];
+    assert.deepEqual(folder((dir) => dirs(dir, ".claude/.cc-writes", ...packages.map((name) => `${name}/.claude/.cc-writes`), ...packages.map((name) => `${name}/src`))), { ...nothing, the_harnesss: [".claude/.cc-writes", ...packages.map((name) => `${name}/.claude/.cc-writes`)] });
+    // What an install leaves is one wherever it is: in a package's folder, or deeper.
+    assert.deepEqual(folder((dir) => (dirs(dir, ".claude/.cc-writes", "csvline/.claude/.cc-writes"), file(dir, "csvline/.claude/settings.json", "{}"))), { of_an_install: ["csvline/.claude/settings.json"], not_known: [], the_harnesss: [".claude/.cc-writes", "csvline/.claude/.cc-writes"] });
+    assert.deepEqual(folder((dir) => file(dir, "csvline/.grooph/hooks/grooph-event.mjs")), { ...nothing, of_an_install: ["csvline/.grooph"] });
+    assert.deepEqual(folder((dir) => file(dir, "csvline/src/deep/.claude/settings.local.json", "{}")), { ...nothing, of_an_install: ["csvline/src/deep/.claude/settings.local.json"] });
+    // And so is the harness's own folder with something in it, or anything else in a .claude.
+    assert.deepEqual(folder((dir) => file(dir, "csvline/.claude/.cc-writes/left.tmp")), { ...nothing, not_known: ["csvline/.claude/.cc-writes/left.tmp"] });
+    assert.deepEqual(folder((dir) => file(dir, "textwrap/.claude/agents/one.md")), { ...nothing, not_known: ["textwrap/.claude/agents"] });
+    // An install for the other harness: a hooks.json in a .codex, at the top or below it. A .codex without one is no install's.
+    assert.deepEqual(folder((dir) => (file(dir, ".codex/hooks.json", "{}"), file(dir, "csvline/.codex/hooks.json", "{}"), dirs(dir, "textwrap/.codex"))), { ...nothing, of_an_install: [".codex/hooks.json", "csvline/.codex/hooks.json"] });
+    // A name is taken whatever its case: a disk that does not tell the cases apart hands a harness `.Claude` as `.claude`.
+    assert.deepEqual(folder((dir) => (file(dir, ".Claude/Settings.json", "{}"), dirs(dir, ".Claude/.CC-writes"))), { of_an_install: [".Claude/Settings.json"], not_known: [], the_harnesss: [".Claude/.CC-writes"] });
+    assert.deepEqual(folder((dir) => (dirs(dir, ".GROOPH/hooks"), file(dir, "csvline/.Codex/HOOKS.json", "{}"))), { ...nothing, of_an_install: [".GROOPH", "csvline/.Codex/HOOKS.json"] });
+    // A .codex that is a link or a file is not looked through and not passed over: it is for a person to look at, as a .claude is.
+    assert.deepEqual(folder((dir) => (file(join(top, "a-codex-elsewhere"), "hooks.json", "{}"), symlinkSync(join(top, "a-codex-elsewhere"), join(dir, ".codex")))), { ...nothing, not_known: [".codex, which is no folder"] });
+    // Not looked in: the folder's own .git, what a package installed, and what a link points at.
+    assert.deepEqual(folder((dir) => (file(dir, ".git/.claude/settings.json", "{}"), file(dir, "csvline/node_modules/a/.claude/settings.json", "{}"), file(dir, "elsewhere-outside/x"), dirs(dir, "csvline"))), nothing);
+    assert.deepEqual(folder((dir) => (file(join(top, "outside-the-folder"), ".claude/settings.json", "{}"), symlinkSync(join(top, "outside-the-folder"), join(dir, "a-link")))), nothing, "a link to a folder is not followed");
+    // A folder that cannot be read is said to be so, for a person to look. (Whoever runs as root can read anything.)
+    if (process.getuid?.() !== 0) {
+      const closed = folder((dir) => (dirs(dir, "csvline/closed"), chmodSync(join(dir, "csvline", "closed"), 0o000)));
+      chmodSync(join(top, `case-${n}`, "csvline", "closed"), 0o755);
+      assert.deepEqual([closed.of_an_install, closed.the_harnesss, closed.not_known.length, /^csvline\/closed, which could not be read \(EACCES\)$/.test(closed.not_known[0])], [[], [], 1, true], closed.not_known.join("; "));
+    }
+  } finally {
+    rmSync(top, { recursive: true, force: true });
+  }
+});
+
+test("a run of the outside arm whose folder holds only the harness's own empty folders, at its top and in its packages, has no problem and the block goes on; a settings file, grooph's folder, or anything in the harness's folder stops it, at the top or below it", { skip: !built }, async () => {
+  // The stand-in leaves the hook's file where the outside arm's hook writes it, and makes in the session's folder what each case says.
+  const leaves = (more) => ({ uses: [{ ...quietPlan("outside").uses[0], ...more }] });
+  // As the harness left the folder of the run that stopped the block on 2026-10-11: its own empty folder at the top, and one in each of the four packages' folders.
+  const asItWasLeft = [".claude/.cc-writes", "csvline/.claude/.cc-writes", "semver-mini/.claude/.cc-writes", "settingskit/.claude/.cc-writes", "textwrap/.claude/.cc-writes"];
+  const p = place(leaves({ mkdirs: asItWasLeft }));
+  try {
+    inHand(p.recordRoot, order().slice(0, 4));
+    // Both of round one's outside runs are made, with nothing to look at.
+    const round = await runAll({ ...p.opus, throughRound: 1 });
+    assert.deepEqual([round.done.map((one) => one.run.name), round.stopped, round.done.map((one) => one.result.problems)], [["opus/four/outside-1", "opus/six/outside-1"], null, [[], []]]);
+    const there = round.done[0].result.given.recorder_outside_the_project;
+    assert.deepEqual([there.of_grooph_in_the_sessions_folder_afterwards, there.not_known_to_be_the_harnesss_own_in_the_sessions_folder_afterwards, there.the_harnesss_own_in_the_sessions_folder_afterwards], [[], [], asItWasLeft]);
+    for (const path of asItWasLeft) assert.ok(existsSync(join(round.done[0].kept, "work", "packages", path)), `${path} is in what was kept, as it was left`);
+    // Each thing that is not that stops the block, and its record says what was found.
+    const stops = async (more, name, pattern) => {
+      p.setPlan(leaves(more));
+      const all = await runAll({ ...p.opus, throughRound: 2 });
+      assert.deepEqual([all.done.map((one) => one.run.name), all.stopped?.why], [[name], "its record has problems"], name);
+      assert.ok(all.done[0].result.problems.some((problem) => pattern.test(problem)), `${name}: ${all.done[0].result.problems.join("; ")}`);
+    };
+    inHand(p.recordRoot, order().filter((run) => run.block === "opus" && run.round === 2 && run.arm === "watched"));
+    await stops({ mkdirs: [".claude/.cc-writes"], writes: { ".claude/settings.json": "{}" } }, "opus/four/outside-2", /^the session's folder holds \.claude\/settings\.json, and in the outside arm the project holds nothing of grooph$/);
+    await stops({ writes: { ".claude/.cc-writes/left.tmp": "x" } }, "opus/six/outside-2", /^the session's folder holds what is not known to be the harness's own: \.claude\/\.cc-writes\/left\.tmp\. Only its empty folder \(\.claude\/\.cc-writes\) is known to be: a person looks before another run of the outside arm is made$/);
+    inHand(p.recordRoot, order().filter((run) => run.block === "opus" && run.round === 2 && run.arm === "plain"));
+    await stopsIn3(p, leaves({ mkdirs: [".grooph"] }), "opus/four/outside-3", /^the session's folder holds \.grooph, and in the outside arm the project holds nothing of grooph$/);
+    // Below the top, in a package's folder, among the harness's own empty folders: a settings file there stops the block as one at the top does.
+    await stopsIn3(p, leaves({ mkdirs: asItWasLeft, writes: { "csvline/.claude/settings.json": "{}" } }), "opus/six/outside-3", /^the session's folder holds csvline\/\.claude\/settings\.json, and in the outside arm the project holds nothing of grooph$/);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+/** Round three begins with its two outside runs: the plan given is run in the one named, and has to stop the block with a problem that reads as the pattern. */
+async function stopsIn3(p, plan, name, pattern) {
+  p.setPlan(plan);
+  const all = await runAll({ ...p.opus, throughRound: 3 });
+  assert.deepEqual([all.done.map((one) => one.run.name), all.stopped?.why], [[name], "its record has problems"]);
+  assert.ok(all.done[0].result.problems.some((problem) => pattern.test(problem)), all.done[0].result.problems.join("; "));
+}
+
+test("the runner as it is hands a session what the runner before the correction did, in every one of the thirty-six runs: the prompt, the folder, the command, the environment, the profile's settings and the launcher", async () => {
+  const { asKept, givenBy, modulesOf, setBeside } = await import(GIVEN);
+  const kept = JSON.parse(readFileSync(join(root, "experiments", "watching", "second-look", "given-to-a-session.json"), "utf8"));
+  const [runner, first, profile] = [await import("./watching-second-look-paid.mjs"), await import("./watching-check-paid.mjs"), await import("./compare-profile.mjs")];
+  const runs = givenBy({ runner, first, profile, root });
+  const now = asKept(runs, "the runner as it is", modulesOf(root));
+  // One checksum for each run, of everything it is handed; and one run of the outside arm in full, so that a difference can be read.
+  assert.deepEqual(Object.keys(kept.runs), order().map((run) => run.name));
+  assert.deepEqual(now.one_in_full, kept.one_in_full, "one run in full, to be read if it ever differs");
+  assert.deepEqual(now.runs, kept.runs, "every run's checksum");
+  const inFull = kept.one_in_full["opus/six/outside-1"];
+  assert.ok(inFull.launcher.includes("hooks install --user --harness claude-code") && inFull.started_with[0].endsWith("/home/launch-outside.sh"));
+  assert.deepEqual([inFull.the_profiles_settings.permissions.defaultMode, inFull.the_profiles_settings.sandbox.enabled, inFull.the_profiles_settings.sandbox.filesystem.denyWrite, inFull.the_profiles_settings.hooks], ["dontAsk", true, [], undefined]);
+  // The page changes only by a dated note, and the note of this correction names the earlier runner by the checksum the file was made by.
+  assert.ok(page.includes("\n## Changed after the first run\n\n**2026-10-12. One correction to the runner, made after five runs. Nothing a session is handed was changed.**\n"));
+  assert.ok(page.includes(`that of the runner the first five runs were made with (\`${kept.made_by_the_runner.slice(0, 8)}\`)`));
+  // The file was made by the earlier runner the correction names, and by no other; no machine's path is in it.
+  assert.equal(theCorrection().the_earlier_runner, kept.made_by_the_runner);
+  assert.match(kept.made_by_the_runner, /^[0-9a-f]{64}$/);
+  assert.ok(!JSON.stringify(kept).includes(homedir()) && !/\/Users\/(?!someone)/.test(JSON.stringify(kept)));
+  // What is compared is what is handed over: a change to any of it changes a run's checksum.
+  const differing = (changed) => Object.keys(kept.runs).filter((name) => asKept(changed, "x").runs[name] !== kept.runs[name]);
+  const named = (pick) => order().filter(pick).map((run) => run.name);
+  assert.equal(differing(givenBy({ runner: { ...runner, promptFor: (run) => `${runner.promptFor(run)} ` }, first, profile, root })).length, 36, "one more space at a prompt's end, and no run's checksum is what it was");
+  assert.deepEqual(differing(givenBy({ runner: { ...runner, WATCHDOG: { ...runner.WATCHDOG, opus: { ...runner.WATCHDOG.opus, six: { usd: 16, minutes: 60 } } } }, first, profile, root })), named((run) => run.block === "opus" && run.task === "six"), "another ceiling for one task of one block changes those nine runs and no other");
+  assert.deepEqual(differing(givenBy({ runner, first: { ...first, CLOSED_IN_A_WATCHED_ARM: [] }, profile, root })), named((run) => run.arm === "watched"), "nothing closed to a watched session changes the twelve watched runs and no other");
+  assert.deepEqual(differing(givenBy({ runner, first, profile: { ...profile, settingsFor: (given) => ({ ...profile.settingsFor(given), autoMemoryEnabled: true }) }, root })).length, 36, "another setting of the profile's changes every run");
+  assert.deepEqual(differing(givenBy({ runner: { ...runner, launcherText: (given) => `${runner.launcherText(given)}# one more line\n` }, first, profile, root })), named((run) => run.arm === "outside"), "one more line in the launcher changes the twelve outside runs and no other");
+  // The modules the runner's script loads, found by following its imports: four that the runner's checksum covers,
+  // and nine that it does not. The kept file has each as it was when the first five runs were made, and the script
+  // itself is left out. (Whether they are what they were is `--check`'s to say, in the checkout the runs are made
+  // from: a test of it here would hold every later change of the lab's to this look.)
+  const outside = ["compare-arms-ef", "compare-ledger", "compare-prompt", "compare-score", "prove-check", "prove-evidence", "prove-ledger", "prove-pattern", "roles-or-information-paid"];
+  const inside = ["compare-profile", "study-three-paid", "watching-check-paid", "watching-second-look-measures"];
+  assert.deepEqual(Object.keys(kept.the_modules_the_runners_script_loads), [...outside, ...inside].sort().map((name) => `scripts/lib/${name}.mjs`));
+  assert.ok(Object.values(kept.the_modules_the_runners_script_loads).every((sum) => /^[0-9a-f]{64}$/.test(sum)));
+  // Set beside the kept file: nothing differs in what is handed over; and a run or a module that differs, is gone, or is new is named.
+  assert.deepEqual(setBeside(now, kept).runs_that_differ, []);
+  assert.deepEqual([setBeside(kept, kept).runs, setBeside(kept, kept).modules, setBeside(kept, kept).runs_that_differ, setBeside(kept, kept).modules_that_differ], [36, 13, [], []]);
+  const [aModule, another] = Object.keys(kept.the_modules_the_runners_script_loads);
+  const changed = { ...kept, runs: { ...kept.runs, "opus/six/outside-1": "0".repeat(64) }, the_modules_the_runners_script_loads: { ...kept.the_modules_the_runners_script_loads, [aModule]: "0".repeat(64), [another]: undefined, "scripts/lib/a-new-one.mjs": "1".repeat(64) } };
+  assert.deepEqual([setBeside(changed, kept).runs_that_differ, setBeside(changed, kept).modules_that_differ], [["opus/six/outside-1"], ["scripts/lib/a-new-one.mjs", aModule, another].sort()]);
+  // As a command: two lines, and it ends with 1 unless both hold. The first holds here, as above; the second holds until the lab changes one of those modules.
+  const out = spawnSync(process.execPath, [GIVEN, "--check"], { encoding: "utf8" });
+  const said = out.stdout.trim().split("\n");
+  assert.match(said[0], /^given to a session: the runner [0-9a-f]{8} hands a session what the runner e70aa3a0 did, in each of the 36 runs$/);
+  assert.match(said[1], /^the modules the runner's script loads: (each of the 13 is byte for byte what it was when the runner e70aa3a0 made its runs|NOT WHAT THEY WERE: scripts\/lib\/.+)$/);
+  assert.deepEqual([said.length, out.status], [2, said[1].includes("NOT WHAT THEY WERE") ? 1 : 0]);
+});
+
+test("a checkout that cannot say what its hook, its built tool, its version or its runner is starts no run, whatever it is told: a thing with no checksum cannot be set beside a record's", { skip: !built }, async () => {
+  const p = place(quietPlan("plain"));
+  try {
+    const now = checkout();
+    assert.deepEqual(notTold(now), [], "this checkout says all four");
+    assert.deepEqual([notTold({ ...now, tool_sha256: null }), notTold({ ...now, hook_sha256: undefined, runner_sha256: "" }), notTold({ ...now, grooph_version: null }), notTold({}), notTold(null)], [["its built tool"], ["its hook", "its runner"], ["its version of grooph"], ["its hook", "its built tool", "its version of grooph", "its runner"], ["its hook", "its built tool", "its version of grooph", "its runner"]]);
+    // A first run, made with everything told; then the built tool cannot be read whole (a link in it that leads nowhere, say), and its checksum cannot be made.
+    await runOne(p.opus);
+    const untold = () => ({ ...now, tool_sha256: null });
+    // Set beside the record, a tool with no checksum is no difference: that is why the run is refused before the comparison is made.
+    assert.equal(madeFromAnother(untold(), p.recordRoot), null);
+    for (const more of [{}, { anotherCheckout: true }]) await assert.rejects(runOne({ ...p.opus, ...more, thisCheckout: untold }), notStarted(/^not started: this checkout cannot say what its built tool is \(no checksum could be made: a file that cannot be read, or a build that is not there\), so it cannot be set beside the runs already recorded: no run is started from it, and --another-checkout does not change that$/));
+    assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length], [[], 1], "refused before anything was made or opened");
+    assert.match(status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot, thisCheckout: untold }), /its built tool unknown and its runner [0-9a-f]{8} .*\nthis checkout cannot say what its built tool is .*: A RUN FROM HERE IS REFUSED\n/);
+    assert.ok(!status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }).includes("A RUN FROM HERE IS REFUSED"));
+    // With everything told again, the next run is made.
+    assert.equal((await runOne(p.opus)).run.name, "opus/six/plain-1");
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+/** A record's `the_runners_checkout`, rewritten: this checkout's own, but for what a case changes. */
+function madeBy(recordDir, now, change) {
+  const record = JSON.parse(readFileSync(join(recordDir, "result.json"), "utf8"));
+  Object.assign(record.given.the_runners_checkout, { hook_sha256: now.hook_sha256, tool_sha256: now.tool_sha256, grooph_version: now.grooph_version, runner_sha256: now.runner_sha256, ...change });
+  writeFileSync(join(recordDir, "result.json"), JSON.stringify(record), "utf8");
+}
+const oneCharacterFrom = (sum) => `${sum.slice(0, 63)}${sum.at(-1) === "0" ? "1" : "0"}`;
+
+test("the one correction names both runners: a run made by the earlier one counts as made with the same things for the corrected one and for no other runner; any other runner in a record, and any other difference, is still another's", { skip: !built }, async () => {
+  const p = place(quietPlan("plain"));
+  try {
+    const now = checkout();
+    const earlier = theCorrection().the_earlier_runner;
+    // A correction that names this checkout's runner as the corrected one, whatever the kept file names: what is tried here is the rule.
+    const correction = { the_earlier_runner: earlier, the_corrected_runner: now.runner_sha256, why: "a test's reason" };
+    const first = await runOne(p.opus);
+    assert.equal(first.result.given.the_runners_checkout.runs_before_made_with_an_earlier_runner, null);
+    const rewrite = (change) => madeBy(first.recordDir, now, change);
+    // The first run as the earlier runner made it: for the corrected runner it is not another's.
+    rewrite({ runner_sha256: earlier });
+    assert.equal(madeFromAnother(now, p.recordRoot, correction), null);
+    assert.deepEqual(madeWithTheEarlierRunner(now, p.recordRoot, correction), { runner_sha256: earlier, runs: ["opus/four/plain-1"], counted_as_the_same_for_a_session_because: "a test's reason" });
+    // THE OTHER END. Against that same record, a runner that is not the corrected one is another runner, one character from it or not.
+    for (const other of ["3".repeat(64), oneCharacterFrom(now.runner_sha256), now.runner_sha256.toUpperCase(), now.runner_sha256.slice(0, 8)]) {
+      const not = { ...now, runner_sha256: other };
+      assert.deepEqual([madeFromAnother(not, p.recordRoot, correction)?.what, madeWithTheEarlierRunner(not, p.recordRoot, correction)], [["another runner"], null], other);
+    }
+    // With no correction on file there is no exception: the earlier runner's run is another's, as it was before 2026-10-12.
+    assert.deepEqual([madeFromAnother(now, p.recordRoot, null)?.what, madeWithTheEarlierRunner(now, p.recordRoot, null)], [["another runner"], null]);
+    // A file that does not hold two whole checksums and a reason is no correction.
+    const file = join(p.top, "a-correction.json");
+    const good = { the_earlier_runner: earlier, the_corrected_runner: now.runner_sha256, why: "a reason of more than twenty characters" };
+    writeFileSync(file, JSON.stringify(good), "utf8");
+    assert.deepEqual(theCorrection(file), good);
+    assert.equal(theCorrection(join(p.top, "no-such-file.json")), null);
+    for (const [bad, what] of [["not json", "not JSON"], [JSON.stringify({ ...good, the_corrected_runner: undefined }), "one checksum"], [JSON.stringify({ ...good, the_corrected_runner: now.runner_sha256.slice(0, 8) }), "a short checksum"], [JSON.stringify({ ...good, the_earlier_runner: "*" }), "a pattern"], [JSON.stringify({ ...good, the_earlier_runner: [earlier] }), "a list"], [JSON.stringify({ ...good, the_corrected_runner: earlier }), "the same checksum twice"], [JSON.stringify({ ...good, why: "" }), "no reason"], [JSON.stringify([good]), "a list of corrections"], ["null", "null"]]) {
+      writeFileSync(file, bad, "utf8");
+      assert.equal(theCorrection(file), null, what);
+    }
+    // The tables read the same file the same way.
+    const { theCorrection: asTheTablesReadIt } = await import(TABLES);
+    assert.deepEqual(asTheTablesReadIt(), theCorrection());
+    writeFileSync(file, JSON.stringify(good), "utf8");
+    assert.deepEqual(asTheTablesReadIt(file), good);
+    // The exception is the runner's own checksum and nothing else. With the earlier runner and anything else different, the run is another's for that thing.
+    for (const [change, what] of [[{ hook_sha256: "0".repeat(64) }, ["another hook"]], [{ tool_sha256: "1".repeat(64) }, ["another build of the tool"]], [{ grooph_version: "9.9.9" }, ["another version of grooph"]], [{ hook_sha256: "0".repeat(64), tool_sha256: "1".repeat(64) }, ["another hook", "another build of the tool"]]]) {
+      rewrite({ runner_sha256: earlier, ...change });
+      assert.deepEqual(madeFromAnother(now, p.recordRoot, correction)?.what, what, JSON.stringify(change));
+    }
+    // Any other runner's checksum in a record is another runner, one character from the earlier one's or not.
+    for (const other of ["2".repeat(64), oneCharacterFrom(earlier), earlier.toUpperCase(), earlier.slice(0, 8)]) {
+      rewrite({ runner_sha256: other });
+      assert.deepEqual([madeFromAnother(now, p.recordRoot, correction)?.what, madeWithTheEarlierRunner(now, p.recordRoot, correction)?.runs ?? null], [["another runner"], null], other);
+    }
+    // And the earlier runner itself, started after the corrected one has made a run, is refused as any other is.
+    rewrite({});
+    assert.deepEqual(madeFromAnother({ ...now, runner_sha256: earlier }, p.recordRoot, correction)?.what, ["another runner"]);
+    // A run really started is refused the same way, by the file the repository keeps.
+    rewrite({ runner_sha256: "2".repeat(64) });
+    await assert.rejects(runOne(p.opus), notStarted(/opus\/four\/plain-1 was made with another runner: both blocks are run with one hook, one built tool and one runner/));
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+/**
+ * The correction as the repository keeps it, and this checkout's runner. While the runner's five other files are what
+ * they were when the correction was made, this checkout's runner IS the corrected one, to the last character: a
+ * change to the runner's own script that the file does not name fails here. Once the lab's own files of the runner
+ * have changed, this checkout's runner is another, and the exception is off for it.
+ */
+const theKeptCorrection = JSON.parse(readFileSync(join(root, "experiments", "watching", "second-look", "the-corrected-runner.json"), "utf8"));
+const theLabsFilesAreAsTheyWere = theRestOfTheRunner() === theKeptCorrection.the_runners_five_other_files;
+
+test("the correction as the repository keeps it names this checkout's runner, to the last character, while the runner's five other files are what they were; and the earlier runner is the one the five runs were made with", () => {
+  const kept = theCorrection();
+  assert.deepEqual([kept.the_earlier_runner, kept.the_corrected_runner, kept.why], [theKeptCorrection.the_earlier_runner, theKeptCorrection.the_corrected_runner, theKeptCorrection.why]);
+  assert.equal(kept.the_earlier_runner, "e70aa3a0adcde19564dc2514cd4c0be7d0c5169f3714004ffbb08754cb8d153a");
+  assert.match(theKeptCorrection.the_runners_five_other_files, /^[0-9a-f]{64}$/);
+  const now = checkout();
+  if (theLabsFilesAreAsTheyWere) assert.equal(now.runner_sha256, kept.the_corrected_runner, "the runner's own script is not the one the correction names: a change to it while the look is being run is another correction, and is said as one");
+  else assert.notEqual(now.runner_sha256, kept.the_corrected_runner);
+  // The page's note names both runners by the checksums the file holds.
+  assert.ok(page.includes(`\`${kept.the_earlier_runner.slice(0, 8)}\``) && page.includes(`\`${kept.the_corrected_runner.slice(0, 8)}\``) && page.includes("the-corrected-runner.json"));
+});
+
+test("with the correction the repository keeps: the status says which runs the earlier runner made, the next run starts with no word asked for and its record says so, and the tables read them together", { skip: !built ? true : theLabsFilesAreAsTheyWere ? false : "the lab's own files of the runner have changed since the correction, so this checkout's runner is another and the exception is off for it: the test before this one says so" }, async () => {
+  const p = place(quietPlan("plain"));
+  try {
+    const now = checkout();
+    const { the_earlier_runner: earlier, why } = theCorrection();
+    const first = await runOne(p.opus);
+    madeBy(first.recordDir, now, { runner_sha256: earlier });
+    assert.equal(madeFromAnother(now, p.recordRoot), null);
+    assert.deepEqual(madeWithTheEarlierRunner(now, p.recordRoot), { runner_sha256: earlier, runs: ["opus/four/plain-1"], counted_as_the_same_for_a_session_because: why });
+    assert.match(status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }), /no run already recorded was made with another\n1 run\(s\) already recorded \(opus\/four\/plain-1\) were made with the runner e70aa3a0, which is counted as handing a session the same as this one: /);
+    const next = await runOne(p.opus);
+    assert.deepEqual([next.run.name, next.result.problems, next.result.given.the_runners_checkout.another_than_a_run_before, next.result.given.the_runners_checkout.runs_before_made_with_an_earlier_runner.runs], ["opus/six/plain-1", [], null, ["opus/four/plain-1"]]);
+    // The tables say which runner made which run, and read them together.
+    const { readings, tables } = await import(TABLES);
+    assert.ok(tables(p.recordRoot).includes(`\nMade with two runners that hand a session the same thing (README.md, the note of 2026-10-12): the runner \`e70aa3a0\` made \`four\` plain 1, and the corrected runner \`${now.runner_sha256.slice(0, 8)}\` made the rest. No run is kept from being read with the others for its runner.\n`));
+    assert.ok(!tables(p.recordRoot).includes("published as rows and not read"));
+    assert.equal(readings(p.recordRoot, "opus").length, 15);
+    // A third runner in the block, or two that are not those two, and the tables say only which made which: no record's own word is taken for more.
+    madeBy(next.recordDir, now, { runner_sha256: "4".repeat(64), runs_before_made_with_an_earlier_runner: { runner_sha256: earlier, runs: ["opus/four/plain-1"], counted_as_the_same_for_a_session_because: "a record's own word" } });
+    assert.ok(tables(p.recordRoot).includes("\nMade with more than one runner: `e70aa3a0` made `four` plain 1; `44444444` made `six` plain 1.\n") && !tables(p.recordRoot).includes("hand a session the same thing"));
+    // And the status of a checkout whose runner is that third one would refuse; here, of this checkout, it names the run made by it.
+    assert.match(status({ ledgerPath: p.ledgerPath, recordRoot: p.recordRoot }), /opus\/six\/plain-1 WAS MADE WITH ANOTHER RUNNER, so a run from here is refused unless --another-checkout says so by name/);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
 // ── the measures ─────────────────────────────────────────────────────────
 
 /** A session's files as the harness keeps them, written by hand: the session's own transcript, and each subagent's with the file beside it. */
@@ -1357,6 +1689,10 @@ test("whether the recorder was noticed, and the delegation, as counts: the user-
     session(profile, "Y", { lead: byPath.flatMap((command, at) => [use(`y${at}`, "Bash", { command }, at), result(`y${at}`, "refused", at, { refused: true })]) });
     const paths = noticed({ read: readSession(profile, "Y"), output: { result: "done" }, profileSettings: "/Users/someone/grooph-compare/profile/settings.json", groophHome: "/Users/someone/grooph-compare/home/.grooph", profileHome: "/Users/someone/grooph-compare" });
     assert.deepEqual([paths.named_in_the_input.calls, paths.named_in_the_input.by_place], [3, { "the profile's own folders, by a path": 3 }]);
+    // The harness's own folder in a session's project (.claude/.cc-writes, in the plain arm as in any other) is in no count: not as a place the recorder is kept in, and not in the first check's two counts.
+    session(profile, "H", { lead: [use("a", "Bash", { command: "ls -la" }, 0), result("a", ".claude\ncsvline\nsettingskit", 0), use("b", "Bash", { command: "ls -la .claude .claude/.cc-writes" }, 1), result("b", ".claude:\n.cc-writes\n\n.claude/.cc-writes:\n", 1)] });
+    const harnesss = noticed({ read: readSession(profile, "H"), output: { result: "Done. I left .claude/.cc-writes as it was." }, profileSettings, groophHome });
+    assert.deepEqual([harnesss.named_in_the_input.calls, harnesss.shown_in_the_result.calls, harnesss.the_final_reply.names_the_recorder, harnesss.the_final_reply.in_the_project], [0, 0, false, []]);
     // A result that holds the word hook for a reason of its own (a listing of .git) shows nothing of the recorder.
     session(profile, "X", { lead: [use("a", "Bash", { command: "ls .git" }, 0), result("a", "HEAD\nhooks\nobjects", 0)] });
     assert.deepEqual([noticed({ read: readSession(profile, "X"), output: { result: "done" }, profileSettings, groophHome }).shown_in_the_result.calls, noticed({ read: readSession(profile, "X"), output: { result: "done" }, profileSettings, groophHome }).named_in_the_input.calls], [0, 0]);
