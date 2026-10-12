@@ -1,0 +1,56 @@
+// Reader's script: asks the corrected runner's guard and the tables (in reader2/r2, a copy of rehearse2) about other runners, edited or broken correction files, and made-up records; writes only under a temp folder.
+//   node guard2.mjs <copy of rehearse2>
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+const co = process.argv[2];
+const r = await import(join(co, "scripts/lib/watching-second-look-paid.mjs"));
+const look = join(co, "experiments/watching/second-look");
+const real = JSON.parse(readFileSync(join(look, "the-corrected-runner.json"), "utf8"));
+const now = r.checkout();
+const t = mkdtempSync(join(tmpdir(), "reader3-guard-"));
+const fresh = (name) => { const d = join(t, name); cpSync(join(look, "opus"), join(d, "opus"), { recursive: true }); return d; };
+const asFile = (obj, raw) => { const p = join(t, `c-${Math.random().toString(36).slice(2)}.json`); writeFileSync(p, raw ?? JSON.stringify(obj)); return p; };
+const say = (what, n, root, file) => { const c = file === undefined ? r.theCorrection() : r.theCorrection(file); console.log(`${what}: correction=${c ? "read" : "none"} refused=${JSON.stringify(r.madeFromAnother(n, root, c)?.what ?? null)} counted=${r.madeWithTheEarlierRunner(n, root, c)?.runs.length ?? 0}`); };
+const five = fresh("five");
+console.log(`checkout: runner ${now.runner_sha256.slice(0, 8)} tool ${now.tool_sha256?.slice(0, 8)}; five other files ${r.theRestOfTheRunner().slice(0, 8)} (file says ${real.the_runners_five_other_files.slice(0, 8)})`);
+say("1 this runner", now, five);
+say("2 runner ffff…", { ...now, runner_sha256: "f".repeat(64) }, five);
+say("3 runner null", { ...now, runner_sha256: null }, five);
+say("4 runner undefined", { ...now, runner_sha256: undefined }, five);
+say("5 the corrected checksum in capitals", { ...now, runner_sha256: now.runner_sha256.toUpperCase() }, five);
+say("6 tool null", { ...now, tool_sha256: null }, five);
+say("7 this runner, hook another", { ...now, hook_sha256: "0".repeat(64) }, five);
+const X = "a".repeat(64);
+say("8 file edited: the corrected runner is aaaa…, asked of aaaa…", { ...now, runner_sha256: X }, five, asFile({ ...real, the_corrected_runner: X }));
+say("9 file with both checksums the same (earlier)", { ...now, runner_sha256: real.the_earlier_runner }, five, asFile({ ...real, the_corrected_runner: real.the_earlier_runner }));
+say("10 file with no why", now, five, asFile({ ...real, why: "" }));
+say("11 file with 8-character checksums", now, five, asFile({ ...real, the_earlier_runner: "e70aa3a0", the_corrected_runner: "7d425a3b" }));
+say("12 file that is an array of the two", now, five, asFile([real.the_earlier_runner, real.the_corrected_runner]));
+say("13 file cut short", now, five, asFile(null, JSON.stringify(real).slice(0, 300)));
+say("14 file with the_corrected_runner a list holding the checksum", now, five, asFile({ ...real, the_corrected_runner: [real.the_corrected_runner] }));
+say("15 file whose earlier runner is ffff… (so e70aa3a0 is no longer excused)", now, five, asFile({ ...real, the_earlier_runner: "f".repeat(64) }));
+say("16 file with a trailing space in a checksum", now, five, asFile({ ...real, the_corrected_runner: `${real.the_corrected_runner} ` }));
+// records
+const edit = (root, name, fn) => { const p = join(root, name, "result.json"); const j = JSON.parse(readFileSync(p, "utf8")); fn(j); writeFileSync(p, JSON.stringify(j)); };
+const six = fresh("six"); mkdirSync(join(six, "opus/six/outside-1"), { recursive: true }); writeFileSync(join(six, "opus/six/outside-1/result.json"), JSON.stringify({ given: { the_runners_checkout: { ...now } } }));
+say("17 five by the earlier and one by the corrected, asked of the corrected", now, six);
+say("18 the same six, asked of a third", { ...now, runner_sha256: X }, six);
+const rev = fresh("rev"); edit(rev, "opus/four/plain-1", (j) => { j.given.the_runners_checkout.runner_sha256 = now.runner_sha256; });
+say("19 asked of the EARLIER runner, with a record by the corrected one (the other way round)", { ...now, runner_sha256: real.the_earlier_runner }, rev);
+const third = fresh("third"); edit(third, "opus/six/plain-1", (j) => { j.given.the_runners_checkout.runner_sha256 = X; });
+say("20 one of the five by a third runner", now, third);
+// tables
+const tb = await import(join(look, "tables.mjs"));
+const lines = (root) => tb.tables(root).split("\n").filter((l) => /Made with (two|more)/.test(l)).map((l) => l.slice(0, 420));
+const mk = (name, sum) => { const d = fresh(name); cpSync(join(look, "ledger.json"), join(d, "ledger.json")); cpSync(join(d, "opus/four/outside-1"), join(d, "opus/six/outside-1"), { recursive: true }); edit(d, "opus/six/outside-1", (j) => { Object.assign(j, { run: "opus/six/outside-1", task: "six" }); j.given.the_runners_checkout = { ...now, runner_sha256: sum, runs_before_made_with_an_earlier_runner: { runner_sha256: real.the_earlier_runner, runs: ["x"], counted_as_the_same_for_a_session_because: "said by the record" } }; }); return d; };
+console.log("T1 five real alone:", JSON.stringify(lines(mk("t0", real.the_earlier_runner))));
+console.log("T2 sixth by the corrected:", JSON.stringify(lines(mk("t1", real.the_corrected_runner))));
+console.log("T3 sixth by ffff…, its record vouching for itself:", JSON.stringify(lines(mk("t2", "f".repeat(64)))));
+const t3 = mk("t3", real.the_corrected_runner); cpSync(join(t3, "opus/six/outside-1"), join(t3, "opus/four/watched-2"), { recursive: true }); edit(t3, "opus/four/watched-2", (j) => { Object.assign(j, { run: "opus/four/watched-2", task: "four", arm: "watched", round: 2, replicate: 2 }); j.given.the_runners_checkout.runner_sha256 = X; });
+console.log("T4 three runners:", JSON.stringify(lines(t3)));
+const t4 = mk("t4", real.the_corrected_runner); edit(t4, "opus/six/outside-1", (j) => { j.given.the_runners_checkout.runner_sha256 = real.the_corrected_runner.toUpperCase(); });
+console.log("T5 sixth by the corrected checksum in capitals:", JSON.stringify(lines(t4)));
+const t5 = mk("t5", real.the_corrected_runner); edit(t5, "opus/six/outside-1", (j) => { j.given.the_runners_checkout.hook_sha256 = "0".repeat(64); });
+console.log("T6 sixth by the corrected runner with ANOTHER HOOK:", JSON.stringify(tb.tables(t5).split("\n").filter((l) => /Made with/.test(l)).map((l) => l.slice(0, 420))));
+rmSync(t, { recursive: true });
