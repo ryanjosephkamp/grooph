@@ -15,8 +15,9 @@ DRAW.arcs = (P, v, W, o) => {
       const p = v.all[i];
       const q = v.all[j];
       const both = p.a.runs.slice(0, p.runs).some((r, a) => q.a.runs.slice(0, q.runs).some((u, b) => {
-        const rEnd = a === p.runs - 1 && p.state === "running" ? v.t : r.to;
-        const uEnd = b === q.runs - 1 && q.state === "running" ? v.t : u.to;
+        // A run that is still open has no end yet: one that starts beside it at this very moment runs with it.
+        const rEnd = a === p.runs - 1 && p.state === "running" ? Infinity : r.to;
+        const uEnd = b === q.runs - 1 && q.state === "running" ? Infinity : u.to;
         return r.from < uEnd && u.from < rEnd;
       }));
       if (both) pairs.push([p, q]);
@@ -72,7 +73,9 @@ DRAW.arcs = (P, v, W, o) => {
     g.push(tag("circle", { cx: r1(x), cy: r1(y), r, class: running ? "f-m s-m" : s.state === "failed" ? "f-card s-bad" : "f-card s-m", "stroke-width": 1.25 }));
     if (s.state === "failed") g.push(cross(x, y, 2));
     if (n <= 16 || o.sel === a.id) g.push(text(x, y + 16, a.id, { size: 8.5, anchor: "middle", weight: running ? 700 : 400, class: `mono lift${running ? "" : " t3"}` }));
-    if (s.runs > 1 && (n <= 16 || dx >= 9)) g.push(times(x, y + (n <= 16 || o.sel === a.id ? 27 : 16), s.runs, "middle"));
+    // Sent back out: a count where there is room for one, and a second ring where there is not.
+    if (s.runs > 1 && (n <= 16 || o.sel === a.id)) g.push(times(x, y + 27, s.runs, "middle"));
+    else if (s.runs > 1) g.push(tag("circle", { cx: r1(x), cy: r1(y), r: r + 2.4, class: "f-none s-m", "stroke-width": 0.75 }));
     if (s.unsaid) g.push(diamond(x - 5, y + 7, 3));
     if (o.sel === a.id) g.push(tag("circle", { cx: r1(x), cy: r1(y), r: 7, class: "sel" }));
     dots.push(`<g data-id="${a.id}" class="${cls(s)}"><g${s.fresh ? ' class="fresh"' : ""}>${g.join("")}</g></g>`);

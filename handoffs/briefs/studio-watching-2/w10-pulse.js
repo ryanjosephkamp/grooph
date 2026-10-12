@@ -54,7 +54,7 @@ DRAW.pulse = (P, v, W, o) => {
   }
   // One hairline along the top of the whole stack.
   if (outline) layers.push(path(outline, { class: "f-none s-ink", "stroke-width": 1, "stroke-linejoin": "round" }));
-  out.push(rule(left, base, right, base, { class: "s-ink", "stroke-width": 1, "data-id": "session" }));
+  out.push(rule(left, base, right, base, { class: "s-ink", "stroke-width": 1 }));
   // Under the line: a tick where each subagent first started, and a mark where a day has gone by.
   const ticks = [];
   let day = 0;
@@ -99,6 +99,7 @@ DRAW.pulse = (P, v, W, o) => {
   const chip = `${total} at once`;
   const cw = chip.length * 5 + 10;
   const cxp = clamp(nx, left + cw / 2, right - cw / 2);
-  const clock = `${rule(nx, top - 4, nx, base + 20, { class: "s-live", "stroke-width": 1 })}${tag("rect", { x: r1(cxp - cw / 2), y: top - 18, width: r1(cw), height: 13, rx: 3, class: "f-live" })}${text(cxp, top - 8.5, chip, { size: 8.5, anchor: "middle", weight: 600, class: "mono t-clock" })}`;
+  const sessionHit = tag("rect", { x: left, y: base - 4, width: r1(right - left), height: 7, class: "hit", "data-id": "session" });
+  const clock = `${sessionHit}${rule(nx, top - 4, nx, base + 20, { class: "s-live", "stroke-width": 1 })}${tag("rect", { x: r1(cxp - cw / 2), y: top - 18, width: r1(cw), height: 13, rx: 3, class: "f-live" })}${text(cxp, top - 8.5, chip, { size: 8.5, anchor: "middle", weight: 600, class: "mono t-clock" })}`;
   return { h: base + 34 + 22, body: `${out.join("")}${layers.join("")}${ticks.join("")}${clock}${tallyLine(v, W / 2, base + 48)}` };
 };

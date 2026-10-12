@@ -7,7 +7,7 @@ DRAW.floors = (P, v, W, o) => {
   const places = placesOf(P, o.said);
   const G = Math.max(2, Math.ceil(Math.sqrt(places.n)));
   const begunBursts = P.bursts.filter((b) => b === v.burst || b.runs.some((r) => begun(v, r)));
-  const keep = W < 500 ? 6 : 7;
+  const keep = 6;
   const floors = begunBursts.slice(-keep);
   const under = begunBursts.length - floors.length;
   const hw = Math.min(20, (W - pad * 2 - 58) / (2 * G));
@@ -65,9 +65,9 @@ DRAW.floors = (P, v, W, o) => {
       g.push(line(mx, my, x, y, { class: "said f-none" }));
       marks.push(`<g data-id="${ghost.id}"${ghost.fresh ? ' class="fresh"' : ""}>${tag("circle", { cx: r1(x), cy: r1(y), r: 7, class: "hit" })}${tag("circle", { cx: r1(x), cy: r1(y), r: 3.6, class: "said f-said" })}${text(x + (x > W - 34 ? -6 : 6), y + 9, "said", { size: 8.5, weight: 600, anchor: x > W - 34 ? "end" : undefined, class: "t-said lift" })}${o.sel === ghost.id ? tag("circle", { cx: r1(x), cy: r1(y), r: 7, class: "sel" }) : ""}</g>`);
     }
-    g.push(tag("circle", { cx: r1(mx), cy: r1(my), r: 2.5, class: "f-ink", "data-id": "session" }));
-    // The mast, up to the floor above.
+    // The mast, up to the floor above, and the session's foot on this floor.
     if (j < floors.length - 1) marks.push(line(mx, my, mx, my - gapY, { class: "s-ink", "stroke-width": 1 }));
+    marks.push(tag("circle", { cx: r1(mx), cy: r1(my), r: 2.5, class: "f-ink" }), tag("circle", { cx: r1(mx), cy: r1(my), r: 8, class: "hit", "data-id": "session" }));
     out.push(`<g>${g.join("")}</g>`);
     marks.push("\n");
   });
