@@ -1,0 +1,41 @@
+{
+  "grooph": 0,
+  "id": "typo",
+  "name": "Typo",
+  "version": 1,
+  "goal": "Write a draft.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "writer",
+      "kind": "agent",
+      "name": "Writer",
+      "role": "builder",
+      "brief": "Writer: write the draft.",
+      "outputs": [
+        "DRAFT.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ],
+      "efort": "high"
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-write-done",
+      "from": "writer",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

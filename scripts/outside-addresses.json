@@ -1,0 +1,4 @@
+{
+  "note": "The allow list of scripts/check-outside-addresses.mjs: each address on another host that the built app or a page of the site may load, with the reason. It is empty, and docs/privacy.md says nothing is loaded from another host. An entry is added by hand, in a pull request that gives the reason and changes that page too.",
+  "loads": {}
+}

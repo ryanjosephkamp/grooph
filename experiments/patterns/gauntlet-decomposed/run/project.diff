@@ -1,0 +1,571 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..fd3a1e4
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,28 @@
++# Changes · Piece 2 (Header)
++
++## What changed
++
++- `src/format.mjs` (new): `formatValue(value, unit)` (usd -> `$1.42M`, count -> `38.2k`,
++  cents -> `$37.24`, derived from `unit`), `formatPercent(delta)` (absolute, one
++  decimal), `escapeXml`.
++- `src/header.mjs`: rewritten on the shared geometry from `src/layout.mjs` (not changed).
++  - Title at (32, 54), 20px semi-bold `#111827`; period at (32, 74), 12px `#6b7280`.
++  - Three tiles at y=90, 184 x 80, rx 8, fill `#f3f4f6`, gap 12: the row runs from
++    x=32 to x=608 exactly (the margins).
++  - Fixed baselines in every tile (offsets 24 / 54 / 70 from the tile top), text inset 14:
++    upper-case label (10px, 600, muted), value (28px, 700, dark), change line (11px, 600).
++  - Change line: `▲`/`▼`, absolute percent to one decimal, "vs prior period", in one
++    green (`#15803d`) for a rise and one red (`#b91c1c`) for a fall; everything else is grey.
++- `tests/card.test.mjs`: the label check is now case-insensitive; added a check that
++  every compact value, percentage and both marks appear. Nothing removed or weakened.
++
++## Acceptance
++
++All points met. `npm test` passes (5 tests); `npm run capture` written; the frame element is
++unchanged and first. `src/trend.mjs` and `src/card.mjs` untouched.
++
++## Left on purpose
++
++- The change line is one `<text>` (whole line in the sign colour) rather than a coloured
++  mark plus grey phrase, because the capture script does not list nested `<tspan>` text.
++- The trend bars are still the old placeholder (black, 10px offset): Piece 3's scope.
+diff --git a/GAPS.md b/GAPS.md
+new file mode 100644
+index 0000000..6af46f7
+--- /dev/null
++++ b/GAPS.md
+@@ -0,0 +1,98 @@
++# Gaps · Piece 2 · Header: title, period and three stat tiles
++
++Judged: captures/card.svg and captures/CAPTURE.md (rendered 2026-10-04T22:51:27.556Z,
++sha256 d338e5077a07) against the reference's `header` group
++(REFERENCE-CAPTURE.md:9-22, reference.svg:3-18) and points 1 to 5 of REFERENCE.md
++(REFERENCE.md:11-23). The trend group (CAPTURE.md:23-34) is still a stub. It belongs
++to Pieces 3 and 4 and is not judged here.
++
++## Side by side, labels stripped, random order
++
++- **Card A:** title and period at x=32. Tiles are 184×80 at x=32, 228 and 424 with
++  gaps of 12, so the row spans 32→608. Inside each tile, the baselines are 114, 144
++  and 160. The label is 10px, the value 28px/700 and the change line 11px/600.
++- **Card B:** title and period at x=24. Tiles are 192×96 at x=24, 224 and 424 with
++  gaps of 8, so the row spans 24→616. Inside each tile, the baselines are 108, 146
++  and 166. The label is 11px, the value 28px/700 and the change line 12px/600.
++
++(Card A is the current capture, CAPTURE.md:9-22. Card B is the reference,
++REFERENCE-CAPTURE.md:9-24.)
++
++**Card B is slightly better.** The two have the same structure: the same hierarchy,
++the same compact values, the same signed changes, and a row that runs margin to
++margin. B wins on breathing room inside the tiles and on legibility of the small
++text. Its 96px tile leaves 14px under the change baseline (166→180), against
++A's 10px (160→170). Its label and change line are each 1px larger. Neither
++difference breaks a point of REFERENCE.md, and none is a gap a projector audience
++would notice (REFERENCE.md:40-46).
++
++## Acceptance check (PIECES.md:74-99)
++
++- **Title and period:** met.
++  - The title is at (32,54), 20px, weight 600, dark #111827 (CAPTURE.md:9).
++  - The period is at (32,74), 12px, muted #6b7280, on the same margin (CAPTURE.md:10).
++- **One row of three tiles in data order:** met. REVENUE, ORDERS, AVG ORDER (CAPTURE.md:12,16,20).
++  - Each tile is a #f3f4f6 rounded rect with rx=8 (CAPTURE.md:11,15,19).
++  - The row starts at 32 and ends at 424+184=608, which is 640−32. Both ends sit on the
++    same margin as the title, so the row is symmetric.
++  - The widths are equal (184), the heights are equal (80) and the gaps are equal (12).
++- **Fixed baselines, the same in every tile:** met.
++  - The label baselines are all y=114, the value baselines all y=144 (shared), and the
++    change baselines all y=160 (CAPTURE.md:12-22).
++  - Every line is inset 14 from its tile's left edge (46−32, 242−228, 438−424).
++  - The label is upper-case, 10px, weight 600 and muted.
++  - The value is 28px, weight 700 and dark, so it dominates.
++  - The longest line, "▲ 15.8% vs prior period" at 11px, is roughly 135px wide inside
++    170px of room. Nothing overlaps another line or the tile's edge.
++- **Compact values:** met. `$1.42M`, `38.2k` and `$37.24` (CAPTURE.md:13,17,21) are
++  identical to the reference (REFERENCE-CAPTURE.md:13,17,21). There are no raw
++  integers and no cents.
++- **Change signed by colour and mark:** met.
++  - The two rises are ▲ in green #15803d (CAPTURE.md:14,22).
++  - The fall is ▼ 3.1% in red #b91c1c (CAPTURE.md:18). It reads as a fall.
++  - Each line gives the percentage to one decimal, then "vs prior period".
++  - The only non-grey text fills are those two change colours (CAPTURE.md:4).
++- **The frame from Piece 1 is not regressed:** met.
++  - The top-level rect comes first, at 0.5/0.5, 639×359, rx=11.5, white, with a
++    #e5e7eb hairline (CAPTURE.md:8). The header group comes before the trend group
++    (card.svg:3-4).
++  - The single font family is unchanged (card.svg:1). There is no filter, gradient or
++    shadow.
++- **`npm test` passes:** not visible in my evidence (captures and PIECES.md only).
++  Nothing in the capture contradicts it. The lead should confirm it from the owner's
++  report.
++
++## Ranked gaps (none major)
++
++1. **Minor: the tile's vertical rhythm is cramped at the bottom.**
++   - Where it shows: the tiles are 80 tall (CAPTURE.md:11). The label baseline sits
++     24 below the tile top, but the change baseline sits only 10 above the tile bottom
++     (160 vs 170, CAPTURE.md:14). The reference has 96-tall tiles with 14 below the
++     change line (REFERENCE-CAPTURE.md:11,14).
++   - Closing it: make the tiles about 88–96 tall and move the value and change
++     baselines down to match. In the reference, the offsets from the tile top are
++     about +24, +62 and +82. The padding under the change line should then read close
++     to the padding above the label.
++2. **Minor: the small tile text is 1px under the reference.**
++   - Where it shows: the labels are 10px and the change lines 11px (CAPTURE.md:12,14).
++     The reference uses 11px and 12px (REFERENCE.md:14-16; REFERENCE-CAPTURE.md:12,14).
++   - Closing it: use 11px labels and 12px change lines. This makes the signed change a
++     little more legible at a distance. Check that the longest change line still fits
++     the 184px tile.
++3. **Minor: the space between the period line and the tile row is tight.**
++   - Where it shows: the period baseline is at 74 and the tile top at 90, which is 16
++     (CAPTURE.md:10-11). The reference leaves 24 (60→84, REFERENCE-CAPTURE.md:10-11).
++   - Closing it: move the tile row down by about 8, which fits naturally with gap 1.
++     This separates the title block from the stats more clearly.
++4. **Note, not this piece's gap: the margin is 32 rather than 24.**
++   - Where it shows: everything is placed at x=32 and the row ends at 608
++     (CAPTURE.md:9-19). The reference uses 24/616 (REFERENCE.md:11-13).
++   - The margin is shared geometry owned by Piece 1, which passed, and this piece may
++     not change it (PIECES.md:59-60). The header correctly spans whatever margin it
++     is given. The gap between tiles is 12 rather than 8, which is still a small
++     equal gap (PIECES.md:80).
++
++No gap above breaks any of points 1 to 5 of REFERENCE.md or anything in the list of
++major gaps (REFERENCE.md:40-44).
++
++verdict: pass
+diff --git a/PIECES.md b/PIECES.md
+new file mode 100644
+index 0000000..bc90d79
+--- /dev/null
++++ b/PIECES.md
+@@ -0,0 +1,166 @@
++# Pieces · Summary card
++
++The card is cut along the seams the code already has: the frame (`src/card.mjs`),
++the header (`src/header.mjs`) and the trend (`src/trend.mjs`). The trend is cut in
++two because its emphasis on the best month can only be judged once the bars it
++stands out from are right. Build and judge the pieces in this order. Each piece
++is judged on its own, against its cut of the reference, once the pieces before it
++have passed.
++
++Rules for every piece:
++
++- The owner works from BRIEF.md, `data/summary.json` and the acceptance below.
++  Every value shown must be exact to the data.
++- Change only the files in the piece's owner scope. Do not change what an
++  earlier, ticked piece produced, except where this piece's scope says so.
++- Before reporting, run `npm test` (it must pass) and `npm run capture` (it must
++  write `captures/card.svg` and `captures/CAPTURE.md` for the current revision).
++- The reference cut points the critic at parts of the held-out reference. Those
++  parts are named here and never copied. The owner does not read the reference.
++- The critic ticks the piece's box on a pass, and only that box.
++
++---
++
++## Piece 1 · Card frame
++
++**Owner scope.** `src/card.mjs`. A new `src/layout.mjs` may be created to hold
++shared card geometry (card size, the outer margin, the inner width between the
++margins) for the header and trend to use later. `tests/card.test.mjs` may gain
++assertions, but no existing assertion may be removed or weakened. Do not touch
++`src/header.mjs` or `src/trend.mjs` in this piece.
++
++**Reference cut.** The single top-level element of the reference, the card
++itself, which sits outside both groups (first element row in
++REFERENCE-CAPTURE.md). Also the card clause of point 10 in REFERENCE.md (white
++card, hairline rounded border, no shadow, no gradient), the card's overall
++size, its font family, and the order in which the header and trend groups are
++composed.
++
++**Acceptance.**
++
++- The card has a white background shape that covers the whole card at top level,
++  outside the `header` and `trend` groups. It has a hairline neutral-grey border
++  and gently rounded corners, and the stroke is not clipped at the card's edge.
++- No shadow, no gradient, no filter, no extra decoration.
++- The card keeps its declared size, its viewBox and a single sans-serif font
++  family. The `header` group comes before the `trend` group, as it does now.
++- One outer margin and the inner width it leaves are defined once (in
++  `src/layout.mjs` or exported from the frame) and generous enough that later
++  pieces can keep everything clear of the edge.
++- `npm test` passes and the capture shows the new top-level element first.
++
++- [x] Piece 1 · Card frame: critic ticks on a pass
++
++---
++
++## Piece 2 · Header: title, period and three stat tiles
++
++**Owner scope.** `src/header.mjs`. A new `src/format.mjs` may be created for the
++compact value and change formatting, which the trend will reuse. Read the shared
++geometry from Piece 1, but do not change it. In `tests/card.test.mjs`, the "every
++stat appears" check may be adjusted so it still holds when labels are displayed
++in a different letter case. It must still require every stat's label, and it may
++add checks that every compact value appears. Do not touch `src/trend.mjs` or the
++frame's output.
++
++**Reference cut.** Every element of the reference's `header` group in
++REFERENCE-CAPTURE.md: the title, the period line, and the three tiles, each with
++its background, label, value and change line. Points 1 to 5 of REFERENCE.md: the
++tiles' span and widths, the fixed baselines inside a tile, the change signed by
++colour and mark, the compact values, and the hierarchy above the tiles.
++
++**Acceptance.**
++
++- The title sits at the top left, on the margin, in a larger semi-bold dark
++  text. The period line sits under it, on the same margin, in smaller muted grey
++  text.
++- Below them is one row of three tiles, one per stat, in data order. Each tile
++  has a light neutral-grey rounded background. The row starts exactly at the
++  left margin and ends exactly at the right margin. All three tiles have equal
++  widths and equal heights, with a small equal gap between them, so the row
++  lines up with the trend's width below it.
++- Inside each tile, three lines sit on fixed baselines that are the same in every
++  tile:
++  - a small, muted, upper-case, semi-bold label
++  - a large bold dark value, the dominant text of the tile, on one baseline
++    shared by all three tiles
++  - a small change line under the value
++  All three lines are inset from the tile's left edge by the same padding, and
++  none of them overlaps another line or the tile's edge.
++- Values use the compact spoken form BRIEF.md gives: millions or thousands with a
++  suffix, and money with a currency sign. Never show raw integers, and never show
++  revenue in cents. Each value is derived from its `unit` in the data, not
++  hard-coded.
++- Each change line is signed by both colour and mark: an up mark in one positive
++  colour for a rise, a down mark in one negative colour for a fall. Then the
++  absolute percentage to one decimal place, then a short phrase naming the
++  comparison with the previous period. A fall must read as a fall at a glance.
++  Text other than the change lines uses neutral greys only.
++- `npm test` passes, and the frame from Piece 1 is unchanged in the capture.
++
++- [x] Piece 2 · Header: critic ticks on a pass
++
++---
++
++## Piece 3 · Trend: section label, baseline, bars and month names
++
++**Owner scope.** `src/trend.mjs`. Read the shared geometry from Piece 1, and the
++formatting from Piece 2 if needed, but do not change their outputs. Do not touch
++`src/header.mjs`. Do not single out any month in this piece: that is Piece 4.
++
++**Reference cut.** In the reference's `trend` group in REFERENCE-CAPTURE.md, the
++section label, the baseline line, the twelve bars (their span, widths, gaps,
++corner rounding and common accent fill) and the twelve month names. Leave out
++the best month's distinct shade and its value callout. Points 6, 7 and 9 of
++REFERENCE.md apply, plus the data-colour clause of point 10 (one accent colour,
++no legend, no gridlines).
++
++**Acceptance.**
++
++- A small, muted, upper-case, semi-bold section label names what the bars show.
++  It sits on the left margin above the bars, in the same style as the tile
++  labels, with clear space between it and the tiles above.
++- One light neutral-grey baseline line runs from the left margin to the right
++  margin. All bars sit on it.
++- There are twelve bars, one per month, in data order. All have equal widths and
++  together fill the inner width, the first starting at the left margin and the
++  last ending at the right margin. A clear equal gap, a fraction of a bar's
++  width, separates neighbouring bars, so no two bars touch. The tops are
++  slightly rounded.
++- Bar heights are proportional to the data, with the tallest month reaching a
++  fixed maximum height. Leave room above the tallest bar for a callout in
++  Piece 4, below the section label.
++- Every bar uses one single, saturated accent colour, the only data colour on
++  the card. No legend, gradient, gridline or axis numbers.
++- Each month's name is centred under its bar in small muted grey text, below the
++  baseline and clear of the card's bottom edge.
++- `npm test` passes, and the frame and header are unchanged in the capture.
++
++- [ ] Piece 3 · Trend bars: critic ticks on a pass
++
++---
++
++## Piece 4 · Trend: the best month called out
++
++**Owner scope.** `src/trend.mjs`, plus additions to `src/format.mjs` if the
++callout needs a formatting variant. Any change to `src/format.mjs` must leave the
++header's output byte-for-byte unchanged. Do not touch anything else.
++
++**Reference cut.** In the reference's `trend` group in REFERENCE-CAPTURE.md, the
++best month's bar (its distinct shade) and the value text above it. This is point
++8 of REFERENCE.md, judged together with the one-accent rule of point 10.
++
++**Acceptance.**
++
++- The month with the highest revenue in the data is found from the data, not
++  hard-coded. Its bar is a darker shade of the same accent colour, and every
++  other bar keeps the plain accent colour. No second hue is introduced.
++- That month's revenue is shown above its bar, centred on the bar, in a compact
++  spoken money form consistent with the tile values. The text is small, dark and
++  semi-bold. It must not touch the bar, the section label or the header.
++- The value shown is exact to the data, at the precision the compact form
++  states.
++- `npm test` passes, and everything from Pieces 1 to 3 is unchanged in the
++  capture apart from the best month's fill and the added callout.
++
++- [ ] Piece 4 · Best month callout: critic ticks on a pass
+diff --git a/captures/CAPTURE.md b/captures/CAPTURE.md
+new file mode 100644
+index 0000000..5836a3a
+--- /dev/null
++++ b/captures/CAPTURE.md
+@@ -0,0 +1,34 @@
++# Capture of captures/card.svg
++
++- rendered 2026-10-04T22:51:27.556Z from src/card.mjs, sha256 d338e5077a07
++- 2592 bytes, 640 × 360; fills used: #ffffff, #111827, #6b7280, #f3f4f6, #15803d, #b91c1c, black
++
++## Elements, in document order (group · kind · position · size · colour · text)
++
++- (top level) · rect x=0.5 y=0.5 w=639 h=359 rx=11.5 fill=#ffffff stroke=#e5e7eb
++- header · text (32,54) 20px weight=600 anchor=– fill=#111827: "Northwind Stores"
++- header · text (32,74) 12px weight=– anchor=– fill=#6b7280: "12 months to August 2026"
++- header · rect x=32 y=90 w=184 h=80 rx=8 fill=#f3f4f6 stroke=–
++- header · text (46,114) 10px weight=600 anchor=– fill=#6b7280: "REVENUE"
++- header · text (46,144) 28px weight=700 anchor=– fill=#111827: "$1.42M"
++- header · text (46,160) 11px weight=600 anchor=– fill=#15803d: "▲ 12.4% vs prior period"
++- header · rect x=228 y=90 w=184 h=80 rx=8 fill=#f3f4f6 stroke=–
++- header · text (242,114) 10px weight=600 anchor=– fill=#6b7280: "ORDERS"
++- header · text (242,144) 28px weight=700 anchor=– fill=#111827: "38.2k"
++- header · text (242,160) 11px weight=600 anchor=– fill=#b91c1c: "▼ 3.1% vs prior period"
++- header · rect x=424 y=90 w=184 h=80 rx=8 fill=#f3f4f6 stroke=–
++- header · text (438,114) 10px weight=600 anchor=– fill=#6b7280: "AVG ORDER"
++- header · text (438,144) 28px weight=700 anchor=– fill=#111827: "$37.24"
++- header · text (438,160) 11px weight=600 anchor=– fill=#15803d: "▲ 15.8% vs prior period"
++- trend · rect x=10 y=270.8503162333099 w=18 h=69.14968376669009 rx=– fill=black stroke=–
++- trend · rect x=30 y=266.8446943078004 w=18 h=73.15530569219958 rx=– fill=black stroke=–
++- trend · rect x=50 y=247.51932536893884 w=18 h=92.48067463106115 rx=– fill=black stroke=–
++- trend · rect x=70 y=240 w=18 h=100 rx=– fill=black stroke=–
++- trend · rect x=90 y=272.39634574841887 w=18 h=67.60365425158116 rx=– fill=black stroke=–
++- trend · rect x=110 y=268.46099789177794 w=18 h=71.53900210822206 rx=– fill=black stroke=–
++- trend · rect x=130 y=256.4441321152495 w=18 h=83.55586788475053 rx=– fill=black stroke=–
++- trend · rect x=150 y=253.9845397048489 w=18 h=86.01546029515109 rx=– fill=black stroke=–
++- trend · rect x=170 y=250.68165846802532 w=18 h=89.3183415319747 rx=– fill=black stroke=–
++- trend · rect x=190 y=248.08151791988757 w=18 h=91.91848208011244 rx=– fill=black stroke=–
++- trend · rect x=210 y=252.43851018974 w=18 h=87.56148981026001 rx=– fill=black stroke=–
++- trend · rect x=230 y=252.2979620520028 w=18 h=87.7020379479972 rx=– fill=black stroke=–
+diff --git a/captures/card.svg b/captures/card.svg
+new file mode 100644
+index 0000000..661d751
+--- /dev/null
++++ b/captures/card.svg
+@@ -0,0 +1,5 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" font-family="Inter, Helvetica, Arial, sans-serif">
++<rect id="card" x="0.5" y="0.5" width="639" height="359" rx="11.5" ry="11.5" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
++<g id="header"><text x="32" y="54" font-size="20" font-weight="600" fill="#111827">Northwind Stores</text><text x="32" y="74" font-size="12" fill="#6b7280">12 months to August 2026</text><rect x="32" y="90" width="184" height="80" rx="8" ry="8" fill="#f3f4f6"/><text x="46" y="114" font-size="10" font-weight="600" letter-spacing="0.6" fill="#6b7280">REVENUE</text><text x="46" y="144" font-size="28" font-weight="700" fill="#111827">$1.42M</text><text x="46" y="160" font-size="11" font-weight="600" fill="#15803d">▲ 12.4% vs prior period</text><rect x="228" y="90" width="184" height="80" rx="8" ry="8" fill="#f3f4f6"/><text x="242" y="114" font-size="10" font-weight="600" letter-spacing="0.6" fill="#6b7280">ORDERS</text><text x="242" y="144" font-size="28" font-weight="700" fill="#111827">38.2k</text><text x="242" y="160" font-size="11" font-weight="600" fill="#b91c1c">▼ 3.1% vs prior period</text><rect x="424" y="90" width="184" height="80" rx="8" ry="8" fill="#f3f4f6"/><text x="438" y="114" font-size="10" font-weight="600" letter-spacing="0.6" fill="#6b7280">AVG ORDER</text><text x="438" y="144" font-size="28" font-weight="700" fill="#111827">$37.24</text><text x="438" y="160" font-size="11" font-weight="600" fill="#15803d">▲ 15.8% vs prior period</text></g>
++<g id="trend"><rect x="10" y="270.8503162333099" width="18" height="69.14968376669009" fill="black"/><rect x="30" y="266.8446943078004" width="18" height="73.15530569219958" fill="black"/><rect x="50" y="247.51932536893884" width="18" height="92.48067463106115" fill="black"/><rect x="70" y="240" width="18" height="100" fill="black"/><rect x="90" y="272.39634574841887" width="18" height="67.60365425158116" fill="black"/><rect x="110" y="268.46099789177794" width="18" height="71.53900210822206" fill="black"/><rect x="130" y="256.4441321152495" width="18" height="83.55586788475053" fill="black"/><rect x="150" y="253.9845397048489" width="18" height="86.01546029515109" fill="black"/><rect x="170" y="250.68165846802532" width="18" height="89.3183415319747" fill="black"/><rect x="190" y="248.08151791988757" width="18" height="91.91848208011244" fill="black"/><rect x="210" y="252.43851018974" width="18" height="87.56148981026001" fill="black"/><rect x="230" y="252.2979620520028" width="18" height="87.7020379479972" fill="black"/></g>
++</svg>
+diff --git a/out/card.svg b/out/card.svg
+new file mode 100644
+index 0000000..661d751
+--- /dev/null
++++ b/out/card.svg
+@@ -0,0 +1,5 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" font-family="Inter, Helvetica, Arial, sans-serif">
++<rect id="card" x="0.5" y="0.5" width="639" height="359" rx="11.5" ry="11.5" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
++<g id="header"><text x="32" y="54" font-size="20" font-weight="600" fill="#111827">Northwind Stores</text><text x="32" y="74" font-size="12" fill="#6b7280">12 months to August 2026</text><rect x="32" y="90" width="184" height="80" rx="8" ry="8" fill="#f3f4f6"/><text x="46" y="114" font-size="10" font-weight="600" letter-spacing="0.6" fill="#6b7280">REVENUE</text><text x="46" y="144" font-size="28" font-weight="700" fill="#111827">$1.42M</text><text x="46" y="160" font-size="11" font-weight="600" fill="#15803d">▲ 12.4% vs prior period</text><rect x="228" y="90" width="184" height="80" rx="8" ry="8" fill="#f3f4f6"/><text x="242" y="114" font-size="10" font-weight="600" letter-spacing="0.6" fill="#6b7280">ORDERS</text><text x="242" y="144" font-size="28" font-weight="700" fill="#111827">38.2k</text><text x="242" y="160" font-size="11" font-weight="600" fill="#b91c1c">▼ 3.1% vs prior period</text><rect x="424" y="90" width="184" height="80" rx="8" ry="8" fill="#f3f4f6"/><text x="438" y="114" font-size="10" font-weight="600" letter-spacing="0.6" fill="#6b7280">AVG ORDER</text><text x="438" y="144" font-size="28" font-weight="700" fill="#111827">$37.24</text><text x="438" y="160" font-size="11" font-weight="600" fill="#15803d">▲ 15.8% vs prior period</text></g>
++<g id="trend"><rect x="10" y="270.8503162333099" width="18" height="69.14968376669009" fill="black"/><rect x="30" y="266.8446943078004" width="18" height="73.15530569219958" fill="black"/><rect x="50" y="247.51932536893884" width="18" height="92.48067463106115" fill="black"/><rect x="70" y="240" width="18" height="100" fill="black"/><rect x="90" y="272.39634574841887" width="18" height="67.60365425158116" fill="black"/><rect x="110" y="268.46099789177794" width="18" height="71.53900210822206" fill="black"/><rect x="130" y="256.4441321152495" width="18" height="83.55586788475053" fill="black"/><rect x="150" y="253.9845397048489" width="18" height="86.01546029515109" fill="black"/><rect x="170" y="250.68165846802532" width="18" height="89.3183415319747" fill="black"/><rect x="190" y="248.08151791988757" width="18" height="91.91848208011244" fill="black"/><rect x="210" y="252.43851018974" width="18" height="87.56148981026001" fill="black"/><rect x="230" y="252.2979620520028" width="18" height="87.7020379479972" fill="black"/></g>
++</svg>
+diff --git a/src/card.mjs b/src/card.mjs
+index 863e8bf..a3a777e 100644
+--- a/src/card.mjs
++++ b/src/card.mjs
+@@ -1,16 +1,22 @@
+ /**
+  * The summary card: a fixed 640 × 360 SVG that composes the header and the
+- * trend. The pieces are the two modules; this file only frames them.
++ * trend. The pieces are the two modules; this file only frames them: a white
++ * rounded card with a hairline border, then the header, then the trend.
+  */
+ import { renderHeader } from "./header.mjs";
+ import { renderTrend } from "./trend.mjs";
++import { WIDTH, HEIGHT, MARGIN, INNER_WIDTH, BORDER_WIDTH, BORDER_COLOR, CORNER_RADIUS } from "./layout.mjs";
+ 
+-export const WIDTH = 640;
+-export const HEIGHT = 360;
++export { WIDTH, HEIGHT, MARGIN, INNER_WIDTH };
++
++// The border is centred on the rectangle's edge, so inset the rectangle by half
++// the stroke width: the whole stroke then lies inside the card and is not clipped.
++const INSET = BORDER_WIDTH / 2;
+ 
+ export function renderCard(data) {
+   return [
+     `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" font-family="Inter, Helvetica, Arial, sans-serif">`,
++    `<rect id="card" x="${INSET}" y="${INSET}" width="${WIDTH - BORDER_WIDTH}" height="${HEIGHT - BORDER_WIDTH}" rx="${CORNER_RADIUS - INSET}" ry="${CORNER_RADIUS - INSET}" fill="#ffffff" stroke="${BORDER_COLOR}" stroke-width="${BORDER_WIDTH}"/>`,
+     `<g id="header">${renderHeader(data)}</g>`,
+     `<g id="trend">${renderTrend(data)}</g>`,
+     `</svg>`,
+diff --git a/src/format.mjs b/src/format.mjs
+new file mode 100644
+index 0000000..7a28b38
+--- /dev/null
++++ b/src/format.mjs
+@@ -0,0 +1,36 @@
++/**
++ * Compact, speakable value and change formatting. Shared by the header and,
++ * later, the trend.
++ */
++
++/** Scale a number to millions or thousands with a suffix; below 1000 keep it whole. */
++function scaled(n, digitsM, digitsK) {
++  const abs = Math.abs(n);
++  if (abs >= 1e6) return `${(n / 1e6).toFixed(digitsM)}M`;
++  if (abs >= 1e3) return `${(n / 1e3).toFixed(digitsK)}k`;
++  return String(Math.round(n));
++}
++
++/** A value in its compact spoken form, derived from its unit: $1.42M, 38.2k, $37.24. */
++export function formatValue(value, unit) {
++  switch (unit) {
++    case "usd":
++      return `$${scaled(value, 2, 1)}`;
++    case "cents": {
++      const dollars = value / 100;
++      return dollars >= 1000 ? `$${scaled(dollars, 2, 1)}` : `$${dollars.toFixed(2)}`;
++    }
++    default:
++      return scaled(value, 2, 1);
++  }
++}
++
++/** The absolute change as a percentage to one decimal place: 0.124 -> "12.4%". */
++export function formatPercent(delta) {
++  return `${(Math.round(Math.abs(delta) * 1000) / 10).toFixed(1)}%`;
++}
++
++/** Escape text for use inside SVG. */
++export function escapeXml(s) {
++  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
++}
+diff --git a/src/header.mjs b/src/header.mjs
+index 2ad3868..f3490fd 100644
+--- a/src/header.mjs
++++ b/src/header.mjs
+@@ -2,10 +2,45 @@
+  * The card's header: the title, the period, and one tile per headline stat.
+  * Returns SVG fragments positioned inside the card.
+  */
++import { MARGIN, INNER_WIDTH } from "./layout.mjs";
++import { formatValue, formatPercent, escapeXml } from "./format.mjs";
++
++const INK = "#111827";
++const MUTED = "#6b7280";
++const TILE_FILL = "#f3f4f6";
++const UP = "#15803d";
++const DOWN = "#b91c1c";
++
++const TITLE_BASELINE = 54;
++const PERIOD_BASELINE = 74;
++
++const TILE_TOP = 90;
++const TILE_HEIGHT = 80;
++const TILE_GAP = 12;
++const TILE_RADIUS = 8;
++const TILE_PAD = 14;
++const LABEL_BASELINE = 24; // offsets from the tile top, the same in every tile
++const VALUE_BASELINE = 54;
++const CHANGE_BASELINE = 70;
++
+ export function renderHeader(data) {
+-  const lines = [`<text x="10" y="20" font-size="16">${data.title}</text>`, `<text x="10" y="36" font-size="12">${data.period}</text>`];
++  const n = data.stats.length;
++  const tileWidth = (INNER_WIDTH - TILE_GAP * (n - 1)) / n;
++  const out = [
++    `<text x="${MARGIN}" y="${TITLE_BASELINE}" font-size="20" font-weight="600" fill="${INK}">${escapeXml(data.title)}</text>`,
++    `<text x="${MARGIN}" y="${PERIOD_BASELINE}" font-size="12" fill="${MUTED}">${escapeXml(data.period)}</text>`,
++  ];
+   data.stats.forEach((stat, i) => {
+-    lines.push(`<text x="10" y="${60 + i * 16}" font-size="12">${stat.label}: ${stat.value} (${stat.delta})</text>`);
++    const x = MARGIN + i * (tileWidth + TILE_GAP);
++    const tx = x + TILE_PAD;
++    const up = stat.delta >= 0;
++    const colour = up ? UP : DOWN;
++    out.push(
++      `<rect x="${x}" y="${TILE_TOP}" width="${tileWidth}" height="${TILE_HEIGHT}" rx="${TILE_RADIUS}" ry="${TILE_RADIUS}" fill="${TILE_FILL}"/>`,
++      `<text x="${tx}" y="${TILE_TOP + LABEL_BASELINE}" font-size="10" font-weight="600" letter-spacing="0.6" fill="${MUTED}">${escapeXml(stat.label.toUpperCase())}</text>`,
++      `<text x="${tx}" y="${TILE_TOP + VALUE_BASELINE}" font-size="28" font-weight="700" fill="${INK}">${escapeXml(formatValue(stat.value, stat.unit))}</text>`,
++      `<text x="${tx}" y="${TILE_TOP + CHANGE_BASELINE}" font-size="11" font-weight="600" fill="${colour}">${up ? "▲" : "▼"} ${formatPercent(stat.delta)} vs prior period</text>`,
++    );
+   });
+-  return lines.join("");
++  return out.join("");
+ }
+diff --git a/src/layout.mjs b/src/layout.mjs
+new file mode 100644
+index 0000000..232e5cd
+--- /dev/null
++++ b/src/layout.mjs
+@@ -0,0 +1,17 @@
++/**
++ * Shared card geometry, defined once. The header and the trend read these
++ * instead of repeating numbers.
++ */
++export const WIDTH = 640;
++export const HEIGHT = 360;
++
++/** The one outer margin: nothing on the card comes closer to an edge than this. */
++export const MARGIN = 32;
++
++/** The width left between the left and right margins. */
++export const INNER_WIDTH = WIDTH - 2 * MARGIN;
++
++/** The card's border: a hairline, drawn fully inside the card so it is never clipped. */
++export const BORDER_WIDTH = 1;
++export const BORDER_COLOR = "#e5e7eb";
++export const CORNER_RADIUS = 12;
+diff --git a/tests/card.test.mjs b/tests/card.test.mjs
+index 88d45ea..f0c585d 100644
+--- a/tests/card.test.mjs
++++ b/tests/card.test.mjs
+@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
+ import { readFileSync } from "node:fs";
+ import { test } from "node:test";
+ 
+-import { renderCard, WIDTH, HEIGHT } from "../src/card.mjs";
++import { renderCard, WIDTH, HEIGHT, MARGIN, INNER_WIDTH } from "../src/card.mjs";
+ 
+ const data = JSON.parse(readFileSync(new URL("../data/summary.json", import.meta.url), "utf8"));
+ 
+@@ -15,8 +15,36 @@ test("the card is a well-formed 640 × 360 SVG with a header and a trend group",
+   assert.ok(svg.trimEnd().endsWith("</svg>"));
+ });
+ 
++test("the frame is a white hairline rounded rect first, outside both groups, with no effects", () => {
++  const svg = renderCard(data);
++  const rect = svg.match(/<rect id="card"[^>]*>/)?.[0];
++  assert.ok(rect, "card rect exists");
++  assert.ok(svg.indexOf(rect) < svg.indexOf('<g id="header">'), "frame comes before the header");
++  assert.ok(svg.indexOf('<g id="header">') < svg.indexOf('<g id="trend">'), "header before trend");
++  assert.match(rect, /fill="#ffffff"/);
++  assert.match(rect, /stroke-width="1"/);
++  assert.match(rect, /rx="\d/);
++  const x = Number(rect.match(/ x="([\d.]+)"/)[1]);
++  const w = Number(rect.match(/ width="([\d.]+)"/)[1]);
++  assert.ok(x >= 0.5 && x + w <= WIDTH - 0.5, "stroke is not clipped");
++  assert.doesNotMatch(svg, /<(filter|linearGradient|radialGradient)\b|filter=|drop-shadow/);
++});
++
++test("one margin and inner width are defined once", () => {
++  assert.equal(MARGIN, 32);
++  assert.equal(INNER_WIDTH, WIDTH - 2 * MARGIN);
++});
++
+ test("every stat and every month appears", () => {
+   const svg = renderCard(data);
+-  for (const stat of data.stats) assert.ok(svg.includes(stat.label), `${stat.label} is shown`);
++  const lower = svg.toLowerCase();
++  for (const stat of data.stats) assert.ok(lower.includes(stat.label.toLowerCase()), `${stat.label} is shown`);
+   assert.equal((svg.match(/<rect\b/g) ?? []).length >= data.monthly.length, true, "one bar per month at least");
+ });
++
++test("every stat's compact value and signed change appears", () => {
++  const svg = renderCard(data);
++  for (const v of ["$1.42M", "38.2k", "$37.24"]) assert.ok(svg.includes(v), `${v} is shown`);
++  for (const p of ["12.4%", "3.1%", "15.8%"]) assert.ok(svg.includes(p), `${p} is shown`);
++  assert.ok(svg.includes("▲") && svg.includes("▼"), "rise and fall marks");
++});

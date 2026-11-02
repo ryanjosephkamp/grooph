@@ -1,0 +1,89 @@
+{
+  "scored_at": "2026-10-10T21:42:44.932Z",
+  "scorer": "scripts/lib/compare-score.mjs (scoreHeldOut): the project's unseen suite alone, from the repository's copy",
+  "ending": {
+    "kind": "clean",
+    "reason": "the session ended itself"
+  },
+  "packages": [
+    {
+      "package": "settingskit",
+      "folder": "settingskit",
+      "scored_from": "experiments/comparisons/review-gate-2/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/layer-cases.test.mjs",
+      "cases": 55,
+      "passed": 41,
+      "failed": 14,
+      "skipped": 0,
+      "rate": 0.745,
+      "failing": [
+        "undefined: undefined in over leaves base's value",
+        "undefined: undefined in over leaves base's object, copied",
+        "undefined: undefined deeper in over leaves base's value there",
+        "undefined: a key only over has, with undefined, does not appear",
+        "dates: a Date from over is copied, and is still that date",
+        "dates: a Date only base has is copied",
+        "dates: a Date inside an array is copied",
+        "not plain data: a function in over throws a TypeError",
+        "not plain data: a Map in over throws a TypeError",
+        "not plain data: a Set in over throws a TypeError",
+        "not plain data: an instance of a class in over throws a TypeError",
+        "not plain data: a function inside an array throws a TypeError",
+        "not plain data: a function deep in base throws a TypeError",
+        "not plain data: an instance of a class deep in over throws a TypeError"
+      ],
+      "exit": 1
+    },
+    {
+      "package": "textwrap",
+      "folder": "textwrap",
+      "scored_from": "experiments/comparisons/spec-then-loop/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/wrap-invariants.test.mjs",
+      "cases": 88,
+      "passed": 88,
+      "failed": 0,
+      "skipped": 0,
+      "rate": 1,
+      "failing": [],
+      "exit": 0
+    },
+    {
+      "package": "csvline",
+      "folder": "csvline",
+      "scored_from": "experiments/comparisons/red-team-loop/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/csv-cases.test.mjs",
+      "cases": 73,
+      "passed": 71,
+      "failed": 2,
+      "skipped": 0,
+      "rate": 0.973,
+      "failing": [
+        "CsvError: \"\\\\r\" (a text that is only CR)",
+        "CsvError: \"a\\\\r\" (a CR at the end is not a terminator)"
+      ],
+      "exit": 1
+    },
+    {
+      "package": "semver-mini",
+      "folder": "semver-mini",
+      "scored_from": "experiments/comparisons/grind-loop/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/semver-cases.test.mjs",
+      "cases": 62,
+      "passed": 58,
+      "failed": 4,
+      "skipped": 0,
+      "rate": 0.935,
+      "failing": [
+        "1.0.0-99999999999999999998 < 1.0.0-99999999999999999999: numeric identifiers beyond 2^53 still compare as numbers",
+        "\"1.0.0+build..1\" throws RangeError: an empty build identifier",
+        "\"1.0.0-alpha+build+1\" throws RangeError: a second plus",
+        "\"1.0.0+build_1\" throws RangeError: an underscore in build metadata"
+      ],
+      "exit": 1
+    }
+  ]
+}

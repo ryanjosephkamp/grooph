@@ -1,0 +1,30 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260922-050527: the clock form",
+    "FINDINGS.md: investigator Bash FINDINGS.md",
+    "FILED.md: ticket-writer Write FILED.md",
+    "orders-api-patrol--investigator (Investigate scan signals) read .grooph/orders-api-patrol/runs/20260922-050527/scan-output.txt, TICKETS.md, README.md, logs/app.log, src/db.mjs, src/payments.mjs, src/server.mjs, tests/server.test.mjs; ran `ls -la <local path>\u2026`, `npm test --prefix <local path>\u2026`, `cat > <local path>\u2026`",
+    "the final note is at node:prioritise, not at graph",
+    "ending as expected: halt at prioritise",
+    "TICKETS.md: 1 added line(s) match /^## T-/: \"## T-0008 \u00b7 DB pool exhausted during flash sale, 503s on /orders (open)\"",
+    "ticket-writer wrote 2 file(s): TICKETS.md, FILED.md",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "verdicts in order: investigator \u2192 finding",
+    "timestamps: 11 given, 0 out of append order",
+    "permission denials: Bash `printf '%s\\n' '{\"id\":\"n-0002\",\"run\":\"20260922-050527\",\"at\":\"node:scan\",\"started\"`; Bash `cat > <local path>`"
+  ],
+  "facts": {
+    "ending": [
+      "halt at prioritise"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": null
+  }
+}

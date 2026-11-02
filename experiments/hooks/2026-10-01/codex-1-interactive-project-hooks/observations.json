@@ -1,0 +1,27 @@
+{
+  "observed_at": "2026-10-01T05:19:20.710974+00:00",
+  "results": [
+    {
+      "command": [
+        "node",
+        "packages/cli/bin/grooph.js",
+        "hooks",
+        "status"
+      ],
+      "exit_code": 0,
+      "stdout": "installed: .grooph/hooks/grooph-event.mjs\nclaude-code: 7 hook entries in .claude/settings.json\ncodex: 7 hook entries in .codex/hooks.json\n0 session files in .grooph/events/\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "packages/cli/bin/grooph.js",
+        "sessions",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"groophLive\": 0,\n  \"at\": \"2026-10-01T05:19:20.706Z\",\n  \"sessions\": []\n}\n",
+      "stderr": ""
+    }
+  ]
+}

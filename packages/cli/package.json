@@ -1,0 +1,37 @@
+{
+  "name": "@grooph/cli",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "grooph command line: make, change, check, draw, and share workflow diagrams; watching a session is experimental.",
+  "license": "MIT",
+  "bin": {
+    "grooph": "./bin/grooph.js"
+  },
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./*": "./dist/src/*.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "hooks"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/bundle-patterns.mjs && tsc -p browser/tsconfig.json && node scripts/browser.mjs",
+    "test": "node --test 'dist/test/*.test.js'",
+    "package": "node scripts/npm-package.mjs",
+    "kit": "node scripts/chat-kit.mjs"
+  },
+  "dependencies": {
+    "@grooph/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "rolldown": "^1.2.9",
+    "typescript": "^5.7.2"
+  },
+  "optionalDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}

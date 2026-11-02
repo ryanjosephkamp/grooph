@@ -1,0 +1,288 @@
+{
+  "grooph": 0,
+  "id": "literature-sweep",
+  "name": "Literature sweep",
+  "version": 1,
+  "goal": "{{task}} Done when SUMMARY.md answers it from sources that meet these criteria, and a critic's bounded search finds no contradicting source the summary leaves unaddressed: {{criteria}}",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Literature sweep",
+    "summary": "Search, screen against criteria stated up front, extract and summarize; then a critic in its own context looks for a source that contradicts the summary, and one it finds sends the sweep round again.",
+    "whenToUse": "A question has to be answered from published sources, the risk is a confident summary that missed the paper saying otherwise, and the inclusion criteria can be written down before anyone searches.",
+    "notFor": "A question the sources cannot settle, or a review that must meet a reporting standard: a bounded search for contradiction shows care, not completeness.",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What question should the sweep answer, and what should it leave behind? One or two sentences.",
+        "example": "Answer whether spaced practice improves long-term retention in adult learners, as a two-page evidence summary."
+      },
+      {
+        "key": "criteria",
+        "ask": "Which sources count? State scope, dates, kinds of evidence and exclusions before anyone searches.",
+        "example": "Peer-reviewed studies or preprints from the last fifteen years, with adult participants and a retention test at least a week after learning; no opinion pieces."
+      }
+    ],
+    "tags": [
+      "research",
+      "literature",
+      "critic",
+      "not-proved"
+    ],
+    "credits": [
+      {
+        "name": "PRISMA 2020 statement",
+        "url": "https://www.prisma-statement.org/",
+        "note": "the stages (search, screen, extract) and criteria stated before searching follow the flow it reports for systematic reviews; this template is not a systematic review and makes none of its claims."
+      }
+    ]
+  },
+  "description": "A searcher lists candidate sources; a screener accepts or rejects each against the stated criteria and writes them at the top of its record; an extractor records what each accepted source itself says; a summarizer answers the question from that extraction alone. A critic with fresh context then looks beyond the candidate list for a source that contradicts the summary. A substantiated contradiction goes back to screening, so it gets the same treatment as every other source, and the summary is revised. Not proved: no proving run has been recorded for this template.",
+  "nodes": [
+    {
+      "id": "searcher",
+      "kind": "agent",
+      "name": "Searcher",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Find sources that bear on the task and list them in CANDIDATES.md: title, link and one line on why each might matter. Cast the net wide; screening is the next node's job, so do not drop a source for looking weak. Stop when new searches mostly return sources already listed.",
+      "inputs": [
+        "the task"
+      ],
+      "outputs": [
+        "CANDIDATES.md: one line per candidate source, with a link"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "web"
+      ]
+    },
+    {
+      "id": "screener",
+      "kind": "agent",
+      "name": "Screener",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Copy the criteria to the top of SCREENED.md, then record accept or reject for each candidate with the criterion that decided it. Apply the criteria as written, not your own; a borderline source is rejected with the reason stated. On a later round, screen the sources named in CONTRADICTION.md the same way.",
+      "inputs": [
+        "the criteria: {{criteria}}",
+        "CANDIDATES.md",
+        "CONTRADICTION.md (from round 1 on)"
+      ],
+      "outputs": [
+        "SCREENED.md: the criteria, then accept or reject for each source with its reason"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "web"
+      ]
+    },
+    {
+      "id": "extractor",
+      "kind": "agent",
+      "name": "Extractor",
+      "role": "researcher",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "For each accepted source, record in EXTRACTION.md what it claims, how it knows (method and sample), what it found and its stated limits, quoting only short passages. Record only what the source itself says, and mark anything you had to infer. On a later round, extract only the sources added since the last one.",
+      "inputs": [
+        "SCREENED.md",
+        "the accepted sources"
+      ],
+      "outputs": [
+        "EXTRACTION.md: claim, method, finding and limits for each accepted source"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "web"
+      ]
+    },
+    {
+      "id": "summarizer",
+      "kind": "agent",
+      "name": "Summarizer",
+      "role": "synthesizer",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Write SUMMARY.md answering the task from EXTRACTION.md alone, citing the sources behind each claim by number. Say where sources disagree and how strong the evidence is, and claim nothing the extraction does not support. On a later round, revise the summary for the sources added, and name any contradicting source that screening set aside with the reason.",
+      "inputs": [
+        "the task",
+        "EXTRACTION.md",
+        "CONTRADICTION.md (from round 1 on)"
+      ],
+      "outputs": [
+        "SUMMARY.md: the answer, with numbered sources and where they disagree"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Contradiction hunter",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Look for a source that contradicts a claim in SUMMARY.md: search beyond CANDIDATES.md, since the sweep may have missed it, and read each hit closely enough to say whether it really contradicts. Record each contradiction you can substantiate in CONTRADICTION.md with a link and the claim it contradicts; stop after the first few, or after about eight distinct searches, and finding none is a pass. You hunt and judge; you do not rewrite the summary. Verdict fail when a substantiated contradiction is not already addressed in the summary, otherwise pass.",
+      "inputs": [
+        "the criteria: {{criteria}}",
+        "SUMMARY.md",
+        "EXTRACTION.md",
+        "SCREENED.md"
+      ],
+      "outputs": [
+        "CONTRADICTION.md: the contradicting sources with links, or the searches that found none",
+        "verdict: pass | fail"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "web"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-searcher-screener",
+      "from": "searcher",
+      "to": "screener",
+      "evidence": [
+        "CANDIDATES.md"
+      ]
+    },
+    {
+      "id": "e-screener-extractor",
+      "from": "screener",
+      "to": "extractor",
+      "evidence": [
+        "SCREENED.md"
+      ]
+    },
+    {
+      "id": "e-extractor-summarizer",
+      "from": "extractor",
+      "to": "summarizer",
+      "evidence": [
+        "EXTRACTION.md"
+      ]
+    },
+    {
+      "id": "e-summarizer-critic",
+      "from": "summarizer",
+      "to": "critic",
+      "evidence": [
+        "SUMMARY.md",
+        "EXTRACTION.md",
+        "SCREENED.md"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "screener",
+      "when": "fail",
+      "evidence": [
+        "CONTRADICTION.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "sweep",
+      "name": "Sweep",
+      "members": [
+        "screener",
+        "extractor",
+        "summarizer",
+        "critic"
+      ],
+      "back": [
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "No unanswered contradiction",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "SUMMARY.md"
+          },
+          {
+            "kind": "artifact",
+            "ref": "CONTRADICTION.md"
+          },
+          {
+            "kind": "artifact",
+            "ref": "SCREENED.md"
+          }
+        ],
+        "acceptance": "Every claim in SUMMARY.md traces to a source SCREENED.md accepted under the stated criteria, and a bounded hunt by a critic that did not write it finds no contradicting source the summary leaves unaddressed."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 14
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

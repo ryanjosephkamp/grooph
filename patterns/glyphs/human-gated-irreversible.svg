@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-17 -17 147 40" width="147" height="40" role="img" fill="none" stroke-linecap="round" stroke-linejoin="round" class="grooph-glyph">
+<title>Human-gated irreversible step</title>
+<path d="M14,0 L46,0" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M46,0 L39,3.5 L39,-3.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M72,0 L111,0" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M111,0 L104,3.5 L104,-3.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M12,5 L5,12 L-5,12 L-12,5 L-12,-5 L-5,-12 L5,-12 L12,-5 Z" stroke-width="2.4" style="fill:var(--surface, #ffffff);stroke:var(--kind-human-gate, #b25e09)"/>
+<rect x="49" y="-11" width="22" height="22" rx="2" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M47,17 L73,17" stroke-width="3" style="stroke:var(--error, #b42318)"/>
+<circle cx="120" cy="0" r="6" style="fill:var(--ink, #2b302e)"/>
+</svg>

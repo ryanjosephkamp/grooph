@@ -1,0 +1,416 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..f8be7bc
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,45 @@
++# Changes
++
++## Round 0
++
++No traces this round (`traces/` did not exist). Hardened `parseCsvLine`
++against the contract in README.md § Contract directly.
++
++### src/csv.mjs
++
++Rewrote `parseCsvLine` as a single index-based pass (`charCodeAt` /
++`indexOf` / `slice` on ranges). The previous version re-sliced the remaining
++string on every character, which was quadratic; the new one is linear
++(5 MB inputs of every shape parse in well under 200 ms).
++
++Contract rules implemented:
++
++- Non-string argument throws `TypeError` (unchanged, kept).
++- Only `string[]` or `CsvError` comes out for any string input.
++- Fields separated by `,`; `""` -> `[""]`; `a,` -> `["a", ""]`.
++- Quoted fields; `""` inside quotes is one `"`; commas, `\n`, `\r\n` (and
++  lone `\r`) are literal inside quotes.
++- After a closing quote only `,`, the trailing record terminator or the end
++  of text may follow; anything else is a `CsvError`.
++- Unclosed quoted field is a `CsvError`.
++- A `"` anywhere in an unquoted field is a `CsvError` (`a"b`, `a "b"`, `a"`).
++- Whitespace outside quotes is preserved.
++- Exactly one `\n` or `\r\n` at the very end of the text is removed; any
++  other unquoted `\r` or `\n` is a `CsvError` (`a\r`, `a\n\n`, `a\nb`, ...).
++- Every other character (tabs, NUL, control chars, NEL/LS/PS, BOM, lone
++  surrogates, any Unicode) is literal.
++
++### tests/csv.test.mjs
++
++One test per contract rule (16 tests), plus:
++
++- a fuzz test over the alphabet `a , " \n \r space tab` (5000 strings)
++  asserting only `string[]` or `CsvError` ever comes out;
++- a 100 KB timing test covering one large unquoted field, one large quoted
++  field, 34 K small fields, 100 K empty fields, a field of 50 K escaped
++  quotes, 25 K quoted fields, 50 K quoted `\r\n`, and three error paths, each
++  asserted under 1 s.
++
++### Traces fixed
++
++None (round 0 had no traces).
+diff --git a/src/csv.mjs b/src/csv.mjs
+index d5d662e..931c149 100644
+--- a/src/csv.mjs
++++ b/src/csv.mjs
+@@ -5,30 +5,92 @@ export class CsvError extends Error {
+   }
+ }
+ 
++const QUOTE = 0x22; // "
++const COMMA = 0x2c; // ,
++const LF = 0x0a; // \n
++const CR = 0x0d; // \r
++
+ /**
+- * Parses one CSV record into its fields (README.md). Handles the plain and the
+- * quoted case; the rest of the contract is not enforced yet.
++ * Parses one CSV record into its fields, following README.md § Contract.
++ *
++ * Single forward pass over the string, indexed by position, so the cost is
++ * linear in the length of the text. Returns an array of strings or throws
++ * CsvError; a non-string argument throws TypeError.
++ *
+  * @param {string} text
+  * @returns {string[]}
+  */
+ export function parseCsvLine(text) {
+-  if (typeof text !== "string") throw new TypeError("parseCsvLine: text must be a string");
++  if (typeof text !== "string") {
++    throw new TypeError("parseCsvLine: text must be a string");
++  }
++
++  // One record terminator (`\n` or `\r\n`) at the very end is removed. Any
++  // other unquoted `\r` or `\n` is rejected while scanning below. Removing it
++  // up front is equivalent: a terminator that sits inside quotes at the very
++  // end of the text can never be followed by its closing quote, so that input
++  // is an unclosed quote either way.
++  let end = text.length;
++  if (end > 0 && text.charCodeAt(end - 1) === LF) {
++    end -= 1;
++    if (end > 0 && text.charCodeAt(end - 1) === CR) end -= 1;
++  }
++
+   const fields = [];
+-  let field = "";
+-  let quoted = false;
+-  let rest = text;
+-  while (rest.length > 0) {
+-    const ch = rest[0];
+-    rest = rest.slice(1);
+-    if (ch === '"') {
+-      quoted = !quoted;
+-    } else if (ch === "," && !quoted) {
++  let i = 0;
++
++  // Each iteration parses exactly one field starting at `i` and either
++  // returns (end of text) or advances `i` past the separating comma.
++  for (;;) {
++    if (i < end && text.charCodeAt(i) === QUOTE) {
++      // Quoted field: `""` is one `"`; everything else up to the closing
++      // quote, including commas, `\r` and `\n`, is literal.
++      let field = "";
++      let segStart = i + 1;
++      let close;
++      for (;;) {
++        const q = text.indexOf('"', segStart);
++        if (q === -1 || q >= end) {
++          throw new CsvError(`unclosed quoted field starting at index ${i}`);
++        }
++        field += text.slice(segStart, q);
++        if (q + 1 < end && text.charCodeAt(q + 1) === QUOTE) {
++          field += '"';
++          segStart = q + 2;
++          continue;
++        }
++        close = q;
++        break;
++      }
+       fields.push(field);
+-      field = "";
++      i = close + 1;
++      if (i === end) return fields;
++      if (text.charCodeAt(i) !== COMMA) {
++        throw new CsvError(
++          `unexpected character ${JSON.stringify(text[i])} after closing quote at index ${i}`,
++        );
++      }
++      i += 1;
+     } else {
+-      field += ch;
++      // Unquoted field: runs to the next comma or the end. A `"`, `\r` or
++      // `\n` anywhere in it is an error; every other character is literal.
++      let j = i;
++      while (j < end) {
++        const c = text.charCodeAt(j);
++        if (c === COMMA) break;
++        if (c === QUOTE) {
++          throw new CsvError(`unexpected '"' outside quotes at index ${j}`);
++        }
++        if (c === LF || c === CR) {
++          throw new CsvError(
++            `unexpected ${c === LF ? "\\n" : "\\r"} outside quotes at index ${j}`,
++          );
++        }
++        j += 1;
++      }
++      fields.push(text.slice(i, j));
++      if (j === end) return fields;
++      i = j + 1;
+     }
+   }
+-  fields.push(field);
+-  return fields;
+ }
+diff --git a/tests/csv.test.mjs b/tests/csv.test.mjs
+index 816adc6..5ebee7a 100644
+--- a/tests/csv.test.mjs
++++ b/tests/csv.test.mjs
+@@ -3,20 +3,239 @@ import { test } from "node:test";
+ 
+ import { CsvError, parseCsvLine } from "../src/csv.mjs";
+ 
+-test("plain fields", () => {
++const csvError = (fn) => assert.throws(fn, CsvError);
++
++// --- Type and error contract -------------------------------------------------
++
++test("non-string input throws TypeError", () => {
++  for (const bad of [null, undefined, 1, 0, NaN, true, {}, [], ["a"], new String("a"), Symbol("s"), () => "a", 10n]) {
++    assert.throws(() => parseCsvLine(bad), TypeError);
++  }
++  assert.throws(() => parseCsvLine(), TypeError);
++});
++
++test("CsvError is an Error with the right name", () => {
++  const e = new CsvError("x");
++  assert.ok(e instanceof Error);
++  assert.ok(e instanceof CsvError);
++  assert.equal(e.name, "CsvError");
++  assert.equal(e.message, "x");
++});
++
++test("README examples", () => {
+   assert.deepEqual(parseCsvLine("a,b,c"), ["a", "b", "c"]);
+-  assert.deepEqual(parseCsvLine("a,"), ["a", ""]);
++  assert.deepEqual(parseCsvLine('"x, y",z'), ["x, y", "z"]);
++  assert.deepEqual(parseCsvLine('"say ""hi""",'), ['say "hi"', ""]);
++});
++
++// --- Separators --------------------------------------------------------------
++
++test("fields are separated by commas; empty text is one empty field", () => {
+   assert.deepEqual(parseCsvLine(""), [""]);
++  assert.deepEqual(parseCsvLine("a"), ["a"]);
++  assert.deepEqual(parseCsvLine("a,"), ["a", ""]);
++  assert.deepEqual(parseCsvLine(",a"), ["", "a"]);
++  assert.deepEqual(parseCsvLine(","), ["", ""]);
++  assert.deepEqual(parseCsvLine(",,,"), ["", "", "", ""]);
++  assert.deepEqual(parseCsvLine("a,b,,c,"), ["a", "b", "", "c", ""]);
+ });
+ 
+-test("quoted fields keep commas", () => {
+-  assert.deepEqual(parseCsvLine('"x, y",z'), ["x, y", "z"]);
++// --- Quoting -----------------------------------------------------------------
++
++test("a field may be wrapped in double quotes", () => {
++  assert.deepEqual(parseCsvLine('"a"'), ["a"]);
++  assert.deepEqual(parseCsvLine('""'), [""]);
++  assert.deepEqual(parseCsvLine('"",""'), ["", ""]);
++  assert.deepEqual(parseCsvLine('"a",b,"c"'), ["a", "b", "c"]);
++  assert.deepEqual(parseCsvLine('a,"b",c'), ["a", "b", "c"]);
++});
++
++test('inside quotes, "" is one "', () => {
++  assert.deepEqual(parseCsvLine('""""'), ['"']);
++  assert.deepEqual(parseCsvLine('""""""'), ['""']);
++  assert.deepEqual(parseCsvLine('"a""b"'), ['a"b']);
++  assert.deepEqual(parseCsvLine('"""a"""'), ['"a"']);
++  assert.deepEqual(parseCsvLine('"a""","""b"'), ['a"', '"b']);
++});
++
++test("inside quotes, commas, \\n and \\r\\n are literal", () => {
++  assert.deepEqual(parseCsvLine('"a,b"'), ["a,b"]);
++  assert.deepEqual(parseCsvLine('","'), [","]);
++  assert.deepEqual(parseCsvLine('"a\nb"'), ["a\nb"]);
++  assert.deepEqual(parseCsvLine('"a\r\nb"'), ["a\r\nb"]);
++  assert.deepEqual(parseCsvLine('"a\rb"'), ["a\rb"]);
++  assert.deepEqual(parseCsvLine('"\n"'), ["\n"]);
++  assert.deepEqual(parseCsvLine('"\r\n"'), ["\r\n"]);
++  assert.deepEqual(parseCsvLine('"\n\n\r\n,"'), ["\n\n\r\n,"]);
++  assert.deepEqual(parseCsvLine('"a\n",b'), ["a\n", "b"]);
++});
++
++test("after a closing quote only a comma, the terminator or the end may follow", () => {
++  assert.deepEqual(parseCsvLine('"a",b'), ["a", "b"]);
++  assert.deepEqual(parseCsvLine('"a"'), ["a"]);
++  assert.deepEqual(parseCsvLine('"a"\n'), ["a"]);
++  assert.deepEqual(parseCsvLine('"a"\r\n'), ["a"]);
++  assert.deepEqual(parseCsvLine('"a",'), ["a", ""]);
++  csvError(() => parseCsvLine('"a"b'));
++  csvError(() => parseCsvLine('"a" '));
++  csvError(() => parseCsvLine('"a" ,b'));
++  csvError(() => parseCsvLine('"a""'));
++  csvError(() => parseCsvLine('"a"\r'));
++  csvError(() => parseCsvLine('"a"\n\n'));
++  csvError(() => parseCsvLine('"a"\nb'));
++  csvError(() => parseCsvLine('"a"\t'));
++  csvError(() => parseCsvLine('"a"x,b'));
++  csvError(() => parseCsvLine('x,"a"b'));
++});
++
++test("a quoted field that never closes is a CsvError", () => {
++  csvError(() => parseCsvLine('"'));
++  csvError(() => parseCsvLine('"a'));
++  csvError(() => parseCsvLine('a,"b'));
++  csvError(() => parseCsvLine('"a""'));
++  csvError(() => parseCsvLine('"""'));
++  csvError(() => parseCsvLine('"a,b'));
++  csvError(() => parseCsvLine('"a\n'));
++  csvError(() => parseCsvLine('"a\r\n'));
++  csvError(() => parseCsvLine('"a\nb\n'));
++  csvError(() => parseCsvLine('"",'.repeat(3) + '"'));
++});
++
++test('outside quotes, a " anywhere is a CsvError', () => {
++  csvError(() => parseCsvLine('a"b'));
++  csvError(() => parseCsvLine('a "b"'));
++  csvError(() => parseCsvLine('a"'));
++  csvError(() => parseCsvLine('a""'));
++  csvError(() => parseCsvLine(' "a"'));
++  csvError(() => parseCsvLine('a,b"'));
++  csvError(() => parseCsvLine('a,b"c,d'));
++  csvError(() => parseCsvLine('x,"a"b'));
++  csvError(() => parseCsvLine('\t"a"'));
++});
++
++// --- Whitespace --------------------------------------------------------------
++
++test("whitespace outside quotes is part of the field", () => {
++  assert.deepEqual(parseCsvLine(" a "), [" a "]);
++  assert.deepEqual(parseCsvLine(" a , b "), [" a ", " b "]);
++  assert.deepEqual(parseCsvLine("\ta\t"), ["\ta\t"]);
++  assert.deepEqual(parseCsvLine(" "), [" "]);
++  assert.deepEqual(parseCsvLine(" , "), [" ", " "]);
++  assert.deepEqual(parseCsvLine('" a "'), [" a "]);
++});
++
++// --- Record terminator -------------------------------------------------------
++
++test("one \\n or \\r\\n at the very end is removed", () => {
++  assert.deepEqual(parseCsvLine("a\n"), ["a"]);
++  assert.deepEqual(parseCsvLine("a\r\n"), ["a"]);
++  assert.deepEqual(parseCsvLine("\n"), [""]);
++  assert.deepEqual(parseCsvLine("\r\n"), [""]);
++  assert.deepEqual(parseCsvLine("a,\n"), ["a", ""]);
++  assert.deepEqual(parseCsvLine("a,b\r\n"), ["a", "b"]);
++  assert.deepEqual(parseCsvLine(",\n"), ["", ""]);
++  assert.deepEqual(parseCsvLine('"a"\n'), ["a"]);
++  assert.deepEqual(parseCsvLine('"a\n"\n'), ["a\n"]);
++  assert.deepEqual(parseCsvLine('"a\r\n"\r\n'), ["a\r\n"]);
++});
++
++test("any other unquoted \\r or \\n is a CsvError", () => {
++  csvError(() => parseCsvLine("a\r"));
++  csvError(() => parseCsvLine("\r"));
++  csvError(() => parseCsvLine("a\n\n"));
++  csvError(() => parseCsvLine("\n\n"));
++  csvError(() => parseCsvLine("a\r\n\n"));
++  csvError(() => parseCsvLine("a\n\r\n"));
++  csvError(() => parseCsvLine("a\r\r\n"));
++  csvError(() => parseCsvLine("a\n\r"));
++  csvError(() => parseCsvLine("a\nb"));
++  csvError(() => parseCsvLine("a\rb"));
++  csvError(() => parseCsvLine("a\r\nb"));
++  csvError(() => parseCsvLine("\na"));
++  csvError(() => parseCsvLine("a,\rb"));
++  csvError(() => parseCsvLine("a\n,b"));
++  csvError(() => parseCsvLine("\r\n\r\n"));
+ });
+ 
+-test("non-string input", () => {
+-  assert.throws(() => parseCsvLine(null), TypeError);
++// --- Other characters --------------------------------------------------------
++
++test("every other character is literal: tabs, control chars, Unicode", () => {
++  assert.deepEqual(parseCsvLine("a\tb"), ["a\tb"]);
++  assert.deepEqual(parseCsvLine("\u0000"), ["\u0000"]);
++  assert.deepEqual(parseCsvLine("a\u0000b,\u0001\u001f\u007f"), ["a\u0000b", "\u0001\u001f\u007f"]);
++  assert.deepEqual(parseCsvLine("\u000b\u000c"), ["\u000b\u000c"]); // VT, FF are not terminators
++  assert.deepEqual(parseCsvLine("\u0085  "), ["\u0085  "]); // NEL, LS, PS are not terminators
++  assert.deepEqual(parseCsvLine("é,日本,😀"), ["é", "日本", "😀"]);
++  assert.deepEqual(parseCsvLine("﻿a"), ["﻿a"]); // BOM is literal
++  assert.deepEqual(parseCsvLine("\uD800,\uDFFF"), ["\uD800", "\uDFFF"]); // lone surrogates
++  assert.deepEqual(parseCsvLine("a;b|c\\d'e"), ["a;b|c\\d'e"]); // other delimiters/escapes are literal
++  assert.deepEqual(parseCsvLine('"\t\u0000😀"'), ["\t\u0000😀"]);
++  assert.deepEqual(parseCsvLine("“a”"), ["“a”"]); // curly quotes are not quotes
+ });
+ 
+-test("CsvError is an Error", () => {
+-  assert.ok(new CsvError("x") instanceof Error);
++// --- Never throws anything else ----------------------------------------------
++
++test("only string[] or CsvError for arbitrary strings", () => {
++  const alphabet = ['a', ',', '"', '\n', '\r', ' ', '\t'];
++  let state = 12345;
++  const rnd = () => (state = (state * 1103515245 + 12345) & 0x7fffffff) % alphabet.length;
++  for (let n = 0; n < 5000; n++) {
++    const len = n % 12;
++    let s = "";
++    for (let k = 0; k < len; k++) s += alphabet[rnd()];
++    try {
++      const out = parseCsvLine(s);
++      assert.ok(Array.isArray(out), `not an array for ${JSON.stringify(s)}`);
++      assert.ok(out.length >= 1);
++      for (const f of out) assert.equal(typeof f, "string");
++    } catch (e) {
++      assert.ok(e instanceof CsvError, `threw ${e?.constructor?.name} for ${JSON.stringify(s)}`);
++    }
++  }
++});
++
++// --- Performance -------------------------------------------------------------
++
++function timed(label, fn) {
++  const t0 = performance.now();
++  const out = fn();
++  const ms = performance.now() - t0;
++  assert.ok(ms < 1000, `${label} took ${ms.toFixed(1)} ms`);
++  return out;
++}
++
++test("a 100 KB record returns within a second", () => {
++  const KB100 = 100 * 1024;
++
++  // One huge unquoted field.
++  const big = "x".repeat(KB100);
++  assert.deepEqual(timed("one unquoted field", () => parseCsvLine(big)), [big]);
++
++  // One huge quoted field.
++  assert.deepEqual(timed("one quoted field", () => parseCsvLine(`"${big}"`)), [big]);
++
++  // Many small fields.
++  const many = "ab,".repeat(Math.ceil(KB100 / 3));
++  const out = timed("many fields", () => parseCsvLine(many));
++  assert.equal(out.length, Math.ceil(KB100 / 3) + 1);
++
++  // Only commas: 100 K empty fields.
++  assert.equal(timed("only commas", () => parseCsvLine(",".repeat(KB100))).length, KB100 + 1);
++
++  // Quoted field full of escaped quotes.
++  const escaped = '"' + '""'.repeat(KB100 / 2) + '"';
++  assert.deepEqual(timed("escaped quotes", () => parseCsvLine(escaped)), ['"'.repeat(KB100 / 2)]);
++
++  // Many small quoted fields.
++  const manyQuoted = '"a",'.repeat(KB100 / 4);
++  assert.equal(timed("many quoted fields", () => parseCsvLine(manyQuoted)).length, KB100 / 4 + 1);
++
++  // Quoted field full of newlines.
++  const newlines = '"' + "\r\n".repeat(KB100 / 2) + '"';
++  assert.deepEqual(timed("quoted newlines", () => parseCsvLine(newlines)), ["\r\n".repeat(KB100 / 2)]);
++
++  // Errors are found fast too: unclosed quote at the start, stray quote at the end.
++  timed("unclosed quote", () => csvError(() => parseCsvLine('"' + big)));
++  timed("stray quote at end", () => csvError(() => parseCsvLine(big + '"')));
++  timed("bad char after closing quote", () => csvError(() => parseCsvLine(`"${big}"x`)));
+ });

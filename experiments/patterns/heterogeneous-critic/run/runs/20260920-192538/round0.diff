@@ -1,0 +1,186 @@
+diff --git a/README.md b/README.md
+index 32fa0ab..caa8353 100644
+--- a/README.md
++++ b/README.md
+@@ -4,10 +4,15 @@ Small time helpers.
+ 
+ ```js
+ import { formatSeconds } from "./src/format.mjs";
++import { parseDuration } from "./src/duration.mjs";
+ 
+ formatSeconds(5400); // "1h30m"
+ formatSeconds(45);   // "45s"
+ formatSeconds(0.5);  // "500ms"
++
++parseDuration("1h30m"); // 5400
++parseDuration("45s");   // 45
++parseDuration("500ms"); // 0.5
+ ```
+ 
+ `formatSeconds(seconds)` writes a non-negative number of seconds as the
+@@ -15,3 +20,14 @@ shortest run of `h`, `m`, `s` and `ms` parts, in that order, leaving out the
+ parts that are zero (so `3600` is `"1h"`, `61` is `"1m1s"`, `0` is `"0s"`).
+ A negative or non-finite number throws a `RangeError`; a non-number throws a
+ `TypeError`.
++
++`parseDuration(text)` is its inverse: it reads a duration written that way
++back into a number of seconds, so `parseDuration(formatSeconds(n))` is `n`.
++The text is a run of `h`, `m`, `s` and `ms` parts, in that order, each at most
++once and at least one present; each part is a whole number of ASCII digits
++followed directly by its lowercase unit (so `"1h"` is `3600`, `"1m1s"` is
++`61`, `"0s"` is `0`, `"1h1m1s1ms"` is `3661.001`). Anything else throws a
++`RangeError`: units out of order or repeated (`"30m1h"`, `"1h1h"`), a number
++with no unit (`"90"`), an unknown unit (`"1d"`), a fraction, sign or exponent
++(`"1.5h"`, `"-1h"`), an upper-case unit (`"1H"`), whitespace anywhere
++(`" 1h"`, `"1h 30m"`), or an empty string. A non-string throws a `TypeError`.
+diff --git a/src/duration.mjs b/src/duration.mjs
+new file mode 100644
+index 0000000..6499617
+--- /dev/null
++++ b/src/duration.mjs
+@@ -0,0 +1,29 @@
++// The exact shape formatSeconds writes: h, m, s and ms parts, in that order,
++// each at most once, each a run of ASCII digits followed by its lowercase
++// unit, with nothing in between and nothing around them. Fractions, signs,
++// whitespace and upper-case units are not part of the grammar.
++const DURATION = /^(?:([0-9]+)h)?(?:([0-9]+)m)?(?:([0-9]+)s)?(?:([0-9]+)ms)?$/;
++
++/**
++ * Reads a duration written by formatSeconds ("1h30m", "45s", "500ms") back
++ * into a number of seconds. Units are h, m, s and ms, in that order, each at
++ * most once; at least one part must be present.
++ * @param {string} text
++ * @returns {number} seconds
++ * @throws {TypeError} when text is not a string
++ * @throws {RangeError} when text is not a duration in that shape
++ */
++export function parseDuration(text) {
++  if (typeof text !== "string") throw new TypeError("parseDuration: text must be a string");
++  const match = DURATION.exec(text);
++  if (match === null || text === "") {
++    throw new RangeError(`parseDuration: not a duration: ${JSON.stringify(text)}`);
++  }
++  const [, h = "0", m = "0", s = "0", ms = "0"] = match;
++  // Sum in whole milliseconds so "1m1s" comes back as exactly 61, not 61.00000000000001.
++  const total = Number(h) * 3_600_000 + Number(m) * 60_000 + Number(s) * 1000 + Number(ms);
++  if (!Number.isFinite(total)) {
++    throw new RangeError(`parseDuration: duration is too large: ${JSON.stringify(text)}`);
++  }
++  return total / 1000;
++}
+diff --git a/tests/duration.test.mjs b/tests/duration.test.mjs
+new file mode 100644
+index 0000000..d24e2f9
+--- /dev/null
++++ b/tests/duration.test.mjs
+@@ -0,0 +1,110 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { parseDuration } from "../src/duration.mjs";
++import { formatSeconds } from "../src/format.mjs";
++
++test("parseDuration reads the examples from the task", () => {
++  assert.equal(parseDuration("1h30m"), 5400);
++  assert.equal(parseDuration("45s"), 45);
++  assert.equal(parseDuration("500ms"), 0.5);
++});
++
++test("parseDuration reads every unit, alone and together", () => {
++  assert.equal(parseDuration("1h"), 3600);
++  assert.equal(parseDuration("1m"), 60);
++  assert.equal(parseDuration("1s"), 1);
++  assert.equal(parseDuration("1ms"), 0.001);
++  assert.equal(parseDuration("1m1s"), 61);
++  assert.equal(parseDuration("0s"), 0);
++  assert.equal(parseDuration("1h1m1s1ms"), 3661.001);
++  assert.equal(parseDuration("2h500ms"), 7200.5);
++  assert.equal(parseDuration("100h"), 360000);
++});
++
++test("parseDuration inverts formatSeconds", () => {
++  for (const n of [5400, 61, 0.5, 0, 3600, 3661.001, 86400, 0.001]) {
++    assert.equal(parseDuration(formatSeconds(n)), n);
++  }
++});
++
++test("parseDuration refuses units out of order", () => {
++  assert.throws(() => parseDuration("30m1h"), RangeError);
++  assert.throws(() => parseDuration("1s1m"), RangeError);
++  assert.throws(() => parseDuration("500ms1s"), RangeError);
++  assert.throws(() => parseDuration("1ms1h"), RangeError);
++});
++
++test("parseDuration refuses a unit given more than once", () => {
++  assert.throws(() => parseDuration("1h1h"), RangeError);
++  assert.throws(() => parseDuration("1m2m"), RangeError);
++  assert.throws(() => parseDuration("1s1s"), RangeError);
++  assert.throws(() => parseDuration("1ms1ms"), RangeError);
++  assert.throws(() => parseDuration("1h30m2h"), RangeError);
++});
++
++test("parseDuration refuses text with no unit", () => {
++  assert.throws(() => parseDuration("90"), RangeError);
++  assert.throws(() => parseDuration("0"), RangeError);
++  assert.throws(() => parseDuration("1h30"), RangeError);
++});
++
++test("parseDuration refuses text that is not a duration at all", () => {
++  assert.throws(() => parseDuration(""), RangeError);
++  assert.throws(() => parseDuration("abc"), RangeError);
++  assert.throws(() => parseDuration("h"), RangeError);
++  assert.throws(() => parseDuration("ms"), RangeError);
++  assert.throws(() => parseDuration("1x"), RangeError);
++  assert.throws(() => parseDuration("1d"), RangeError);
++  assert.throws(() => parseDuration("1hour"), RangeError);
++  assert.throws(() => parseDuration("1h30mm"), RangeError);
++  assert.throws(() => parseDuration("1:30"), RangeError);
++  assert.throws(() => parseDuration("1h,30m"), RangeError);
++});
++
++test("parseDuration refuses whitespace anywhere", () => {
++  assert.throws(() => parseDuration(" 1h"), RangeError);
++  assert.throws(() => parseDuration("1h "), RangeError);
++  assert.throws(() => parseDuration("1h 30m"), RangeError);
++  assert.throws(() => parseDuration("1 h"), RangeError);
++  assert.throws(() => parseDuration("\t45s\n"), RangeError);
++  assert.throws(() => parseDuration(" "), RangeError);
++});
++
++test("parseDuration refuses upper-case units", () => {
++  assert.throws(() => parseDuration("1H"), RangeError);
++  assert.throws(() => parseDuration("1H30M"), RangeError);
++  assert.throws(() => parseDuration("45S"), RangeError);
++  assert.throws(() => parseDuration("500MS"), RangeError);
++  assert.throws(() => parseDuration("500Ms"), RangeError);
++});
++
++test("parseDuration refuses fractions, signs and exponents", () => {
++  assert.throws(() => parseDuration("1.5h"), RangeError);
++  assert.throws(() => parseDuration("0.5s"), RangeError);
++  assert.throws(() => parseDuration(".5s"), RangeError);
++  assert.throws(() => parseDuration("1,5h"), RangeError);
++  assert.throws(() => parseDuration("-1h"), RangeError);
++  assert.throws(() => parseDuration("+1h"), RangeError);
++  assert.throws(() => parseDuration("1e3s"), RangeError);
++  assert.throws(() => parseDuration("1h-30m"), RangeError);
++});
++
++test("parseDuration refuses non-ASCII digits and lookalikes", () => {
++  assert.throws(() => parseDuration("١h"), RangeError);
++  assert.throws(() => parseDuration("１h"), RangeError);
++  assert.throws(() => parseDuration("1 h"), RangeError);
++});
++
++test("parseDuration refuses a non-string with a TypeError", () => {
++  assert.throws(() => parseDuration(45), TypeError);
++  assert.throws(() => parseDuration(5400), TypeError);
++  assert.throws(() => parseDuration(null), TypeError);
++  assert.throws(() => parseDuration(undefined), TypeError);
++  assert.throws(() => parseDuration(), TypeError);
++  assert.throws(() => parseDuration(["1h"]), TypeError);
++  assert.throws(() => parseDuration({ toString: () => "1h" }), TypeError);
++  assert.throws(() => parseDuration(new String("1h")), TypeError);
++  assert.throws(() => parseDuration(Symbol("1h")), TypeError);
++  assert.throws(() => parseDuration(true), TypeError);
++});

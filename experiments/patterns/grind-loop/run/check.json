@@ -1,0 +1,23 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260919-1230-k7qm: the earlier random-suffix form",
+    "no `ending` line before the final note n-0006 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "timestamps: 7 given, 0 out of append order",
+    "permission denials: Bash `RID=\"$(date +%Y%m%d-%H%M)-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c4)\" `; Bash `date -u +%Y-%m-%dT%H:%M:%SZ; npm test 2>&1; echo \"EXIT=$?\"; git status --short; `; Bash `cd <local path>`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

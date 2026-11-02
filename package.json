@@ -1,0 +1,22 @@
+{
+  "name": "grooph",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "Lightweight workflow diagrams in 2D and 3D, drawn by a person, by an AI agent, or by both.",
+  "license": "MIT",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r exec rm -rf dist",
+    "grooph": "grooph"
+  },
+  "devDependencies": {
+    "@grooph/cli": "workspace:*",
+    "@grooph/lab": "workspace:*"
+  }
+}

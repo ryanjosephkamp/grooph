@@ -1,0 +1,167 @@
+import type { Graph, Id, Issue, RunNote, RunSummary } from "@grooph/core";
+import { Background, BackgroundVariant, ReactFlow, useReactFlow, type EdgeTypes, type NodeTypes } from "@xyflow/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { stateLabel } from "../../doc/run.js";
+import { severityById } from "../../doc/issues.js";
+import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
+import { edgeBends, labelSpots, type Box } from "./bends.js";
+import { boxed, type UseBoxes } from "./boxes.js";
+import { RUN_PAD, VIEWER_PAD, fitOptions, glide } from "./fit.js";
+import { OpeningView } from "./OpeningView.js";
+import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
+import { GraphNode, nodeLabel, onNodeKey, type GraphFlowNode } from "./GraphNode.js";
+
+const nodeTypes: NodeTypes = { graph: GraphNode };
+const edgeTypes: EdgeTypes = { graph: GraphEdge };
+
+type Size = { width: number; height: number };
+
+/** What a run view lights up: a note's node, edge or loop. */
+export type Highlight = { nodes: Id[]; edges: Id[]; loop?: Id };
+
+/**
+ * A read-only projection of a graph: nothing here writes to any document.
+ * The link viewer's canvas (the document's own layout, pan and zoom, nodes
+ * tappable for details). The compare card's compact picture that lived here
+ * is the glyph since then.
+ *
+ * With `run`, each node carries its run state (icon and label as well as
+ * color) and `highlight` lights up the object a timeline note is about.
+ */
+type Props = {
+  doc: Graph;
+  variant: "full";
+  issues?: Issue[];
+  selected?: Id;
+  onNodeTap?: (id: Id) => void;
+  run?: RunSummary;
+  highlight?: Highlight;
+  /** a run's notes in the order it wrote them: the canvas does not draw them; the view in three dimensions steps through them (`graph-views.tsx`) */
+  notes?: readonly RunNote[];
+};
+
+export const ViewCanvas = boxed<Props>(Drawn, (props) => props.doc);
+
+function Drawn(props: Props & { useBoxes: UseBoxes }) {
+  // The link viewer keeps room for its bottom bar; the run view has none, and its canvas is shorter.
+  const pad = props.run ? RUN_PAD : VIEWER_PAD;
+  const [measured, setMeasured] = useState<Record<Id, Size>>({});
+  /** Whether the person has panned or zoomed: until then the view is the app's, and follows the room a panel leaves. */
+  const moved = useRef(false);
+  const own = useMemo(() => resolvePositions(props.doc).positions, [props.doc]);
+  const severity = useMemo(() => severityById(props.issues ?? []), [props.issues]);
+  // A subgrooph is one box: the document is drawn with each closed box as one node, placed over the
+  // room its nodes take. A run's canvas shows every node's state, so its boxes are open; a node a note is about
+  // opens the boxes around it.
+  const boxes = props.useBoxes(props.doc, own, measured, severity, props.highlight?.nodes, props.selected, !!props.run);
+  const doc = boxes?.doc ?? props.doc;
+  const positions = boxes?.positions ?? own;
+
+  const nodes = useMemo(
+    () =>
+      doc.nodes.map((node) => {
+        const loops = doc.loops.map((l, i) => ({ id: l.id, name: l.name, color: i, members: l.members })).filter((l) => l.members.includes(node.id));
+        const base = { id: node.id, position: positions[node.id] ?? { x: 0, y: 0 }, ariaLabel: nodeLabel(node), ...(measured[node.id] ? { measured: measured[node.id] } : {}) };
+        const run = props.run?.nodes[node.id];
+        const loopIndex = props.highlight?.loop !== undefined ? doc.loops.findIndex((l) => l.id === props.highlight!.loop) : -1;
+        return {
+          ...base,
+          type: "graph" as const,
+          data: {
+            node,
+            severity: severity.get(node.id),
+            loops: loops.map(({ members: _m, ...l }) => l),
+            selected: node.id === props.selected,
+            highlighted: loopIndex < 0 && (props.highlight?.nodes.includes(node.id) ?? false),
+            connectFrom: false,
+            ...(loopIndex >= 0 && doc.loops[loopIndex]!.members.includes(node.id) ? { loopColor: loopIndex } : {}),
+            ...(run ? { run: { state: run.state, label: stateLabel(run.state, run.lastOutcome), runs: run.runs } } : {}),
+          },
+        } satisfies GraphFlowNode;
+      }),
+    [doc, positions, measured, severity, props.selected, props.run, props.highlight],
+  );
+
+  const edges: GraphFlowEdge[] = useMemo(() => {
+    const known = new Set(doc.nodes.map((n) => n.id));
+    const boxes: Record<Id, Box> = {};
+    for (const n of doc.nodes) {
+      const p = positions[n.id] ?? { x: 0, y: 0 };
+      boxes[n.id] = { x: p.x, y: p.y, w: measured[n.id]?.width ?? NODE_WIDTH, h: measured[n.id]?.height ?? NODE_HEIGHT };
+    }
+    const bends = edgeBends(doc, boxes);
+    const spots = labelSpots(doc, boxes, bends);
+    return doc.edges
+      .filter((e) => known.has(e.from) && known.has(e.to))
+      .map((edge) => {
+        const loopIndex = doc.loops.findIndex((l) => l.back.includes(edge.id));
+        return {
+          id: edge.id,
+          source: edge.from,
+          target: edge.to,
+          type: "graph" as const,
+          data: {
+            edge,
+            back: loopIndex >= 0,
+            loopColor: loopIndex >= 0 ? loopIndex : undefined,
+            bend: bends.get(edge.id) ?? 0,
+            labelAt: spots.get(edge.id),
+            severity: severity.get(edge.id),
+            selected: false,
+            highlighted: props.highlight?.edges.includes(edge.id) ?? false,
+          },
+        };
+      });
+  }, [doc, positions, measured, severity, props.highlight]);
+
+  return (
+    <ReactFlow<GraphFlowNode, GraphFlowEdge>
+      nodes={boxes?.with(nodes) ?? nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
+      onNodesChange={(changes) => {
+        const sizes: Record<Id, Size> = {};
+        for (const change of changes) if (change.type === "dimensions" && change.dimensions) sizes[change.id] = change.dimensions;
+        if (Object.keys(sizes).length > 0) setMeasured((m) => ({ ...m, ...sizes }));
+      }}
+      onNodeClick={(_, node) => props.onNodeTap?.(node.id)}
+      onKeyDown={onNodeKey(props.onNodeTap)}
+      edgesFocusable={false}
+      onMove={(event) => {
+        // A move, not its start: a click on a node that cannot be dragged starts a pan and moves nothing.
+        if (event) moved.current = true;
+      }}
+      nodesDraggable={false}
+      nodesConnectable={false}
+      elementsSelectable={false}
+      deleteKeyCode={null}
+      selectionKeyCode={null}
+      multiSelectionKeyCode={null}
+      panOnScroll={false}
+      nodeClickDistance={6}
+      minZoom={0.2}
+      maxZoom={2}
+      fitView
+      fitViewOptions={fitOptions(pad)}
+      attributionPosition="top-right"
+    >
+      <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} />
+      <OpeningView pad={pad} control refit={moved} />
+      {props.highlight ? <FocusOn ids={props.highlight.nodes} /> : null}
+    </ReactFlow>
+  );
+}
+
+/** Bring highlighted nodes into view: pan, and zoom out if they do not fit, never in. */
+function FocusOn({ ids }: { ids: Id[] }) {
+  const flow = useReactFlow();
+  const key = ids.join(" ");
+  useEffect(() => {
+    if (key === "") return;
+    const zoom = flow.getZoom();
+    void flow.fitView({ nodes: key.split(" ").map((id) => ({ id })), padding: 0.5, maxZoom: zoom, duration: glide() });
+  }, [key, flow]);
+  return null;
+}

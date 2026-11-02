@@ -1,0 +1,201 @@
+import { glyph, mermaid, validate, type Graph } from "@grooph/core";
+import { useEffect, useMemo, useState } from "react";
+
+import { copyText, download } from "../../doc/exportPackage.js";
+import { builtInTemplate, loadPlanTemplates, PLAN_NOTE, slotsOf, type TemplateSource } from "../../doc/templates.js";
+import { deleteUserTemplate, getUserTemplate, templateFileName, templateFileText } from "../../store/templates.js";
+import { Glyph } from "../Glyph.js";
+import { GraphViewer } from "../open/GraphViewer.js";
+import { Credits } from "./Credits.js";
+import { ProfileChips } from "./ProfileChips.js";
+import { templateHref } from "./TemplatesScreen.js";
+
+/**
+ * A template by source and id: built-ins at once, yours from the device, a plan once the plans have been fetched.
+ * `null` when there is none; `"unfetched"` when it is a plan and the plans could not be fetched.
+ */
+export function useTemplate(source: TemplateSource, id: string): Graph | null | undefined | "unfetched" {
+  const [doc, setDoc] = useState<Graph | null | undefined | "unfetched">(() => (source === "built-in" ? (builtInTemplate(id) ?? null) : undefined));
+  useEffect(() => {
+    if (source === "built-in") return;
+    let live = true;
+    if (source === "plan") {
+      loadPlanTemplates().then(
+        (plans) => live && setDoc(plans.find((plan) => plan.id === id) ?? null),
+        () => live && setDoc("unfetched"),
+      );
+    } else void getUserTemplate(id).then((found) => live && setDoc(found ?? null));
+    return () => {
+      live = false;
+    };
+  }, [source, id]);
+  return doc;
+}
+
+export function TemplateMissing({ unfetched }: { unfetched?: boolean }) {
+  return (
+    <div className="notfound">
+      <p>{unfetched ? "The plans could not be fetched. They need a connection the first time." : "This template is not on this device."}</p>
+      <a className="btn btn-primary" href="#/templates">
+        Back to templates
+      </a>
+    </div>
+  );
+}
+
+/** A template, read-only in the viewer, with what it is for and the slots it asks for (criterion 2). */
+export function TemplateView({ source, id }: { source: TemplateSource; id: string }) {
+  const doc = useTemplate(source, id);
+  if (doc === undefined) return <div className="loading">Opening…</div>;
+  if (doc === null || doc === "unfetched") return <TemplateMissing unfetched={doc === "unfetched"} />;
+  return <TemplateViewer key={`${source}/${id}`} source={source} doc={doc} />;
+}
+
+function TemplateViewer({ source, doc }: { source: TemplateSource; doc: Graph }) {
+  const t = doc.template!;
+  // A template is checked as a document, not for export: the template block and its slots are what make it one.
+  const issues = useMemo(() => validate(doc), [doc]);
+  const fragment = t.kind === "fragment";
+
+  const bar = (
+    <div className="viewer-bar" role="region" aria-label="Use">
+      {fragment ? (
+        <span className="viewer-note">A fragment: open a graph, then Add → Insert a template.</span>
+      ) : (
+        <>
+          <span className="viewer-note">Read-only. Use it to make a graph of your own.</span>
+          <a className="btn btn-primary" href={templateHref(source, doc.id, true)}>
+            Use
+          </a>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <GraphViewer
+      doc={doc}
+      back={{ href: "#/templates", label: "All templates" }}
+      context={source === "plan" ? "plan template" : `${source === "yours" ? "your" : "built-in"} ${fragment ? "fragment" : "template"}`}
+      issues={issues}
+      about={{ title: t.title, subtitle: `${doc.id}@${doc.version}`, body: <TemplateDetails source={source} doc={doc} /> }}
+      bar={bar}
+    />
+  );
+}
+
+function TemplateDetails({ source, doc }: { source: TemplateSource; doc: Graph }) {
+  const t = doc.template!;
+  const slots = slotsOf(doc);
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <div className="inspector template-details">
+      <GlyphCard doc={doc} />
+      {source === "plan" ? <p className="field-hint">{PLAN_NOTE}</p> : null}
+      <p className="prose">{t.summary}</p>
+      {t.kind === "graph" ? (
+        <a className="btn btn-primary template-use" href={templateHref(source, doc.id, true)}>
+          Use this template
+        </a>
+      ) : (
+        <p className="field-hint">A fragment: open a graph, then Add → Insert a template.</p>
+      )}
+      {/* A plan's profile is a field the format requires; nothing was measured (plans/README.md), so it is not shown. */}
+      {source === "plan" ? null : <ProfileChips profile={t.profile} />}
+      <Credits credits={t.credits} />
+      <dl className="readonly">
+        <div className="readonly-row">
+          <dt>Use when</dt>
+          <dd>{t.whenToUse}</dd>
+        </div>
+        {t.notFor ? (
+          <div className="readonly-row">
+            <dt>Not for</dt>
+            <dd>{t.notFor}</dd>
+          </div>
+        ) : null}
+        {t.tags && t.tags.length > 0 ? (
+          <div className="readonly-row">
+            <dt>Tags</dt>
+            <dd>{t.tags.join(", ")}</dd>
+          </div>
+        ) : null}
+      </dl>
+
+      <h3 className="files-title">{slots.length === 0 ? "No slots" : `${slots.length} slot${slots.length === 1 ? "" : "s"}`}</h3>
+      {slots.length > 0 ? (
+        <ul className="slot-list" aria-label="Slots">
+          {slots.map((slot) => (
+            <li key={slot.key}>
+              <span className="slot-ask">{slot.ask}</span>
+              <span className="mono slot-key">{`{{${slot.key}}}`}</span>
+              {slot.example ? <span className="slot-example">e.g. {slot.example}</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="field-hint">It asks nothing: use it as it is.</p>
+      )}
+
+      {source === "yours" ? (
+        <div className="export-actions">
+          <button type="button" className="btn" onClick={() => download(templateFileName(doc), templateFileText(doc), "application/json")}>
+            Download template (.grooph.json)
+          </button>
+          {confirm ? (
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={async () => {
+                await deleteUserTemplate(doc.id);
+                location.hash = "#/templates";
+              }}
+            >
+              Delete for good
+            </button>
+          ) : (
+            <button type="button" className="btn btn-danger-text" onClick={() => setConfirm(true)}>
+              Delete template
+            </button>
+          )}
+          <p className="field-hint">
+            The same file a registry holds: put it in <span className="mono">.grooph/templates/</span>, or host it and run{" "}
+            <span className="mono">grooph template add &lt;url&gt;</span>.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The glyph at the top of the template page, with the two ways
+ * to take it along: the SVG as a file, through the app's download path, and
+ * the Mermaid projection on the clipboard, through its copy path (a page
+ * cannot start a download by itself).
+ */
+function GlyphCard({ doc }: { doc: Graph }) {
+  const [note, setNote] = useState<string | null>(null);
+  return (
+    <div className="glyph-card">
+      <Glyph doc={doc} className="glyph-large" />
+      <div className="glyph-actions">
+        <button type="button" className="btn btn-small" onClick={() => download(`${doc.id}.svg`, `${glyph(doc)}\n`, "image/svg+xml")}>
+          Save glyph
+        </button>
+        <button
+          type="button"
+          className="btn btn-small"
+          onClick={async () => setNote((await copyText(mermaid(doc))) ? "Mermaid copied. grooph reads back its nodes, edges, loops and stops; briefs and brakes stay in the document." : "Could not copy; the Mermaid text is what grooph mermaid prints.")}
+        >
+          Copy Mermaid
+        </button>
+      </div>
+      {note ? (
+        <p className="field-hint glyph-note" role="status">
+          {note}
+        </p>
+      ) : null}
+    </div>
+  );
+}

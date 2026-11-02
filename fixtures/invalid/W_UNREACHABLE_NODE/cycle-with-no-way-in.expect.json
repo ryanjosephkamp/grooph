@@ -1,0 +1,8 @@
+{
+  "issues": [
+    "E_CYCLE_NO_STOP",
+    "W_UNREACHABLE_NODE",
+    "W_UNREACHABLE_NODE"
+  ],
+  "note": "Under graph-ir §2 entry nodes, a node no entry reaches always sits on an uncovered cycle or behind a dangling edge, so this rule never fires alone."
+}

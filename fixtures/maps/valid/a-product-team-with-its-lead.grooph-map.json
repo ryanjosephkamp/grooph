@@ -1,0 +1,350 @@
+{
+  "groophMap": 0,
+  "id": "a-product-team-with-its-lead",
+  "name": "A product team, with its lead drawn",
+  "version": 4,
+  "asOf": "2026-10-01",
+  "description": "The same operation as a-product-team, with its lead drawn as a person. Ada and the Operator talk in one chat app, mostly on a phone, and through private review pages that Ada marks or copies a prompt back from. Counts are for one morning.",
+  "lanes": [
+    {
+      "id": "cloud-b",
+      "name": "Cloud, account B",
+      "machine": "Claude Code cloud sandboxes (one environment)",
+      "place": "cloud",
+      "account": "Claude account B"
+    },
+    {
+      "id": "mac-a",
+      "name": "Mac, account A",
+      "machine": "Ada's Mac",
+      "place": "local",
+      "account": "Claude account A"
+    },
+    {
+      "id": "mac-openai",
+      "name": "Mac, OpenAI",
+      "machine": "Ada's Mac",
+      "place": "local",
+      "account": "OpenAI account"
+    }
+  ],
+  "people": [
+    {
+      "id": "ada",
+      "name": "Ada",
+      "role": "Owns the operation. Talks to the Operator in one chat in the Claude app, mostly on their phone; marks its private pages; reads the morning notifications; carries prompts to the sessions it cannot reach"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "operator",
+      "name": "Operator",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "Plans; starts, steers and checks every session on account B; merges; keeps the review pages. Extra-high effort. Leads the research project too",
+      "lifetime": "long-lived",
+      "repo": "4 repositories: the product's, the research project's and two of Ada's sites"
+    },
+    {
+      "id": "build-lanes",
+      "name": "Build lanes",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "Each builds one piece of the product on its own branch. Opus 5.5 now; Sonnet 5.5 for lighter work (none running)",
+      "lifetime": "per-task",
+      "count": 10,
+      "repo": "product"
+    },
+    {
+      "id": "integrators",
+      "name": "Integrators",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "role": "Run the full test suite on main plus the PRs named, and report each failure with its lead",
+      "lifetime": "long-lived",
+      "count": 2,
+      "repo": "product"
+    },
+    {
+      "id": "helpers",
+      "name": "One-off helpers",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "role": "Short jobs the Operator starts when the pace allows: an audit, a catalog (two on September 30, none running now)",
+      "lifetime": "per-task",
+      "repo": "product"
+    },
+    {
+      "id": "fresh-routines",
+      "name": "Digest and patrol",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "role": "Read-only: a fresh session each morning reads the state (or tests the live site) and reports to Ada's phone",
+      "lifetime": "scheduled",
+      "count": 2,
+      "repo": "none; each clones product"
+    },
+    {
+      "id": "research-lanes",
+      "name": "Research lanes",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5 (2), claude-sonnet-5-5 (1)",
+      "role": "A private research project, worked in its own lanes; the Operator is their lead",
+      "lifetime": "per-task",
+      "count": 3,
+      "repo": "the research repo"
+    },
+    {
+      "id": "diagrams",
+      "name": "Diagram session",
+      "lane": "mac-a",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "Builds the diagram tool: exports, operation maps and the live view. High effort",
+      "lifetime": "long-lived",
+      "repo": "example/diagrams"
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "lane": "mac-openai",
+      "harness": "codex",
+      "model": "GPT-6.1 Sol",
+      "role": "Outside checks for the research project: a prior-art review and a claim spot-check so far",
+      "lifetime": "per-task",
+      "repo": "the research repo"
+    }
+  ],
+  "handoffs": [
+    {
+      "id": "h-ada-operator",
+      "from": "ada",
+      "to": "operator",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "what Ada wants done, in their own words or a file they attach; their usage numbers; answers they copy back from a decision page's pre-filled prompt; and anything a routine's notification or another session told them"
+    },
+    {
+      "id": "h-operator-ada",
+      "from": "operator",
+      "to": "ada",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "replies in the chat: reports, questions for Ada, step-by-step instructions, and the prompts it writes for the sessions it cannot reach; pictures and backups come as files in the chat"
+    },
+    {
+      "id": "h-operator-pages",
+      "from": "operator",
+      "to": "ada",
+      "carrier": {
+        "kind": "review-page",
+        "where": "private pages on account B"
+      },
+      "what": "decision pages with calls and a pre-filled prompt Ada copies back; boards Ada marks"
+    },
+    {
+      "id": "h-start-lanes",
+      "from": "operator",
+      "to": "build-lanes",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "a new lane: create_session (Claude Code Remote tools) with the brief as its first prompt, its model and its branch"
+    },
+    {
+      "id": "h-steer-lanes",
+      "from": "operator",
+      "to": "build-lanes",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "one-shot routine"
+      },
+      "what": "each later message: a new round, a failure to fix, merge main, Ada's marks"
+    },
+    {
+      "id": "h-lanes-back",
+      "from": "build-lanes",
+      "to": "operator",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "product"
+      },
+      "what": "one draft PR per round, plus a report file on the branch; the Operator reads the lane's last message and status with get_session, not its transcript"
+    },
+    {
+      "id": "h-lanes-clips",
+      "from": "build-lanes",
+      "to": "operator",
+      "carrier": {
+        "kind": "review-page",
+        "where": "private review pages on account B"
+      },
+      "what": "a preview of each changed piece; Ada marks each good or fix, and the Operator and the lane read the marks"
+    },
+    {
+      "id": "h-ada-marks",
+      "from": "ada",
+      "to": "build-lanes",
+      "carrier": {
+        "kind": "review-page",
+        "where": "private review pages on account B"
+      },
+      "what": "good or fix, with a note, on each preview; the lane reads them, and the Operator reads them and passes them on"
+    },
+    {
+      "id": "h-ada-marks-operator",
+      "from": "ada",
+      "to": "operator",
+      "carrier": {
+        "kind": "review-page",
+        "where": "private pages on account B"
+      },
+      "what": "Ada's marks and notes on the review pages and the boards, which the Operator reads from each page's database"
+    },
+    {
+      "id": "h-start-tests",
+      "from": "operator",
+      "to": "integrators",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "one-shot routine"
+      },
+      "what": "which PRs and SHAs to merge onto main and test"
+    },
+    {
+      "id": "h-tests-back",
+      "from": "integrators",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "product"
+      },
+      "what": "a results file per run on a results branch: a RESULT line, the tree tested, each failure and its lead"
+    },
+    {
+      "id": "h-start-helpers",
+      "from": "operator",
+      "to": "helpers",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "a one-off job"
+    },
+    {
+      "id": "h-helpers-back",
+      "from": "helpers",
+      "to": "operator",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "product"
+      },
+      "what": "a report or catalog as a docs PR"
+    },
+    {
+      "id": "h-self-wake",
+      "from": "operator",
+      "to": "operator",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "every 30-45 min"
+      },
+      "what": "its own check-ins (one-shot, self-scheduled) and two routines of its own: a backup twice a day and a weekly ideas run"
+    },
+    {
+      "id": "h-routines-notify",
+      "from": "fresh-routines",
+      "to": "ada",
+      "carrier": {
+        "kind": "notification",
+        "where": "Ada's phone"
+      },
+      "what": "each morning's digest and site patrol, as a push notification; what matters for the Operator Ada says in the chat"
+    },
+    {
+      "id": "h-start-research",
+      "from": "operator",
+      "to": "research-lanes",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "a new lane, as for the product; later messages by one-shot routine"
+    },
+    {
+      "id": "h-research-back",
+      "from": "research-lanes",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the research repo"
+      },
+      "what": "each lane's branch and PRs"
+    },
+    {
+      "id": "h-research-each-other",
+      "from": "research-lanes",
+      "to": "research-lanes",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the research repo"
+      },
+      "what": "one lane builds on another's branch"
+    },
+    {
+      "id": "h-ada-codex",
+      "from": "ada",
+      "to": "codex",
+      "carrier": {
+        "kind": "person"
+      },
+      "what": "pastes the prompt the Operator wrote into Codex"
+    },
+    {
+      "id": "h-codex-back",
+      "from": "codex",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the research repo"
+      },
+      "what": "Codex's work on its own branch, which the Operator fetches"
+    },
+    {
+      "id": "h-codex-research",
+      "from": "codex",
+      "to": "research-lanes",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the research repo"
+      },
+      "what": "corrections a research lane ports in, when the Operator says so"
+    },
+    {
+      "id": "h-ada-diagrams",
+      "from": "ada",
+      "to": "diagrams",
+      "carrier": {
+        "kind": "person"
+      },
+      "what": "pastes the Operator's prompts into the Diagram session; the session's answers come back through its repository, with a short prompt Ada pastes to the Operator"
+    },
+    {
+      "id": "h-diagrams-back",
+      "from": "diagrams",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "example/diagrams",
+        "ref": "main"
+      },
+      "what": "a short page; Ada pastes a short prompt that points to it"
+    }
+  ]
+}

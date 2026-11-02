@@ -1,0 +1,16 @@
+{"v":1,"t":"2026-10-01T01:51:32.486Z","harness":"claude-code","event":"session-start","session":"session-1","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:51:33.264Z","harness":"claude-code","event":"turn-start","session":"session-1","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:51:36.439Z","harness":"claude-code","event":"tool","session":"session-1","tool":"ToolSearch","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:51:39.266Z","harness":"claude-code","event":"tool","session":"session-1","tool":"mcp__grooph__grooph_plan","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:51:43.851Z","harness":"claude-code","event":"subagent-start","session":"session-1","agent":"a1461789324b4ebad","type":"Explore"}
+{"v":1,"t":"2026-10-01T01:51:44.760Z","harness":"claude-code","event":"subagent-start","session":"session-1","agent":"a420c2229f32a5619","type":"general-purpose"}
+{"v":1,"t":"2026-10-01T01:51:46.345Z","harness":"claude-code","event":"tool","session":"session-1","agent":"a1461789324b4ebad","type":"Explore","tool":"Read"}
+{"v":1,"t":"2026-10-01T01:51:47.590Z","harness":"claude-code","event":"subagent-stop","session":"session-1","agent":"a1461789324b4ebad","type":"Explore","transcript":"<local path>"}
+{"v":1,"t":"2026-10-01T01:51:47.593Z","harness":"claude-code","event":"tool","session":"session-1","tool":"Agent","spawned":"a1461789324b4ebad","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:51:48.637Z","harness":"claude-code","event":"tool","session":"session-1","agent":"a420c2229f32a5619","type":"general-purpose","tool":"Bash"}
+{"v":1,"t":"2026-10-01T01:51:50.464Z","harness":"claude-code","event":"subagent-stop","session":"session-1","agent":"a420c2229f32a5619","type":"general-purpose","transcript":"<local path>"}
+{"v":1,"t":"2026-10-01T01:51:50.464Z","harness":"claude-code","event":"tool","session":"session-1","tool":"Agent","spawned":"a420c2229f32a5619","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:51:52.351Z","harness":"claude-code","event":"tool","session":"session-1","tool":"mcp__grooph__grooph_running","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:51:54.798Z","harness":"claude-code","event":"tool","session":"session-1","tool":"mcp__grooph__grooph_note","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:51:56.699Z","harness":"claude-code","event":"turn-end","session":"session-1","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:51:56.803Z","harness":"claude-code","event":"session-end","session":"session-1","cwd":"/<local path>"}

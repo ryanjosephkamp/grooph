@@ -1,0 +1,27 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260919-1241-k7qm: the earlier random-suffix form",
+    "REVIEW.md: critic Write .grooph/pages-from-one/runs/20260919-1241-k7qm/REVIEW-r0.md",
+    "pages-from-one--critic (Critic round 0) read .grooph/pages-from-one/runs/20260919-1241-k7qm/diff-r0.patch, docs/REVIEW-CHECKLIST.md, src/paginate.mjs, README.md; ran nothing",
+    "no `ending` line before the final note n-0007 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "verdicts in order: critic \u2192 pass",
+    "timestamps: 8 given, 1 out of append order (estimated, not read from the clock)",
+    "permission denials: Bash `RID=\"20260919-1241-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c4)\" && mkdi`; Bash `LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c4`; Bash `npm run check 2>&1; echo \"exit=$?\"; date -u +%Y-%m-%dT%H:%M:%SZ; git status --sh`; Bash `cd <local path>`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done",
+      "stop bar-passed"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

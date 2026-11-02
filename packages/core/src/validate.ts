@@ -1,0 +1,857 @@
+/**
+ * The validator. One function per rule in `docs/graph-ir.md` §3, each carrying
+ * the code it emits.
+ *
+ * Rules run in table order so output is stable.
+ */
+
+import { canonicalizeWithoutLayout } from "./canonicalize.js";
+import { findCycles, hasPathWithin, indexGraph, isAgentNode, sortNodeIds, type GraphIndex } from "./graph-index.js";
+import { error, warning, type Issue } from "./issues.js";
+import { nearestIds } from "./parse.js";
+import { graphSchema } from "./schema/graph.js";
+import type { UnknownKey } from "./schema/dsl.js";
+import {
+  edgeIsolation,
+  entryNodeIds,
+  hasInspectableBar,
+  isCriticFamily,
+  isPersonStep,
+  isWriterFamily,
+  loopMode,
+  policyCoversEdge,
+  reachableFrom,
+} from "./semantics.js";
+import { didYouMean } from "./suggest.js";
+import { hasProfile } from "./targets/names.js";
+import { findSlots } from "./template.js";
+import type { AgentNode, Edge, Graph, Group, Id, Node } from "./types.js";
+
+export type ValidateOptions = {
+  /** Apply the rules that only bite at export time: `E_NO_TARGET`, `E_NO_GOAL`, `E_IS_TEMPLATE`, `E_UNFILLED_SLOT`. */
+  forExport?: boolean;
+  /**
+   * The rules about loops and stops (`LOOP_RULES`). By the contract they are advice a person asks
+   * for and never an error, so they are left out unless asked for: `"advice"` reports them as warnings, under their
+   * own codes. `"errors"` reports them as they were written, for what a harness is to run (the lab's packages and
+   * runs, a plan's list of what a harness would need) and for the checks that hold a shape to them: the built-in
+   * and community ones, and a template a person saves or adds, which is a shape to start from again.
+   */
+  loops?: "advice" | "errors";
+};
+
+/** The rules about loops and stops: what a loop needs to end, and to be judged against something that can be read. */
+export const LOOP_RULES: readonly string[] = ["E_CYCLE_NO_STOP", "E_JUDGMENT_LOOP_NO_BAR", "E_STOP_NOT_INSPECTABLE", "W_LONG_LOOP_NO_BUDGET", "W_ASPIRATION_AS_ACCEPTANCE", "W_ONLY_MAX_ITERATIONS"];
+
+/** graph-ir §3 (`W_DOC_TOO_LARGE`): the "rewrite in one pass" budget. */
+export const DOC_SIZE_LIMIT = 24_000;
+
+export function validate(doc: Graph, opts: ValidateOptions = {}): Issue[] {
+  const all = rules(doc, opts);
+  if (opts.loops === "errors") return all;
+  if (opts.loops === "advice") return all.map((issue): Issue => (LOOP_RULES.includes(issue.code) ? { ...issue, severity: "warning" } : issue));
+  return all.filter((issue) => !LOOP_RULES.includes(issue.code));
+}
+
+/** Every rule, in table order, as it was written. */
+function rules(doc: Graph, opts: ValidateOptions): Issue[] {
+  const index = indexGraph(doc);
+  return [
+    ...duplicateIds(index),
+    ...danglingRefs(index),
+    ...loopBackEdges(index),
+    ...groupCycles(index),
+    ...secondLead(index),
+    ...personLead(index),
+    ...cyclesWithoutStop(index),
+    ...judgmentLoopsWithoutBar(index),
+    ...stopsNotInspectable(index),
+    ...(opts.forExport ? exportOnlyRules(index) : []),
+    ...criticsNotIsolated(index),
+    ...ownershipConflicts(index),
+    ...irreversibleWithoutGate(index),
+    ...homogeneousCritics(index),
+    ...fanoutOnCoupled(index),
+    ...longLoopsWithoutBudget(index),
+    ...aspirationAsAcceptance(index),
+    ...onlyMaxIterations(index),
+    ...unreachableNodes(index),
+    ...noTerminal(index),
+    ...outputsNotWritable(index),
+    ...personFieldsNotRead(index),
+    ...groupOverlaps(index),
+    ...unknownKeys(index),
+    ...docTooLarge(index),
+  ];
+}
+
+/** `E_DUPLICATE_ID` — an id appears more than once across all id-bearing objects. */
+function duplicateIds(index: GraphIndex): Issue[] {
+  const seen = new Map<Id, string[]>();
+  for (const owner of index.owners) {
+    const places = seen.get(owner.id) ?? [];
+    places.push(owner.kind === "graph" ? "the graph's own id" : `${owner.kind}s[${owner.index}]`);
+    seen.set(owner.id, places);
+  }
+  const issues: Issue[] = [];
+  for (const [id, places] of seen) {
+    if (places.length > 1) {
+      issues.push(
+        error("E_DUPLICATE_ID", `id "${id}" is used ${places.length} times: ${places.join(", ")}`, [id]),
+      );
+    }
+  }
+  return issues;
+}
+
+/** `E_DANGLING_REF` — a reference names an id no object in the document has. */
+function danglingRefs(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  const nodeMissing = (id: Id): boolean => !index.nodes.has(id);
+
+  for (const edge of index.doc.edges ?? []) {
+    if (nodeMissing(edge.from)) {
+      issues.push(error("E_DANGLING_REF", `edge "${edge.id}" starts at unknown node "${edge.from}"`, [edge.id]));
+    }
+    if (nodeMissing(edge.to)) {
+      issues.push(error("E_DANGLING_REF", `edge "${edge.id}" ends at unknown node "${edge.to}"`, [edge.id]));
+    }
+  }
+
+  for (const loop of index.doc.loops ?? []) {
+    for (const member of loop.members ?? []) {
+      if (nodeMissing(member)) {
+        issues.push(error("E_DANGLING_REF", `loop "${loop.id}" lists unknown member "${member}"`, [loop.id]));
+      }
+    }
+    for (const back of loop.back ?? []) {
+      if (!index.edges.has(back)) {
+        issues.push(error("E_DANGLING_REF", `loop "${loop.id}" lists unknown back edge "${back}"`, [loop.id]));
+      }
+    }
+    if (loop.bar?.answerKeyFrom !== undefined && nodeMissing(loop.bar.answerKeyFrom)) {
+      issues.push(
+        error(
+          "E_DANGLING_REF",
+          `loop "${loop.id}" takes its answer key from unknown node "${loop.bar.answerKeyFrom}"`,
+          [loop.id],
+        ),
+      );
+    }
+    (loop.stops ?? []).forEach((stop, i) => {
+      if (stop.then !== undefined && nodeMissing(stop.then)) {
+        issues.push(
+          error(
+            "E_DANGLING_REF",
+            `loop "${loop.id}" stop ${i} (${stop.kind}) continues at unknown node "${stop.then}"`,
+            [loop.id],
+          ),
+        );
+      }
+    });
+  }
+
+  for (const group of index.doc.groups ?? []) {
+    for (const member of group.members ?? []) {
+      if (!index.nodes.has(member) && !index.groups.has(member)) {
+        issues.push(error("E_DANGLING_REF", `group "${group.id}" lists unknown member "${member}"`, [group.id]));
+      }
+    }
+  }
+
+  for (const policy of index.doc.policies ?? []) {
+    const scope = policy.scope;
+    if (scope === "graph") continue;
+    const separator = scope.indexOf(":");
+    const kind = scope.slice(0, separator);
+    const target = scope.slice(separator + 1);
+    const known =
+      (kind === "node" && index.nodes.has(target)) ||
+      (kind === "loop" && index.loops.has(target)) ||
+      (kind === "edge" && index.edges.has(target));
+    if (!known) {
+      issues.push(error("E_DANGLING_REF", `policy "${policy.id}" is scoped to unknown ${kind} "${target}"`, [policy.id]));
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * `E_LOOP_BACK_EDGE` — the `back` list is empty, an edge's endpoints are not
+ * both members, or there is no path inside `members` from that edge's `to`
+ * back to its `from`.
+ */
+function loopBackEdges(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  const edges = index.doc.edges ?? [];
+
+  for (const loop of index.doc.loops ?? []) {
+    const back = loop.back ?? [];
+    if (back.length === 0) {
+      issues.push(error("E_LOOP_BACK_EDGE", `loop "${loop.id}" has no back edge`, [loop.id]));
+      continue;
+    }
+    const members = new Set<Id>(loop.members ?? []);
+    for (const backId of back) {
+      const edge = index.edges.get(backId);
+      if (!edge) continue; // already reported as E_DANGLING_REF
+      if (!members.has(edge.from) || !members.has(edge.to)) {
+        issues.push(
+          error(
+            "E_LOOP_BACK_EDGE",
+            `loop "${loop.id}": back edge "${edge.id}" runs ${edge.from} → ${edge.to}, which is not inside the loop's members`,
+            [loop.id, edge.id],
+          ),
+        );
+        continue;
+      }
+      if (!hasPathWithin(edge.to, edge.from, members, edges)) {
+        issues.push(
+          error(
+            "E_LOOP_BACK_EDGE",
+            `loop "${loop.id}": back edge "${edge.id}" returns to ${edge.to}, but no path inside the loop's members leads from there to ${edge.from}`,
+            [loop.id, edge.id],
+          ),
+        );
+      }
+    }
+  }
+  return issues;
+}
+
+/**
+ * `E_CYCLE_NO_STOP` — remove the back edges of every loop that has at least one
+ * stop; any cycle that remains is uncovered.
+ */
+/** The groups a group lists as members, in the order it lists them. */
+const groupsIn = (index: GraphIndex, group: Group): Group[] =>
+  (group.members ?? []).flatMap((member) => {
+    const inner = index.groups.get(member);
+    return inner ? [inner] : [];
+  });
+
+/**
+ * `E_GROUP_CYCLE` — groups form a tree: a group that holds
+ * itself, directly or through another, is drawn inside itself by no view.
+ * One issue for each ring, named from the group the document lists first.
+ */
+function groupCycles(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  const reported = new Set<string>();
+  for (const start of index.doc.groups ?? []) {
+    const walk = (group: Group, path: Id[]): void => {
+      for (const inner of groupsIn(index, group)) {
+        if (inner.id === start.id) {
+          const ring = [...path].sort().join(" ");
+          if (reported.has(ring)) continue;
+          reported.add(ring);
+          issues.push(
+            error(
+              "E_GROUP_CYCLE",
+              path.length === 1
+                ? `group "${start.id}" lists itself as a member; a group cannot hold itself`
+                : `group "${start.id}" holds itself: ${[...path, start.id].join(" → ")}; groups form a tree`,
+              path,
+            ),
+          );
+        } else if (!path.includes(inner.id)) {
+          walk(inner, [...path, inner.id]);
+        }
+      }
+    };
+    walk(start, [start.id]);
+  }
+  return issues;
+}
+
+/**
+ * `E_SECOND_LEAD` — a graph is one session, and the lead is that session
+ * (graph-ir §2). The compiler takes the first lead node it finds, so a second
+ * would be run as if it were not one. Placing a template inside a graph is the
+ * first operation that could add one.
+ */
+function secondLead(index: GraphIndex): Issue[] {
+  const leads = agentNodes(index).filter((node) => node.role === "lead");
+  if (leads.length < 2) return [];
+  return [
+    error(
+      "E_SECOND_LEAD",
+      `the graph has ${leads.length} lead nodes (${quoted(leads.map((node) => node.id))}); a graph is one session and has at most one lead`,
+      leads.map((node) => node.id),
+    ),
+  ];
+}
+
+/**
+ * `E_PERSON_LEAD` — the lead marked as a person's step. The lead is the harness's own session
+ * (graph-ir §1): it is what runs the graph, and no person can be it.
+ */
+function personLead(index: GraphIndex): Issue[] {
+  return agentNodes(index)
+    .filter((node) => node.role === "lead" && isPersonStep(node))
+    .map((node) => error("E_PERSON_LEAD", `node "${node.id}" is the lead and is marked as a person's step; the lead is the harness's own session: give the step another role, or leave it an agent's`, [node.id]));
+}
+
+function cyclesWithoutStop(index: GraphIndex): Issue[] {
+  const covered = new Set<Id>();
+  for (const loop of index.doc.loops ?? []) {
+    if ((loop.stops ?? []).length === 0) continue;
+    for (const back of loop.back ?? []) covered.add(back);
+  }
+  const remaining: Edge[] = (index.doc.edges ?? []).filter((edge) => !covered.has(edge.id));
+  return findCycles(index, remaining).map((cycle) =>
+    error(
+      "E_CYCLE_NO_STOP",
+      `cycle with no stop: ${sortNodeIds(index, cycle).join(" → ")}. Cover it with a loop that has at least one stop.`,
+      cycle,
+    ),
+  );
+}
+
+/** `E_JUDGMENT_LOOP_NO_BAR` — a judgment loop with no bar, or a bar with nothing inspectable. */
+function judgmentLoopsWithoutBar(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  for (const loop of index.doc.loops ?? []) {
+    if (loopMode(index, loop) !== "judgment") continue;
+    if (hasInspectableBar(index, loop)) continue;
+    issues.push(
+      error(
+        "E_JUDGMENT_LOOP_NO_BAR",
+        loop.bar
+          ? `judgment loop "${loop.id}" has a bar with nothing inspectable; give it at least one file, url, metric, checklist, artifact, or an answer key from a node in the graph`
+          : `judgment loop "${loop.id}" has no bar; name what stopping looks like and what the critic inspects`,
+        [loop.id],
+      ),
+    );
+  }
+  return issues;
+}
+
+/** `E_STOP_NOT_INSPECTABLE` — the only stop is "the bar passed" and the bar is not inspectable. */
+function stopsNotInspectable(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  for (const loop of index.doc.loops ?? []) {
+    const stops = loop.stops ?? [];
+    if (stops.length === 0) continue;
+    if (!stops.every((stop) => stop.kind === "bar-passed")) continue;
+    if (hasInspectableBar(index, loop)) continue;
+    issues.push(
+      error(
+        "E_STOP_NOT_INSPECTABLE",
+        `loop "${loop.id}" stops only when its bar passes, but the bar names nothing a critic can inspect. An adjective is not a bar.`,
+        [loop.id],
+      ),
+    );
+  }
+  return issues;
+}
+
+/**
+ * `E_NO_TARGET`, `E_NO_GOAL`, `E_IS_TEMPLATE`, `E_UNFILLED_SLOT` — export and
+ * bootstrap preconditions. A template reports only `E_IS_TEMPLATE`: its slots
+ * are meant to be there until it is instantiated (docs/templates.md §1).
+ */
+function exportOnlyRules(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  const doc = index.doc;
+
+  const harness = doc.target?.harness;
+  if (harness === undefined || harness.trim() === "") {
+    issues.push(error("E_NO_TARGET", "export needs a target harness; set target.harness", [doc.id]));
+  } else if (!hasProfile(harness)) {
+    issues.push(
+      error("E_NO_TARGET", `grooph has no compiler for the harness "${harness}", so no package can be written for it; the document is a plan as it is`, [doc.id]),
+    );
+  }
+
+  if (doc.goal === undefined || doc.goal.trim() === "") {
+    issues.push(error("E_NO_GOAL", "export needs a goal; the lead brief is built from it", [doc.id]));
+  }
+
+  if (doc.template !== undefined) {
+    issues.push(
+      error(
+        "E_IS_TEMPLATE",
+        `"${doc.id}" is a template; instantiate it first (grooph template use ${doc.id} --name <graph name>)`,
+        [doc.id],
+      ),
+    );
+  } else {
+    for (const slot of findSlots(doc)) {
+      issues.push(
+        error(
+          "E_UNFILLED_SLOT",
+          `slot {{${slot.key}}} is still unfilled in ${quoted(slot.at)}; replace it with a real value before export`,
+          slot.at,
+        ),
+      );
+    }
+    // A person's step. Asked here, among what only a package asks, and not inside the compilers:
+    // a run checks its working copy with these rules, so a step made a person's while a run goes on is seen.
+    const people = agentNodes(index).filter(isPersonStep).map((node) => node.id);
+    if (people.length > 0) {
+      const [is, it] = people.length === 1 ? ["is a person's step", "it"] : ["are people's steps", "each"];
+      issues.push(
+        error(
+          "E_PERSON_STEP_NOT_COMPILED",
+          `${quoted(people)} ${is}, and grooph cannot yet hand a step to a person inside a harness, so no package is written; the plan exports as it is (PLAN.md, the picture, the file); make ${it} an agent's if the graph is to run`,
+          people,
+        ),
+      );
+    }
+  }
+
+  return issues;
+}
+
+const agentNodes = (index: GraphIndex): AgentNode[] => (index.doc.nodes ?? []).filter(isAgentNode);
+
+const quoted = (ids: readonly string[]): string => ids.map((id) => `"${id}"`).join(", ");
+
+/**
+ * `E_CRITIC_NOT_ISOLATED` — spec §12: "a critic node shares the builder's
+ * context when isolation was required". With a `critic-isolation` policy in
+ * scope, an edge into a critic-family node is `shared`, or comes from a writer
+ * with no `evidence` list.
+ */
+function criticsNotIsolated(index: GraphIndex): Issue[] {
+  const policies = (index.doc.policies ?? []).filter((policy) => policy.kind === "critic-isolation");
+  if (policies.length === 0) return [];
+  const issues: Issue[] = [];
+  for (const edge of index.doc.edges ?? []) {
+    const critic = index.nodes.get(edge.to);
+    // A person who judges is not dispatched with a context, so there is none to keep fresh. An
+    // agent that judges a person's work is held as any critic is.
+    if (!critic || !isCriticFamily(critic) || isPersonStep(critic)) continue;
+    const policy = policies.find((p) => policyCoversEdge(index, p, edge));
+    if (!policy) continue;
+    const source = index.nodes.get(edge.from);
+    if (edgeIsolation(edge) === "shared") {
+      issues.push(
+        error(
+          "E_CRITIC_NOT_ISOLATED",
+          `edge "${edge.id}" hands critic "${critic.id}" shared context, but policy "${policy.id}" requires critic isolation; make the edge fresh and list the evidence the critic may inspect`,
+          [edge.id, critic.id],
+        ),
+      );
+    } else if (source && isWriterFamily(source) && (edge.evidence ?? []).length === 0) {
+      issues.push(
+        error(
+          "E_CRITIC_NOT_ISOLATED",
+          `edge "${edge.id}" runs from writer "${source.id}" to critic "${critic.id}" with no evidence list, but policy "${policy.id}" requires critic isolation; list what the critic may inspect`,
+          [edge.id, source.id, critic.id],
+        ),
+      );
+    }
+  }
+  return issues;
+}
+
+/** `E_OWNERSHIP_CONFLICT` — two writers own one artifact and no merge node merges it. */
+function ownershipConflicts(index: GraphIndex): Issue[] {
+  const owners = new Map<string, Id[]>();
+  for (const node of index.doc.nodes ?? []) {
+    if (!isWriterFamily(node) || node.kind !== "agent") continue;
+    for (const artifact of new Set(node.owns ?? [])) owners.set(artifact, [...(owners.get(artifact) ?? []), node.id]);
+  }
+  const merged = new Set<string>();
+  for (const node of index.doc.nodes ?? []) if (node.kind === "merge") for (const artifact of node.merges ?? []) merged.add(artifact);
+
+  const issues: Issue[] = [];
+  for (const [artifact, ids] of owners) {
+    if (ids.length < 2 || merged.has(artifact)) continue;
+    issues.push(
+      error(
+        "E_OWNERSHIP_CONFLICT",
+        `artifact "${artifact}" is owned by writers ${quoted(ids)} and no merge node lists it in merges; give it one owner, or add a merge node that merges it`,
+        ids,
+      ),
+    );
+  }
+  return issues;
+}
+
+/**
+ * `E_IRREVERSIBLE_NO_GATE` — a node with irreversible actions is reachable
+ * without a human decision. A way in is an inbound edge, or a loop's stop that
+ * continues at the node (`then`). An edge passes a human when it carries
+ * `approval: true` or starts at a human-gate node; a stop does when it is the
+ * stop where a person is asked (`human`). Every way in must pass a human, and
+ * there must be one. A node the run starts at (graph-ir §2: only a loop's back
+ * edges lead to it) is reached the first time with nobody asked, whatever
+ * those edges carry.
+ */
+function irreversibleWithoutGate(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  const passesHuman = (edge: Edge): boolean => edge.approval === true || index.nodes.get(edge.from)?.kind === "human-gate";
+  const entries = new Set(entryNodeIds(index));
+  for (const node of agentNodes(index)) {
+    const actions = node.irreversible ?? [];
+    if (actions.length === 0) continue;
+    // A person's own irreversible step needs no gate before it: the person doing it is the one who decides
+    //. A person's step before an agent's irreversible step is not a decision about it, and does
+    // not stand in for a gate: `passesHuman` above counts a gate and an approval, and nothing else.
+    if (isPersonStep(node)) continue;
+    const inbound = index.incoming.get(node.id) ?? [];
+    const open = inbound.filter((edge) => !passesHuman(edge));
+    // The lead arrives by a stop's `then` as surely as by an edge: "continue at node …" is in its brief.
+    const led = (index.doc.loops ?? []).flatMap((loop) => (loop.stops ?? []).flatMap((stop, i) => (stop.then === node.id ? [{ loop, stop, i }] : [])));
+    const openStops = led.filter(({ stop }) => stop.kind !== "human");
+    // An entry node with a way back to it: the way back may pass a person, and the first time round nobody is asked.
+    const starts = entries.has(node.id) && inbound.length + led.length > 0;
+    if (starts) {
+      issues.push(
+        error(
+          "E_IRREVERSIBLE_NO_GATE",
+          `node "${node.id}" performs irreversible actions (${actions.join(", ")}) and is where the run starts: only ${inbound.length > 0 ? `a loop's back edge (${quoted(inbound.map((edge) => edge.id))})` : "a stop of its own loop"} leads to it, so no human decides before it runs the first time; put a human-gate node before it`,
+          [node.id, ...inbound.map((edge) => edge.id)],
+        ),
+      );
+      continue;
+    }
+    if (inbound.length + led.length > 0 && open.length === 0 && openStops.length === 0) continue;
+    const through = [...(open.length > 0 ? [quoted(open.map((edge) => edge.id))] : []), ...openStops.map(({ loop, stop, i }) => `loop "${loop.id}" stop ${i} (${stop.kind}), which continues there`)];
+    const fix = [...(open.length > 0 ? ["set approval: true on those edges, or start them at a human-gate node"] : []), ...(openStops.length > 0 ? ["have the stop continue at a human-gate node that leads to it"] : [])];
+    issues.push(
+      error(
+        "E_IRREVERSIBLE_NO_GATE",
+        inbound.length + led.length === 0
+          ? `node "${node.id}" performs irreversible actions (${actions.join(", ")}) and nothing leads to it, so no human decides before it runs; put a human-gate node before it`
+          : `node "${node.id}" performs irreversible actions (${actions.join(", ")}) and can be reached without a human decision through ${through.join(" and ")}; every way in must pass a human: ${fix.join(", and ")}`,
+        [node.id, ...open.map((edge) => edge.id), ...new Set(openStops.map(({ loop }) => loop.id))],
+      ),
+    );
+  }
+  return issues;
+}
+
+/**
+ * What says which model a node is on, in the harness the document names: its pin for that harness, which the
+ * package writes in place of the tier's model; or else its tier; or the session default. A pin for another harness
+ * is not read there, so it tells no critic apart from its builder. Two nodes pinned to one model for the named
+ * harness are on one model whatever their tiers. (What a tier means is the target profile's and the exporter's to
+ * say, so a pin that names the very model its builder's tier resolves to is not seen here.)
+ *
+ * A document that names no harness yet is read harness-neutrally: its tier and every pin, as before.
+ */
+function modelKey(node: AgentNode, harness: string | undefined): string {
+  const pin = node.model?.pin;
+  if (harness !== undefined && pin?.[harness] !== undefined) return `pin ${harness}: ${pin[harness]}`;
+  const pins = pin && harness === undefined ? Object.keys(pin).sort().map((name) => `${name}: ${pin[name]}`) : [];
+  return [node.model ? `tier ${node.model.tier}` : "the session default", ...pins.map((p) => `pin ${p}`)].join(", ");
+}
+
+/**
+ * `W_HOMOGENEOUS_CRITICS` — a critic resolves to the same tier and pin (its pin
+ * for the harness the document names) as every one of its nearest writers: the writers with a path to it along non-back
+ * edges that passes through no other writer (graph-ir §3). A planner two steps
+ * upstream does not excuse a critic that shares a model with the builder it
+ * judges. Judged per critic, so one differing node elsewhere in the graph does
+ * not mask it. A critic no writer reaches judges no writer's work and is not
+ * flagged. Reported once, naming each such critic and the writers it shares
+ * its model with.
+ */
+function homogeneousCritics(index: GraphIndex): Issue[] {
+  const back = new Set<Id>((index.doc.loops ?? []).flatMap((loop) => loop.back ?? []));
+  // Agents only: a person is on no model, as a critic or as the one whose work is judged.
+  const writers = agentNodes(index).filter((node) => isWriterFamily(node) && !isPersonStep(node));
+  const named = index.doc.target?.harness;
+  const harness = typeof named === "string" && named.trim() !== "" ? named : undefined;
+  const flagged: { critic: AgentNode; writers: AgentNode[] }[] = [];
+  for (const critic of agentNodes(index).filter((node) => isCriticFamily(node) && !isPersonStep(node))) {
+    const nearest = nearestWriters(index, critic.id, back);
+    const reaching = writers.filter((writer) => writer.id !== critic.id && nearest.has(writer.id));
+    if (reaching.length === 0) continue;
+    const key = modelKey(critic, harness);
+    if (reaching.every((writer) => modelKey(writer, harness) === key)) flagged.push({ critic, writers: reaching });
+  }
+  if (flagged.length === 0) return [];
+  const parts = flagged.map(
+    ({ critic, writers: same }) => `critic "${critic.id}" judges ${quoted(same.map((n) => n.id))} on the same model (${modelKey(critic, harness)})`,
+  );
+  return [
+    warning(
+      "W_HOMOGENEOUS_CRITICS",
+      `${parts.join("; ")}; a critic on a different tier or pin may catch different mistakes`,
+      sortNodeIds(index, new Set(flagged.flatMap(({ critic, writers: same }) => [critic.id, ...same.map((n) => n.id)]))),
+    ),
+  ];
+}
+
+/**
+ * The writer-family nodes with a path to `target` along edges that are not
+ * loop back edges and that passes through no other writer: the walk upstream
+ * stops at the first writer on each path.
+ */
+function nearestWriters(index: GraphIndex, target: Id, back: ReadonlySet<Id>): Set<Id> {
+  const seen = new Set<Id>([target]);
+  const found = new Set<Id>();
+  const queue: Id[] = [target];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const edge of index.incoming.get(current) ?? []) {
+      if (back.has(edge.id) || seen.has(edge.from)) continue;
+      seen.add(edge.from);
+      const from = index.nodes.get(edge.from);
+      if (from && isWriterFamily(from)) found.add(edge.from);
+      else queue.push(edge.from);
+    }
+  }
+  return found;
+}
+
+/**
+ * `W_FANOUT_ON_COUPLED` — a coupled node or group receives an edge with
+ * `concurrency.max > 1`, or two coupled nodes share an `owns` entry.
+ */
+function fanoutOnCoupled(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  const groupMembers = (groupId: Id, seen = new Set<Id>()): Id[] => {
+    if (seen.has(groupId)) return [];
+    seen.add(groupId);
+    return (index.groups.get(groupId)?.members ?? []).flatMap((member) =>
+      index.groups.has(member) ? groupMembers(member, seen) : [member],
+    );
+  };
+
+  for (const edge of index.doc.edges ?? []) {
+    if ((edge.concurrency?.max ?? 1) <= 1) continue;
+    const target = index.nodes.get(edge.to);
+    if (target?.coupled === true) {
+      issues.push(
+        warning(
+          "W_FANOUT_ON_COUPLED",
+          `edge "${edge.id}" fans out up to ${edge.concurrency!.max} at a time into "${edge.to}", which is marked coupled; coupled work should run one at a time`,
+          [edge.id, edge.to],
+        ),
+      );
+    }
+    for (const group of index.doc.groups ?? []) {
+      if (group.coupled !== true || !groupMembers(group.id).includes(edge.to)) continue;
+      issues.push(
+        warning(
+          "W_FANOUT_ON_COUPLED",
+          `edge "${edge.id}" fans out up to ${edge.concurrency!.max} at a time into "${edge.to}", a member of coupled group "${group.id}"; coupled work should run one at a time`,
+          [edge.id, edge.to, group.id],
+        ),
+      );
+    }
+  }
+
+  const owners = new Map<string, Id[]>();
+  for (const node of agentNodes(index)) {
+    if (node.coupled !== true) continue;
+    for (const artifact of new Set(node.owns ?? [])) owners.set(artifact, [...(owners.get(artifact) ?? []), node.id]);
+  }
+  for (const [artifact, ids] of owners) {
+    if (ids.length < 2) continue;
+    issues.push(
+      warning(
+        "W_FANOUT_ON_COUPLED",
+        `coupled nodes ${quoted(ids)} both own "${artifact}"; coupled work on one artifact belongs in one node`,
+        ids,
+      ),
+    );
+  }
+  return issues;
+}
+
+/** `W_LONG_LOOP_NO_BUDGET` — no budget stop, and no max-iterations stop of 5 rounds or fewer. */
+function longLoopsWithoutBudget(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  for (const loop of index.doc.loops ?? []) {
+    const stops = loop.stops ?? [];
+    if (stops.some((stop) => stop.kind === "budget")) continue;
+    const caps = stops.flatMap((stop) => (stop.kind === "max-iterations" ? [stop.n] : []));
+    if (caps.some((n) => n <= 5)) continue;
+    issues.push(
+      warning(
+        "W_LONG_LOOP_NO_BUDGET",
+        `loop "${loop.id}" has no budget stop and ${
+          caps.length === 0 ? "no max-iterations stop" : `its max-iterations stop allows ${Math.min(...caps)} rounds`
+        }; add a budget stop, or cap it at 5 rounds or fewer`,
+        [loop.id],
+      ),
+    );
+  }
+  return issues;
+}
+
+const sameText = (a: string, b: string): boolean =>
+  a.trim().replace(/\s+/g, " ").toLowerCase() === b.trim().replace(/\s+/g, " ").toLowerCase();
+
+/** `W_ASPIRATION_AS_ACCEPTANCE` — the aspiration is the acceptance, or stands in for a blank one. */
+function aspirationAsAcceptance(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  for (const loop of index.doc.loops ?? []) {
+    const bar = loop.bar;
+    const aspiration = bar?.aspiration ?? "";
+    if (!bar || aspiration.trim() === "") continue;
+    const acceptance = bar.acceptance ?? "";
+    if (acceptance.trim() === "") {
+      issues.push(
+        warning(
+          "W_ASPIRATION_AS_ACCEPTANCE",
+          `loop "${loop.id}" has an aspiration but a blank acceptance, so nothing says when the bar is met; write a reachable acceptance and keep the aspiration as direction`,
+          [loop.id],
+        ),
+      );
+    } else if (sameText(aspiration, acceptance)) {
+      issues.push(
+        warning(
+          "W_ASPIRATION_AS_ACCEPTANCE",
+          `loop "${loop.id}" uses its aspiration as its acceptance; the acceptance must be reachable, the aspiration is only direction`,
+          [loop.id],
+        ),
+      );
+    }
+  }
+  return issues;
+}
+
+/** `W_ONLY_MAX_ITERATIONS` — the loop's only way to stop is running out of rounds. */
+function onlyMaxIterations(index: GraphIndex): Issue[] {
+  return (index.doc.loops ?? [])
+    .filter((loop) => (loop.stops ?? []).length > 0 && (loop.stops ?? []).every((stop) => stop.kind === "max-iterations"))
+    .map((loop) =>
+      warning(
+        "W_ONLY_MAX_ITERATIONS",
+        `loop "${loop.id}" stops only on max-iterations, which is a safety backstop, not a definition of done; add a bar-passed, budget or human stop`,
+        [loop.id],
+      ),
+    );
+}
+
+/** `W_UNREACHABLE_NODE` — a node no entry node leads to, along edges or by a loop's stop that continues there. */
+function unreachableNodes(index: GraphIndex): Issue[] {
+  const entries = entryNodeIds(index);
+  const reached = reachableFrom(index, entries);
+  return (index.doc.nodes ?? [])
+    .filter((node) => !reached.has(node.id))
+    .map((node) =>
+      warning(
+        "W_UNREACHABLE_NODE",
+        entries.length === 0
+          ? `node "${node.id}" is not reachable: the graph has no entry node (every node has an inbound edge that is not a loop back edge, or a loop's stop that continues there)`
+          : `node "${node.id}" is not reachable from any entry node (${quoted(entries)}); connect it or remove it`,
+        [node.id],
+      ),
+    );
+}
+
+/** `W_NO_TERMINAL` — no stop node is reachable from an entry node. An empty graph and a fragment template are exempt. */
+function noTerminal(index: GraphIndex): Issue[] {
+  const nodes: Node[] = index.doc.nodes ?? [];
+  if (nodes.length === 0) return [];
+  // A fragment usually ends in its host (graph-ir §3).
+  if (index.doc.template?.kind === "fragment") return [];
+  const reached = reachableFrom(index, entryNodeIds(index));
+  if (nodes.some((node) => node.kind === "stop" && reached.has(node.id))) return [];
+  return [
+    warning(
+      "W_NO_TERMINAL",
+      nodes.some((node) => node.kind === "stop")
+        ? "no stop node is reachable from an entry node, so the run ends only when no edge is left to take; connect a stop node"
+        : "the graph has no stop node, so the run ends only when no edge is left to take; add one where the work is done",
+      [index.doc.id],
+    ),
+  ];
+}
+
+/**
+ * `W_OUTPUT_NOT_WRITABLE` — an agent declares outputs but is allowed neither
+ * `edit-files` nor `write-outputs`, so the lead would file them on its behalf.
+ * The lead node is the main session, which writes its own files.
+ */
+function outputsNotWritable(index: GraphIndex): Issue[] {
+  return agentNodes(index)
+    .filter((node) => node.role !== "lead" && !isPersonStep(node) && (node.outputs ?? []).length > 0)
+    .filter((node) => !(node.allow ?? []).some((c) => c === "edit-files" || c === "write-outputs"))
+    .map((node) =>
+      warning(
+        "W_OUTPUT_NOT_WRITABLE",
+        `agent "${node.id}" must leave outputs behind but is allowed neither edit-files nor write-outputs, so it cannot write them itself; allow write-outputs`,
+        [node.id],
+      ),
+    );
+}
+
+/**
+ * `W_PERSON_FIELDS_NOT_READ` — a person's step that sets what only an agent has: a model, an effort, skills, or
+ * capabilities allowed or denied. They are kept and not read; this makes it visible.
+ */
+function personFieldsNotRead(index: GraphIndex): Issue[] {
+  return agentNodes(index)
+    .filter(isPersonStep)
+    .flatMap((node) => {
+      // An empty list sets nothing, and is not named.
+      const set = (["model", "effort", "skills", "allow", "deny"] as const).filter((field) => node[field] !== undefined && !(Array.isArray(node[field]) && node[field].length === 0));
+      return set.length === 0 ? [] : [warning("W_PERSON_FIELDS_NOT_READ", `step "${node.id}" is a person's and sets ${set.join(", ")}: ${set.length === 1 ? "that is" : "those are"} an agent's, and ${set.length === 1 ? "is" : "are"} not read; remove ${set.length === 1 ? "it" : "them"}`, [node.id])];
+    });
+}
+
+/** `W_UNKNOWN_KEY` — a key the schema does not know. It is kept; this makes a typo visible. */
+/**
+ * `W_GROUP_OVERLAP` — a node or a group listed by two groups, neither inside
+ * the other. A view can draw it in one box only, and draws it in the
+ * first. A warning: documents written before groups were drawn still validate.
+ */
+function groupOverlaps(index: GraphIndex): Issue[] {
+  const groups = index.doc.groups ?? [];
+  /** Whether `outer` holds `inner`, at any depth. A ring of groups is `E_GROUP_CYCLE`'s to report, and ends the walk here. */
+  const holds = (outer: Group, inner: Id, seen = new Set<Id>()): boolean => {
+    if (seen.has(outer.id)) return false;
+    seen.add(outer.id);
+    return groupsIn(index, outer).some((next) => next.id === inner || holds(next, inner, seen));
+  };
+  const listedBy = new Map<Id, Group[]>();
+  for (const group of groups) {
+    for (const member of new Set(group.members ?? [])) {
+      if (member === group.id) continue;
+      listedBy.set(member, [...(listedBy.get(member) ?? []), group]);
+    }
+  }
+  const issues: Issue[] = [];
+  for (const [member, holders] of listedBy) {
+    // A group that holds another holder holds the member through it: that is nesting said twice, not an overlap.
+    const innermost = holders.filter((group) => !holders.some((other) => other.id !== group.id && holds(group, other.id)));
+    if (innermost.length < 2) continue;
+    const what = index.groups.has(member) ? "group" : "node";
+    const ids = innermost.map((group) => `"${group.id}"`);
+    issues.push(
+      warning(
+        "W_GROUP_OVERLAP",
+        `${what} "${member}" is a member of groups ${ids.slice(0, -1).join(", ")} and ${ids.at(-1)}, and ${ids.length === 2 ? "neither holds the other" : "none of them holds another"}; views draw it in "${innermost[0]!.id}"`,
+        [member, ...innermost.map((group) => group.id)],
+      ),
+    );
+  }
+  return issues;
+}
+
+function unknownKeys(index: GraphIndex): Issue[] {
+  const found: UnknownKey[] = [];
+  graphSchema.unknownKeys(index.doc, "", found);
+  return found.map(({ path, key, known }) => {
+    const owner = nearestIds(index.doc, path.slice(0, path.lastIndexOf("/")));
+    return warning(
+      "W_UNKNOWN_KEY",
+      `unknown key "${key}" at ${path}${didYouMean(key, known)}; it is kept, but grooph does not read it`,
+      owner.length > 0 ? owner : [index.doc.id],
+    );
+  });
+}
+
+/** `W_DOC_TOO_LARGE` — measured on the canonical form with `layout` removed (graph-ir §7). */
+function docTooLarge(index: GraphIndex): Issue[] {
+  const size = canonicalizeWithoutLayout(index.doc).length;
+  if (size <= DOC_SIZE_LIMIT) return [];
+  return [
+    warning(
+      "W_DOC_TOO_LARGE",
+      `canonical document without layout is ${size} characters, over the ${DOC_SIZE_LIMIT}-character budget for rewriting in one pass; split it or shorten the briefs`,
+      [index.doc.id],
+    ),
+  ];
+}

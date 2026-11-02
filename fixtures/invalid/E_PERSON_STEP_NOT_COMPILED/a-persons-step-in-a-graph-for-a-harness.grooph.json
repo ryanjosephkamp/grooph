@@ -1,0 +1,37 @@
+{
+  "grooph": 0,
+  "id": "a-persons-step-in-a-graph-for-a-harness",
+  "name": "A person's step in a graph for a harness",
+  "version": 1,
+  "goal": "Write the release notes and stop.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "write",
+      "kind": "agent",
+      "name": "Write the notes",
+      "by": "person",
+      "role": "builder",
+      "brief": "Write the release notes from the merged pull requests.",
+      "outputs": [
+        "NOTES.md"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-write-done",
+      "from": "write",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

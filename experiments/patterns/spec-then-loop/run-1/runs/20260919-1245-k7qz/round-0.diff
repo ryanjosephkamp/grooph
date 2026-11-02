@@ -1,0 +1,121 @@
+diff --git a/README.md b/README.md
+index 0cac2e6..a311c27 100644
+--- a/README.md
++++ b/README.md
+@@ -7,3 +7,9 @@ import { countWords } from "./src/count.mjs";
+ 
+ countWords("one two  three"); // 3
+ ```
++
++```js
++import { wrap } from "./src/wrap.mjs";
++
++wrap("one two three", 8); // "one two\nthree"
++```
+diff --git a/src/wrap.mjs b/src/wrap.mjs
+new file mode 100644
+index 0000000..4a50bf1
+--- /dev/null
++++ b/src/wrap.mjs
+@@ -0,0 +1,27 @@
++/**
++ * Wraps `text` to lines of at most `width` characters, breaking only at
++ * whitespace. Runs of whitespace collapse to a single space, and a word longer
++ * than `width` sits alone on its own line, unbroken.
++ *
++ * @param {string} text
++ * @param {number} width
++ * @returns {string}
++ */
++export function wrap(text, width) {
++  if (typeof text !== "string") throw new TypeError("wrap: text must be a string");
++  if (!Number.isInteger(width) || width < 1) throw new RangeError("wrap: width must be an integer >= 1");
++  const words = text.trim().split(/\s+/);
++  if (words[0] === "") return "";
++  const lines = [];
++  let line = words[0];
++  for (const word of words.slice(1)) {
++    if (line.length + 1 + word.length <= width) {
++      line += " " + word;
++    } else {
++      lines.push(line);
++      line = word;
++    }
++  }
++  lines.push(line);
++  return lines.join("\n");
++}
+diff --git a/tests/wrap.test.mjs b/tests/wrap.test.mjs
+new file mode 100644
+index 0000000..3f018c6
+--- /dev/null
++++ b/tests/wrap.test.mjs
+@@ -0,0 +1,68 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { wrap } from "../src/wrap.mjs";
++
++test("wrap returns text that fits unchanged", () => {
++  assert.equal(wrap("one two", 10), "one two");
++});
++
++test("wrap breaks only at whitespace, never inside a word", () => {
++  assert.equal(wrap("one two three", 8), "one two\nthree");
++});
++
++test("wrap puts an over-long word alone on its own line, unbroken", () => {
++  assert.equal(wrap("a verylongword b", 5), "a\nverylongword\nb");
++});
++
++test("wrap keeps every line within width unless a single word is longer", () => {
++  const text = "the quick brown fox jumps over the lazy dog extraordinarily";
++  const width = 10;
++  for (const line of wrap(text, width).split("\n")) {
++    assert.ok(line.length <= width || !line.includes(" "), `line too long: ${JSON.stringify(line)}`);
++  }
++});
++
++test("wrap fits a word of exactly width characters", () => {
++  assert.equal(wrap("abcde fg", 5), "abcde\nfg");
++});
++
++test("wrap collapses runs of whitespace and drops input line breaks", () => {
++  assert.equal(wrap("one  two\nthree", 20), "one two three");
++  assert.equal(wrap("one\t\ttwo \n three", 20), "one two three");
++});
++
++test("wrap drops leading and trailing whitespace", () => {
++  assert.equal(wrap("  one two  ", 3), "one\ntwo");
++  for (const line of wrap("  one two  three  ", 7).split("\n")) {
++    assert.equal(line, line.trim());
++  }
++});
++
++test("wrap returns an empty string for empty or whitespace-only input", () => {
++  assert.equal(wrap("", 5), "");
++  assert.equal(wrap("   ", 5), "");
++});
++
++test("wrap works at width 1", () => {
++  assert.equal(wrap("a b", 1), "a\nb");
++});
++
++test("wrap returns a string joined with \\n and no trailing newline", () => {
++  const out = wrap("one two three", 3);
++  assert.equal(typeof out, "string");
++  assert.equal(out, "one\ntwo\nthree");
++  assert.ok(!out.endsWith("\n"));
++});
++
++test("wrap throws TypeError when text is not a string", () => {
++  assert.throws(() => wrap(42, 5), TypeError);
++  assert.throws(() => wrap(null, 5), TypeError);
++  assert.throws(() => wrap(undefined, 5), TypeError);
++});
++
++test("wrap throws RangeError when width is not an integer >= 1", () => {
++  for (const width of [0, -1, 1.5, NaN, Infinity, "5", undefined]) {
++    assert.throws(() => wrap("a b", width), RangeError, `width ${String(width)}`);
++  }
++});

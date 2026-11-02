@@ -1,0 +1,32 @@
+/* The themes' dot on a canvas (LookMenu.tsx; docs/exports.md, "Themes"): in the stage's top right corner, under the switch of
+   the graph's views (graph-views.css), which has the corner itself. In three dimensions the kinds of view are
+   where the dot would be: it stands in the switch's row, beside the full-screen button (full.css), on a screen with
+   the room for it; on a narrower one it steps aside. When the view in three dimensions could not be fetched the
+   switch says so in a note that stays, in the place under it: the dot stands under the note then, and is still
+   there to be pressed. These rules ride in LookMenu.tsx's script, with the canvas's screens: a stylesheet of the
+   app's is asked for by every address, and is at its budget. */
+.stage > .look-dot {
+  position: absolute;
+  top: 74px;
+  right: 10px;
+  z-index: var(--z-overlay);
+}
+.stage:has(> .graph-views.is-space) > .look-dot {
+  top: 22px;
+  right: auto;
+  left: 134px;
+}
+/* There the list opens to the right, into the screen. */
+.stage:has(> .graph-views.is-space) > .look-dot .site-theme-list {
+  right: auto;
+  left: 0;
+}
+@media (max-width: 359px) {
+  .stage:has(> .graph-views.is-space) > .look-dot {
+    display: none;
+  }
+}
+/* The note is three lines at most, on the narrowest phone. */
+.stage:has(.graph-views-note) > .look-dot {
+  top: 160px;
+}

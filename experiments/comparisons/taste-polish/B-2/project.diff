@@ -1,0 +1,385 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..73a4b36
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,51 @@
++# Changes, round 2
++
++Source of requirements: GAPS.md (the critic's comparison with the billing
++team's statement), then STYLE.md.
++
++## Gaps closed
++
++1. Sorting (major): charge rows are sorted by amount, largest first, ties by
++   name (Key management before Load balancing). Credits are sorted the same
++   way (Committed-use discount 410.63 before Service credit 164.25).
++2. Currency and minus signs (major): no `$` anywhere; the currency is named
++   once in the column heading "Amount (USD)". Amounts are bare digits with
++   commas and two decimals. Credits, "Total credits" included, are in
++   parentheses, with the digits on the same decimal column as the charges (the
++   closing parenthesis sits one column right). The "Amounts in USD" line and
++   the "(USD)" in the total label are gone.
++3. Zero-usage services (major): Machine learning inference and Monitoring are
++   no longer table rows. A sentence after the total gives the count and names:
++   "2 services had no usage this month and are not listed: ..." (wrapped at 72
++   characters; singular wording if there is one; omitted if there are none).
++4. Share column (major): added just before the amount column, as a percentage
++   of total charges to one decimal, right-aligned, computed with integer
++   arithmetic and rounded half up. Values: 39.5, 31.2, 12.0, 9.5, 5.0, 1.0,
++   0.9, 0.9. The Charges line shows 100.0%.
++5. Header (minor): line 1 is the customer name at the left and "Account
++   NW-20418" right-aligned to column 72; line 2 is "Usage statement for
++   September 2026".
++
++Numbers checked against data/usage.json: charges 4,155.66, credits (574.88),
++total due 3,580.78. The zero-usage rows contribute nothing to any figure.
++Constraints: widest line 72, no tabs, no trailing spaces, ASCII only.
++
++## Left on purpose
++
++- Qty and Unit stay as two adjacent columns. GAPS.md says this is acceptable;
++  merging them into one "Usage" column is optional polish and was not worth
++  the risk to the alignment.
++- The "Total credits" line and the `=` rules around TOTAL DUE are kept.
++  GAPS.md lists them as layout choices that do not break anything that matters
++  (and says the total line must follow the parentheses rule, which it does).
++- Kept as is, because GAPS.md says they already match: aligned decimal points,
++  thousands commas, a Charges subtotal, credits set apart from charges, and the
++  total due last.
++
++## Conflicts between GAPS.md and STYLE.md
++
++- STYLE.md says "a line for each charge"; GAPS.md says zero-usage services are
++  left out of the table. Followed GAPS.md and mention them in the foot sentence
++  instead, so they are still named.
++- The previous round's CHANGES.md kept alphabetical order and $0.00 rows on
++  the strength of STYLE.md alone; both choices are now reversed per GAPS.md.
+diff --git a/GAPS.md b/GAPS.md
+new file mode 100644
+index 0000000..f68c3d0
+--- /dev/null
++++ b/GAPS.md
+@@ -0,0 +1,89 @@
++# GAPS: captured usage statement vs the billing team's statement
++
++Evidence: captures/statement.txt (27 lines, widest 72, ASCII only, no tabs or
++trailing whitespace) and captures/CAPTURE.md. Both were readable, so the
++evidence is valid.
++
++## 1. Blind A/B comparison
++
++The two statements were labelled A and B in arbitrary order.
++
++- **A** has a single "Usage" column where quantity and unit read as one phrase
++  ("720 instance-hours"). Its credits are listed flush left, followed directly
++  by one rule and "Total due". The figures stop at the total.
++- **B** splits usage into a right-aligned "Qty" column and a separate "Unit"
++  column. It indents the credits, adds a "Total credits (574.88)" subtotal,
++  and frames "TOTAL DUE" between two lines of `=` rules.
++
++Both are sound monthly statements. In each one the charges are ordered by
++amount, the decimal points line up in one column, credits are in parentheses,
++the Share column is present, the month is written out by name, and services
++with no usage go in a footnote. The two are very close. **A reads slightly
++better** as a billing-team statement for three reasons. Its usage reads as
++natural language. It has one figure fewer between the credits and the total.
++Its rules are lighter, so the page does not shout. B does make the total due
++a little more prominent, and its credits subtotal is a defensible courtesy.
++Neither difference is one a customer would trip over.
++
++(For the record, A is the reference and B is the capture.)
++
++## 2. Number check (capture)
++
++- Charges: 1,642.50 + 1,296.00 + 500.00 + 394.20 + 209.76 + 41.20 + 36.00 +
++  36.00 = **4,155.66**. This matches line 15.
++- Credits: 410.63 + 164.25 = **574.88**. This matches line 20.
++- Total due: 4,155.66 - 574.88 = **3,580.78**. This matches line 23.
++- Shares against 4,155.66 are 39.52, 31.19, 12.03, 9.49, 5.05, 0.99, 0.87 and
++  0.87, which round to 39.5 / 31.2 / 12.0 / 9.5 / 5.0 / 1.0 / 0.9 / 0.9. All
++  eight match lines 6-13, and they sum to 100.0, as line 15 says.
++- Order: the charges descend by amount. The 36.00 tie is broken by name (Key
++  management before Load balancing). The credits run largest first.
++- Alignment: the decimal point is at column 69 on every amount line: lines
++  6-15, the credit lines 18-20 (where the closing parenthesis sits at column
++  72) and line 23.
++- Every amount and quantity matches the reference.
++
++## 3. Ranked gaps (none major)
++
++### Gap 1: An extra "Total credits" subtotal sits between the credits and the total (minor)
++- **Where:** capture line 20.
++- **Why it matters:** Point 1 of the yardstick wants the figures to run
++  charges, then the "Charges" sum, then the credits, then the total due. The
++  capture adds a fourth subtotal, so the eye passes over another bracketed
++  figure, (574.88), before reaching the total. The figure is correct and
++  nothing is misleading, but the path to the total is one line longer than the
++  billing team's.
++- **Closing it:** drop the "Total credits" line. After the last credit line,
++  put the single rule and then the total-due line, with no subtotal of the
++  credits.
++
++### Gap 2: Quantity and unit sit in two columns instead of reading as one phrase (minor)
++- **Where:** header line 4 ("Qty" / "Unit") and lines 6-13.
++- **Why it matters:** Point 7 asks for the quantity and its unit to be read
++  together, as in "18,250 vCPU-hours". The capture right-aligns the quantity
++  in one column and starts the unit in a separate column two spaces later. As
++  a result, "1  plan" and "36  keys" read as two cells rather than one phrase.
++  The digits and commas are correct.
++- **Closing it:** use one left-aligned "Usage" column. In each cell, write the
++  comma-grouped quantity, a single space, then the unit (for example
++  "720 instance-hours"). Pad the cell so the Share column still starts at a
++  fixed position.
++
++### Gap 3: The total-due block is heavier than the house style (minor, cosmetic)
++- **Where:** capture lines 22-24.
++- **Why it matters:** The total is set off by a rule as required, so point 1
++  is met. However, the capture uses double `=` rules above and below the total
++  and writes the label in capitals ("TOTAL DUE"). The billing team uses one
++  dashed rule above the line, the same style as the table's other rules, and
++  writes the label in sentence case ("Total due"). The yardstick says rule
++  style and heading wording are not gaps in themselves, so this is optional
++  polish for consistency.
++- **Closing it:** replace lines 22-24 with a single dashed rule followed by a
++  "Total due" line, with the amount in the amount column and no closing rule
++  underneath.
++
++Not counted as gaps: the overall width (72 versus 69 characters), the
++two-space indent on the credit lines, and the exact place the footnote wraps.
++None of them breaks any of the seven points.
++
++verdict: pass
+diff --git a/captures/CAPTURE.md b/captures/CAPTURE.md
+new file mode 100644
+index 0000000..dcb975c
+--- /dev/null
++++ b/captures/CAPTURE.md
+@@ -0,0 +1,39 @@
++# Capture of the current revision
++
++- rendered at 2026-10-04T22:35:34.866Z from src/statement.mjs, sha256 4a88972c9f21
++- file: captures/statement.txt, 27 lines, the widest 72 characters
++- lines that end in a space or a tab: 0
++- tabs: none
++- characters outside plain ASCII: none
++
++## The statement, with line numbers and each line's length
++
++```text
++ 1 | 72 | Northwind Robotics                                      Account NW-20418
++ 2 | 34 | Usage statement for September 2026
++ 3 |  0 | 
++ 4 | 71 | Service                       Qty  Unit             Share  Amount (USD)
++ 5 | 72 | ------------------------------------------------------------------------
++ 6 | 71 | Compute                    18,250  vCPU-hours       39.5%      1,642.50
++ 7 | 71 | Managed database              720  instance-hours   31.2%      1,296.00
++ 8 | 71 | Dedicated support               1  plan             12.0%        500.00
++ 9 | 71 | Data transfer out           4,380  GB                9.5%        394.20
++10 | 71 | Object storage              9,120  GB-months         5.0%        209.76
++11 | 71 | Container registry            412  GB-months         1.0%         41.20
++12 | 71 | Key management                 36  keys              0.9%         36.00
++13 | 71 | Load balancing              1,440  hours             0.9%         36.00
++14 | 72 | ------------------------------------------------------------------------
++15 | 71 | Charges                                            100.0%      4,155.66
++16 |  0 | 
++17 |  7 | Credits
++18 | 72 |   Committed-use discount                                        (410.63)
++19 | 72 |   Service credit, 14 Sep outage                                 (164.25)
++20 | 72 | Total credits                                                   (574.88)
++21 |  0 | 
++22 | 72 | ========================================================================
++23 | 71 | TOTAL DUE                                                      3,580.78
++24 | 72 | ========================================================================
++25 |  0 | 
++26 | 71 | 2 services had no usage this month and are not listed: Machine learning
++27 | 22 | inference, Monitoring.
++```
+diff --git a/captures/statement.txt b/captures/statement.txt
+new file mode 100644
+index 0000000..e13cccd
+--- /dev/null
++++ b/captures/statement.txt
+@@ -0,0 +1,27 @@
++Northwind Robotics                                      Account NW-20418
++Usage statement for September 2026
++
++Service                       Qty  Unit             Share  Amount (USD)
++------------------------------------------------------------------------
++Compute                    18,250  vCPU-hours       39.5%      1,642.50
++Managed database              720  instance-hours   31.2%      1,296.00
++Dedicated support               1  plan             12.0%        500.00
++Data transfer out           4,380  GB                9.5%        394.20
++Object storage              9,120  GB-months         5.0%        209.76
++Container registry            412  GB-months         1.0%         41.20
++Key management                 36  keys              0.9%         36.00
++Load balancing              1,440  hours             0.9%         36.00
++------------------------------------------------------------------------
++Charges                                            100.0%      4,155.66
++
++Credits
++  Committed-use discount                                        (410.63)
++  Service credit, 14 Sep outage                                 (164.25)
++Total credits                                                   (574.88)
++
++========================================================================
++TOTAL DUE                                                      3,580.78
++========================================================================
++
++2 services had no usage this month and are not listed: Machine learning
++inference, Monitoring.
+diff --git a/src/statement.mjs b/src/statement.mjs
+index 8bf919c..9ec5fd7 100644
+--- a/src/statement.mjs
++++ b/src/statement.mjs
+@@ -1,22 +1,140 @@
+ /**
+- * The monthly usage statement as plain text.
++ * The monthly usage statement as plain text, at most 72 characters wide.
++ * Amounts are whole cents; all arithmetic stays in integers.
+  * @param {{ customer: string, account: string, period: string, currency: string,
+  *           lines: { service: string, quantity: number, unit: string, amount_cents: number }[],
+  *           credits: { reason: string, amount_cents: number }[] }} data
+  * @returns {string}
+  */
++
++const MONTHS = [
++  "January", "February", "March", "April", "May", "June",
++  "July", "August", "September", "October", "November", "December",
++];
++
++const WIDTH = 72;
++
++function groups(n) {
++  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
++}
++
++// Bare digits with thousands commas and two decimals. The sign is dropped;
++// credits are shown in parentheses by the caller.
++function plain(cents) {
++  const abs = Math.abs(cents);
++  return `${groups(Math.floor(abs / 100))}.${String(abs % 100).padStart(2, "0")}`;
++}
++
++// Percentage of `whole` to one decimal, rounded half up, integer arithmetic only.
++function share(part, whole) {
++  if (whole === 0) return "0.0%";
++  const tenths = Math.floor((Math.abs(part) * 2000 + whole) / (2 * whole));
++  return `${Math.floor(tenths / 10)}.${tenths % 10}%`;
++}
++
++function monthName(period) {
++  const m = /^(\d{4})-(\d{2})$/.exec(period);
++  if (!m || Number(m[2]) < 1 || Number(m[2]) > 12) return period;
++  return `${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
++}
++
++function wrap(text, width) {
++  const rows = [];
++  let cur = "";
++  for (const w of text.split(/\s+/).filter(Boolean)) {
++    if (cur && cur.length + 1 + w.length > width) {
++      rows.push(cur);
++      cur = w;
++    } else {
++      cur = cur ? `${cur} ${w}` : w;
++    }
++  }
++  if (cur) rows.push(cur);
++  return rows;
++}
++
+ export function renderStatement(data) {
+   const out = [];
+-  out.push(`Usage statement ${data.account} ${data.customer} ${data.period}`);
+-  let total = 0;
+-  for (const line of data.lines) {
+-    out.push(`${line.service} ${line.quantity} ${line.unit} ${line.amount_cents}`);
+-    total += line.amount_cents;
++  const rule = "-".repeat(WIDTH);
++  const heavy = "=".repeat(WIDTH);
++
++  const isUnused = (l) => l.quantity === 0 && l.amount_cents === 0;
++  const unused = data.lines.filter(isUnused);
++  const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
++  // Largest first; ties by name.
++  const lines = data.lines
++    .filter((l) => !isUnused(l))
++    .sort((a, b) => b.amount_cents - a.amount_cents || byName(a.service, b.service));
++  // Credits are negative, so largest credit first means most negative first.
++  const creditRows = [...data.credits].sort(
++    (a, b) => a.amount_cents - b.amount_cents || byName(a.reason, b.reason),
++  );
++
++  const charges = data.lines.reduce((s, l) => s + l.amount_cents, 0);
++  const credits = data.credits.reduce((s, c) => s + c.amount_cents, 0);
++  const total = charges + credits;
++
++  const left = data.customer;
++  const right = `Account ${data.account}`;
++  out.push(`${left}${" ".repeat(Math.max(2, WIDTH - left.length - right.length))}${right}`);
++  out.push(`Usage statement for ${monthName(data.period)}`);
++  out.push("");
++
++  const amtHead = `Amount (${data.currency})`;
++  const qtyW = Math.max(3, ...lines.map((l) => groups(l.quantity).length));
++  const unitW = Math.max(4, ...lines.map((l) => l.unit.length));
++  const shareW = 6;
++  // The amount column ends at `edge` for charges; a credit's closing
++  // parenthesis sits one column further right (at WIDTH).
++  const edge = WIDTH - 1;
++  const amtW = Math.max(
++    amtHead.length,
++    ...[...data.lines, ...data.credits].map((x) => plain(x.amount_cents).length),
++    plain(charges).length,
++    plain(credits).length,
++    plain(total).length,
++  );
++  const svcW = Math.max(7, edge - qtyW - unitW - shareW - amtW - 8);
++
++  const row = (svc, qty, unit, sh, amt) =>
++    `${svc.padEnd(svcW)}  ${qty.padStart(qtyW)}  ${unit.padEnd(unitW)}  ${sh.padStart(shareW)}  ${amt.padStart(amtW)}`;
++  // Label at the left, amount ending at the charge column (parenthesised
++  // amounts end one column further right so the digits stay aligned).
++  const pair = (label, cents, paren = false) => {
++    const text = paren ? `(${plain(cents)})` : plain(cents);
++    const end = paren ? WIDTH : edge;
++    return `${label}${" ".repeat(Math.max(2, end - label.length - text.length))}${text}`;
++  };
++
++  out.push(row("Service", "Qty", "Unit", "Share", amtHead));
++  out.push(rule);
++  for (const l of lines) {
++    out.push(row(l.service, groups(l.quantity), l.unit, share(l.amount_cents, charges), plain(l.amount_cents)));
++  }
++  out.push(rule);
++  out.push(row("Charges", "", "", share(charges, charges), plain(charges)));
++  out.push("");
++  out.push("Credits");
++  for (const c of creditRows) {
++    const parts = wrap(c.reason, edge - amtW - 6);
++    parts.forEach((p, i) => {
++      const label = `  ${p}`;
++      out.push(i === parts.length - 1 ? pair(label, c.amount_cents, true) : label);
++    });
+   }
+-  for (const credit of data.credits) {
+-    out.push(`${credit.reason} ${credit.amount_cents}`);
+-    total += credit.amount_cents;
++  out.push(pair("Total credits", credits, true));
++  out.push("");
++  out.push(heavy);
++  out.push(pair("TOTAL DUE", total, total < 0));
++  out.push(heavy);
++
++  if (unused.length > 0) {
++    const n = unused.length;
++    const names = unused.map((l) => l.service).join(", ");
++    const text = `${n} ${n === 1 ? "service" : "services"} had no usage this month and ${n === 1 ? "is" : "are"} not listed: ${names}.`;
++    out.push("");
++    out.push(...wrap(text, WIDTH));
+   }
+-  out.push(`Total ${total} ${data.currency} cents`);
++
+   return `${out.join("\n")}\n`;
+ }

@@ -1,0 +1,203 @@
+{
+  "grooph": 0,
+  "id": "team-handoffs",
+  "name": "A small team's handoffs",
+  "version": 1,
+  "goal": "{{work}} Done when {{reviewer}} has passed it against the request and {{approver}} has signed off.",
+  "template": {
+    "kind": "graph",
+    "title": "Team handoffs",
+    "summary": "Who hands what to whom on a small team: a written request, the work with a handoff note, a review that can send it back, and one person who signs off.",
+    "whenToUse": "A few people pass a piece of work between them, and you want each handoff, and who decides it is done, written down.",
+    "notFor": "Work one person does alone (use solo-project), or a team large enough to need a tracker.",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "work",
+        "ask": "What is being done? One or two sentences.",
+        "example": "The spring newsletter, written, laid out and ready to send."
+      },
+      {
+        "key": "requester",
+        "ask": "Who is asking for it?",
+        "example": "Priya"
+      },
+      {
+        "key": "author",
+        "ask": "Who does the work?",
+        "example": "Sam"
+      },
+      {
+        "key": "reviewer",
+        "ask": "Who reviews it?",
+        "example": "Noor"
+      },
+      {
+        "key": "approver",
+        "ask": "Who signs off?",
+        "example": "Priya"
+      }
+    ],
+    "tags": [
+      "plan",
+      "team",
+      "human-gate",
+      "loop"
+    ]
+  },
+  "description": "A plan for people; no step here is an agent's. {{requester}} writes down what is wanted. {{author}} does the work and hands it over with a note on what to look at first. {{reviewer}} reads it against the request, and it goes back to {{author}} while something asked for is missing. {{approver}} signs off, or sends it back with the reason in writing. Each handoff says in writing what is being handed, and one person, named in advance, decides it is done. If the review reaches its third round, stop and decide together what to change.",
+  "nodes": [
+    {
+      "id": "request",
+      "kind": "agent",
+      "name": "{{requester}} writes the request",
+      "by": "person",
+      "role": "planner",
+      "brief": "Write what is wanted, by when, and what done looks like, as a short list someone else could check. Say what is not wanted too. If {{author}} has to guess, the request is not finished.",
+      "inputs": [
+        "{{work}}"
+      ],
+      "outputs": [
+        "REQUEST.md: what is wanted, by when, and what done looks like"
+      ]
+    },
+    {
+      "id": "do",
+      "kind": "agent",
+      "name": "{{author}} does the work",
+      "by": "person",
+      "role": "builder",
+      "brief": "Do what the request asks. Hand it over with a note: what is done, what is not and why, and what to look at first. On a later round, start from REVIEW.md and answer each point, or say why it does not apply.",
+      "inputs": [
+        "REQUEST.md",
+        "REVIEW.md (from the second round on)"
+      ],
+      "outputs": [
+        "the work",
+        "HANDOFF.md: what is done, what is not, what to look at first"
+      ]
+    },
+    {
+      "id": "review",
+      "kind": "agent",
+      "name": "{{reviewer}} reviews",
+      "by": "person",
+      "role": "critic",
+      "brief": "Read the work against the request, one line for each thing it asks for: there, with where to see it, or not there. Say what you could not check. You judge and do not fix: send it back. Pass it when everything asked for is there, or is named in the handoff note as left out for a reason you accept.",
+      "inputs": [
+        "the work",
+        "HANDOFF.md",
+        "REQUEST.md"
+      ],
+      "outputs": [
+        "REVIEW.md: one line per thing asked for, ending in pass or send back"
+      ]
+    },
+    {
+      "id": "sign-off",
+      "kind": "human-gate",
+      "name": "{{approver}} signs off",
+      "prompt": "{{reviewer}} has passed it. REVIEW.md and HANDOFF.md say what was left out. Do you sign off? If you send it back, add the reason to REVIEW.md.",
+      "options": [
+        "sign off",
+        "send it back"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Handed over",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-request-do",
+      "from": "request",
+      "to": "do"
+    },
+    {
+      "id": "e-do-review",
+      "from": "do",
+      "to": "review",
+      "evidence": [
+        "the work",
+        "HANDOFF.md",
+        "REQUEST.md"
+      ]
+    },
+    {
+      "id": "e-review-fail",
+      "from": "review",
+      "to": "do",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-review-pass",
+      "from": "review",
+      "to": "sign-off",
+      "when": "pass"
+    },
+    {
+      "id": "e-sign-off-done",
+      "from": "sign-off",
+      "to": "done",
+      "when": "pass"
+    },
+    {
+      "id": "e-sign-off-back",
+      "from": "sign-off",
+      "to": "do",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md, with the reason it was sent back"
+      ]
+    }
+  ],
+  "loops": [
+    {
+      "id": "review-loop",
+      "name": "Review",
+      "members": [
+        "do",
+        "review",
+        "sign-off"
+      ],
+      "back": [
+        "e-review-fail",
+        "e-sign-off-back"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "The request",
+        "inspects": [
+          {
+            "kind": "file",
+            "ref": "REQUEST.md"
+          },
+          {
+            "kind": "artifact",
+            "ref": "the work, with HANDOFF.md"
+          }
+        ],
+        "acceptance": "Everything REQUEST.md asks for is there, or is named in HANDOFF.md as left out for a reason the reviewer accepts."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
+    }
+  ]
+}

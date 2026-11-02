@@ -1,0 +1,37 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260920-194427: the clock form",
+    "GAPS.md: critic Write GAPS.md; critic Write GAPS.md",
+    "per-round report copies missing from the run folder (LEAD.md \u00a78; only the last round's survives in project.diff): GAPS.md round 0",
+    "the lead wrote outside the run folder: ]*, /g",
+    "polish-revenue-chart--critic (Critic round 1: judge captures) read captures/chart.svg, captures/CAPTURE.md, <local path>, <local path>; ran nothing",
+    "polish-revenue-chart--critic (Critic round 0: judge captures) read captures/chart.svg, captures/CAPTURE.md, <local path>, <local path>; ran nothing",
+    "no `ending` line before the final note n-0015 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "ending as expected: stop bar-passed, stop node done",
+    "dispatch count: n-0007 polish r0 recorded 3, started lines 3; n-0013 polish r1 recorded 6, started lines 6 (exact)",
+    "back edge taken: e-critic-fail; 1 loop note(s) beyond round 0; caught by critic (fail)",
+    "verdicts in order: critic \u2192 fail, pass",
+    "held-out evidence (REFERENCE.md, reference.svg): touched by critic \u00d72; named in 2 dispatch prompt(s)",
+    "timestamps: 19 given, 0 out of append order",
+    "permission denials: Bash `printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260920-194427\",\"at\":\"graph\",\"started\":\"20`; Bash `which rsvg-convert magick convert qlmanage 2>/dev/null; qlmanage -t -s 1280 -o /`; Bash `qlmanage -t -s 1280 -o <local path>`; Bash `date -u +%Y-%m-%dT%H:%M:%SZ; npm run capture 2>&1 | tail -3; ls -la captures; he`; Bash `cat >> .grooph/polish-revenue-chart/runs/20260920-194427/notes.jsonl <<'EOF'\n{\"i`; Bash `qlmanage -t -s 1280 -o /tmp <local path>`; Bash `qlmanage -t -s 1280 -o <local path>`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done",
+      "stop bar-passed"
+    ],
+    "back_edges": {
+      "later_rounds": 1,
+      "edge_notes": [],
+      "mentioned": [
+        "e-critic-fail"
+      ],
+      "caught_by": [
+        "critic (fail)"
+      ],
+      "taken": true
+    },
+    "last_round": 1
+  }
+}

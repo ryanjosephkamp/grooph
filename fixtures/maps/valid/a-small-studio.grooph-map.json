@@ -1,0 +1,137 @@
+{
+  "groophMap": 0,
+  "id": "a-small-studio",
+  "name": "A small studio",
+  "version": 1,
+  "description": "An invented operation: one person who runs a small app, and three coding sessions in two harnesses, on two machines, under two accounts.",
+  "lanes": [
+    {
+      "id": "laptop",
+      "name": "Laptop",
+      "machine": "a laptop",
+      "place": "local",
+      "account": "account A"
+    },
+    {
+      "id": "laptop-b",
+      "name": "Laptop, second account",
+      "machine": "a laptop",
+      "place": "local",
+      "account": "account B"
+    },
+    {
+      "id": "cloud",
+      "name": "Cloud",
+      "machine": "cloud sandboxes",
+      "place": "cloud",
+      "account": "account A"
+    }
+  ],
+  "people": [
+    {
+      "id": "maker",
+      "name": "The maker",
+      "role": "Decides what to build and merges each change"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "builder",
+      "name": "Builder",
+      "lane": "laptop",
+      "harness": "claude-code",
+      "role": "Builds each change on a branch of its own",
+      "lifetime": "long-lived",
+      "repo": "studio/app"
+    },
+    {
+      "id": "reviewer",
+      "name": "Reviewer",
+      "lane": "laptop-b",
+      "harness": "codex",
+      "role": "Reads a pull request and writes a review",
+      "lifetime": "per-task",
+      "repo": "studio/app"
+    },
+    {
+      "id": "docs",
+      "name": "Docs writer",
+      "lane": "cloud",
+      "harness": "claude-code",
+      "role": "Keeps the user guide in step with the app",
+      "lifetime": "scheduled",
+      "repo": "studio/app"
+    }
+  ],
+  "handoffs": [
+    {
+      "id": "h-ask",
+      "from": "maker",
+      "to": "builder",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "the next feature"
+    },
+    {
+      "id": "h-pr",
+      "from": "builder",
+      "to": "reviewer",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "studio/app"
+      },
+      "what": "the change"
+    },
+    {
+      "id": "h-review",
+      "from": "reviewer",
+      "to": "builder",
+      "carrier": {
+        "kind": "person",
+        "who": "The maker"
+      },
+      "what": "the review, pasted in"
+    },
+    {
+      "id": "h-ready",
+      "from": "builder",
+      "to": "maker",
+      "carrier": {
+        "kind": "notification",
+        "where": "e-mail"
+      },
+      "what": "ready to merge"
+    },
+    {
+      "id": "h-notes",
+      "from": "builder",
+      "to": "docs",
+      "carrier": {
+        "kind": "other",
+        "name": "NOTES.md on the main branch"
+      },
+      "what": "what changed"
+    },
+    {
+      "id": "h-wake",
+      "from": "docs",
+      "to": "docs",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "weekdays at 9:00"
+      },
+      "what": "its check for new notes"
+    },
+    {
+      "id": "h-guide",
+      "from": "docs",
+      "to": "maker",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "studio/app"
+      },
+      "what": "the updated guide"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+diff --git a/src/slug.mjs b/src/slug.mjs
+index 06d11a7..f43dcd0 100644
+--- a/src/slug.mjs
++++ b/src/slug.mjs
+@@ -1,6 +1,8 @@
+-/** A URL slug: lower case, words joined by single hyphens, nothing else. */
++/** A URL slug: lower case, accents stripped, words joined by single hyphens, nothing else. */
+ export function slugify(text) {
+   return text
++    .normalize("NFD")
++    .replace(/[̀-ͯ]/g, "")
+     .toLowerCase()
+     .replace(/[^a-z0-9]+/g, "-")
+     .replace(/^-+|-+$/g, "");
+diff --git a/tests/slug.test.mjs b/tests/slug.test.mjs
+index a9ce1ee..ad316a0 100644
+--- a/tests/slug.test.mjs
++++ b/tests/slug.test.mjs
+@@ -8,3 +8,8 @@ test("lower case, hyphens between words, nothing at the ends", () => {
+   assert.equal(slugify("  spaced   out  "), "spaced-out");
+   assert.equal(slugify("v2.0 release"), "v2-0-release");
+ });
++
++test("accents are stripped, not dropped with their letter", () => {
++  assert.equal(slugify("Crème brûlée"), "creme-brulee");
++  assert.equal(slugify("São Paulo"), "sao-paulo");
++});

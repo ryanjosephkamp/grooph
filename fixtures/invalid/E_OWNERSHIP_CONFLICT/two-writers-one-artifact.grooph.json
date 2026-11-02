@@ -1,0 +1,65 @@
+{
+  "grooph": 0,
+  "id": "two-writers",
+  "name": "Two writers",
+  "version": 1,
+  "goal": "Plan and build a change.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "planner",
+      "kind": "agent",
+      "name": "Planner",
+      "role": "planner",
+      "brief": "Planner: sketch the change in src/.",
+      "outputs": [
+        "src/ sketch"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ],
+      "owns": [
+        "src"
+      ]
+    },
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "brief": "Builder: implement the change in src/.",
+      "outputs": [
+        "src/ implementation"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ],
+      "owns": [
+        "src"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-plan-build",
+      "from": "planner",
+      "to": "builder"
+    },
+    {
+      "id": "e-build-done",
+      "from": "builder",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

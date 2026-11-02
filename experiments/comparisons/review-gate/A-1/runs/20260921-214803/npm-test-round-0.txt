@@ -1,0 +1,23 @@
+
+> textkit@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ padStart pads short text on the left (0.661125ms)
+✔ padStart leaves text that fills the width alone (0.093125ms)
+✔ padStart refuses bad input (0.255709ms)
+✔ truncate leaves short text alone (0.541916ms)
+✔ truncate leaves text that is exactly max long alone (0.090166ms)
+✔ truncate cuts long text to exactly max characters ending in an ellipsis (0.070292ms)
+✔ truncate uses the single-character ellipsis, not three dots (0.077708ms)
+✔ truncate with a max of 1 returns only the ellipsis for long text (0.06625ms)
+✔ truncate keeps whitespace as-is when cutting (0.081208ms)
+✔ truncate refuses text that is not a string (0.328333ms)
+✔ truncate refuses a max that is not a positive integer (0.124125ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 50.367833

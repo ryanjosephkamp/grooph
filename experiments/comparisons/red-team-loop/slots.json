@@ -1,0 +1,9 @@
+{
+  "name": "Harden CSV line",
+  "values": {
+    "task": "Make `parseCsvLine` in src/csv.mjs honour every line of the contract in README.md for any string input: fields or a CsvError, nothing else, within a second for a 100 KB record. Keep tests/csv.test.mjs green and extend it.",
+    "test-command": "npm test",
+    "attack-surface": "`parseCsvLine` in src/csv.mjs, against the contract in README.md"
+  },
+  "about": "Copied unchanged from experiments/patterns/red-team-loop/slots.json. The held-out suite beside this project is the scorer's only: nothing in the run names it."
+}

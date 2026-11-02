@@ -1,0 +1,111 @@
+{
+  "grooph": 0,
+  "id": "aspiration-bar",
+  "name": "Aspiration bar",
+  "version": 1,
+  "goal": "Write a landing page headline.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "writer",
+      "kind": "agent",
+      "name": "Writer",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Writer: write the headline.",
+      "outputs": [
+        "HEADLINE.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "judge",
+      "kind": "agent",
+      "name": "Judge",
+      "role": "judge",
+      "model": {
+        "tier": "frontier"
+      },
+      "brief": "Judge: judge HEADLINE.md against the bar.",
+      "outputs": [
+        "VERDICT.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-write-judge",
+      "from": "writer",
+      "to": "judge",
+      "evidence": [
+        "HEADLINE.md"
+      ]
+    },
+    {
+      "id": "e-judge-fail",
+      "from": "judge",
+      "to": "writer",
+      "when": "fail",
+      "evidence": [
+        "VERDICT.md"
+      ]
+    },
+    {
+      "id": "e-judge-pass",
+      "from": "judge",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "headline-cycle",
+      "name": "Headline cycle",
+      "members": [
+        "writer",
+        "judge"
+      ],
+      "back": [
+        "e-judge-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Headline bar",
+        "inspects": [
+          {
+            "kind": "file",
+            "ref": "HEADLINE.md"
+          }
+        ],
+        "acceptance": "The best headline anyone has ever written.",
+        "aspiration": "The best headline anyone has ever written."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+
+> textwrap@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ countWords counts runs of non-whitespace (0.494834ms)
+✔ wrap returns text that fits unchanged (0.526916ms)
+✔ wrap breaks only at whitespace, never inside a word (0.059375ms)
+✔ wrap puts an over-long word alone on its own line, unbroken (0.086375ms)
+✔ wrap keeps every line within width unless a single word is longer (0.618667ms)
+✔ wrap fits a word of exactly width characters (0.087166ms)
+✔ wrap collapses runs of whitespace and drops input line breaks (0.070333ms)
+✔ wrap drops leading and trailing whitespace (0.066417ms)
+✔ wrap returns an empty string for empty or whitespace-only input (0.055042ms)
+✔ wrap works at width 1 (0.057ms)
+✔ wrap returns a string joined with \n and no trailing newline (0.096333ms)
+✔ wrap throws TypeError when text is not a string (0.236208ms)
+✔ wrap throws RangeError when width is not an integer >= 1 (0.089834ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 55.139208

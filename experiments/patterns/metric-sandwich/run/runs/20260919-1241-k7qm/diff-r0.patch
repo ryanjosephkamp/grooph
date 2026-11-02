@@ -1,0 +1,166 @@
+diff --git a/README.md b/README.md
+index 355c000..c0b0ae5 100644
+--- a/README.md
++++ b/README.md
+@@ -5,13 +5,20 @@ Helpers for lists held in memory.
+ ## Pagination
+ 
+ ```js
+-import { paginate } from "./src/paginate.mjs";
++import { pageCount, paginate } from "./src/paginate.mjs";
+ 
+-paginate(["a", "b", "c", "d", "e"], 2, 0); // ["a", "b"], the first page
+-paginate(["a", "b", "c", "d", "e"], 2, 2); // ["e"], the last page
++paginate(["a", "b", "c", "d", "e"], 2, 1); // ["a", "b"], the first page
++paginate(["a", "b", "c", "d", "e"], 2, 3); // ["e"], the last page
++pageCount(5, 2); // 3, so page 3 is the last page
+ ```
+ 
+-Pages are numbered from 0, so the first page is page 0.
++Pages are numbered from 1, so the first page is page 1. `pageCount(total, pageSize)`
++returns how many pages `total` items fill, which is also the number of the last page
++(0 when there are no items).
++
++Both functions throw a `RangeError` for input they cannot answer correctly: a
++`pageSize` that is not a positive integer, a `page` that is not an integer of at
++least 1, or a `total` that is not a non-negative integer.
+ 
+ ## Checks
+ 
+diff --git a/src/paginate.mjs b/src/paginate.mjs
+index cf6f41a..d802fab 100644
+--- a/src/paginate.mjs
++++ b/src/paginate.mjs
+@@ -1,18 +1,54 @@
+ /**
+  * Pagination helpers for lists held in memory.
+  *
+- * Page numbers in this module are zero-based: page 0 is the first page.
++ * Page numbers in this module are one-based: page 1 is the first page.
+  */
+ 
++/**
++ * Throws a RangeError unless `pageSize` is a positive integer.
++ *
++ * @param {unknown} pageSize the page size to check
++ */
++function requirePageSize(pageSize) {
++  if (!Number.isInteger(pageSize) || pageSize < 1) {
++    throw new RangeError(`pageSize must be a positive integer, got ${String(pageSize)}`);
++  }
++}
++
+ /**
+  * Returns the items on one page of `items`.
+  *
+  * @param {unknown[]} items the whole list
+- * @param {number} pageSize how many items a page holds
+- * @param {number} page which page, counting from 0
++ * @param {number} pageSize how many items a page holds; a positive integer
++ * @param {number} page which page, counting from 1
+  * @returns {unknown[]} the items on that page; empty past the last page
++ * @throws {RangeError} if `pageSize` is not a positive integer or `page` is not an
++ *   integer of at least 1
+  */
+ export function paginate(items, pageSize, page) {
+-  const start = page * pageSize;
++  requirePageSize(pageSize);
++  if (!Number.isInteger(page) || page < 1) {
++    throw new RangeError(`page must be an integer of at least 1, got ${String(page)}`);
++  }
++  const start = (page - 1) * pageSize;
+   return items.slice(start, start + pageSize);
+ }
++
++/**
++ * Returns how many pages `total` items fill, the last of which may be short.
++ * The result is also the number of the last page `paginate` fills (0 when there
++ * are no items, so no page is filled).
++ *
++ * @param {number} total how many items there are; a non-negative integer
++ * @param {number} pageSize how many items a page holds; a positive integer
++ * @returns {number} the number of pages
++ * @throws {RangeError} if `total` is not a non-negative integer or `pageSize` is
++ *   not a positive integer
++ */
++export function pageCount(total, pageSize) {
++  if (!Number.isInteger(total) || total < 0) {
++    throw new RangeError(`total must be a non-negative integer, got ${String(total)}`);
++  }
++  requirePageSize(pageSize);
++  return Math.ceil(total / pageSize);
++}
+diff --git a/tests/paginate.test.mjs b/tests/paginate.test.mjs
+index acbdec9..1832a86 100644
+--- a/tests/paginate.test.mjs
++++ b/tests/paginate.test.mjs
+@@ -1,18 +1,64 @@
+ import assert from "node:assert/strict";
+ import { test } from "node:test";
+ 
+-import { paginate } from "../src/paginate.mjs";
++import { pageCount, paginate } from "../src/paginate.mjs";
+ 
+ const letters = ["a", "b", "c", "d", "e"];
+ 
+-test("page 0 is the first page", () => {
+-  assert.deepEqual(paginate(letters, 2, 0), ["a", "b"]);
++test("page 1 is the first page", () => {
++  assert.deepEqual(paginate(letters, 2, 1), ["a", "b"]);
++});
++
++test("page 2 follows page 1", () => {
++  assert.deepEqual(paginate(letters, 2, 2), ["c", "d"]);
+ });
+ 
+ test("the last page may be short", () => {
+-  assert.deepEqual(paginate(letters, 2, 2), ["e"]);
++  assert.deepEqual(paginate(letters, 2, 3), ["e"]);
+ });
+ 
+ test("a page past the end is empty", () => {
+-  assert.deepEqual(paginate(letters, 2, 3), []);
++  assert.deepEqual(paginate(letters, 2, 4), []);
++});
++
++test("paginate refuses a pageSize that is not a positive integer", () => {
++  for (const badSize of [0, -1, 1.5, NaN, Infinity, "2", undefined]) {
++    assert.throws(() => paginate(letters, badSize, 1), RangeError, `pageSize ${String(badSize)}`);
++  }
++});
++
++test("paginate refuses a page that is not an integer of at least 1", () => {
++  for (const badPage of [0, -1, 1.5, NaN, Infinity, "1", undefined]) {
++    assert.throws(() => paginate(letters, 2, badPage), RangeError, `page ${String(badPage)}`);
++  }
++});
++
++test("pageCount counts full pages and a short last page", () => {
++  assert.equal(pageCount(4, 2), 2);
++  assert.equal(pageCount(5, 2), 3);
++  assert.equal(pageCount(1, 10), 1);
++});
++
++test("pageCount of no items is 0", () => {
++  assert.equal(pageCount(0, 3), 0);
++});
++
++test("pageCount refuses a total that is not a non-negative integer", () => {
++  for (const badTotal of [-1, 2.5, NaN, Infinity, "5", undefined]) {
++    assert.throws(() => pageCount(badTotal, 2), RangeError, `total ${String(badTotal)}`);
++  }
++});
++
++test("pageCount refuses a pageSize that is not a positive integer", () => {
++  for (const badSize of [0, -1, 1.5, NaN, Infinity, "2", undefined]) {
++    assert.throws(() => pageCount(5, badSize), RangeError, `pageSize ${String(badSize)}`);
++  }
++});
++
++test("page pageCount(total, size) is the last page paginate fills", () => {
++  const pageSize = 2;
++  const lastPage = pageCount(letters.length, pageSize);
++  assert.equal(lastPage, 3);
++  assert.deepEqual(paginate(letters, pageSize, lastPage), ["e"]);
++  assert.deepEqual(paginate(letters, pageSize, lastPage + 1), []);
+ });

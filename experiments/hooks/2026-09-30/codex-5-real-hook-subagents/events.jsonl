@@ -1,0 +1,14 @@
+{"v":1,"t":"2026-10-01T01:35:00.107Z","harness":"codex","event":"turn-start","session":"session-1","model":"gpt-6-luna","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:35:00.107Z","harness":"codex","event":"session-start","session":"session-1","model":"gpt-6-luna","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:35:02.538Z","harness":"codex","event":"tool","session":"session-1","tool":"collaborationspawn_agent","model":"gpt-6-luna","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:35:04.046Z","harness":"codex","event":"tool","session":"session-1","tool":"collaborationspawn_agent","model":"gpt-6-luna","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:35:04.112Z","harness":"codex","event":"subagent-start","session":"session-1","agent":"session-3","type":"default","model":"gpt-6-luna"}
+{"v":1,"t":"2026-10-01T01:35:05.818Z","harness":"codex","event":"tool","session":"session-1","agent":"session-3","type":"default","tool":"Bash","model":"gpt-6-luna"}
+{"v":1,"t":"2026-10-01T01:35:05.914Z","harness":"codex","event":"subagent-start","session":"session-1","agent":"session-4","type":"default","model":"gpt-6-luna"}
+{"v":1,"t":"2026-10-01T01:35:06.917Z","harness":"codex","event":"subagent-stop","session":"session-1","agent":"session-3","type":"default","model":"gpt-6-luna","transcript":"<local path>"}
+{"v":1,"t":"2026-10-01T01:35:06.920Z","harness":"codex","event":"tool","session":"session-1","tool":"collaborationwait_agent","model":"gpt-6-luna","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:35:07.853Z","harness":"codex","event":"tool","session":"session-1","agent":"session-4","type":"default","tool":"Bash","model":"gpt-6-luna"}
+{"v":1,"t":"2026-10-01T01:35:08.905Z","harness":"codex","event":"subagent-stop","session":"session-1","agent":"session-4","type":"default","model":"gpt-6-luna","transcript":"<local path>"}
+{"v":1,"t":"2026-10-01T01:35:08.905Z","harness":"codex","event":"tool","session":"session-1","tool":"collaborationwait_agent","model":"gpt-6-luna","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:35:09.947Z","harness":"codex","event":"turn-end","session":"session-1","model":"gpt-6-luna","cwd":"/<local path>"}
+{"v":1,"t":"2026-10-01T01:35:10.025Z","harness":"codex","event":"session-end","session":"session-1","cwd":"/<local path>"}

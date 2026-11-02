@@ -1,0 +1,31 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260920-193520: the clock form",
+    "worker dispatched 2 time(s)",
+    "PLAN.md: planner Write PLAN.md",
+    "HANDOFF-A.md: owner-a Write HANDOFF-A.md",
+    "HANDOFF-B.md: owner-b Write HANDOFF-B.md",
+    "ARCHITECTURE.md: integrator Write ARCHITECTURE.md",
+    "no `ending` line before the final note n-0017 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "ending as expected: stop node done",
+    "owner-a wrote 3 file(s): src/db/store.mjs, src/db/store.test.mjs, HANDOFF-A.md",
+    "owner-b wrote 3 file(s): src/api/handle.mjs, src/api/handle.test.mjs, HANDOFF-B.md",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "timestamps: 24 given, 1 out of append order (estimated, not read from the clock)",
+    "permission denials: Bash `npm test 2>&1 | tail -40; echo \"exit: ${pipestatus[1]}\"`; Bash `date -u +%Y-%m-%dT%H:%M:%SZ; npm test 2>&1 | tail -15; echo \"exit=${pipestatus[1`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

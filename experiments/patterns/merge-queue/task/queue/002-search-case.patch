@@ -1,0 +1,33 @@
+diff --git a/src/search.mjs b/src/search.mjs
+index 678c53b..5f9fa90 100644
+--- a/src/search.mjs
++++ b/src/search.mjs
+@@ -1,9 +1,10 @@
+ /**
+- * Finds the items whose title contains the query. Exact title matches come
+- * first, then the rest in their original order.
++ * Finds the items whose title contains the query, ignoring case, sorted by
++ * title so results read the same whatever order the items came in.
+  */
+ export function search(items, query) {
+-  const exact = items.filter((item) => item.title === query);
+-  const partial = items.filter((item) => item.title !== query && item.title.includes(query));
+-  return [...exact, ...partial];
++  const q = query.toLowerCase();
++  return items
++    .filter((item) => item.title.toLowerCase().includes(q))
++    .sort((a, b) => a.title.localeCompare(b.title));
+ }
+diff --git a/tests/search.test.mjs b/tests/search.test.mjs
+index fc00cb7..78ad03b 100644
+--- a/tests/search.test.mjs
++++ b/tests/search.test.mjs
+@@ -19,3 +19,8 @@ test("finds titles containing the query", () => {
+ test("an exact title match comes first, the rest keep their order", () => {
+   assert.deepEqual(search(items, "Apple").map((i) => i.id), [3, 2]);
+ });
++
++test("case does not matter", () => {
++  assert.deepEqual(search(items, "apple").map((i) => i.id).sort(), [2, 3, 4]);
++  assert.deepEqual(search(items, "ZEBRA").map((i) => i.id), [1]);
++});

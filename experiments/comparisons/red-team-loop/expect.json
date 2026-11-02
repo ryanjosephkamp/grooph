@@ -1,0 +1,53 @@
+{
+  "about": "What the runner, the scorer and the summary read for this project (protocol \u00a77). The proving keys (agents, reports, ownership, backEdge, ending) drive the check on arm A's run record, copied from experiments/patterns/red-team-loop/expect.json; the rest is the pre-registration and the scorer's paths. The held-out suite is the scorer's only: nothing in any arm names it.",
+  "template": "red-team-loop",
+  "replicates": 2,
+  "bet": "red-team-loop's mechanism is a frontier attacker in a fresh context that sees the running code and the contract, not the builder's reasoning: it should find the contract lines a strong builder's own tests miss, so arm A should reach the highest held-out pass rate. The proving run showed a strong builder can leave a frontier red team nothing to find (README contract, forty lines), so the honest expectation is that A matches B on held-out at about twice the cost, and the bet pays only if a prompt-arm builder leaves a class of inputs unhandled that A's red team catches.",
+  "measure": "held-out passes out of 73 (every contract line applied to an input, the 100 KB timing cases, a 7,000-input sweep for 'fields or CsvError, nothing else'); traces written and back edges taken in A (run record); cost.",
+  "loses_if": "the graph loses when arm B's held-out passes equal or exceed arm A's in both replicates; it earns its cost only if A's held-out range lies above B's.",
+  "scope": {
+    "allowed": [
+      "src/",
+      "tests/",
+      "traces/",
+      "ATTACK.md",
+      "CHANGES.md"
+    ]
+  },
+  "judge": {
+    "files": [
+      "src/",
+      "tests/"
+    ],
+    "acceptance": [
+      "README.md"
+    ]
+  },
+  "agents": [
+    "builder",
+    "red-team"
+  ],
+  "reports": {
+    "red-team": [
+      "ATTACK.md"
+    ]
+  },
+  "ownership": {
+    "red-team": [
+      "traces"
+    ]
+  },
+  "backEdge": true,
+  "ending": [
+    "stop node done",
+    "stop diminishing-returns",
+    "stop max-iterations",
+    "stop budget"
+  ],
+  "heldOut": {
+    "notReaders": [
+      "builder",
+      "red-team"
+    ]
+  }
+}

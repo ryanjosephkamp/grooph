@@ -1,0 +1,272 @@
+name: CI
+
+# Runs on pull requests and by hand, never on a push: a pull request already checks what main will hold. A pull
+# request that conflicts with main gets no run until main is merged in, because GitHub checks the merge, not the head.
+# The Safari and Firefox job runs only by hand. Reports are kept only when a job fails, for three days.
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      # The same three commands a fresh clone runs.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      - run: pnpm -r test
+
+      # The packages a human reviews must still be the packages the compiler emits. The compiler is the lab's
+      # (lab/README.md): its command, grooph-lab, does what grooph does and what left it.
+      - name: export matches the golden packages
+        run: |
+          for graph in review-loop fix-until-green; do
+            pnpm exec grooph-lab export "fixtures/valid/$graph.grooph.json" \
+              --target claude-code --into "$RUNNER_TEMP/grooph-pkg-claude-code-$graph" > /dev/null
+            diff -r "$RUNNER_TEMP/grooph-pkg-claude-code-$graph" "fixtures/golden/claude-code/$graph"
+            # The fixtures name Claude Code, and an export for a harness the document does not name is refused
+            # (E_NO_TARGET). The Codex package is of the same graph with Codex named in it, by the op.
+            cp "fixtures/valid/$graph.grooph.json" "$RUNNER_TEMP/for-codex-$graph.grooph.json"
+            echo '[{"op":"setTarget","harness":"codex"}]' | pnpm exec grooph apply "$RUNNER_TEMP/for-codex-$graph.grooph.json" --ops - --write > /dev/null
+            pnpm exec grooph-lab export "$RUNNER_TEMP/for-codex-$graph.grooph.json" \
+              --target codex --into "$RUNNER_TEMP/grooph-pkg-codex-$graph" > /dev/null
+            diff -r "$RUNNER_TEMP/grooph-pkg-codex-$graph" "fixtures/golden/codex/$graph"
+          done
+
+      # An agent's route from nothing to the review loop: new, then apply the example ops.
+      - name: new and apply rebuild the review loop
+        run: |
+          pnpm exec grooph new --name "Review loop" --out "$RUNNER_TEMP/review-loop.grooph.json"
+          pnpm exec grooph apply "$RUNNER_TEMP/review-loop.grooph.json" --ops fixtures/ops/review-loop.ops.json --write
+          diff "$RUNNER_TEMP/review-loop.grooph.json" fixtures/valid/review-loop.grooph.json
+
+      - name: the validator agrees with the fixtures from the command line
+        run: |
+          pnpm exec grooph validate fixtures/valid/review-loop.grooph.json
+          ! pnpm exec grooph validate fixtures/invalid/E_DANGLING_REF/edge-to-unknown-node.grooph.json
+          # The advice about loops is given when asked for, as warnings, and is never an error.
+          pnpm exec grooph validate --loops fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json | grep -q "warning  E_CYCLE_NO_STOP"
+
+      # patterns/index.json and patterns/README.md are generated and committed (docs/templates.md §3).
+      - name: the pattern index is current
+        run: node scripts/patterns-index.mjs --check
+
+      # docs/field-guide.md, its glyphs and the poster are generated from the patterns and their proving records.
+      - name: the field guide is current
+        run: node scripts/field-guide.mjs --check
+
+      # docs/rules.md is generated from the rule tables and the fixtures.
+      - name: the rule reference is current
+        run: node scripts/rule-reference.mjs --check
+
+      # docs/cli.md is generated from the help the CLI prints: `grooph --help` and `grooph help <command>`.
+      - name: the CLI reference is current
+        run: node scripts/cli-reference.mjs --check
+
+      # community/index.json, its pictures and docs/community.md are generated from the documents under community/,
+      # and every one of those documents must validate. community.yml is what tells a sender what is wrong with theirs.
+      # A pull request from a fork is not asked to regenerate them: they are regenerated when it is merged, and the next
+      # pull request from this repository's own branches fails here if that was missed.
+      - name: the community gallery is current
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: node scripts/community-index.mjs --check
+
+      # The documents render as site pages: the renderer's own tests, then every page into a temporary
+      # folder, failing on a broken link between pages, Markdown left unrendered, a page over 40 KB, or a color
+      # variable that drifted from the app's.
+      - name: the site's pages render, link and weigh what they should
+        run: |
+          node --test scripts/site/markdown.test.mjs scripts/site/site-pages.test.mjs
+          node scripts/site-pages.mjs --check
+
+      # docs/privacy.md says the app and the site's pages load nothing from another host. This reads the built app and
+      # the rendered pages and fails on a script, a style sheet, a font, a picture or a frame from elsewhere. A link is
+      # not a load. What a script asks for at run time is seen by the smoke visits, in web-e2e and web-browsers.
+      - name: the app and the site's pages load nothing from another host
+        run: |
+          node --test scripts/check-outside-addresses.test.mjs
+          node scripts/check-outside-addresses.mjs --check
+
+      # What the app and the CLI weigh: the app's first load, an embed's, and the CLI's cold start,
+      # against scripts/perf-budget.json. Raising a budget is a decision made in a pull request that says why.
+      - name: the app and the CLI are inside their performance budget
+        run: |
+          node --test scripts/perf-budget.test.mjs
+          node scripts/perf-budget.mjs --check
+
+      # The experiments' derived prompts and tables, rebuilt from their records. The first fails when a kept prompt is no
+      # longer what the compiler and the derivation rule give; the second holds the watching check's tables to its records.
+      # Neither starts a model session.
+      - name: the derived arms hold, and the watching check's tables are current
+        run: |
+          node scripts/lib/compare-arms-ef.mjs --check
+          node experiments/watching/tables.mjs --check
+
+      # The quickstart's by-hand path, in a fresh folder, against the built CLI.
+      - name: the quickstart's first run works
+        run: scripts/first-run.sh
+
+      # What goes to npm as `grooph`: assembled from the build, packed, installed from the tarball into a fresh folder
+      # that is not a clone, and run there. This publishes nothing; it only proves the package would work.
+      - name: the npm package installs from its tarball and runs
+        run: scripts/pack-check.sh --keep grooph-kit-out
+
+      # The skill for claude.ai and the extension for Claude's desktop app (docs/agents.md, "From a chat app"), built and then used as the
+      # app would use them: unzipped into an empty folder, with nothing installed beside them.
+      - name: the chat kit builds and runs with nothing beside it
+        run: |
+          scripts/kit-check.sh --keep grooph-kit-out
+          # --keep was given a relative path on purpose: both scripts work in a folder of their own and delete it,
+          # and what they keep has to land where the caller said, not in there.
+          ls grooph-kit-out/grooph-*.tgz grooph-kit-out/grooph-chat.zip grooph-kit-out/grooph.mcpb
+
+
+      # The version is written in eight files. scripts/version.mjs is the one command that writes
+      # them all; this fails when they disagree, or when one of them can no longer be found where it was.
+      - name: the version is the same in every place it is written
+        run: |
+          node --test scripts/version.test.mjs
+          node scripts/version.mjs --check
+
+      # Public-facing text is American English: the README, the site's documents, the app, the CLI,
+      # the templates and what the compiler writes. The internal record and the evidence are not read.
+      - name: public-facing text is American English
+        run: node scripts/american-english.mjs --check
+
+      # A loop's stops are the only place its numbers live.
+      - name: no pattern restates a brake value
+        run: node scripts/check-brake-values.mjs
+
+      # A picture added under docs/, experiments/ or apps/web/public/ is at most 150 KB: a clone carries
+      # every picture ever committed. The ones from before the rule are in scripts/pictures-baseline.json and may not grow.
+      - name: no new picture is over the size rule
+        run: |
+          node --test scripts/check-pictures.test.mjs
+          node scripts/check-pictures.mjs --check
+
+      # An agent's route from a name to an exportable graph, through the bundled library only.
+      - name: a built-in template instantiates and exports
+        env:
+          GROOPH_REGISTRY: http://127.0.0.1:9/unreachable/index.json
+        run: |
+          pnpm exec grooph template list
+          pnpm exec grooph template use review-gate --name "Try it" \
+            --set task="Add a slugify function." --set test-command="pnpm test" --set checklist=docs/REVIEW-CHECKLIST.md \
+            --out "$RUNNER_TEMP/try.grooph.json"
+          pnpm exec grooph validate --for-export "$RUNNER_TEMP/try.grooph.json"
+          pnpm exec grooph-lab export "$RUNNER_TEMP/try.grooph.json" --target claude-code --into "$RUNNER_TEMP/try-pkg" > /dev/null
+
+      # Proposals without a model (docs/executive.md §4): shape, share a set, pick, and the lab's export of the pick.
+      - name: shape, share and pick from the command line
+        run: |
+          pnpm exec grooph shape fixtures/valid/review-loop.grooph.json
+          pnpm exec grooph share fixtures/valid/review-loop.grooph.json --base http://localhost:4173/grooph/
+          set=fixtures/proposals/valid/csv-export/csv-export.grooph-proposals.json
+          pnpm exec grooph share "$set" --out "$RUNNER_TEMP/csv-export.grooph-proposals.json"
+          pnpm exec grooph pick "$set" lean --out "$RUNNER_TEMP/lean.grooph.json"
+          pnpm exec grooph-lab export "$RUNNER_TEMP/lean.grooph.json" --target claude-code --into "$RUNNER_TEMP/lean-pkg" > /dev/null
+
+      # The install script, against a throwaway HOME only.
+      - name: install-local.sh installs, repeats, refuses and uninstalls
+        run: scripts/test-install-local.sh
+
+  # The web app in a real browser at phone size: the round trip
+  # to the golden package, authoring by touch, validation, storage and layout,
+  # against the production build served under the Pages base path.
+  web-e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Chromium is cached per Playwright version; the system libraries it
+      # needs are not in the cache, so they are installed either way.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @grooph/web exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: chromium
+        with:
+          path: ~/.cache/ms-playwright
+          key: chromium-shell-${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
+      - if: steps.chromium.outputs.cache-hit != 'true'
+        run: pnpm --filter @grooph/web exec playwright install --with-deps --only-shell chromium
+      - if: steps.chromium.outputs.cache-hit == 'true'
+        run: pnpm --filter @grooph/web exec playwright install-deps chromium
+
+      # Some specs call the CLI's own code (the embed command, the site's pages), and that code loads core as built.
+      - run: pnpm -r build
+
+      - run: pnpm --filter @grooph/web test:e2e
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 3
+
+  # The smoke set in Safari's engine and in Firefox: five visits a stranger makes, in the two browsers the rest of
+  # the suite never opens. Chromium runs the same five above, in web-e2e. By hand only, to keep the minutes down.
+  web-browsers:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The two browsers are cached per Playwright version; their system libraries are installed either way.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @grooph/web exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: browsers
+        with:
+          path: ~/.cache/ms-playwright
+          key: webkit-firefox-${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm --filter @grooph/web exec playwright install --with-deps webkit firefox
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm --filter @grooph/web exec playwright install-deps webkit firefox
+
+      # The specs read core as built. The app is built by the test server, from source.
+      - run: pnpm --filter @grooph/core build
+
+      - run: pnpm --filter @grooph/web test:e2e --project=safari --project=firefox
+        env:
+          GROOPH_BROWSERS: "1"
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-browsers
+          path: apps/web/playwright-report
+          retention-days: 3

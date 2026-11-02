@@ -1,0 +1,101 @@
+name: Deploy web app
+
+# Publishes apps/web to GitHub Pages at https://ryanjosephkamp.github.io/grooph/
+# from main, with the pattern library beside it at /grooph/patterns/ so
+# `grooph template add <id>` works without a clone (docs/templates.md).
+# Pages must be set to "GitHub Actions" as its source (Settings → Pages), once.
+# By hand only: a deploy is a choice, not a side effect of a merge. A run can also build a branch under review into
+# next/, at https://ryanjosephkamp.github.io/grooph/next/, so it can be tried on a phone before it is merged. The site
+# itself is always main's; the next run without a branch takes next/ away again.
+
+on:
+  workflow_dispatch:
+    inputs:
+      next:
+        description: "A branch under review to build into next/ (leave empty for none)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @grooph/web test
+      # The build bakes in the base path /grooph/ (apps/web/vite.config.ts).
+      - run: pnpm --filter @grooph/web build
+
+      # Never publish a stale index: it is what remote registries read. The
+      # glyphs (patterns/glyphs/) go with it, so a write-up and
+      # `grooph template list --json` can point at one per template.
+      - name: publish the pattern library beside the app
+        run: |
+          pnpm --filter @grooph/core build
+          node scripts/patterns-index.mjs --check
+          cp -R patterns apps/web/dist/patterns
+          test -f apps/web/dist/patterns/glyphs/review-gate.svg
+
+      # The repository's documents as pages beside the app, at /grooph/docs/ (scripts/site-pages.mjs). The app's
+      # service worker leaves /docs/ alone, so a visitor with the app installed still reads a page.
+      - name: publish the documents as pages beside the app
+        run: |
+          node scripts/site-pages.mjs --out apps/web/dist
+          test -f apps/web/dist/docs/index.html
+          test -f apps/web/dist/docs/quickstart/index.html
+          test -f apps/web/dist/404.html
+
+      # The branch under review, built for its own address. Its documents go with it, since the app links to them
+      # beside itself; the pattern library does not, as nothing in the app reads it from the site.
+      - name: check out the branch under review
+        if: inputs.next != ''
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.next }}
+          path: next-src
+          persist-credentials: false
+      - name: build it into next/
+        if: inputs.next != ''
+        working-directory: next-src
+        env:
+          GROOPH_BASE: /grooph/next/
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @grooph/web build
+          node scripts/site-pages.mjs --out apps/web/dist
+          cp -R apps/web/dist ../apps/web/dist/next
+          test -f ../apps/web/dist/next/index.html
+
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

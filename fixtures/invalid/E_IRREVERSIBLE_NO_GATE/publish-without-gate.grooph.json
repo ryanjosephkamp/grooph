@@ -1,0 +1,63 @@
+{
+  "grooph": 0,
+  "id": "ungated-publish",
+  "name": "Ungated publish",
+  "version": 1,
+  "goal": "Write the release notes and publish them.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "writer",
+      "kind": "agent",
+      "name": "Writer",
+      "role": "builder",
+      "brief": "Writer: write the release notes.",
+      "outputs": [
+        "NOTES.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "publisher",
+      "kind": "agent",
+      "name": "Publisher",
+      "role": "builder",
+      "brief": "Publisher: publish NOTES.md.",
+      "outputs": [
+        "published URL"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "web"
+      ],
+      "irreversible": [
+        "publish"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-write-publish",
+      "from": "writer",
+      "to": "publisher"
+    },
+    {
+      "id": "e-publish-done",
+      "from": "publisher",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

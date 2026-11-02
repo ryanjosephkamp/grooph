@@ -1,0 +1,12 @@
+[
+  { "op": "setConstraint", "key": "other", "value": "Touch only the paths docs/BRIEF.md allows: apps/web/**; packages/core/**, packages/cli/**, fixtures/** and patterns/*.expect.json only for criterion 10; .github/workflows/ci.yml only if a test step needs it; root package.json and pnpm-lock.yaml only for a genuine dependency change; docs/screens/** for screenshots; this run's folder for run files. Its forbidden paths stand. The critic also reads phone-width screenshots, which tests cannot judge." },
+  { "op": "updateNode", "id": "builder", "set": { "outputs": [
+    "the change, with tests, committed on branch feature/templates",
+    "CHANGES.md: what changed this round, at .grooph/template-sandwich/runs/<run-id>/round-<n>/CHANGES.md",
+    "phone-width screenshots of the new screens in docs/screens/"
+  ] } },
+  { "op": "updateNode", "id": "critic", "set": { "outputs": [
+    "REVIEW.md: findings by checklist item and a verdict line, at .grooph/template-sandwich/runs/<run-id>/round-<n>/REVIEW.md (never docs/screens/REVIEW.md, which the driver writes)",
+    "verdict: pass | fail | invalid-evidence"
+  ] } }
+]

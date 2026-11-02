@@ -1,0 +1,7 @@
+{
+  "issues": [
+    "E_NO_TARGET",
+    "W_OUTPUT_NOT_WRITABLE"
+  ],
+  "note": "Written before the later warnings; the extra warnings are true statements about a deliberately minimal graph."
+}

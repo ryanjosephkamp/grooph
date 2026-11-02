@@ -1,0 +1,271 @@
+diff --git a/README.md b/README.md
+index b7b3264..f4fbe79 100644
+--- a/README.md
++++ b/README.md
+@@ -6,17 +6,33 @@ user's root and whatever the request carried: a file name, a subfolder, a
+ search string.
+ 
+ ```js
+-import { listFiles, readUserFile, writeUserFile } from "./src/store.mjs";
++import { listFiles, readUserFile, searchFiles, writeUserFile } from "./src/store.mjs";
+ 
+ writeUserFile(root, "notes.txt", "hello");
+ readUserFile(root, "notes.txt");        // "hello"
+ listFiles(root);                        // [{ name: "notes.txt", size: 5 }]
++searchFiles(root, "ell");               // ["notes.txt"]
++searchFiles(root, "ell", { within: "drafts" }); // names under root/drafts
+ ```
+ 
+ - `readUserFile(root, name)` returns the text of the named file under `root`.
+ - `writeUserFile(root, name, text)` writes it, creating `root` if needed.
+ - `listFiles(root)` lists the files directly under `root` with their sizes in
+   bytes, sorted by name.
++- `searchFiles(root, query, { within } = {})` returns, sorted, the names of
++  the files directly under `root` (or under the subfolder `within`, relative
++  to `root`, when given) whose text contains `query`. The match is a
++  case-sensitive substring test; an empty query matches every file. `query`
++  and `within` must be strings. A `within` that leads outside `root`, whether
++  by `..`, an absolute path or a symbolic link, is refused with an error; one
++  that does not exist, or names a file, throws.
++
++Listing and searching look only at regular files directly under the folder:
++they do not descend into nested folders and they skip symbolic links, so a
++link planted under one user's root cannot reach another's. A search reads
++each file a chunk at a time and stops at the first match, so its memory use
++does not grow with the size of the documents; a miss still reads the whole
++folder.
+ 
+ Users keep anything from a few notes to thousands of documents of a few
+ megabytes each; the page calls the store on every request, with no cache in
+diff --git a/src/store.mjs b/src/store.mjs
+index ec1df5d..ecad399 100644
+--- a/src/store.mjs
++++ b/src/store.mjs
+@@ -1,5 +1,18 @@
+-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+-import { join } from "node:path";
++import {
++  closeSync,
++  mkdirSync,
++  openSync,
++  readdirSync,
++  readFileSync,
++  readSync,
++  realpathSync,
++  statSync,
++  writeFileSync,
++} from "node:fs";
++import { join, resolve, sep } from "node:path";
++
++/** How many bytes of a file a search reads at a time. */
++const CHUNK_BYTES = 1 << 20;
+ 
+ /** The text of the named file under the user's root. */
+ export function readUserFile(root, name) {
+@@ -14,6 +27,67 @@ export function writeUserFile(root, name, text) {
+ 
+ /** The files directly under the user's root, with their sizes in bytes, sorted by name. */
+ export function listFiles(root) {
+-  const names = readdirSync(root).filter((name) => statSync(join(root, name)).isFile());
+-  return names.sort().map((name) => ({ name, size: readFileSync(join(root, name)).length }));
++  return fileNames(root).map((name) => ({ name, size: statSync(join(root, name)).size }));
++}
++
++/**
++ * The names, sorted, of the files directly under the user's root (or under the
++ * subfolder `within` when given) whose UTF-8 text contains `query`.
++ */
++export function searchFiles(root, query, { within } = {}) {
++  if (typeof query !== "string") throw new TypeError("query must be a string");
++  const dir = resolveWithin(root, within ?? ".");
++  const names = fileNames(dir);
++  if (query === "") return names;
++  const needle = Buffer.from(query, "utf8");
++  const buf = Buffer.allocUnsafe(needle.length - 1 + CHUNK_BYTES);
++  return names.filter((name) => fileContains(join(dir, name), needle, buf));
++}
++
++/**
++ * Whether the file at `path` contains the bytes `needle`. Reads the file one
++ * chunk at a time into `buf` (sized by the caller for a chunk plus the
++ * `needle.length - 1` bytes carried over from the previous one, so a match
++ * straddling two chunks is still seen) and stops at the first hit.
++ */
++function fileContains(path, needle, buf) {
++  const fd = openSync(path, "r");
++  try {
++    let kept = 0;
++    for (;;) {
++      const read = readSync(fd, buf, kept, CHUNK_BYTES, null);
++      if (read === 0) return false;
++      const end = kept + read;
++      if (buf.subarray(0, end).includes(needle)) return true;
++      kept = Math.min(end, needle.length - 1);
++      buf.copy(buf, 0, end - kept, end);
++    }
++  } finally {
++    closeSync(fd);
++  }
+ }
++
++/** The names of the regular files directly under `dir`, sorted; symbolic links are skipped. */
++function fileNames(dir) {
++  return readdirSync(dir, { withFileTypes: true })
++    .filter((entry) => entry.isFile())
++    .map((entry) => entry.name)
++    .sort();
++}
++
++/**
++ * The real path of the subfolder `sub` under `root`, refusing one that leads
++ * outside the root, whether by `..`, an absolute path or a symbolic link.
++ */
++function resolveWithin(root, sub) {
++  if (typeof sub !== "string") throw new TypeError("within must be a string");
++  const base = realpathSync(root);
++  const target = resolve(base, sub);
++  if (!isUnder(base, target)) throw escapes(sub);
++  const real = realpathSync(target);
++  if (!isUnder(base, real)) throw escapes(sub);
++  return real;
++}
++
++const isUnder = (base, path) => path === base || path.startsWith(base + sep);
++const escapes = (sub) => new Error(`within escapes the user's root: ${sub}`);
+diff --git a/tests/store.test.mjs b/tests/store.test.mjs
+index 3815d8b..5cdf910 100644
+--- a/tests/store.test.mjs
++++ b/tests/store.test.mjs
+@@ -1,10 +1,10 @@
+ import assert from "node:assert/strict";
+-import { mkdtempSync } from "node:fs";
++import { mkdtempSync, symlinkSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ import { join } from "node:path";
+ import { test } from "node:test";
+ 
+-import { listFiles, readUserFile, writeUserFile } from "../src/store.mjs";
++import { listFiles, readUserFile, searchFiles, writeUserFile } from "../src/store.mjs";
+ 
+ const fresh = () => join(mkdtempSync(join(tmpdir(), "userfiles-")), "root");
+ 
+@@ -24,3 +24,119 @@ test("sizes are in bytes, not characters", () => {
+   writeUserFile(root, "u.txt", "héllo");
+   assert.deepEqual(listFiles(root), [{ name: "u.txt", size: 6 }]);
+ });
++
++test("search returns matching names under the root, sorted", () => {
++  const root = fresh();
++  writeUserFile(root, "c.txt", "the cat sat");
++  writeUserFile(root, "a.txt", "a cat too");
++  writeUserFile(root, "b.txt", "no match here");
++  assert.deepEqual(searchFiles(root, "cat"), ["a.txt", "c.txt"]);
++  assert.deepEqual(searchFiles(root, "dog"), []);
++});
++
++test("search is a case-sensitive substring match", () => {
++  const root = fresh();
++  writeUserFile(root, "a.txt", "Hello world");
++  assert.deepEqual(searchFiles(root, "Hello"), ["a.txt"]);
++  assert.deepEqual(searchFiles(root, "hello"), []);
++  assert.deepEqual(searchFiles(root, "lo wo"), ["a.txt"]);
++});
++
++test("search matches multibyte text", () => {
++  const root = fresh();
++  writeUserFile(root, "a.txt", "héllo wörld");
++  writeUserFile(root, "b.txt", "hello world");
++  assert.deepEqual(searchFiles(root, "éll"), ["a.txt"]);
++  assert.deepEqual(searchFiles(root, "ö"), ["a.txt"]);
++});
++
++test("search finds a match that straddles a read boundary", () => {
++  const root = fresh();
++  const chunk = 1 << 20;
++  writeUserFile(root, "big.txt", "x".repeat(chunk - 3) + "needle" + "x".repeat(chunk));
++  writeUserFile(root, "end.txt", "x".repeat(chunk) + "needle");
++  writeUserFile(root, "none.txt", "x".repeat(chunk + 5));
++  assert.deepEqual(searchFiles(root, "needle"), ["big.txt", "end.txt"]);
++});
++
++test("search refuses a non-string query", () => {
++  const root = fresh();
++  writeUserFile(root, "a.txt", "undefined");
++  assert.throws(() => searchFiles(root, undefined), TypeError);
++  assert.throws(() => searchFiles(root, /a/), TypeError);
++});
++
++test("empty query matches every file", () => {
++  const root = fresh();
++  writeUserFile(root, "b.txt", "");
++  writeUserFile(root, "a.txt", "x");
++  assert.deepEqual(searchFiles(root, ""), ["a.txt", "b.txt"]);
++});
++
++test("search looks only at files directly under the folder", () => {
++  const root = fresh();
++  writeUserFile(root, "top.txt", "needle");
++  writeUserFile(join(root, "sub"), "deep.txt", "needle");
++  assert.deepEqual(searchFiles(root, "needle"), ["top.txt"]);
++});
++
++test("search within a subfolder looks only at that subfolder's files", () => {
++  const root = fresh();
++  writeUserFile(root, "top.txt", "needle");
++  writeUserFile(join(root, "sub"), "y.txt", "needle");
++  writeUserFile(join(root, "sub"), "x.txt", "needle");
++  writeUserFile(join(root, "sub"), "z.txt", "hay");
++  writeUserFile(join(root, "sub", "deeper"), "w.txt", "needle");
++  assert.deepEqual(searchFiles(root, "needle", { within: "sub" }), ["x.txt", "y.txt"]);
++  assert.deepEqual(searchFiles(root, "needle", { within: join("sub", "deeper") }), ["w.txt"]);
++  assert.deepEqual(searchFiles(root, "needle", { within: "." }), ["top.txt"]);
++});
++
++test("search refuses a subfolder that escapes the root", () => {
++  const root = fresh();
++  writeUserFile(root, "top.txt", "needle");
++  writeUserFile(join(root, "..", "outside"), "leak.txt", "needle");
++  assert.throws(() => searchFiles(root, "needle", { within: join("..", "outside") }), /escapes/);
++  assert.throws(() => searchFiles(root, "needle", { within: join("sub", "..", "..", "outside") }), /escapes/);
++  assert.throws(() => searchFiles(root, "needle", { within: join(root, "..", "outside") }), /escapes/);
++  assert.throws(() => searchFiles(root, "needle", { within: 42 }), TypeError);
++});
++
++test("search refuses a subfolder that is a symbolic link out of the root", () => {
++  const root = fresh();
++  const outside = join(root, "..", "outside");
++  writeUserFile(root, "top.txt", "needle");
++  writeUserFile(outside, "leak.txt", "needle");
++  symlinkSync(outside, join(root, "link"));
++  assert.throws(() => searchFiles(root, "needle", { within: "link" }), /escapes/);
++  assert.throws(() => searchFiles(root, "needle", { within: join("link", ".") }), /escapes/);
++});
++
++test("search and list skip symbolic links to files", () => {
++  const root = fresh();
++  const outside = join(root, "..", "outside");
++  writeUserFile(root, "top.txt", "needle");
++  writeUserFile(outside, "leak.txt", "needle");
++  symlinkSync(join(outside, "leak.txt"), join(root, "leak-link.txt"));
++  assert.deepEqual(searchFiles(root, "needle"), ["top.txt"]);
++  assert.deepEqual(listFiles(root), [{ name: "top.txt", size: 6 }]);
++});
++
++test("search refuses a sibling folder whose name merely starts with the root's", () => {
++  const root = fresh();
++  writeUserFile(root, "top.txt", "needle");
++  writeUserFile(`${root}2`, "leak.txt", "needle");
++  assert.throws(() => searchFiles(root, "needle", { within: "../root2" }), /escapes/);
++});
++
++test("search on a missing subfolder throws", () => {
++  const root = fresh();
++  writeUserFile(root, "top.txt", "needle");
++  assert.throws(() => searchFiles(root, "needle", { within: "nope" }), { code: "ENOENT" });
++});
++
++test("search on a subfolder that is really a file throws", () => {
++  const root = fresh();
++  writeUserFile(root, "top.txt", "needle");
++  assert.throws(() => searchFiles(root, "needle", { within: "top.txt" }), { code: "ENOTDIR" });
++});

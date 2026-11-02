@@ -1,0 +1,358 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..0b80e2f
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,15 @@
++# Changes, round 1
++
++Only `src/statement.mjs` changed (plus this file and the new capture).
++
++Gaps closed, largest first:
++1. Ordering: charges sorted by amount, largest first, ties by name (Key management before Load balancing). Credits sorted largest first (Committed-use discount 410.63, then Service credit 164.25).
++2. Currency signs: no `$` or `-$` anywhere. Currency named once in the amount heading ("Amount (USD)"); removed from the header and the total label. Credits and total credits in parentheses; positive amounts keep a one-column pad so decimal points line up with the closing parenthesis.
++3. Zero-usage services (Machine learning inference, Monitoring) are no longer table rows; a footnote says "Two services with no usage were left out: ..." (names kept whole when wrapping).
++4. Share column added: each charge as a percentage of total charges to one decimal (integer math, half up); Charges line shows 100.0%.
++5. Header and usage: account number right-aligned on the customer line; the "Account/Currency" line is gone; usage is one phrase ("18,250 vCPU-hours").
++
++Figures unchanged and exact: charges 4,155.66, credits (574.88), total due 3,580.78. Width 60 (limit 72), ASCII, no tabs, no trailing spaces. `npm test`: 3 of 3 pass; no test conflicts with these changes.
++
++Left on purpose: nothing from GAPS.md. The critic's "not gaps" (Total credits subtotal, double rules, upper-case TOTAL DUE, column widths) were left as they are.
++Percent shares are each rounded, so they may not sum to exactly 100.0%.
+diff --git a/GAPS.md b/GAPS.md
+new file mode 100644
+index 0000000..ec60992
+--- /dev/null
++++ b/GAPS.md
+@@ -0,0 +1,76 @@
++# Gaps: current capture vs. the billing team's statement
++
++Evidence: `captures/statement.txt` (28 lines, widest 60 characters, plain ASCII,
++no tabs, no trailing spaces) and `captures/CAPTURE.md`. Both were present and
++readable, so the evidence is valid.
++
++## Blind side-by-side comparison
++
++I compared the two statements with their labels removed and in random order
++(X and Y), and only revealed which was which after judging.
++
++| Property                        | X                                              | Y                                              |
++|---------------------------------|------------------------------------------------|------------------------------------------------|
++| Opening line                    | Customer name, account number at right         | Customer name, account number at right         |
++| Month                           | By name                                        | By name                                        |
++| Charge order                    | By amount, largest first; tie (36.00) by name  | By amount, largest first; tie (36.00) by name  |
++| Line adding up the charges      | Yes, with a 100.0% share                       | Yes, with a 100.0% share                       |
++| Share column                    | One decimal, sums to 100.0%                    | One decimal, sums to 100.0%                    |
++| Usage                           | Thousands comma and unit                       | Thousands comma and unit                       |
++| Credits                         | Below charges, largest first, in parentheses   | Below charges, largest first, in parentheses   |
++| Decimal points                  | One column all the way down                    | One column all the way down                    |
++| Currency                        | Named once in the heading, no signs on amounts | Named once in the heading, no signs on amounts |
++| Between credits and total       | A rule, then the total                         | A credits subtotal, then a double rule, then the total |
++| Total-due line                  | Ordinary case, single rule above               | Upper case, double rules above and below       |
++| Zero-usage services             | One sentence at the foot with count and names  | One sentence at the foot with count and names  |
++| Width                           | Wider name column, fewer lines                 | Narrower (60 columns), three more lines        |
++
++All the arithmetic checks out in both. The charges sum to 4,155.66, the
++credits to 574.88, and 4,155.66 - 574.88 = 3,580.78. Every share is
++the charge divided by total charges, rounded to one decimal.
++
++**Which is better:** they are effectively tied. Both meet all seven properties
++that matter, and neither has a major gap. Y makes the total slightly easier to
++find, because the double rule and upper-case label make it stand out. X is
++slightly leaner: it goes straight from the credits to the total with no extra
++figure in between, and its name column has more room. If I had to choose, Y
++wins very narrowly on "the total is found at once", and X wins on economy.
++
++**Unblinded:** X is the billing team's statement and Y is the current capture.
++
++## Ranked gaps
++
++1. **minor: an extra "Total credits" subtotal sits between the credits and the
++   total.**
++   *Where it shows:* capture line 21, with an extra rule on line 20.
++   The expected order is: charges, the line adding them up, the credits, then
++   a rule and the total due. The capture adds a third bracketed figure just
++   above the total. Every number is still correct and in its place, and the
++   total is still last and set apart, so this doesn't mislead anyone. It's one
++   more figure for the reader to get past.
++   *What closing it would look like:* this is optional. Either remove the
++   credits subtotal so the last credit line leads straight into the rule and
++   TOTAL DUE, or keep it as a deliberate choice. Neither option breaks a
++   property.
++
++2. **minor (doesn't show in this capture; a robustness risk): the service-name
++   column only has room for this month's names.**
++   *Where it shows:* lines 4 to 13. The name column is 20 characters wide, and
++   the longest name listed ("Container registry", 18) leaves a two-space gap.
++   A name that is left out this month, "Machine learning inference" (26
++   characters, line 28), would not fit if it had usage. I can't tell from the
++   capture whether the layout would widen, wrap, or push the Usage, Share and
++   Amount columns out of line, which would break the single decimal-point
++   column.
++   *What closing it would look like:* size the name column to the longest
++   name shown, or to a fixed width that fits the longest service name, so the
++   amounts and decimal points stay in one column whatever the month brings.
++
++No other differences rise to a gap. Column widths, rule lengths, heading
++wording, upper-case "TOTAL DUE", and the footer wording ("Two services with no
++usage were left out: ...") are all presentation choices that break none of the
++properties that matter.
++
++Major gaps remaining: 0.
++
++Verdict: pass
+diff --git a/captures/CAPTURE.md b/captures/CAPTURE.md
+new file mode 100644
+index 0000000..ee32eff
+--- /dev/null
++++ b/captures/CAPTURE.md
+@@ -0,0 +1,40 @@
++# Capture of the current revision
++
++- rendered at 2026-10-04T22:20:05.757Z from src/statement.mjs, sha256 b8d39c5837d9
++- file: captures/statement.txt, 28 lines, the widest 60 characters
++- lines that end in a space or a tab: 0
++- tabs: none
++- characters outside plain ASCII: none
++
++## The statement, with line numbers and each line's length
++
++```text
++ 1 | 60 | Northwind Robotics                          Account NW-20418
++ 2 | 34 | Usage statement for September 2026
++ 3 |  0 | 
++ 4 | 60 | Service             Usage                Share  Amount (USD)
++ 5 | 60 | ------------------------------------------------------------
++ 6 | 59 | Compute             18,250 vCPU-hours    39.5%     1,642.50
++ 7 | 59 | Managed database    720 instance-hours   31.2%     1,296.00
++ 8 | 59 | Dedicated support   1 plan               12.0%       500.00
++ 9 | 59 | Data transfer out   4,380 GB              9.5%       394.20
++10 | 59 | Object storage      9,120 GB-months       5.0%       209.76
++11 | 59 | Container registry  412 GB-months         1.0%        41.20
++12 | 59 | Key management      36 keys               0.9%        36.00
++13 | 59 | Load balancing      1,440 hours           0.9%        36.00
++14 | 60 | ------------------------------------------------------------
++15 | 59 | Charges                                 100.0%     4,155.66
++16 |  0 | 
++17 |  7 | Credits
++18 | 60 | Committed-use discount                              (410.63)
++19 | 60 | Service credit, 14 Sep outage                       (164.25)
++20 | 60 | ------------------------------------------------------------
++21 | 60 | Total credits                                       (574.88)
++22 |  0 | 
++23 | 60 | ============================================================
++24 | 59 | TOTAL DUE                                          3,580.78
++25 | 60 | ============================================================
++26 |  0 | 
++27 | 41 | Two services with no usage were left out:
++28 | 39 | Machine learning inference, Monitoring.
++```
+diff --git a/captures/statement.txt b/captures/statement.txt
+new file mode 100644
+index 0000000..b1911cc
+--- /dev/null
++++ b/captures/statement.txt
+@@ -0,0 +1,28 @@
++Northwind Robotics                          Account NW-20418
++Usage statement for September 2026
++
++Service             Usage                Share  Amount (USD)
++------------------------------------------------------------
++Compute             18,250 vCPU-hours    39.5%     1,642.50
++Managed database    720 instance-hours   31.2%     1,296.00
++Dedicated support   1 plan               12.0%       500.00
++Data transfer out   4,380 GB              9.5%       394.20
++Object storage      9,120 GB-months       5.0%       209.76
++Container registry  412 GB-months         1.0%        41.20
++Key management      36 keys               0.9%        36.00
++Load balancing      1,440 hours           0.9%        36.00
++------------------------------------------------------------
++Charges                                 100.0%     4,155.66
++
++Credits
++Committed-use discount                              (410.63)
++Service credit, 14 Sep outage                       (164.25)
++------------------------------------------------------------
++Total credits                                       (574.88)
++
++============================================================
++TOTAL DUE                                          3,580.78
++============================================================
++
++Two services with no usage were left out:
++Machine learning inference, Monitoring.
+diff --git a/src/statement.mjs b/src/statement.mjs
+index 8bf919c..a834b90 100644
+--- a/src/statement.mjs
++++ b/src/statement.mjs
+@@ -1,3 +1,60 @@
++const MONTHS = [
++  "January", "February", "March", "April", "May", "June",
++  "July", "August", "September", "October", "November", "December",
++];
++
++/** Whole number with thousands separators. */
++function grouped(n) {
++  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
++}
++
++/**
++ * Cents as a plain amount: 164250 -> "1,642.50 ", -16425 -> "(164.25)".
++ * Positive amounts end in a space so decimal points line up with the
++ * closing parenthesis of negative ones.
++ */
++function amountText(cents) {
++  const abs = Math.abs(cents);
++  const text = `${grouped(Math.floor(abs / 100))}.${String(abs % 100).padStart(2, "0")}`;
++  return cents < 0 ? `(${text})` : `${text} `;
++}
++
++/** Share of a whole as a percentage with one decimal, in integer math (half up). */
++function percent(part, whole) {
++  if (whole <= 0) return "";
++  const tenths = Math.floor((part * 2000 + whole) / (2 * whole));
++  return `${Math.floor(tenths / 10)}.${tenths % 10}%`;
++}
++
++const NUMBER_WORDS = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
++
++/** Greedy word wrap to the given width. */
++function wrap(text, width) {
++  const lines = [];
++  let line = "";
++  for (const word of text.split(" ")) {
++    if (line && line.length + 1 + word.length > width) {
++      lines.push(line);
++      line = word;
++    } else {
++      line = line ? `${line} ${word}` : word;
++    }
++  }
++  if (line) lines.push(line);
++  return lines;
++}
++
++/** "2026-09" -> "September 2026". */
++function monthName(period) {
++  const match = /^(\d{4})-(\d{2})$/.exec(period);
++  if (!match || !MONTHS[Number(match[2]) - 1]) return period;
++  return `${MONTHS[Number(match[2]) - 1]} ${match[1]}`;
++}
++
++const left = (s, w) => s.padEnd(w);
++const right = (s, w) => s.padStart(w);
++const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
++
+ /**
+  * The monthly usage statement as plain text.
+  * @param {{ customer: string, account: string, period: string, currency: string,
+@@ -6,17 +63,99 @@
+  * @returns {string}
+  */
+ export function renderStatement(data) {
++  const GAP = 2;
++  const gap = " ".repeat(GAP);
++
++  const isIdle = (l) => l.quantity === 0 && l.amount_cents === 0;
++
++  // Largest charge first, ties by name; zero-usage services go to the footnote.
++  const used = data.lines
++    .filter((l) => !isIdle(l))
++    .sort((a, b) => b.amount_cents - a.amount_cents || cmp(a.service, b.service));
++  const idle = data.lines.filter(isIdle).map((l) => l.service).sort(cmp);
++
++  const chargesCents = data.lines.reduce((sum, l) => sum + l.amount_cents, 0);
++  const creditsCents = data.credits.reduce((sum, c) => sum + c.amount_cents, 0);
++  const totalCents = chargesCents + creditsCents;
++
++  const charges = used.map((l) => ({
++    service: l.service,
++    usage: `${grouped(l.quantity)} ${l.unit}`,
++    share: percent(l.amount_cents, chargesCents),
++    amount: amountText(l.amount_cents),
++  }));
++  // Largest credit first: most negative amount first, ties by reason.
++  const credits = [...data.credits]
++    .sort((a, b) => a.amount_cents - b.amount_cents || cmp(a.reason, b.reason))
++    .map((c) => ({ reason: c.reason, amount: amountText(c.amount_cents) }));
++
++  const subtotal = amountText(chargesCents);
++  const creditsTotal = amountText(creditsCents);
++  const total = amountText(totalCents);
++  const heading = `Amount (${data.currency})`;
++
++  const wAmount = Math.max(
++    heading.length,
++    ...charges.map((c) => c.amount.length),
++    ...credits.map((c) => c.amount.length),
++    subtotal.length,
++    creditsTotal.length,
++    total.length,
++  );
++  // Positive amounts keep a trailing pad slot; credits fill the full column.
++  const amountCell = (a) => (a.endsWith(" ") ? `${right(a.trimEnd(), wAmount - 1)} ` : right(a, wAmount));
++
++  const wService = Math.max("Service".length, ...charges.map((c) => c.service.length));
++  const wUsage = Math.max("Usage".length, ...charges.map((c) => c.usage.length));
++  const wShare = Math.max("Share".length, "100.0%".length, ...charges.map((c) => c.share.length));
++  const labelWidth = Math.max(
++    wService + GAP + wUsage + GAP + wShare,
++    ...credits.map((c) => c.reason.length),
++    "Total credits".length,
++  );
++  const width = labelWidth + GAP + wAmount;
++  const wUsageFit = labelWidth - wService - GAP - wShare - GAP;
++
++  const rule = (ch) => ch.repeat(width);
++  const summary = (label, amount) => `${left(label, labelWidth)}${gap}${amountCell(amount)}`;
++
+   const out = [];
+-  out.push(`Usage statement ${data.account} ${data.customer} ${data.period}`);
+-  let total = 0;
+-  for (const line of data.lines) {
+-    out.push(`${line.service} ${line.quantity} ${line.unit} ${line.amount_cents}`);
+-    total += line.amount_cents;
++  const account = `Account ${data.account}`;
++  out.push(`${left(data.customer, width - account.length)}${account}`);
++  out.push(`Usage statement for ${monthName(data.period)}`);
++  out.push("");
++  out.push(
++    [left("Service", wService), left("Usage", wUsageFit), right("Share", wShare), right(heading, wAmount)].join(gap),
++  );
++  out.push(rule("-"));
++  for (const c of charges) {
++    out.push(
++      [left(c.service, wService), left(c.usage, wUsageFit), right(c.share, wShare), amountCell(c.amount)].join(gap),
++    );
+   }
+-  for (const credit of data.credits) {
+-    out.push(`${credit.reason} ${credit.amount_cents}`);
+-    total += credit.amount_cents;
++  out.push(rule("-"));
++  out.push(
++    [left("Charges", wService + GAP + wUsageFit), right("100.0%", wShare), amountCell(subtotal)].join(gap),
++  );
++  out.push("");
++  out.push("Credits");
++  for (const c of credits) out.push(summary(c.reason, c.amount));
++  out.push(rule("-"));
++  out.push(summary("Total credits", creditsTotal));
++  out.push("");
++  out.push(rule("="));
++  out.push(summary("TOTAL DUE", total));
++  out.push(rule("="));
++  if (idle.length > 0) {
++    const count = NUMBER_WORDS[idle.length] ?? String(idle.length);
++    const noun = idle.length === 1 ? "service" : "services";
++    const verb = idle.length === 1 ? "was" : "were";
++    out.push("");
++    // Keep each service name on one line: wrap with placeholders for its inner spaces.
++    const names = idle.map((n) => n.replace(/ /g, "\u0000")).join(", ");
++    const note = `${count} ${noun} with no usage ${verb} left out: ${names}.`;
++    out.push(...wrap(note, width).map((line) => line.replace(/\u0000/g, " ")));
+   }
+-  out.push(`Total ${total} ${data.currency} cents`);
+-  return `${out.join("\n")}\n`;
++
++  return `${out.map((line) => line.replace(/\s+$/, "")).join("\n")}\n`;
+ }

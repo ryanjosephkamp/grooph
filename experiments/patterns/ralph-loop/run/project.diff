@@ -1,0 +1,307 @@
+diff --git a/AGENT.md b/AGENT.md
+index 90a8eda..39da80d 100644
+--- a/AGENT.md
++++ b/AGENT.md
+@@ -13,3 +13,33 @@ line per lesson, so the next pass starts where you left off.
+ 
+ ## Learned
+ 
++- `tokenize`: `text.toLowerCase().match(/[a-z0-9]+(?:'[a-z0-9]+)*/g) ?? []`
++  naturally satisfies "apostrophe inside a word stays" — the apostrophe only
++  joins two matches when it has word characters on both sides, so leading,
++  trailing or standalone apostrophes/quotes are dropped without special-casing.
++- `frequencies`: build directly on `tokenize` (call it, don't re-implement word
++  splitting) and count with a plain `Map`, using `counts.get(word) ?? 0` — `Map`
++  preserves insertion order natively, so first-seen order falls out for free
++  and there's no need to special-case an empty/no-word input beyond an empty
++  `Map`. Non-string input throws because `tokenize` already throws.
++- `tokenize`: the reviewer's acceptance cases treat a typographic apostrophe
++  (U+2019, `’`) the same as a straight `'` inside a word, and expect the
++  output word to use the straight apostrophe (`it’s` and `it's` both tokenize
++  to `"it's"`). The word regex must accept `['’]` between letters/digits,
++  and the matched substrings must then be normalized by replacing `’`
++  with `'` — `match()` returns the original characters, so without the
++  `.replace` step a typographic apostrophe survives into the token.
++- `topWords`: build on `frequencies` (spread its entries into an array) and
++  sort with a comparator that puts count descending first, then word
++  ascending as the tiebreak (`b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0]
++  ? 1 : 0)`) — `Array.prototype.sort` is stable in Node but the explicit
++  alphabetical tiebreak is still required since insertion (first-seen) order
++  is not alphabetical order. `slice(0, n)` naturally returns fewer than `n`
++  pairs when there are fewer distinct words. Non-string input throws because
++  `frequencies` (via `tokenize`) already throws.
++- `summary`: a thin composition of the three earlier functions — `words` is
++  `tokenize(text).length`, `unique` is `frequencies(text).size`, `top` is
++  `topWords(text, 3)`. No new edge-case logic is needed: empty text falls out
++  as `{ words: 0, unique: 0, top: [] }` and non-string input throws because
++  `tokenize` (called first) already throws.
++
+diff --git a/PLAN.md b/PLAN.md
+index 8162849..f1154ab 100644
+--- a/PLAN.md
++++ b/PLAN.md
+@@ -11,7 +11,7 @@ out wrong shows up in the next test run. The cases are not yours to read: write
+ your own tests from the item's text, and when an acceptance case fails, the
+ failure output says what it expected.
+ 
+-- [ ] **tokenize** · `tokenize(text)`: the words of `text` in order, lower-cased, with punctuation stripped; an apostrophe inside a word stays (`don't` is one word). Non-string input throws a `TypeError`. Tests in `tests/tokenize.test.mjs`.
+-- [ ] **frequencies** · `frequencies(text)`: a `Map` from each word (as `tokenize` gives it) to its count, in first-seen order. Tests in `tests/frequencies.test.mjs`.
+-- [ ] **top** · `topWords(text, n)`: the `n` most frequent words as `[word, count]` pairs, most frequent first, ties broken alphabetically; fewer when the text has fewer distinct words. Tests in `tests/top.test.mjs`.
+-- [ ] **summary** · `summary(text)`: `{ words, unique, top }` where `words` is the number of tokens, `unique` the number of distinct words and `top` is `topWords(text, 3)`. Tests in `tests/summary.test.mjs`.
++- [x] **tokenize** · `tokenize(text)`: the words of `text` in order, lower-cased, with punctuation stripped; an apostrophe inside a word stays (`don't` is one word). Non-string input throws a `TypeError`. Tests in `tests/tokenize.test.mjs`.
++- [x] **frequencies** · `frequencies(text)`: a `Map` from each word (as `tokenize` gives it) to its count, in first-seen order. Tests in `tests/frequencies.test.mjs`.
++- [x] **top** · `topWords(text, n)`: the `n` most frequent words as `[word, count]` pairs, most frequent first, ties broken alphabetically; fewer when the text has fewer distinct words. Tests in `tests/top.test.mjs`.
++- [x] **summary** · `summary(text)`: `{ words, unique, top }` where `words` is the number of tokens, `unique` the number of distinct words and `top` is `topWords(text, 3)`. Tests in `tests/summary.test.mjs`.
+diff --git a/src/text.mjs b/src/text.mjs
+index f6f33b2..d3e6b75 100644
+--- a/src/text.mjs
++++ b/src/text.mjs
+@@ -2,3 +2,70 @@
+  * Word statistics for plain text. Functions are added one plan item at a time
+  * (see PLAN.md); each is exported by name.
+  */
++
++/**
++ * The words of `text` in order, lower-cased, with punctuation stripped. An
++ * apostrophe inside a word (e.g. `don't`) stays part of the word; leading,
++ * trailing or standalone apostrophes/quotes are stripped along with other
++ * punctuation. A typographic apostrophe (U+2019, `’`) inside a word is
++ * treated the same as a straight apostrophe and normalized to `'` in the
++ * output, so `it's` and `it’s` tokenize to the same word.
++ *
++ * @param {string} text
++ * @returns {string[]}
++ */
++export function tokenize(text) {
++  if (typeof text !== "string") {
++    throw new TypeError("tokenize expects a string");
++  }
++  const matches = text.toLowerCase().match(/[a-z0-9]+(?:['’][a-z0-9]+)*/g);
++  return (matches ?? []).map((word) => word.replace(/’/g, "'"));
++}
++
++/**
++ * A `Map` from each word (as `tokenize` gives it) to its count, in
++ * first-seen order.
++ *
++ * @param {string} text
++ * @returns {Map<string, number>}
++ */
++export function frequencies(text) {
++  const counts = new Map();
++  for (const word of tokenize(text)) {
++    counts.set(word, (counts.get(word) ?? 0) + 1);
++  }
++  return counts;
++}
++
++/**
++ * The `n` most frequent words of `text` as `[word, count]` pairs, most
++ * frequent first, ties broken alphabetically. Fewer than `n` pairs are
++ * returned when the text has fewer distinct words.
++ *
++ * @param {string} text
++ * @param {number} n
++ * @returns {[string, number][]}
++ */
++export function topWords(text, n) {
++  const pairs = [...frequencies(text)];
++  pairs.sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
++  return pairs.slice(0, n);
++}
++
++/**
++ * A summary of `text`: the number of tokens (`words`), the number of
++ * distinct words (`unique`) and the 3 most frequent words (`top`, as
++ * `topWords(text, 3)` gives them).
++ *
++ * @param {string} text
++ * @returns {{ words: number, unique: number, top: [string, number][] }}
++ */
++export function summary(text) {
++  const tokens = tokenize(text);
++  const uniqueCount = frequencies(text).size;
++  return {
++    words: tokens.length,
++    unique: uniqueCount,
++    top: topWords(text, 3),
++  };
++}
+diff --git a/tests/frequencies.test.mjs b/tests/frequencies.test.mjs
+new file mode 100644
+index 0000000..af59ddc
+--- /dev/null
++++ b/tests/frequencies.test.mjs
+@@ -0,0 +1,36 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++import { frequencies } from "../src/text.mjs";
++
++test("counts each word in first-seen order", () => {
++  assert.deepEqual(
++    [...frequencies("the quick brown fox the fox the")],
++    [
++      ["the", 3],
++      ["quick", 1],
++      ["brown", 1],
++      ["fox", 2],
++    ],
++  );
++});
++
++test("returns an empty Map for text with no words", () => {
++  const result = frequencies("   ...  !! ");
++  assert.ok(result instanceof Map);
++  assert.equal(result.size, 0);
++});
++
++test("uses tokenize's word rules, e.g. apostrophes inside words", () => {
++  assert.deepEqual(
++    [...frequencies("don't stop don't")],
++    [
++      ["don't", 2],
++      ["stop", 1],
++    ],
++  );
++});
++
++test("throws a TypeError for non-string input", () => {
++  assert.throws(() => frequencies(42), TypeError);
++  assert.throws(() => frequencies(null), TypeError);
++});
+diff --git a/tests/summary.test.mjs b/tests/summary.test.mjs
+new file mode 100644
+index 0000000..2a45f46
+--- /dev/null
++++ b/tests/summary.test.mjs
+@@ -0,0 +1,40 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++import { summary } from "../src/text.mjs";
++
++test("returns words, unique and top for a mixed text", () => {
++  assert.deepEqual(summary("the quick brown fox the fox the"), {
++    words: 7,
++    unique: 4,
++    top: [
++      ["the", 3],
++      ["fox", 2],
++      ["brown", 1],
++    ],
++  });
++});
++
++test("unique counts distinct words, top breaks ties alphabetically", () => {
++  assert.deepEqual(summary("banana apple cherry apple banana cherry"), {
++    words: 6,
++    unique: 3,
++    top: [
++      ["apple", 2],
++      ["banana", 2],
++      ["cherry", 2],
++    ],
++  });
++});
++
++test("returns zeros and an empty top for text with no words", () => {
++  assert.deepEqual(summary("   ...  !! "), {
++    words: 0,
++    unique: 0,
++    top: [],
++  });
++});
++
++test("throws a TypeError for non-string input", () => {
++  assert.throws(() => summary(42), TypeError);
++  assert.throws(() => summary(null), TypeError);
++});
+diff --git a/tests/tokenize.test.mjs b/tests/tokenize.test.mjs
+new file mode 100644
+index 0000000..27308a3
+--- /dev/null
++++ b/tests/tokenize.test.mjs
+@@ -0,0 +1,44 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++import { tokenize } from "../src/text.mjs";
++
++test("splits words in order, lower-cased", () => {
++  assert.deepEqual(tokenize("The Quick Brown Fox"), [
++    "the",
++    "quick",
++    "brown",
++    "fox",
++  ]);
++});
++
++test("strips surrounding punctuation", () => {
++  assert.deepEqual(tokenize("Hello, world! Isn't it nice?"), [
++    "hello",
++    "world",
++    "isn't",
++    "it",
++    "nice",
++  ]);
++});
++
++test("keeps an apostrophe inside a word as one word", () => {
++  assert.deepEqual(tokenize("don't stop"), ["don't", "stop"]);
++});
++
++test("treats a typographic apostrophe as an apostrophe", () => {
++  assert.deepEqual(tokenize("it’s it's"), ["it's", "it's"]);
++});
++
++test("strips a standalone or quoting apostrophe", () => {
++  assert.deepEqual(tokenize("'quoted' words"), ["quoted", "words"]);
++});
++
++test("returns an empty array for text with no words", () => {
++  assert.deepEqual(tokenize("   ...  !! "), []);
++});
++
++test("throws a TypeError for non-string input", () => {
++  assert.throws(() => tokenize(42), TypeError);
++  assert.throws(() => tokenize(null), TypeError);
++  assert.throws(() => tokenize(undefined), TypeError);
++});
+diff --git a/tests/top.test.mjs b/tests/top.test.mjs
+new file mode 100644
+index 0000000..277251d
+--- /dev/null
++++ b/tests/top.test.mjs
+@@ -0,0 +1,34 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++import { topWords } from "../src/text.mjs";
++
++test("returns the n most frequent words, most frequent first", () => {
++  assert.deepEqual(topWords("the quick brown fox the fox the", 2), [
++    ["the", 3],
++    ["fox", 2],
++  ]);
++});
++
++test("breaks ties alphabetically", () => {
++  assert.deepEqual(topWords("banana apple cherry apple banana cherry", 3), [
++    ["apple", 2],
++    ["banana", 2],
++    ["cherry", 2],
++  ]);
++});
++
++test("returns fewer than n pairs when there are fewer distinct words", () => {
++  assert.deepEqual(topWords("one two one", 5), [
++    ["one", 2],
++    ["two", 1],
++  ]);
++});
++
++test("returns an empty array for text with no words", () => {
++  assert.deepEqual(topWords("   ...  !! ", 3), []);
++});
++
++test("throws a TypeError for non-string input", () => {
++  assert.throws(() => topWords(42, 3), TypeError);
++  assert.throws(() => topWords(null, 3), TypeError);
++});

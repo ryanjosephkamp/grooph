@@ -1,0 +1,90 @@
+{
+  "groophMap": 0,
+  "id": "a-person-and-two-sessions",
+  "name": "A person and two sessions",
+  "version": 1,
+  "lanes": [
+    {
+      "id": "laptop",
+      "name": "Laptop",
+      "machine": "a laptop",
+      "place": "local",
+      "account": "one account"
+    }
+  ],
+  "people": [
+    {
+      "id": "owner",
+      "name": "The owner",
+      "role": "Asks for the work and reads the result"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "lead",
+      "name": "Lead",
+      "lane": "laptop",
+      "harness": "claude-code",
+      "role": "Plans the work and checks it",
+      "lifetime": "long-lived"
+    },
+    {
+      "id": "worker",
+      "name": "Worker",
+      "lane": "laptop",
+      "harness": "claude-code",
+      "role": "Does one piece",
+      "lifetime": "per-task"
+    }
+  ],
+  "handoffs": [
+    {
+      "id": "h-ask",
+      "from": "owner",
+      "to": "lead",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "what is wanted"
+    },
+    {
+      "id": "h-start",
+      "from": "lead",
+      "to": "worker",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "one piece"
+    },
+    {
+      "id": "h-back",
+      "from": "worker",
+      "to": "lead",
+      "carrier": {
+        "kind": "branch",
+        "repo": "example/app"
+      },
+      "what": "the piece, on a branch"
+    },
+    {
+      "id": "h-wake",
+      "from": "lead",
+      "to": "lead",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "every hour"
+      },
+      "what": "its own check-in"
+    },
+    {
+      "id": "h-done",
+      "from": "lead",
+      "to": "owner",
+      "carrier": {
+        "kind": "notification",
+        "where": "e-mail"
+      },
+      "what": "done, with a link"
+    }
+  ]
+}

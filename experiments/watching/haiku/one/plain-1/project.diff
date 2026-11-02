@@ -1,0 +1,195 @@
+diff --git a/README.md b/README.md
+index c8aa9b8..1d4c279 100644
+--- a/README.md
++++ b/README.md
+@@ -4,9 +4,13 @@ Small helpers behind a print dialog.
+ 
+ ```js
+ import { paperSize } from "./src/paper.mjs";
++import { parseRanges } from "./src/parse-ranges.mjs";
+ 
+ paperSize("A4");     // { width: 210, height: 297 }
+ paperSize("letter"); // { width: 215.9, height: 279.4 }
++
++parseRanges("1-3,5", 10); // [1, 2, 3, 5]
++parseRanges("7", 10);     // [7]
+ ```
+ 
+ `paperSize(name)` gives the width and height of a paper size in millimeters,
+@@ -14,5 +18,11 @@ portrait. It knows `A3`, `A4`, `A5`, `letter` and `legal`; the name is matched
+ without regard to letter case. An unknown name throws a `RangeError`; a name
+ that is not a string throws a `TypeError`.
+ 
+-The dialog also has a page box, where a person types which pages of the
+-document to print.
++`parseRanges(text, pageCount)` parses what a person typed into the page box:
++page numbers and ranges separated by commas, like `"1-3,5"`. It returns the
++page numbers to print as an array, sorted and deduplicated. The `text`
++parameter must be a string; `pageCount` must be a positive integer. A `text`
++that is not a string or a `pageCount` that is not a positive integer throws a
++`TypeError`. A `text` that cannot be read as pages of this document—pages
++numbered outside 1 to `pageCount`, or parts that are neither page numbers nor
++ranges—throws a `RangeError`.
+diff --git a/src/parse-ranges.mjs b/src/parse-ranges.mjs
+new file mode 100644
+index 0000000..d52e671
+--- /dev/null
++++ b/src/parse-ranges.mjs
+@@ -0,0 +1,69 @@
++/**
++ * Parse page ranges from text, like "1-3,5" or "7".
++ * @param {string} text A comma-separated list of page numbers and ranges
++ * @param {number} pageCount The total number of pages in the document
++ * @returns {number[]} Array of page numbers to print, sorted and deduplicated
++ */
++export function parseRanges(text, pageCount) {
++  if (typeof text !== "string") {
++    throw new TypeError("parseRanges: text must be a string");
++  }
++
++  if (!Number.isInteger(pageCount) || pageCount <= 0) {
++    throw new TypeError("parseRanges: pageCount must be a positive integer");
++  }
++
++  const pages = new Set();
++  const parts = text.split(",");
++
++  for (const part of parts) {
++    const trimmed = part.trim();
++
++    if (!trimmed) {
++      throw new RangeError(`parseRanges: empty part`);
++    }
++
++    if (trimmed.includes("-")) {
++      // Parse as a range
++      const dashIndex = trimmed.indexOf("-");
++      const startStr = trimmed.substring(0, dashIndex).trim();
++      const endStr = trimmed.substring(dashIndex + 1).trim();
++
++      if (!startStr || !endStr) {
++        throw new RangeError(`parseRanges: invalid range "${trimmed}"`);
++      }
++
++      const start = parseInt(startStr, 10);
++      const end = parseInt(endStr, 10);
++
++      if (isNaN(start) || isNaN(end) || startStr !== String(start) || endStr !== String(end)) {
++        throw new RangeError(`parseRanges: invalid range "${trimmed}"`);
++      }
++
++      if (start < 1 || end < 1 || start > pageCount || end > pageCount) {
++        throw new RangeError(`parseRanges: page out of range in "${trimmed}"`);
++      }
++
++      const min = Math.min(start, end);
++      const max = Math.max(start, end);
++      for (let i = min; i <= max; i++) {
++        pages.add(i);
++      }
++    } else {
++      // Parse as a single page
++      const page = parseInt(trimmed, 10);
++
++      if (isNaN(page) || trimmed !== String(page)) {
++        throw new RangeError(`parseRanges: invalid page "${trimmed}"`);
++      }
++
++      if (page < 1 || page > pageCount) {
++        throw new RangeError(`parseRanges: page out of range "${trimmed}"`);
++      }
++
++      pages.add(page);
++    }
++  }
++
++  return Array.from(pages).sort((a, b) => a - b);
++}
+diff --git a/tests/parse-ranges.test.mjs b/tests/parse-ranges.test.mjs
+new file mode 100644
+index 0000000..97ed4aa
+--- /dev/null
++++ b/tests/parse-ranges.test.mjs
+@@ -0,0 +1,82 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { parseRanges } from "../src/parse-ranges.mjs";
++
++test("parseRanges handles the examples from the task", () => {
++  assert.deepEqual(parseRanges("1-3,5", 10), [1, 2, 3, 5]);
++  assert.deepEqual(parseRanges("7", 10), [7]);
++});
++
++test("parseRanges returns single pages", () => {
++  assert.deepEqual(parseRanges("1", 5), [1]);
++  assert.deepEqual(parseRanges("5", 5), [5]);
++  assert.deepEqual(parseRanges("2,4", 5), [2, 4]);
++});
++
++test("parseRanges returns ranges", () => {
++  assert.deepEqual(parseRanges("1-3", 5), [1, 2, 3]);
++  assert.deepEqual(parseRanges("2-5", 5), [2, 3, 4, 5]);
++});
++
++test("parseRanges handles ranges in reverse order", () => {
++  assert.deepEqual(parseRanges("5-3", 10), [3, 4, 5]);
++  assert.deepEqual(parseRanges("3-1", 10), [1, 2, 3]);
++});
++
++test("parseRanges deduplicates pages", () => {
++  assert.deepEqual(parseRanges("1,2,1,2", 5), [1, 2]);
++  assert.deepEqual(parseRanges("1-3,2-4", 5), [1, 2, 3, 4]);
++});
++
++test("parseRanges sorts the output", () => {
++  assert.deepEqual(parseRanges("5,1,3", 10), [1, 3, 5]);
++  assert.deepEqual(parseRanges("5-1,10", 10), [1, 2, 3, 4, 5, 10]);
++});
++
++test("parseRanges handles whitespace", () => {
++  assert.deepEqual(parseRanges("1 - 3, 5", 10), [1, 2, 3, 5]);
++  assert.deepEqual(parseRanges(" 1 , 3 ", 10), [1, 3]);
++  assert.deepEqual(parseRanges("1-3 , 5-7", 10), [1, 2, 3, 5, 6, 7]);
++});
++
++test("parseRanges throws TypeError if text is not a string", () => {
++  assert.throws(() => parseRanges(123, 10), TypeError);
++  assert.throws(() => parseRanges(null, 10), TypeError);
++  assert.throws(() => parseRanges(undefined, 10), TypeError);
++  assert.throws(() => parseRanges(["1"], 10), TypeError);
++});
++
++test("parseRanges throws TypeError if pageCount is not a positive integer", () => {
++  assert.throws(() => parseRanges("1", 0), TypeError);
++  assert.throws(() => parseRanges("1", -1), TypeError);
++  assert.throws(() => parseRanges("1", 2.5), TypeError);
++  assert.throws(() => parseRanges("1", "10"), TypeError);
++  assert.throws(() => parseRanges("1", null), TypeError);
++});
++
++test("parseRanges throws RangeError for pages outside the document", () => {
++  assert.throws(() => parseRanges("11", 10), RangeError);
++  assert.throws(() => parseRanges("0", 10), RangeError);
++  assert.throws(() => parseRanges("-1", 10), RangeError);
++  assert.throws(() => parseRanges("1-11", 10), RangeError);
++  assert.throws(() => parseRanges("5-0", 10), RangeError);
++});
++
++test("parseRanges throws RangeError for invalid syntax", () => {
++  assert.throws(() => parseRanges("abc", 10), RangeError);
++  assert.throws(() => parseRanges("1a", 10), RangeError);
++  assert.throws(() => parseRanges("1-a", 10), RangeError);
++  assert.throws(() => parseRanges("-", 10), RangeError);
++  assert.throws(() => parseRanges("-1", 10), RangeError);
++  assert.throws(() => parseRanges("1-", 10), RangeError);
++  assert.throws(() => parseRanges("", 10), RangeError);
++  assert.throws(() => parseRanges("1,,3", 10), RangeError);
++  assert.throws(() => parseRanges("1,", 10), RangeError);
++  assert.throws(() => parseRanges(",1", 10), RangeError);
++});
++
++test("parseRanges rejects leading zeros", () => {
++  assert.throws(() => parseRanges("01", 10), RangeError);
++  assert.throws(() => parseRanges("1-03", 10), RangeError);
++});

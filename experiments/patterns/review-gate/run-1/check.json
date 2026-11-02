@@ -1,0 +1,27 @@
+{
+  "problems": [
+    "the final note names no stop, stop node or halt at a gate: {\"id\":\"n-0006\",\"run\":\"20260919-1236-k7q2\",\"at\":\"edge:e-critic-pass\",\"text\":\"critic \u2192 merge-gate; asking the human and waiting.\"}"
+  ],
+  "findings": [
+    "run id 20260919-1236-k7q2: the earlier random-suffix form",
+    "REVIEW.md: critic Write .grooph/truncate/runs/20260919-1236-k7q2/REVIEW.md",
+    "truncate--critic (Critic round 0) read docs/REVIEW-CHECKLIST.md, .grooph/truncate/runs/20260919-1236-k7q2/evidence-r0/diff.patch, .grooph/truncate/runs/20260919-1236-k7q2/evidence-r0/npm-test.txt, CHANGELOG.md, tests/truncate.test.mjs, src/truncate.mjs; ran `npm test`, `git status --porcelain -uall`, `git diff`, `npm test >/dev/null 2>&1 && echo exit-zero`",
+    "the final note is at edge:e-critic-pass, not at graph",
+    "replaying every amendment's patch on the source gives the working copy exactly",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "verdicts in order: critic \u2192 pass",
+    "timestamps: 5 given, 0 out of append order",
+    "permission denials: Bash `R=20260919-1236-$(LC_ALL=C tr -dc a-z0-9 </dev/urandom | head -c4) && echo $R &&`; Bash `LC_ALL=C tr -dc a-z0-9 </dev/urandom | head -c4`; Bash `mkdir -p .grooph/truncate/runs/20260919-1236-k7q2 && cp .grooph/truncate/graph.g`; Bash `git -C <local path>`; Bash `cat > src/truncate.mjs <<'EOF'\n/**\n * Shortens `text` to `max` characters, endin`; Bash `npm test; echo EXIT $?; git status --short`; Bash `git status --porcelain -uall; echo ---; git diff --stat; echo ---; npm test; ech`"
+  ],
+  "facts": {
+    "ending": [],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

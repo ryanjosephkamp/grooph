@@ -1,0 +1,82 @@
+{
+  "scored_at": "2026-10-04T22:42:48.760Z",
+  "scorer": "scripts/lib/compare-score.mjs",
+  "held_out": {
+    "ran": true,
+    "command": "node --test <harness>/held-out/statement-properties.test.mjs",
+    "cases": 24,
+    "passed": 15,
+    "failed": 9,
+    "skipped": 0,
+    "rate": 0.625,
+    "failing": [
+      "order: charges are listed by amount, largest first, and equal amounts by name",
+      "order: credits are listed largest first",
+      "money: a credit is in parentheses, with no minus sign",
+      "money: the currency is named once, above the table, and never as a sign on an amount",
+      "no usage: a service with no usage is not a line of the table",
+      "no usage: a sentence at the foot says how many were left out and names them",
+      "share: each charge carries its percentage of the charges, to one decimal",
+      "share: the shares are the charges' alone: a credit carries none",
+      "heading: the customer's name opens the statement, with the account number at the right of the same line"
+    ],
+    "exit": 1,
+    "suite": [
+      {
+        "path": "REFERENCE.md",
+        "sha256": "9b93e695b609131422401708863017cca902f9421537386631a7ff2f590e0f63",
+        "at_run": false
+      },
+      {
+        "path": "reference.txt",
+        "sha256": "62ef2a7d8494e7e569375912b0dd1034f9476723083454f61be614cedaa381ca",
+        "at_run": false
+      },
+      {
+        "path": "statement-properties.test.mjs",
+        "sha256": "45d00ffd095b5c2d5155ea55c43a5a74f886db95d079a4c52ccc03ae8734c49a",
+        "at_run": false
+      }
+    ],
+    "scored_from": "experiments/comparisons/taste-polish/held-out",
+    "reviewers_copy_changed": []
+  },
+  "tests": {
+    "command": "npm test",
+    "exit": 0,
+    "pass": true,
+    "tests": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "failing": [],
+    "error": null
+  },
+  "scope": {
+    "allowed": [
+      "src/",
+      "tests/",
+      "captures/",
+      "GAPS.md",
+      "CHANGES.md"
+    ],
+    "ignored": [
+      ".grooph/",
+      ".claude/"
+    ],
+    "changed": [
+      "captures/CAPTURE.md",
+      "captures/statement.txt",
+      "src/statement.mjs",
+      "tests/statement.test.mjs"
+    ],
+    "outside": [],
+    "protected": [],
+    "protected_changed": []
+  },
+  "ending": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  }
+}

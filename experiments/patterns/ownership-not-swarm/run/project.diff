@@ -1,0 +1,938 @@
+diff --git a/ARCHITECTURE.md b/ARCHITECTURE.md
+new file mode 100644
+index 0000000..b9a690a
+--- /dev/null
++++ b/ARCHITECTURE.md
+@@ -0,0 +1,70 @@
++# ARCHITECTURE: tagnotes
++
++Who owns what, and how the pieces connect. Each directory below is changed
++by exactly one owner; everyone else reads it and reports.
++
++## Owners
++
++| Owner | Owns | Exports | Handoff |
++| --- | --- | --- | --- |
++| Owner A | `src/db/` (`store.mjs`, `store.test.mjs`) | `createStore`, `addNote`, `listNotes`, `tagNote`, `notesByTag` | `HANDOFF-A.md` |
++| Owner B | `src/api/` (`handle.mjs`, `handle.test.mjs`) | `createHandler(store)` → `handle({ method, path, body })` → `{ status, body }` | `HANDOFF-B.md` |
++| Piece 1 worker | `src/format/` (`table.mjs`, `table.test.mjs`) | `renderTable(notes)` → fixed-width text table | – |
++| Piece 2 worker | `src/export/` (`csv.mjs`, `csv.test.mjs`) | `exportCsv(notes)` → CSV text | – |
++| Integrator | `src/index.mjs`, `ARCHITECTURE.md` | `createApp()` → `{ handle, renderTable, exportCsv }` | – |
++
++`tests/app.test.mjs` is the end-to-end specification driven through
++`createApp()`; `npm test` runs it together with every `src/**/*.test.mjs`.
++
++## Layers
++
++```
++tests/app.test.mjs
++        │  createApp()
++        ▼
++src/index.mjs ──────────────┬──────────────────────┐
++   │ createStore()          │ renderTable(notes)   │ exportCsv(notes)
++   │ createHandler(store)   │                      │
++   ▼                        ▼                      ▼
++src/api/handle.mjs     src/format/table.mjs   src/export/csv.mjs
++   │ addNote, listNotes,
++   │ tagNote, notesByTag
++   ▼
++src/db/store.mjs
++```
++
++- **Coupled core**: `src/api/` imports `src/db/` directly. The API is built
++  on top of the store contract in HANDOFF-A.md (note shape, copy semantics,
++  `tagNote` error precedence, `notesByTag` never throwing).
++- **Independent pieces**: `src/format/` and `src/export/` import nothing from
++  `src/db/` or `src/api/`. They take plain note arrays and are unit-tested
++  with literal data.
++- **Seam**: `src/index.mjs` is the only module that imports all four. It
++  creates one store per `createApp()` call, wraps it with `createHandler`,
++  and re-exports the two piece functions unchanged.
++
++## The shared contract
++
++Everything meets on one data shape, fixed in PLAN.md:
++
++```js
++{ id: number, text: string, tags: string[] }   // tags sorted; fresh note has []
++```
++
++- The store returns copies (own `tags` array) of this shape.
++- Every API route returns this shape (or an array of it); `GET /notes` and
++  `GET /notes?tag=<tag>` return `200` with an array, oldest first.
++- `renderTable` and `exportCsv` accept exactly that array: `id` via
++  `String(id)`, `text` as is (CSV-quoted when needed), `tags` joined by `,`
++  (table) or `;` (CSV).
++
++Because the pieces consume what the API emits verbatim, `createApp()` needs
++no adapter between them.
++
++## Rules of change
++
++- A change in `src/db/` goes to Owner A; in `src/api/` to Owner B. Anyone
++  else who needs one reports it and the lead routes it.
++- A piece that disagrees with the core at the seam is fixed on the piece
++  side (`src/format/`, `src/export/`).
++- `src/index.mjs` only wires; it holds no behaviour of its own.
+diff --git a/HANDOFF-A.md b/HANDOFF-A.md
+new file mode 100644
+index 0000000..df52610
+--- /dev/null
++++ b/HANDOFF-A.md
+@@ -0,0 +1,60 @@
++# HANDOFF-A: `src/db/store.mjs`
++
++Owner A's record of what `src/db/` now exports and guarantees. Owner B builds
++`src/api/` against this.
++
++## Note shape
++
++```js
++{ id: number, text: string, tags: string[] }
++```
++
++- `id` is an integer starting at 1, assigned in insertion order.
++- `tags` is always present and always a sorted array of strings
++  (`Array.prototype.sort()` order). A fresh note has `tags: []`.
++- A tag is a string matching `/^[a-z0-9-]+$/`.
++
++## Everything returned is a copy
++
++Every public function that returns a note (or an array of notes) returns a
++fresh `{ id, text, tags }` object with its own copied `tags` array. Mutating
++anything a store function returned never changes the store.
++
++## Exports
++
++| Function | Returns | Throws |
++| --- | --- | --- |
++| `createStore()` | a fresh store object (opaque; pass it to the others) | – |
++| `addNote(store, text)` | a copy of the new note `{ id, text, tags: [] }` | `TypeError` when `text` is not a string or is blank (whitespace only) |
++| `listNotes(store)` | all notes, oldest first, as copies (with `tags`) | – |
++| `tagNote(store, id, tag)` | a copy of the **updated** note `{ id, text, tags }` (use it as the `201` body) | `TypeError` for a bad tag; `RangeError` for an unknown id (see precedence below) |
++| `notesByTag(store, tag)` | notes carrying `tag`, oldest first, as copies; `[]` when none | never |
++
++### `tagNote(store, id, tag)` details
++
++- **Error precedence: the tag is checked before the id is looked up.**
++  1. `typeof tag !== "string"` or `tag` does not match `/^[a-z0-9-]+$/`
++     (so `""`, `"Not Valid"`, `42` all fail) → `throw new TypeError(...)`.
++     This fires even when `id` is unknown.
++  2. No note with `id` → `throw new RangeError(...)`.
++- `id` must be the stored number; compare is `===`. Pass `Number(...)` of the
++  path segment. Non-integer or `NaN` ids are simply unknown → `RangeError`.
++- Idempotent: tagging a note with a tag it already has changes nothing and
++  returns the (unchanged) note; no duplicate entries.
++- `tags` is kept sorted after insertion.
++- Error objects carry a human-readable `message` (suitable for `{ error }`
++  bodies).
++
++### `notesByTag(store, tag)` details
++
++- **Does not validate `tag`.** Any value no note carries – an unknown tag, a
++  malformed one, `undefined` – yields `[]`. It never throws, so
++  `GET /notes?tag=<anything>` can always answer `200`.
++- Result order is insertion order (oldest first), same as `listNotes`.
++
++## Behaviour changes from the previous version
++
++- `addNote` used to return the live stored object; it now returns a copy, and
++  the note carries `tags: []`.
++- `listNotes` copies now include `tags` (their own array per copy).
++- `tagNote` and `notesByTag` are new.
+diff --git a/HANDOFF-B.md b/HANDOFF-B.md
+new file mode 100644
+index 0000000..95d2981
+--- /dev/null
++++ b/HANDOFF-B.md
+@@ -0,0 +1,118 @@
++# HANDOFF-B: `src/api/handle.mjs`
++
++Owner B's record of what the API exposes. The independent pieces
++(`src/format/`, `src/export/`) and the integrator (`src/index.mjs`) build
++against this; they read only PLAN.md and this file.
++
++## Export
++
++```js
++import { createHandler } from "./src/api/handle.mjs";
++const handle = createHandler(store);   // store from createStore() in src/db/store.mjs
++handle({ method, path, body }) // -> { status, body }
++```
++
++- `createHandler(store)` — signature unchanged. Returns a synchronous
++  `handle(request)` function.
++- `request` is `{ method: string, path: string, body?: any }`. `body` may be
++  omitted on `GET`.
++- The response is always `{ status: number, body: any }`. Error bodies are
++  always `{ error: string }`.
++
++## Note shape (as returned by every route)
++
++```js
++{ id: number, text: string, tags: string[] }
++```
++
++`tags` is always present and sorted (`Array.prototype.sort()` order); a fresh
++note has `tags: []`. Every note in a response is a copy — mutating it does not
++change the store.
++
++## Query-string handling
++
++`path` is split at the first `?`: the part before is the pathname, the part
++after is parsed with `URLSearchParams`. Routing is on the pathname only, so
++`GET /notes?tag=phone` reaches the notes route. A `path` without `?` has an
++empty query. Percent-encoding in the query is decoded by `URLSearchParams`
++(`tag=Not%20Valid` becomes `"Not Valid"`).
++
++## Routes
++
++### `GET /notes` — list all notes
++
++- Request: `{ method: "GET", path: "/notes" }`
++- Response: `200`, body is an array of notes, oldest first (insertion order),
++  each with `tags`. Empty store → `200` with `[]`.
++
++This is the body shape `renderTable(notes)` and `exportCsv(notes)` consume,
++verbatim:
++
++```js
++[
++  { id: 1, text: "buy milk", tags: ["errand"] },
++  { id: 2, text: "call Sam, then Ann", tags: ["errand", "phone"] },
++  { id: 3, text: "untagged", tags: [] }
++]
++```
++
++### `GET /notes?tag=<tag>` — list notes carrying a tag
++
++- Request: `{ method: "GET", path: "/notes?tag=phone" }`
++- Response: `200`, body is an array of the notes carrying `<tag>`, oldest
++  first, same element shape as above.
++- A tag no note carries (including a malformed one such as `Not Valid`)
++  → `200` with `[]`. This route never returns `400`/`404`.
++- Only the presence of the `tag` parameter matters; `?tag=` (empty) is treated
++  as a tag no note carries → `200` with `[]`. Other query parameters are
++  ignored.
++
++### `POST /notes` — create a note (unchanged)
++
++- Request: `{ method: "POST", path: "/notes", body: { text: "buy milk" } }`
++- `201` with the new note `{ id, text, tags: [] }`.
++- `400 { error: "text required" }` when `body.text` is not a string.
++- `400 { error }` when the store rejects the text (blank / whitespace only).
++
++### `POST /notes/:id/tags` — add a tag to a note
++
++- Request: `{ method: "POST", path: "/notes/1/tags", body: { tag: "errand" } }`
++- The pathname must match `^/notes/(\d+)/tags$`; the id is `Number(...)` of
++  the digits. A pathname that does not match (e.g. `/notes/abc/tags`) falls
++  through to `404 { error: "not found" }`.
++- Status mapping, in the order checked:
++  1. `typeof body?.tag !== "string"` (missing body, `{}`, non-string tag)
++     → `400 { error: "tag required" }`.
++  2. `tagNote(store, id, body.tag)` throws `TypeError` (tag not matching
++     `/^[a-z0-9-]+$/`, e.g. `"Not Valid"` or `""`) → `400 { error }`. This
++     takes precedence over an unknown id.
++  3. `tagNote` throws `RangeError` (no note with that id) → `404 { error }`.
++  4. Success → `201` with the **updated** note `{ id, text, tags }`, `tags`
++     sorted. Idempotent: tagging with a tag the note already has is still
++     `201`, and the tag is not duplicated.
++
++Example: after `POST /notes` with `"call Sam"` as note 2, then
++`POST /notes/2/tags` with `{ tag: "phone" }` then `{ tag: "errand" }`, the
++second response is `201` with `{ id: 2, text: "call Sam", tags: ["errand", "phone"] }`.
++
++### Anything else
++
++`404 { error: "not found" }` — unknown pathnames, and known pathnames with an
++unsupported method (e.g. `DELETE /notes`, `GET /notes/1/tags`).
++
++## Status summary
++
++| Route | 200 | 201 | 400 | 404 |
++| --- | --- | --- | --- | --- |
++| `GET /notes` | all notes | – | – | – |
++| `GET /notes?tag=t` | matching notes (maybe `[]`) | – | – | – |
++| `POST /notes` | – | new note | `text` missing / blank | – |
++| `POST /notes/:id/tags` | – | updated note | `tag` missing / malformed | unknown id, or non-numeric id segment |
++| other | – | – | – | `{ error: "not found" }` |
++
++## For the integrator
++
++`createApp()` only needs `createStore()` + `createHandler(store)`; `handle`
++is what `tests/app.test.mjs` drives. The store dependency is taken from
++`src/db/store.mjs` exactly as HANDOFF-A.md describes; no change to `src/db/`
++was needed.
+diff --git a/PLAN.md b/PLAN.md
+new file mode 100644
+index 0000000..c063911
+--- /dev/null
++++ b/PLAN.md
+@@ -0,0 +1,212 @@
++# PLAN: tag notes
++
++Goal: implement README.md § "The change" so `npm test` passes, including
++`tests/app.test.mjs`. `npm test` runs `node --test "src/**/*.test.mjs" "tests/*.test.mjs"`,
++so every new `*.test.mjs` under `src/` is picked up automatically.
++
++Split:
++
++- **Coupled core** — `src/db/` (Owner A, first) then `src/api/` (Owner B,
++  second, on top of HANDOFF-A.md). Each directory is changed by exactly one
++  owner. Nobody else edits either.
++- **Independent pieces** — `src/format/` and `src/export/`. They take plain
++  note objects and import nothing from `src/db/` or `src/api/`. One worker each.
++- **Integrator work** — `src/index.mjs` (`createApp()`), the seam that joins
++  the core and the pieces. Not a worker piece (see "Integrator" below).
++
++## Shared contract (everyone builds to this)
++
++Fixed here so nodes that never talk still fit together.
++
++| Module | Exports |
++| --- | --- |
++| `src/db/store.mjs` | `createStore`, `addNote`, `listNotes`, `tagNote`, `notesByTag` |
++| `src/api/handle.mjs` | `createHandler` (unchanged signature) |
++| `src/format/table.mjs` | `renderTable(notes)` |
++| `src/export/csv.mjs` | `exportCsv(notes)` |
++| `src/index.mjs` | `createApp()` |
++
++- A note object is `{ id, text, tags }`; `tags` is a sorted array of strings
++  (plain `Array.prototype.sort()` is enough for the tag charset). A fresh note
++  has `tags: []`.
++- A tag is a string matching `/^[a-z0-9-]+$/`.
++- The public store functions return **copies** (including a copied `tags`
++  array) so callers cannot mutate the store through a returned note.
++- `renderTable` and `exportCsv` accept whatever `GET /notes` returns: an
++  array of `{ id, text, tags }`.
++
++## Expected test state along the way
++
++`tests/app.test.mjs` imports `../src/index.mjs`, which does not exist until
++the integrator writes it. So for Owner A, Owner B and the workers, `npm test`
++**will fail on `tests/app.test.mjs` with a module-not-found error, and that is
++expected**. Report it as expected; do not create `src/index.mjs` to make it
++go away. What each of you must show is that `src/**/*.test.mjs` (yours and
++the existing ones) all pass.
++
++## Owner A — `src/db/` (the only node that changes it)
++
++Files: `src/db/store.mjs`, `src/db/store.test.mjs`. Output: `HANDOFF-A.md`.
++
++Changes in `src/db/store.mjs`:
++
++1. `addNote(store, text)` creates notes as `{ id, text, tags: [] }` and returns
++   a copy (today it returns the live stored object; with a `tags` array on it
++   that would leak store state). Existing validation (`TypeError` on
++   non-string / blank text) stays.
++2. `listNotes(store)` still returns all notes oldest first, as copies, now
++   with a copied `tags` array (a shallow `{ ...note }` would share the array).
++3. New `tagNote(store, id, tag)`:
++   - Validate the tag first: not a string or not matching `/^[a-z0-9-]+$/`
++     → throw `TypeError`.
++   - Then look up the id (a number, as stored): not found → throw `RangeError`.
++     Non-integer / `NaN` ids simply count as unknown.
++   - Idempotent: tagging with a tag the note already has is a no-op, no
++     duplicates.
++   - Keeps `tags` sorted after insertion.
++   - **Returns the updated note as a copy** — Owner B needs it for the `201`
++     response body.
++   - Internal representation (sorted array vs. a `Set` exposed as a sorted
++     array) is Owner A's choice; the public shape is what is fixed.
++4. New `notesByTag(store, tag)`: notes carrying `tag`, oldest first, as
++   copies. Recommended: do not validate `tag` here — a tag no note carries
++   (including a malformed one, which no note can carry) yields `[]`. This lets
++   the API answer `GET /notes?tag=<anything>` with `200`. If Owner A chooses
++   to throw instead, HANDOFF-A.md must say so, because Owner B's route must
++   then map it.
++
++Tests to add in `src/db/store.test.mjs` (keep the existing two):
++
++- `addNote` gives `tags: []`; `listNotes` copies `tags` (mutating a returned
++  `tags` array does not change the store).
++- `tagNote` adds a tag, keeps `tags` sorted (add `phone` then `errand`, expect
++  `["errand", "phone"]`), is idempotent, returns the updated note.
++- `tagNote` throws `TypeError` for `"Not Valid"`, `""`, and a non-string;
++  throws `RangeError` for an unknown id.
++- `notesByTag` returns matching notes oldest first, as copies, and `[]` for a
++  tag nobody has.
++
++HANDOFF-A.md must record: the exact signatures and return values of all five
++exports, the note shape, the error-precedence of `tagNote` (tag check before
++id lookup), whether `notesByTag` validates, and that everything returned is a
++copy.
++
++## Owner B — `src/api/` (the only node that changes it)
++
++Files: `src/api/handle.mjs`, `src/api/handle.test.mjs`. Input: HANDOFF-A.md.
++Output: `HANDOFF-B.md`. If something in `src/db/` is missing or wrong, say so
++in the report; do not edit it.
++
++Changes in `src/api/handle.mjs` (`createHandler(store)` keeps its signature
++and its `{ method, path, body }` → `{ status, body }` shape):
++
++1. Split `path` into pathname and query string (everything after the first
++   `?`); parse the query with `URLSearchParams`. Route on the pathname so
++   `GET /notes?tag=phone` reaches the notes route instead of falling through
++   to `404`.
++2. `GET /notes`: if a `tag` query parameter is present → `200` with
++   `notesByTag(store, tag)`; otherwise `200` with `listNotes(store)` (now
++   including `tags`). A tag no note carries is `200` with `[]`.
++3. `POST /notes/:id/tags`: match the pathname against `^/notes/(\d+)/tags$`
++   and parse the id with `Number`. Then:
++   - `typeof body?.tag !== "string"` → `400 { error: "tag required" }`.
++   - Call `tagNote(store, id, body.tag)`: `TypeError` → `400 { error }`;
++     `RangeError` → `404 { error }`; success → `201` with the returned note.
++   - A path that does not match the pattern (e.g. `/notes/abc/tags`) falls
++     through to the existing `404`.
++4. Existing behaviour is unchanged: `POST /notes` (`201` / `400`), unknown
++   routes `404`.
++
++Tests to add in `src/api/handle.test.mjs` (keep the existing two):
++
++- `POST /notes/:id/tags` → `201` and a body whose `tags` include the tag;
++  tagging twice does not duplicate.
++- `GET /notes` bodies carry `tags`, sorted.
++- `GET /notes?tag=x` returns only matching notes; an unmatched tag → `200`
++  and `[]`.
++- `POST /notes/99/tags` → `404`; `POST /notes/1/tags` with `{ tag: "Not
++  Valid" }` → `400`; with `{}` → `400`.
++
++HANDOFF-B.md must record: the exact request/response shape of every route
++(including the `GET /notes` body shape the pieces consume), the query-string
++handling, and the status mapping. The workers and the integrator read only
++PLAN.md and HANDOFF-B.md, so include the `GET /notes` body example verbatim.
++
++## Independent pieces (one worker each; touch neither `src/db/` nor `src/api/`)
++
++Each piece owns exactly the files it names. Import nothing from `src/db/` or
++`src/api/`; unit tests use literal note arrays.
++
++### Piece 1 — text table renderer
++
++Files: `src/format/table.mjs`, `src/format/table.test.mjs`.
++
++`renderTable(notes)` → string:
++
++- Three columns `id`, `text`, `tags`; cells are `String(id)`, `text`, and
++  `tags.join(",")`.
++- First line is the header `id | text | tags`; then one line per note, **no
++  separator line** between header and rows (`tests/app.test.mjs` expects
++  exactly header + N rows after `trimEnd().split("\n")`).
++- Cells joined by ` | `. Every column is padded (right, with spaces) to the
++  widest cell in that column, header included. **Pad the last column too** so
++  every line has the same length as the header — do not trim line ends.
++- Lines joined by `\n`, one trailing `\n` at the end.
++- Empty input → the header line only.
++
++Tests (`src/format/table.test.mjs`): header normalises to `id | text | tags`;
++line count is header + rows; all lines equal length; a row contains
++`errand,phone` for `tags: ["errand", "phone"]`; a note with `tags: []`
++renders an empty (padded) tags cell; empty input renders the header only.
++
++### Piece 2 — CSV exporter
++
++Files: `src/export/csv.mjs`, `src/export/csv.test.mjs`.
++
++`exportCsv(notes)` → string:
++
++- First line `id,text,tags`; then one line per note: `id`, `text`, and
++  `tags.join(";")`, separated by `,`.
++- `text` is wrapped in double quotes when it contains a comma, a double
++  quote, or a newline; inner double quotes are doubled (`"` → `""`).
++  Otherwise `text` is written bare. `id` and `tags` are never quoted (the tag
++  charset cannot need it).
++- A note with no tags has an empty last field (`1,buy milk,`).
++- Lines joined by `\n`, one trailing `\n` at the end.
++- Empty input → the header line only.
++
++Tests (`src/export/csv.test.mjs`): the two exact lines from
++`tests/app.test.mjs` (`1,buy milk,errand` and
++`2,"call Sam, then Ann",errand;phone`); a quote in text is doubled and
++quoted; a newline in text is quoted; a note with no tags; empty input.
++
++## Integrator — `src/index.mjs` (`createApp()`)
++
++`src/index.mjs` is **integrator work, not an independent piece**: it is the
++seam itself (it exists only to join the core and the two pieces), it depends
++on both pieces' module paths existing, and its test is `tests/app.test.mjs`,
++which is what the integrate/tests loop runs. Giving it to a worker in
++parallel with the pieces would have that worker building against files that
++do not exist yet.
++
++What the integrator writes:
++
++- `src/index.mjs` exporting `createApp()` that creates a fresh store
++  (`createStore()`), builds `handle = createHandler(store)`, and returns
++  `{ handle, renderTable, exportCsv }` re-exporting the two piece functions.
++  Each call creates its own store (`tests/app.test.mjs` checks two apps are
++  independent).
++- No unit test beside it: the README lists `tests/` as the end-to-end tests
++  through `createApp()`, and `tests/app.test.mjs` already exists.
++- `ARCHITECTURE.md` per the integrator brief.
++- If a piece and the core disagree at the seam (e.g. a field name), fix the
++  piece side; a needed change in `src/db/` or `src/api/` is a note in the
++  report for the lead to route to the owner.
++
++## Order of work
++
++1. Owner A: `src/db/` + `HANDOFF-A.md`.
++2. Owner B: `src/api/` + `HANDOFF-B.md`.
++3. Workers, in parallel: Piece 1, Piece 2.
++4. Integrator: `src/index.mjs`, `ARCHITECTURE.md`; then `npm test` must exit
++   0 with nothing skipped.
+diff --git a/src/api/handle.mjs b/src/api/handle.mjs
+index 54d16d1..7abb09b 100644
+--- a/src/api/handle.mjs
++++ b/src/api/handle.mjs
+@@ -1,13 +1,20 @@
+-import { addNote, listNotes } from "../db/store.mjs";
++import { addNote, listNotes, notesByTag, tagNote } from "../db/store.mjs";
++
++const TAGS_ROUTE = /^\/notes\/(\d+)\/tags$/;
+ 
+ /**
+  * Request handlers over a store: `handle({ method, path, body })` returns
+  * `{ status, body }`. Unknown routes are 404; a bad body is 400.
++ *
++ * `path` may carry a query string (`/notes?tag=phone`); routing is on the
++ * pathname, the query is parsed with `URLSearchParams`.
+  */
+ export function createHandler(store) {
+   return function handle(request) {
+     const { method, path, body } = request;
+-    if (method === "POST" && path === "/notes") {
++    const { pathname, query } = splitPath(path);
++
++    if (method === "POST" && pathname === "/notes") {
+       if (typeof body?.text !== "string") return { status: 400, body: { error: "text required" } };
+       try {
+         return { status: 201, body: addNote(store, body.text) };
+@@ -15,7 +22,35 @@ export function createHandler(store) {
+         return { status: 400, body: { error: err.message } };
+       }
+     }
+-    if (method === "GET" && path === "/notes") return { status: 200, body: listNotes(store) };
++
++    if (method === "GET" && pathname === "/notes") {
++      const tag = query.get("tag");
++      if (tag !== null) return { status: 200, body: notesByTag(store, tag) };
++      return { status: 200, body: listNotes(store) };
++    }
++
++    if (method === "POST") {
++      const match = TAGS_ROUTE.exec(pathname);
++      if (match) {
++        if (typeof body?.tag !== "string") return { status: 400, body: { error: "tag required" } };
++        const id = Number(match[1]);
++        try {
++          return { status: 201, body: tagNote(store, id, body.tag) };
++        } catch (err) {
++          if (err instanceof TypeError) return { status: 400, body: { error: err.message } };
++          if (err instanceof RangeError) return { status: 404, body: { error: err.message } };
++          throw err;
++        }
++      }
++    }
++
+     return { status: 404, body: { error: "not found" } };
+   };
+ }
++
++function splitPath(path) {
++  const raw = typeof path === "string" ? path : "";
++  const at = raw.indexOf("?");
++  if (at === -1) return { pathname: raw, query: new URLSearchParams() };
++  return { pathname: raw.slice(0, at), query: new URLSearchParams(raw.slice(at + 1)) };
++}
+diff --git a/src/api/handle.test.mjs b/src/api/handle.test.mjs
+index 0fb39c8..00bc0ae 100644
+--- a/src/api/handle.test.mjs
++++ b/src/api/handle.test.mjs
+@@ -15,3 +15,71 @@ test("a bad body is 400 and an unknown route is 404", () => {
+   assert.equal(handle({ method: "POST", path: "/notes", body: {} }).status, 400);
+   assert.equal(handle({ method: "GET", path: "/nope" }).status, 404);
+ });
++
++test("POST /notes/:id/tags is 201 with the tagged note and does not duplicate", () => {
++  const handle = createHandler(createStore());
++  handle({ method: "POST", path: "/notes", body: { text: "buy milk" } });
++  const first = handle({ method: "POST", path: "/notes/1/tags", body: { tag: "errand" } });
++  assert.equal(first.status, 201);
++  assert.deepEqual(first.body, { id: 1, text: "buy milk", tags: ["errand"] });
++  const again = handle({ method: "POST", path: "/notes/1/tags", body: { tag: "errand" } });
++  assert.equal(again.status, 201);
++  assert.deepEqual(again.body.tags, ["errand"]);
++});
++
++test("GET /notes bodies carry tags, sorted", () => {
++  const handle = createHandler(createStore());
++  handle({ method: "POST", path: "/notes", body: { text: "buy milk" } });
++  handle({ method: "POST", path: "/notes", body: { text: "call Sam" } });
++  handle({ method: "POST", path: "/notes/2/tags", body: { tag: "phone" } });
++  handle({ method: "POST", path: "/notes/2/tags", body: { tag: "errand" } });
++  const res = handle({ method: "GET", path: "/notes" });
++  assert.equal(res.status, 200);
++  assert.deepEqual(res.body, [
++    { id: 1, text: "buy milk", tags: [] },
++    { id: 2, text: "call Sam", tags: ["errand", "phone"] },
++  ]);
++});
++
++test("GET /notes?tag=x returns only matching notes; an unmatched tag is 200 and []", () => {
++  const handle = createHandler(createStore());
++  handle({ method: "POST", path: "/notes", body: { text: "buy milk" } });
++  handle({ method: "POST", path: "/notes", body: { text: "call Sam" } });
++  handle({ method: "POST", path: "/notes/1/tags", body: { tag: "errand" } });
++  handle({ method: "POST", path: "/notes/2/tags", body: { tag: "errand" } });
++  handle({ method: "POST", path: "/notes/2/tags", body: { tag: "phone" } });
++
++  const phone = handle({ method: "GET", path: "/notes?tag=phone" });
++  assert.equal(phone.status, 200);
++  assert.deepEqual(phone.body.map((n) => n.id), [2]);
++
++  const errand = handle({ method: "GET", path: "/notes?tag=errand" });
++  assert.deepEqual(errand.body.map((n) => n.id), [1, 2]);
++
++  const none = handle({ method: "GET", path: "/notes?tag=nobody" });
++  assert.equal(none.status, 200);
++  assert.deepEqual(none.body, []);
++
++  const malformed = handle({ method: "GET", path: "/notes?tag=Not%20Valid" });
++  assert.equal(malformed.status, 200);
++  assert.deepEqual(malformed.body, []);
++});
++
++test("POST /notes/:id/tags errors: unknown id 404, malformed tag 400, missing tag 400", () => {
++  const handle = createHandler(createStore());
++  handle({ method: "POST", path: "/notes", body: { text: "buy milk" } });
++
++  const unknown = handle({ method: "POST", path: "/notes/99/tags", body: { tag: "errand" } });
++  assert.equal(unknown.status, 404);
++  assert.equal(typeof unknown.body.error, "string");
++
++  const malformed = handle({ method: "POST", path: "/notes/1/tags", body: { tag: "Not Valid" } });
++  assert.equal(malformed.status, 400);
++  assert.equal(typeof malformed.body.error, "string");
++
++  const missing = handle({ method: "POST", path: "/notes/1/tags", body: {} });
++  assert.equal(missing.status, 400);
++  assert.deepEqual(missing.body, { error: "tag required" });
++
++  assert.equal(handle({ method: "POST", path: "/notes/abc/tags", body: { tag: "errand" } }).status, 404);
++});
+diff --git a/src/db/store.mjs b/src/db/store.mjs
+index 20c92a2..1edd909 100644
+--- a/src/db/store.mjs
++++ b/src/db/store.mjs
+@@ -1,18 +1,49 @@
++const TAG_PATTERN = /^[a-z0-9-]+$/;
++
+ /** A fresh in-memory store. */
+ export function createStore() {
+   return { notes: [], nextId: 1 };
+ }
+ 
+-/** Adds a note and returns it. */
++/** Copy of a stored note, with its own `tags` array. */
++function copyNote(note) {
++  return { id: note.id, text: note.text, tags: [...note.tags] };
++}
++
++/** Adds a note `{ id, text, tags: [] }` and returns a copy of it. */
+ export function addNote(store, text) {
+   if (typeof text !== "string" || text.trim() === "") throw new TypeError("addNote: text must be a non-empty string");
+-  const note = { id: store.nextId, text };
++  const note = { id: store.nextId, text, tags: [] };
+   store.nextId += 1;
+   store.notes.push(note);
+-  return note;
++  return copyNote(note);
+ }
+ 
+-/** All notes, oldest first, as copies. */
++/** All notes, oldest first, as copies (each with a copied `tags` array). */
+ export function listNotes(store) {
+-  return store.notes.map((note) => ({ ...note }));
++  return store.notes.map(copyNote);
++}
++
++/**
++ * Adds `tag` to the note with `id` and returns a copy of the updated note.
++ * Checks the tag first (TypeError when not a string or not /^[a-z0-9-]+$/),
++ * then looks up the id (RangeError when unknown). Idempotent; `tags` stays sorted.
++ */
++export function tagNote(store, id, tag) {
++  if (typeof tag !== "string" || !TAG_PATTERN.test(tag)) throw new TypeError("tagNote: tag must match /^[a-z0-9-]+$/");
++  const note = store.notes.find((n) => n.id === id);
++  if (note === undefined) throw new RangeError(`tagNote: no note with id ${id}`);
++  if (!note.tags.includes(tag)) {
++    note.tags.push(tag);
++    note.tags.sort();
++  }
++  return copyNote(note);
++}
++
++/**
++ * Notes carrying `tag`, oldest first, as copies. Does not validate `tag`:
++ * any tag no note carries (including a malformed one) yields `[]`.
++ */
++export function notesByTag(store, tag) {
++  return store.notes.filter((n) => n.tags.includes(tag)).map(copyNote);
+ }
+diff --git a/src/db/store.test.mjs b/src/db/store.test.mjs
+index d3cf03b..2604819 100644
+--- a/src/db/store.test.mjs
++++ b/src/db/store.test.mjs
+@@ -1,7 +1,7 @@
+ import assert from "node:assert/strict";
+ import { test } from "node:test";
+ 
+-import { addNote, createStore, listNotes } from "./store.mjs";
++import { addNote, createStore, listNotes, notesByTag, tagNote } from "./store.mjs";
+ 
+ test("addNote numbers notes from 1 and listNotes returns copies", () => {
+   const store = createStore();
+@@ -16,3 +16,77 @@ test("addNote numbers notes from 1 and listNotes returns copies", () => {
+ test("addNote refuses empty text", () => {
+   assert.throws(() => addNote(createStore(), "  "), TypeError);
+ });
++
++test("addNote gives tags: [] and returns a copy", () => {
++  const store = createStore();
++  const note = addNote(store, "a");
++  assert.deepEqual(note, { id: 1, text: "a", tags: [] });
++  note.tags.push("leak");
++  note.text = "changed";
++  assert.deepEqual(listNotes(store), [{ id: 1, text: "a", tags: [] }]);
++});
++
++test("listNotes copies tags arrays", () => {
++  const store = createStore();
++  addNote(store, "a");
++  tagNote(store, 1, "errand");
++  const notes = listNotes(store);
++  notes[0].tags.push("leak");
++  assert.deepEqual(listNotes(store)[0].tags, ["errand"]);
++});
++
++test("tagNote adds tags, keeps them sorted, is idempotent, returns the updated note", () => {
++  const store = createStore();
++  addNote(store, "a");
++  const first = tagNote(store, 1, "phone");
++  assert.deepEqual(first, { id: 1, text: "a", tags: ["phone"] });
++  const second = tagNote(store, 1, "errand");
++  assert.deepEqual(second.tags, ["errand", "phone"]);
++  const third = tagNote(store, 1, "phone");
++  assert.deepEqual(third.tags, ["errand", "phone"]);
++  assert.deepEqual(listNotes(store)[0].tags, ["errand", "phone"]);
++  // The returned note is a copy.
++  third.tags.push("leak");
++  assert.deepEqual(listNotes(store)[0].tags, ["errand", "phone"]);
++});
++
++test("tagNote throws TypeError for malformed tags", () => {
++  const store = createStore();
++  addNote(store, "a");
++  assert.throws(() => tagNote(store, 1, "Not Valid"), TypeError);
++  assert.throws(() => tagNote(store, 1, ""), TypeError);
++  assert.throws(() => tagNote(store, 1, 42), TypeError);
++  assert.deepEqual(listNotes(store)[0].tags, []);
++});
++
++test("tagNote throws RangeError for an unknown id", () => {
++  const store = createStore();
++  addNote(store, "a");
++  assert.throws(() => tagNote(store, 99, "phone"), RangeError);
++  assert.throws(() => tagNote(store, NaN, "phone"), RangeError);
++  assert.throws(() => tagNote(store, 1.5, "phone"), RangeError);
++});
++
++test("tagNote checks the tag before the id", () => {
++  assert.throws(() => tagNote(createStore(), 99, "Not Valid"), TypeError);
++});
++
++test("notesByTag returns matching notes oldest first, as copies, and [] when nobody has the tag", () => {
++  const store = createStore();
++  addNote(store, "a");
++  addNote(store, "b");
++  addNote(store, "c");
++  tagNote(store, 3, "phone");
++  tagNote(store, 1, "phone");
++  tagNote(store, 1, "errand");
++  const phone = notesByTag(store, "phone");
++  assert.deepEqual(phone, [
++    { id: 1, text: "a", tags: ["errand", "phone"] },
++    { id: 3, text: "c", tags: ["phone"] },
++  ]);
++  phone[0].tags.push("leak");
++  assert.deepEqual(listNotes(store)[0].tags, ["errand", "phone"]);
++  assert.deepEqual(notesByTag(store, "nobody"), []);
++  assert.deepEqual(notesByTag(store, "Not Valid"), []);
++  assert.deepEqual(notesByTag(store, undefined), []);
++});
+diff --git a/src/export/csv.mjs b/src/export/csv.mjs
+new file mode 100644
+index 0000000..4ed3b6b
+--- /dev/null
++++ b/src/export/csv.mjs
+@@ -0,0 +1,14 @@
++function quoteText(text) {
++  if (/[",\n]/.test(text)) {
++    return `"${text.replace(/"/g, '""')}"`;
++  }
++  return text;
++}
++
++export function exportCsv(notes) {
++  const lines = ["id,text,tags"];
++  for (const { id, text, tags } of notes) {
++    lines.push(`${id},${quoteText(text)},${tags.join(";")}`);
++  }
++  return lines.join("\n") + "\n";
++}
+diff --git a/src/export/csv.test.mjs b/src/export/csv.test.mjs
+new file mode 100644
+index 0000000..1dba4bb
+--- /dev/null
++++ b/src/export/csv.test.mjs
+@@ -0,0 +1,39 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { exportCsv } from "./csv.mjs";
++
++const seeded = [
++  { id: 1, text: "buy milk", tags: ["errand"] },
++  { id: 2, text: "call Sam, then Ann", tags: ["errand", "phone"] },
++];
++
++test("matches the exact lines used by tests/app.test.mjs", () => {
++  const lines = exportCsv(seeded).trimEnd().split("\n");
++  assert.equal(lines[0], "id,text,tags");
++  assert.equal(lines[1], "1,buy milk,errand");
++  assert.equal(lines[2], '2,"call Sam, then Ann",errand;phone');
++});
++
++test("a quote in text is doubled and the field is quoted", () => {
++  const notes = [{ id: 1, text: 'say "hi"', tags: [] }];
++  const lines = exportCsv(notes).trimEnd().split("\n");
++  assert.equal(lines[1], '1,"say ""hi""",');
++});
++
++test("a newline in text is quoted", () => {
++  const notes = [{ id: 1, text: "line one\nline two", tags: ["errand"] }];
++  const csv = exportCsv(notes);
++  assert.equal(csv, 'id,text,tags\n1,"line one\nline two",errand\n');
++});
++
++test("a note with no tags has an empty last field", () => {
++  const notes = [{ id: 1, text: "buy milk", tags: [] }];
++  const lines = exportCsv(notes).trimEnd().split("\n");
++  assert.equal(lines[1], "1,buy milk,");
++});
++
++test("empty input renders the header only", () => {
++  const csv = exportCsv([]);
++  assert.equal(csv, "id,text,tags\n");
++});
+diff --git a/src/format/table.mjs b/src/format/table.mjs
+new file mode 100644
+index 0000000..5320168
+--- /dev/null
++++ b/src/format/table.mjs
+@@ -0,0 +1,19 @@
++export function renderTable(notes) {
++  const headers = ["id", "text", "tags"];
++  const rows = notes.map((note) => [
++    String(note.id),
++    note.text,
++    note.tags.join(","),
++  ]);
++
++  const widths = headers.map((header, col) =>
++    rows.reduce((max, row) => Math.max(max, row[col].length), header.length),
++  );
++
++  const formatLine = (cells) =>
++    cells.map((cell, col) => cell.padEnd(widths[col])).join(" | ");
++
++  const lines = [formatLine(headers), ...rows.map(formatLine)];
++
++  return lines.join("\n") + "\n";
++}
+diff --git a/src/format/table.test.mjs b/src/format/table.test.mjs
+new file mode 100644
+index 0000000..d1775b9
+--- /dev/null
++++ b/src/format/table.test.mjs
+@@ -0,0 +1,47 @@
++import { test } from "node:test";
++import assert from "node:assert/strict";
++import { renderTable } from "./table.mjs";
++
++const notes = [
++  { id: 1, text: "buy milk", tags: ["errand"] },
++  { id: 2, text: "call Sam, then Ann", tags: ["errand", "phone"] },
++  { id: 3, text: "untagged", tags: [] },
++];
++
++test("header normalises to 'id | text | tags'", () => {
++  const output = renderTable([]);
++  const [header] = output.trimEnd().split("\n");
++  assert.equal(header, "id | text | tags");
++});
++
++test("line count is header + rows", () => {
++  const output = renderTable(notes);
++  const lines = output.trimEnd().split("\n");
++  assert.equal(lines.length, notes.length + 1);
++});
++
++test("all lines have equal length", () => {
++  const output = renderTable(notes);
++  const lines = output.replace(/\n$/, "").split("\n");
++  const lengths = new Set(lines.map((line) => line.length));
++  assert.equal(lengths.size, 1);
++});
++
++test("a row contains joined tags for a multi-tag note", () => {
++  const output = renderTable(notes);
++  assert.match(output, /errand,phone/);
++});
++
++test("a note with no tags renders an empty (padded) tags cell", () => {
++  const output = renderTable(notes);
++  const lines = output.trimEnd().split("\n");
++  const untaggedLine = lines.find((line) => line.startsWith("3"));
++  assert.ok(untaggedLine);
++  assert.match(untaggedLine, /\|\s*$/);
++});
++
++test("empty input renders the header only", () => {
++  const output = renderTable([]);
++  const lines = output.trimEnd().split("\n");
++  assert.deepEqual(lines, ["id | text | tags"]);
++});
+diff --git a/src/index.mjs b/src/index.mjs
+new file mode 100644
+index 0000000..e2d7527
+--- /dev/null
++++ b/src/index.mjs
+@@ -0,0 +1,15 @@
++import { createStore } from "./db/store.mjs";
++import { createHandler } from "./api/handle.mjs";
++import { renderTable } from "./format/table.mjs";
++import { exportCsv } from "./export/csv.mjs";
++
++/**
++ * The wired application: `handle` is the API over a fresh store (one per
++ * call, so apps are independent); `renderTable` and `exportCsv` render the
++ * array of `{ id, text, tags }` that `GET /notes` returns.
++ */
++export function createApp() {
++  const store = createStore();
++  const handle = createHandler(store);
++  return { handle, renderTable, exportCsv };
++}

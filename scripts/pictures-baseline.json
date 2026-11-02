@@ -1,0 +1,4 @@
+{
+  "note": "Pictures that were over the size rule when it was made, with their size in bytes. scripts/check-pictures.mjs leaves them alone and lets none grow. Do not add to this list to get a picture past the check: make it a JPEG under 150 KB, or put the set on a published page.",
+  "pictures": {}
+}

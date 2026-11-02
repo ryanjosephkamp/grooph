@@ -1,0 +1,31 @@
+{
+  "harness": "claude-code",
+  "title": "Claude Code",
+  "verifiedAgainst": "2.1.268",
+  "verifiedOn": "2026-09-17",
+  "models": {
+    "frontier": "opus",
+    "strong": "sonnet",
+    "fast": "sonnet"
+  },
+  "defaultTier": "strong",
+  "effort": {
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "max": "max"
+  },
+  "capabilityTools": {
+    "read-files": ["Read", "Glob", "Grep"],
+    "edit-files": ["Read", "Edit", "Write", "Glob", "Grep"],
+    "write-outputs": ["Write"],
+    "run-commands": ["Bash"],
+    "run-tests": ["Bash"],
+    "web": ["WebFetch", "WebSearch"],
+    "spawn-agents": ["Agent"]
+  },
+  "defaultCapabilities": ["read-files"],
+  "toolOrder": ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Agent"],
+  "advisoryBudgetMeasures": ["usd", "turns", "tokens"],
+  "runIdFormat": "<yyyymmdd-hhmmss>"
+}

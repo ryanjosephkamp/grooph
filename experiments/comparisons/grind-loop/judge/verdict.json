@@ -1,0 +1,52 @@
+{
+  "project": "grind-loop",
+  "model": "claude-fable-5-1",
+  "ledger_n": 7,
+  "cost_usd": 0.5036627499999999,
+  "harness_turns": 1,
+  "wall_s": 59,
+  "candidates": [
+    "W",
+    "X",
+    "J",
+    "M",
+    "F",
+    "G"
+  ],
+  "parsed": true,
+  "scores": {
+    "W": {
+      "score": 4,
+      "reasons": "Strict regex, TypeError on non-strings, correct §11 identifier and length rules; every visible test passes. Its numeric-identifier test is the loose /^\\d+$/ and only stays correct because parse already rejected leading zeros, an uncommented coupling. Shares the Number() precision gap on very large components."
+    },
+    "X": {
+      "score": 4,
+      "reasons": "Builds the same strict grammar from named fragments and uses the strict numeric-identifier check in comparison, so it is correct on all visible tests. The pre-release loop runs to the max length with bounds checks inside, which expresses the length rule less directly than a min-loop plus length compare. Shares the Number() precision gap."
+    },
+    "J": {
+      "score": 4,
+      "reasons": "Behaviourally identical to W: strict regex, correct TypeError and RangeError paths, correct chain ordering. Combines the loose /^\\d+$/ numeric check with the max-length bounds-checked loop, making it the least direct of the strict-regex group without any behavioural gain. Shares the Number() precision gap."
+    },
+    "M": {
+      "score": 4,
+      "reasons": "Strict regex credited to semver.org, strict numeric-identifier check in comparison, min-loop then length compare, with comments naming the two §11 precedence rules. All visible tests pass and the code is easy to audit. Shares the Number() precision gap."
+    },
+    "F": {
+      "score": 4,
+      "reasons": "Most compact correct version: one NUMERIC_ID_RE constant, a single aIsNumeric !== bIsNumeric branch, min-loop then length compare, and clear error messages. All visible tests pass with no duplicated logic. Shares the Number() precision gap."
+    },
+    "G": {
+      "score": 4,
+      "reasons": "Uses a permissive pre-release regex and then a second pass that throws RangeError for leading-zero numeric identifiers, so it rejects 1.0.0-01 and accepts 1.0.0-0a like the others and passes every visible test. Splitting validation across two places with a duplicated error message is the most fragile structure of the six. Shares the Number() precision gap."
+    }
+  },
+  "ranking": [
+    "F",
+    "M",
+    "X",
+    "W",
+    "J",
+    "G"
+  ],
+  "notes": "All six candidates are functionally equivalent on the visible suite and on every edge I traced, so the ranking reflects code clarity only. None added tests, which the task did not require. All parse integer components with Number(), so versions with components above 2^53 would compare incorrectly; that is the only spec deviation a held-out set could plausibly hit, and it applies uniformly."
+}

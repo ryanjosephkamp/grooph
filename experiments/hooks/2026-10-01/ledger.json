@@ -1,0 +1,344 @@
+{
+  "date": "2026-10-01",
+  "machine": "the author's Mac",
+  "unique_sessions": 8,
+  "checks": 9,
+  "note": "Two checks of the same parent chat, not two separately launched sessions. Empty transcript lists are an evidence gap, not a completed transcript check. Rows codex-3 to codex-7 are five separate headless sessions the driver started at reconcile on 2026-10-01; each has its exec stream saved as it ran and its rollout's checksum. The owner allowed the desktop chat's transcripts to be copied on 2026-10-01; rows codex-1 and codex-2 now carry their checksums. A fourth thread appears beside the chat and its two subagents: Codex's own reviewer, which the app started.",
+  "runs": [
+    {
+      "run": "codex-1-interactive-project-hooks",
+      "harness": "codex",
+      "client": "desktop",
+      "version": "Codex Desktop; cli_version 0.159.2 in the chat's own header (the `codex` on Codex's path reported 0.159.3)",
+      "session": "session-1",
+      "model": "gpt-6.1-sol, reasoning effort xhigh",
+      "model_basis": "read from the chat's rollout header and first turn at reconcile, with the owner's permission of 2026-10-01",
+      "purpose": "Interactive project hook discovery",
+      "command": "Owner-opened desktop chat; no implementer command launched it",
+      "cost_basis": "No dollar cost, billing or token usage reported to this check",
+      "files": [
+        "check.json",
+        "observations.json",
+        "events.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-16-53-session-1.jsonl",
+          "sha256": "53d2201d938d3a945900ac47df289fc9507b55620d50aaba1ea976acec9af2dc",
+          "bytes": 1797934,
+          "what": "the chat itself: Codex Desktop, cli_version 0.159.2 in its header, gpt-6.1-sol at effort xhigh"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-24-session-2.jsonl",
+          "sha256": "0a8b1bc46be797953cf49b45f719363a88b2e9a50b73102ec0be377241cd7bca",
+          "bytes": 140925,
+          "what": "subagent /root/readme_word, gpt-6.1-sol at effort xhigh"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-28-session-3.jsonl",
+          "sha256": "b3e57a620a0bbd97cf0d682a6fbae13141d8eb529ac44683e1e0162c82ed72cb",
+          "bytes": 132180,
+          "what": "subagent /root/hello_check, gpt-6.1-sol at effort xhigh"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-15-session-4.jsonl",
+          "sha256": "cc9df43e90d8392f43ba0452e18dbbb0f2fc676415363efcfafd5452cdb8497a",
+          "bytes": 357565,
+          "what": "Codex's own reviewer (its header calls it guardian; model codex-auto-review, effort low), started by the app, not by the chat's lead"
+        }
+      ],
+      "transcript_status": "copied to local/codex-1-interactive-project-hooks/ on 2026-10-01 with the owner's permission; the chat had ended (last written 01:24 local time). Only header fields were read: ids, folder, model, effort, and which thread started which.",
+      "evidence_complete": true
+    },
+    {
+      "run": "codex-2-interactive-subagents",
+      "harness": "codex",
+      "client": "desktop",
+      "version": "Codex Desktop; cli_version 0.159.2 in the chat's own header (the `codex` on Codex's path reported 0.159.3)",
+      "session": "session-1",
+      "model": "gpt-6.1-sol, reasoning effort xhigh",
+      "model_basis": "read from the chat's rollout header and first turn at reconcile, with the owner's permission of 2026-10-01",
+      "purpose": "Two trivial subagents: README first word and echo hello",
+      "command": "Owner-opened desktop chat; no implementer command launched it",
+      "cost_basis": "No dollar cost, billing or token usage reported to this check",
+      "files": [
+        "check.json",
+        "observations.json",
+        "events.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-24-session-2.jsonl",
+          "sha256": "0a8b1bc46be797953cf49b45f719363a88b2e9a50b73102ec0be377241cd7bca",
+          "bytes": 140925,
+          "what": "subagent /root/readme_word, gpt-6.1-sol at effort xhigh"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-28-session-3.jsonl",
+          "sha256": "b3e57a620a0bbd97cf0d682a6fbae13141d8eb529ac44683e1e0162c82ed72cb",
+          "bytes": 132180,
+          "what": "subagent /root/hello_check, gpt-6.1-sol at effort xhigh"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-15-session-4.jsonl",
+          "sha256": "cc9df43e90d8392f43ba0452e18dbbb0f2fc676415363efcfafd5452cdb8497a",
+          "bytes": 357565,
+          "what": "Codex's own reviewer (its header calls it guardian; model codex-auto-review, effort low), started by the app, not by the chat's lead"
+        }
+      ],
+      "transcript_status": "copied to local/codex-1-interactive-project-hooks/ on 2026-10-01 with the owner's permission; the chat had ended (last written 01:24 local time). Only header fields were read: ids, folder, model, effort, and which thread started which.",
+      "evidence_complete": true
+    },
+    {
+      "run": "codex-3-exec-project-hooks-bypass",
+      "harness": "codex",
+      "client": "codex exec, started by the driver session (Claude Code) at reconcile",
+      "version": "codex-cli 0.159.2 (the binary inside ChatGPT.app)",
+      "session": "session-5",
+      "model": "gpt-6-luna, reasoning effort low",
+      "purpose": "In Codex's folder (<local path>, not trusted in ~/.codex/config.toml), with the hook file installed and hook review bypassed for this run: does the project's .codex/hooks.json load? No: nothing recorded.",
+      "command": "cd <local path> && codex exec --dangerously-bypass-hook-trust -s read-only -m gpt-6-luna -c model_reasoning_effort=\"low\" --json 'Reply with the single word ok.' < /dev/null",
+      "cwd": "<local path>",
+      "billing": "the ChatGPT sign-in (subscription); Codex prints tokens, not dollars",
+      "tokens": {
+        "input_tokens": 28952,
+        "cached_input_tokens": 14080,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "files": [
+        "exec-stream.jsonl",
+        "started.txt"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T10-29-20-session-5.jsonl",
+          "sha256": "daf4a5c69bf82ad42916b54dabd2c007c08220a181fe1bf524848a17af80da3f",
+          "bytes": 114633
+        }
+      ],
+      "evidence_complete": true
+    },
+    {
+      "run": "codex-4-exec-project-hooks-trust-override",
+      "harness": "codex",
+      "client": "codex exec, started by the driver session (Claude Code) at reconcile",
+      "version": "codex-cli 0.159.2 (the binary inside ChatGPT.app)",
+      "session": "session-6",
+      "model": "gpt-6-luna, reasoning effort low",
+      "purpose": "The same, with the folder marked trusted for this run only by -c projects.\"<dir>\".trust_level=\"trusted\". Still nothing recorded: a one-run override does not make the project layer trusted.",
+      "command": "the same, plus -c 'projects.\"<local path>\".trust_level=\"trusted\"'",
+      "cwd": "<local path>",
+      "billing": "the ChatGPT sign-in (subscription); Codex prints tokens, not dollars",
+      "tokens": {
+        "input_tokens": 24777,
+        "cached_input_tokens": 14080,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "files": [
+        "exec-stream.jsonl",
+        "started.txt"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T10-29-43-session-6.jsonl",
+          "sha256": "0722eea8cc44a257f4f113a02a04453239dee286e7608455815612e057c5b5d8",
+          "bytes": 99037
+        }
+      ],
+      "evidence_complete": true
+    },
+    {
+      "run": "codex-5-exec-trusted-project-bypass",
+      "harness": "codex",
+      "client": "codex exec, started by the driver session (Claude Code) at reconcile",
+      "version": "codex-cli 0.159.2 (the binary inside ChatGPT.app)",
+      "session": "session-7",
+      "model": "gpt-6-luna, reasoning effort low",
+      "purpose": "In the main clone (<local path>), which the owner's ~/.codex/config.toml already lists as trusted, with the Codex entries installed for the test and hook review bypassed for this run: the project's .codex/hooks.json loaded and the hook recorded the session.",
+      "command": "cd <local path> && grooph hooks install --harness codex && codex exec --dangerously-bypass-hook-trust -s read-only -m gpt-6-luna -c model_reasoning_effort=\"low\" --json 'Reply with the single word ok.' < /dev/null",
+      "cwd": "<local path>",
+      "billing": "the ChatGPT sign-in (subscription); Codex prints tokens, not dollars",
+      "tokens": {
+        "input_tokens": 24768,
+        "cached_input_tokens": 14080,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "files": [
+        "exec-stream.jsonl",
+        "started.txt",
+        "events.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T10-30-16-session-7.jsonl",
+          "sha256": "b05cbdfd72c2b9191f4bd6b4eee108499241aa71e29a0fb7ffb5613ec381ab66",
+          "bytes": 98980
+        }
+      ],
+      "evidence_complete": true
+    },
+    {
+      "run": "codex-6-exec-trusted-project-no-bypass",
+      "harness": "codex",
+      "client": "codex exec, started by the driver session (Claude Code) at reconcile",
+      "version": "codex-cli 0.159.2 (the binary inside ChatGPT.app)",
+      "session": "session-8",
+      "model": "gpt-6-luna, reasoning effort low",
+      "purpose": "The same without the bypass: the hook, never reviewed in /hooks, did not run, and Codex printed no warning about it.",
+      "command": "the same without --dangerously-bypass-hook-trust",
+      "cwd": "<local path>",
+      "billing": "the ChatGPT sign-in (subscription); Codex prints tokens, not dollars",
+      "tokens": {
+        "input_tokens": 24766,
+        "cached_input_tokens": 14080,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "files": [
+        "exec-stream.jsonl",
+        "started.txt"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T10-30-33-session-8.jsonl",
+          "sha256": "3b483bcfedcf877733c14042141637f164471f928dbf9f83ef37df6f38c1685f",
+          "bytes": 98980
+        }
+      ],
+      "evidence_complete": true
+    },
+    {
+      "run": "codex-7-exec-mcp-plan-subagents",
+      "harness": "codex",
+      "client": "codex exec, started by the driver session (Claude Code) at reconcile",
+      "version": "codex-cli 0.159.2 (the binary inside ChatGPT.app)",
+      "session": "session-9",
+      "model": "gpt-6-luna, reasoning effort low",
+      "purpose": "grooph's MCP server attached for this one run (-c mcp_servers.grooph\u2026; nothing saved to ~/.codex/config.toml), the project hook file loaded as in codex-5: grooph_plan, two subagents, grooph_running, grooph_note. All three tools returned; the hook recorded both subagents; the live view shows the plan as 2 of 2 started.",
+      "command": "cd <local path> && codex exec --dangerously-bypass-hook-trust -s read-only -m gpt-6-luna -c model_reasoning_effort=\"low\" -c 'mcp_servers.grooph.command=\"node\"' -c 'mcp_servers.grooph.args=[\"<wrapper that records the CODEX_* variable names, then runs: grooph mcp --dir <local path> --harness codex>\"]' --json \"$(cat prompt.txt)\" < /dev/null",
+      "cwd": "<local path>",
+      "billing": "the ChatGPT sign-in (subscription); Codex prints tokens, not dollars",
+      "tokens": {
+        "input_tokens": 235841,
+        "cached_input_tokens": 216832,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 377,
+        "reasoning_output_tokens": 0
+      },
+      "files": [
+        "exec-stream.jsonl",
+        "started.txt",
+        "prompt.txt",
+        "mcp-server-env.json",
+        "events.jsonl",
+        "said.jsonl",
+        "mcp-wrap.mjs"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T10-31-10-session-9.jsonl",
+          "sha256": "a9c66764dfb3c3ab4b5e1b28a76e2df44e318c8e16844996c61e2ec11f9f8b8c",
+          "bytes": 140346
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T10-31-23-session-10.jsonl",
+          "sha256": "cb9bbcf6832b4ab7d07ed7e690e00c9af6818e41dd6da7616ae9a24debd13b47",
+          "bytes": 114656
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T10-31-24-session-11.jsonl",
+          "sha256": "b15baaa8c0c8ab742a3b029d21e5add9c8fa04ed02634206520bf8ecd754fa71",
+          "bytes": 114677
+        }
+      ],
+      "evidence_complete": true
+    },
+    {
+      "run": "codex-8-desktop-local-reviewed-hook",
+      "harness": "codex",
+      "client": "Codex Desktop, a chat the owner opened, run locally in the repository",
+      "version": "cli_version 0.159.2 in the chat's header",
+      "session": "session-12",
+      "model": "gpt-6-luna, reasoning effort medium",
+      "model_basis": "read from the chat's rollout header and first turn",
+      "purpose": "The last thing unseen: a hook the owner reviewed in /hooks, running in an interactive chat. It ran: the session, its turn and two subagents were recorded.",
+      "command": "Owner-opened desktop chat; the prompt is in check.json",
+      "cwd": "<local path>",
+      "billing": "the ChatGPT sign-in (subscription); no cost or token count was reported to this check",
+      "files": [
+        "check.json",
+        "events.jsonl",
+        "events-second-thread.jsonl",
+        "events-earlier-session-end.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T12-59-33-session-12.jsonl",
+          "sha256": "a07f5f10a03f47f9d9d466cdee8dd881608737ced0fa7e6a711999d6efdf3f7c",
+          "bytes": 146931,
+          "what": "the chat: Codex Desktop, cli_version 0.159.2 in its header, run locally in <local path>, gpt-6-luna at effort medium"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T12-59-38-session-13.jsonl",
+          "sha256": "d4acd59a1f4eb36ede30dd6291606eaae3f3e81582fa50f946646f30c606fd62",
+          "bytes": 126413,
+          "what": "first subagent, gpt-6-luna at effort medium"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T12-59-40-session-14.jsonl",
+          "sha256": "a0aee278af24f2a951e07dfccfd023bfe770e927e7a607478528605407bb2d45",
+          "bytes": 126403,
+          "what": "second subagent, gpt-6-luna at effort medium"
+        }
+      ],
+      "transcript_status": "copied to local/ at 2026-10-01T17:05Z while the chat was open; only header fields were read",
+      "evidence_complete": true
+    },
+    {
+      "run": "codex-9-desktop-worktree-reviewed-hook",
+      "harness": "codex",
+      "client": "Codex Desktop, a chat the owner opened in worktree mode",
+      "version": "cli_version 0.159.2 in the chat's header",
+      "session": "session-15",
+      "model": "gpt-6-luna, reasoning effort medium",
+      "model_basis": "read from the chat's rollout header and first turn",
+      "purpose": "Does the owner's review carry into the app's own copy of the repository? Yes: the hook recorded the session and two subagents there.",
+      "command": "Owner-opened desktop chat; the prompt is in codex-8's check.json",
+      "cwd": "~/.codex/worktrees/7a32/grooph",
+      "billing": "the ChatGPT sign-in (subscription); no cost or token count was reported to this check",
+      "files": [
+        "check.json",
+        "events.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T13-18-55-session-15.jsonl",
+          "sha256": "a5d10a893abfeb9d73ca34ff93d97a06d1fba0cf55a450dff7e37a044a8b8fdb",
+          "bytes": 147920,
+          "what": "the chat: Codex Desktop, cli_version 0.159.2 in its header, in the app's own worktree, gpt-6-luna at effort medium"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T13-19-45-session-16.jsonl",
+          "sha256": "c0b9daee82073948832110bf547387a909d09031bd21d237302a7e3a82ab067b",
+          "bytes": 127297,
+          "what": "first subagent, gpt-6-luna at effort medium"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T13-19-48-session-17.jsonl",
+          "sha256": "7db546036d3b345752b4b372ca0900d5bb2ad2e979e598d204a852e6e1f8bf30",
+          "bytes": 127306,
+          "what": "second subagent, gpt-6-luna at effort medium"
+        }
+      ],
+      "transcript_status": "copied to local/ at 2026-10-01T17:25Z while the chat was open; only header fields were read",
+      "evidence_complete": true
+    }
+  ]
+}

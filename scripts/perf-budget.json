@@ -1,0 +1,17 @@
+{
+  "firstLoadKB": 164,
+  "entryJsKB": 162,
+  "cssKB": 20,
+  "fontsKB": 42,
+  "firstVisitKB": 224,
+  "canvasLoadKB": 262,
+  "templateLoadKB": 282,
+  "embedLoadKB": 132,
+  "mapSpaceKB": 9.25,
+  "graphStageKB": 17.5,
+  "graphMoreKB": 4,
+  "graphViewsKB": 7,
+  "sketchKB": 58,
+  "browserKB": 56,
+  "cliColdMs": 400
+}

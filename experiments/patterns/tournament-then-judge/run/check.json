@@ -1,0 +1,30 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260920-190434: the clock form",
+    "PICK.md: judge Write PICK.md",
+    "line-diff--judge (Judge picks the finalist) read candidates/a/diff.mjs, candidates/a/APPROACH.md, candidates/b/diff.mjs, candidates/b/APPROACH.md, candidates/c/diff.mjs, candidates/c/APPROACH.md, .grooph/line-diff/runs/20260920-190434/filter-output.txt, README.md, tests/diff.test.mjs; ran nothing",
+    "no `ending` line before the final note n-0014 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "ending as expected: stop node done",
+    "candidate-a wrote 2 file(s): candidates/a/diff.mjs, candidates/a/APPROACH.md",
+    "candidate-b wrote 2 file(s): candidates/b/diff.mjs, candidates/b/APPROACH.md",
+    "candidate-c wrote 2 file(s): candidates/c/diff.mjs, candidates/c/APPROACH.md",
+    "PICK.md names candidates/a, candidates/b, candidates/c; the pick line: \"**Winner: `candidates/b`**\"",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "verdicts in order: judge \u2192 pass",
+    "timestamps: 20 given, 2 out of append order (estimated, not read from the clock)"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": null
+  }
+}

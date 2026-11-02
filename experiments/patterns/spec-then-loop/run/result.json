@@ -1,0 +1,192 @@
+{
+  "template": "spec-then-loop",
+  "template_version": "spec-then-loop@1",
+  "graph_id": "word-wrap",
+  "run_id": "20260920-172850",
+  "run_ids": [
+    "20260920-172850"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.276 (Claude Code)",
+  "models": {
+    "claude-haiku-4-5-20251001": {
+      "cost_usd": 0.001514,
+      "output_tokens": 13
+    },
+    "claude-opus-5[1m]": {
+      "cost_usd": 2.0994975,
+      "output_tokens": 28735
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.33937275,
+      "output_tokens": 4195
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "word-wrap--critic": [
+      "claude-opus-5"
+    ],
+    "word-wrap--builder": [
+      "claude-opus-5"
+    ],
+    "word-wrap--planner": [
+      "claude-fable-5-1"
+    ]
+  },
+  "cost_usd": 2.440385,
+  "harness_turns": 35,
+  "lead_turns": null,
+  "duration_s": 412,
+  "rounds": {
+    "loop_passes": 2,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "stop node done",
+    "stop bar-passed"
+  ],
+  "subagents": {
+    "word-wrap--critic": 1,
+    "word-wrap--builder": 1,
+    "word-wrap--planner": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "cd <local path> && printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260920-172850\",\"at\":\"graph\",\"started\":\"2026-09-20T17:28:50Z\",\"text\":\"run started\"}' > notes.jsonl && printf '%s\\n' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260920-172850\\\",\\\"at\\\":\\\"node:planner\\\",\\\"started\\\":\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\",\\\"outcome\\\":\\\"started\\\",\\\"text\\\":\\\"dispatching planner\\\"}\" >> notes.jsonl && cat notes.jsonl"
+    },
+    {
+      "tool": "Bash",
+      "command": "cd <local path> && NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ) && cat > notes.jsonl <<EOF\n{\"id\":\"n-0001\",\"run\":\"20260920-172850\",\"at\":\"graph\",\"started\":\"2026-09-20T17:28:50Z\",\"text\":\"run started\"}\n{\"id\":\"n-0002\",\"run\":\"20260920-172850\",\"at\":\"node:planner\",\"started\":\"$NOW\",\"outcome\":\"started\",\"text\":\"dispatching planner\"}\nEOF\ncat notes.jsonl"
+    },
+    {
+      "tool": "Bash",
+      "command": "cd <local path> && npm test 2>&1 | tail -30; echo \"EXIT=${PIPESTATUS[0]}\""
+    },
+    {
+      "tool": "Bash",
+      "command": "cd <local path> && npm test > /tmp/wraptest.log 2>&1; echo \"EXIT=$?\"; tail -25 /tmp/wraptest.log"
+    },
+    {
+      "tool": "Bash",
+      "command": "cd <local path> && git status --porcelain"
+    },
+    {
+      "tool": "Bash",
+      "command": "git -C <local path> status --porcelain"
+    },
+    {
+      "tool": "Bash",
+      "command": "cd <local path> && git status --porcelain && git add -A -n 2>/dev/null | head; echo \"--- diff ---\"; git diff HEAD --stat"
+    },
+    {
+      "tool": "Bash",
+      "command": "git -C <local path> status --porcelain"
+    },
+    {
+      "tool": "Bash",
+      "command": "cd <local path> && npm test > .grooph/word-wrap/runs/20260920-172850/npm-test-round-0.txt 2>&1; echo \"exit=$?\" >> .grooph/word-wrap/runs/20260920-172850/npm-test-round-0.txt; tail -20 .grooph/word-wrap/runs/20260920-172850/npm-test-round-0.txt"
+    },
+    {
+      "tool": "Bash",
+      "command": "cd <local path> && npm test 2>&1 | tail -30; echo \"EXIT=${PIPESTATUS[0]}\""
+    },
+    {
+      "tool": "Bash",
+      "command": "cd <local path> && git status --porcelain 2>&1 | head -20; echo \"---\"; git diff --stat HEAD -- src/count.mjs tests/count.test.mjs package.json README.md 2>&1 | head"
+    },
+    {
+      "tool": "Bash",
+      "command": "npm --prefix <local path> test 2>&1 | tail -25"
+    },
+    {
+      "tool": "Bash",
+      "command": "npm --prefix <local path> test"
+    },
+    {
+      "tool": "Bash",
+      "command": "git -C <local path> --no-pager status --porcelain"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 10,
+      "session_id": "session-1",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.996795,
+      "reported_cost_usd": 0.9967947499999998,
+      "max_budget_usd": 6,
+      "harness_turns": 16,
+      "duration_s": 127,
+      "wall_s": 128,
+      "notes_after": 4,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    },
+    {
+      "kind": "resume",
+      "ledger_n": 11,
+      "session_id": "session-1",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.44359,
+      "reported_cost_usd": 1.4435895,
+      "max_budget_usd": 6,
+      "harness_turns": 19,
+      "duration_s": 285,
+      "wall_s": 286,
+      "notes_after": 14,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--strict-mcp-config",
+        "--resume",
+        "session-1"
+      ],
+      "output": "claude-output-2.json"
+    }
+  ],
+  "base_commit": "b972dd2c1a19a8a23ef4d90be0b3d932fd26f81e",
+  "source_sha256_before": "6f59dbfe9ad6df61a05ee03a275d37330120edc5fa7ec2520fe949508b77d6d8",
+  "project_files_changed": [
+    "M README.md",
+    "A src/wrap.mjs",
+    "A tests/wrap.test.mjs"
+  ],
+  "scratch": "<local path>",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}

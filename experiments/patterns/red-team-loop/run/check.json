@@ -1,0 +1,28 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260920-191614: the clock form",
+    "harden-csv-line--red-team (Red team round 0: attack parseCsvLine) read README.md, src/csv.mjs; ran `npm test 2>&1 | tail -30`, `node --input-type=module -e '\nimport { parseCsvLine, CsvError } from \"./src/csv.mjs\";\nclas\u2026`, `node --input-type=module -e '\nimport { parseCsvLine, CsvError } from \"./src/csv.mjs\";\ncons\u2026`, `mkdir -p <local path>\u2026`",
+    "no `ending` line before the final note n-0008 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "ending as expected: stop node done",
+    "red-team wrote 0 file(s): nothing",
+    "dispatch count: n-0006 attack r0 recorded 2, started lines 2 (exact)",
+    "no back edge taken: every loop note is round 0 and no back edge is named (the task was designed to force one; the write-up must say why it did not)",
+    "verdicts in order: red-team \u2192 pass",
+    "timestamps: 10 given, 0 out of append order",
+    "permission denials: Bash `printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260920-191614\",\"at\":\"graph\",\"started\":\"20`; Bash `cat >> .grooph/harden-csv-line/runs/20260920-191614/notes.jsonl <<'EOF'\n{\"id\":\"n`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

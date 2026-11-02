@@ -1,0 +1,9 @@
+{
+  "about": "The token <held-out> in a slot value becomes the absolute path of the held-out folder the runner copies beside the scratch project (never into it). Under protocol version 2 no task file names that folder: the task folder is the same in every arm, and arm D is told nothing of the suite. Here the `checklist` slot names it, beside the checklist file, exactly where the template hands its checklist to the critic; the same slot value reaches the builder as a declared input, and says the suite is not the builder's to read or run. The task text goes to every arm as written.",
+  "name": "Layer settings",
+  "values": {
+    "task": "Add `layer(base, over)` in a new file, src/layer.mjs: it returns the settings you get by laying `over` on top of `base`. Where both hold a plain object under the same key, the two are layered key by key, at any depth; otherwise a value given in `over` replaces the one in `base`, and a key only one of them has is kept. Both arguments must be plain objects, or it throws a TypeError. Tests go in tests/layer.test.mjs, and CHANGELOG.md gets a line.",
+    "test-command": "npm test",
+    "checklist": "docs/REVIEW-CHECKLIST.md and every case of the held-out suite <held-out>/layer-cases.test.mjs (the suite is outside this project and settles what the task and the checklist leave open; the critic runs it from the project root with `node --test <held-out>/layer-cases.test.mjs` and, for each case that fails, quotes the case and what it expected in REVIEW.md; it is the critic's alone, and the builder does not read or run it)"
+  }
+}

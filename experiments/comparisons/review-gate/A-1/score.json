@@ -1,0 +1,60 @@
+{
+  "scored_at": "2026-09-21T21:51:05.918Z",
+  "scorer": "scripts/lib/compare-score.mjs",
+  "held_out": {
+    "ran": true,
+    "command": "node --test <harness>/held-out/truncate-cases.test.mjs",
+    "cases": 41,
+    "passed": 41,
+    "failed": 0,
+    "skipped": 0,
+    "rate": 1,
+    "failing": [],
+    "exit": 0,
+    "suite": [
+      {
+        "path": "truncate-cases.test.mjs",
+        "sha256": "dc489a3b05f2916499526c1e9343530a40fcce73926a0f788c343ce5b913357b"
+      }
+    ]
+  },
+  "tests": {
+    "command": "npm test",
+    "exit": 0,
+    "pass": true,
+    "tests": 11,
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "failing": [],
+    "error": null
+  },
+  "scope": {
+    "allowed": [
+      "src/",
+      "tests/",
+      "CHANGELOG.md",
+      "REVIEW.md",
+      "CHANGES.md"
+    ],
+    "ignored": [
+      ".grooph/",
+      ".claude/"
+    ],
+    "changed": [
+      "CHANGELOG.md",
+      "CHANGES.md",
+      "REVIEW.md",
+      "src/truncate.mjs",
+      "tests/truncate.test.mjs"
+    ],
+    "outside": [],
+    "protected": [],
+    "protected_changed": []
+  },
+  "ending": {
+    "kind": "clean",
+    "reason": "halt at merge-gate"
+  }
+}

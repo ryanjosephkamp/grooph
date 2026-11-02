@@ -1,0 +1,74 @@
+{
+  "grooph": 0,
+  "id": "blind-critic",
+  "name": "Blind critic",
+  "version": 1,
+  "goal": "Review a draft with a critic that must stay isolated.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "The edge from the builder to the critic lists no evidence, so nothing bounds what the critic is handed.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Builder: write the draft.",
+      "outputs": [
+        "DRAFT.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "brief": "Critic: judge DRAFT.md against the checklist.",
+      "outputs": [
+        "REVIEW.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-build-review",
+      "from": "builder",
+      "to": "critic"
+    },
+    {
+      "id": "e-review-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "node:critic"
+    }
+  ]
+}

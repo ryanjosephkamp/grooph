@@ -1,0 +1,20 @@
+$ npm test   (run by the lead after the builder reported; exit code 0)
+
+> textkit@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ padStart pads short text on the left (0.392625ms)
+✔ padStart leaves text that fills the width alone (0.061125ms)
+✔ padStart refuses bad input (0.1745ms)
+✔ truncate leaves text of at most max characters alone (0.41475ms)
+✔ truncate cuts longer text to exactly max characters ending in an ellipsis (0.063291ms)
+✔ truncate refuses a text that is not a string (0.181542ms)
+✔ truncate refuses a max that is not a positive integer (0.071708ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51.892209

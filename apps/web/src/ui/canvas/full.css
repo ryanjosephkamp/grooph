@@ -1,0 +1,61 @@
+/* Full screen for a view in three dimensions (`graph-views.tsx` draws the button and sets the classes). These rules
+   ride with the two pieces that draw such a view, the stairs' and the stage's, since the button is shown only while
+   one of them is up: every canvas fetches the switch, and most never go to full screen. */
+/* Full screen, at the canvas's top left while a view in three dimensions is up: the loops' names have stepped aside. */
+.graph-full {
+  position: absolute;
+  top: 26px;
+  left: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 13px/1 var(--font);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.graph-full svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* In full screen the view is the window: what holds it covers the page, and the words under it are put away. */
+.graph-views.is-focus {
+  position: fixed;
+  z-index: 100;
+  background: var(--bg);
+  pointer-events: auto;
+}
+.graph-views.is-focus > .graph-switch {
+  display: none;
+}
+.graph-views.is-focus > .graph-space {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+.graph-views.is-focus :is(.s3-more, .s3-bar > span, .space-note, .space-bar > span) {
+  display: none;
+}
+/* With nothing touched for a moment, the controls fade and only the view is left; a touch brings them back. */
+.graph-views.is-focus :is(.graph-full, .graph-kinds, .s3-bar, .s3-steps, .s3-says, .space-bar, .space-time) {
+  transition: opacity 0.3s ease-out;
+}
+.graph-views.is-idle :is(.graph-full, .graph-kinds, .s3-bar, .s3-steps, .s3-says, .space-bar, .space-time) {
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .graph-views.is-focus :is(.graph-full, .graph-kinds, .s3-bar, .s3-steps, .s3-says, .space-bar, .space-time) {
+    transition: none;
+  }
+}

@@ -1,0 +1,182 @@
+diff --git a/README.md b/README.md
+index 05d0386..9f12e10 100644
+--- a/README.md
++++ b/README.md
+@@ -1,15 +1,43 @@
+ # kvconf
+ 
+ Tiny configuration helpers for `key=value` text, the kind found in `.env` files
+-and simple service configs. Today it only knows how to render.
++and simple service configs. It knows how to render and how to parse.
+ 
+ ```js
+-import { renderKeyValue } from "./src/kv.mjs";
++import { parseKeyValue, renderKeyValue } from "./src/kv.mjs";
+ 
+ renderKeyValue({ host: "localhost", port: "5432" });
+ // "host=localhost\nport=5432\n"
++
++parseKeyValue("# database\nhost=localhost\n\nport=5432\n");
++// { host: "localhost", port: "5432" }
+ ```
+ 
++## renderKeyValue(object)
++
+ `renderKeyValue` writes one `key=value` line per own property, in insertion
+ order, and ends the text with a newline. Values are written as they are; a
+ value that is not a string throws a `TypeError`.
++
++## parseKeyValue(text)
++
++`parseKeyValue` is the inverse: it reads one property per `key=value` line, in
++line order, and returns a plain object of strings. Values are taken as they
++are, so `parseKeyValue(renderKeyValue(o))` gives back `o` for any object whose
++keys have no surrounding whitespace and whose values are strings without
++newlines. The rules, one per edge:
++
++- A blank line, or one made only of whitespace, is skipped.
++- A line whose first non-space character is `#` is a comment and is skipped.
++- Only the first `=` splits a line: `x=a=b` gives `{ x: "a=b" }`.
++- Whitespace around the key is trimmed: `  host =x` gives `{ host: "x" }`.
++- Whitespace around the value is kept: `greeting= hi ` gives `{ greeting: " hi " }`.
++- Quotes are part of the value, not stripped: `name="Ada"` gives `{ name: '"Ada"' }`.
++- A `#` after the `=` is part of the value, never a trailing comment: `color=#fff # bg` gives `{ color: "#fff # bg" }`.
++- A duplicate key is allowed and the last one wins: `a=1\na=2` gives `{ a: "2" }`.
++- A line with no `=` throws a `SyntaxError` naming the line number.
++- An empty key (`=value`, or only whitespace before the `=`) throws a `SyntaxError` naming the line number.
++- An empty value is fine: `empty=` gives `{ empty: "" }`.
++- CRLF line endings are accepted: a `\r` before the `\n` is dropped.
++- A final newline is optional; the empty string gives `{}`.
++- Anything other than a string throws a `TypeError`.
+diff --git a/src/kv.mjs b/src/kv.mjs
+index 937965b..da699a0 100644
+--- a/src/kv.mjs
++++ b/src/kv.mjs
+@@ -12,3 +12,32 @@ export function renderKeyValue(object) {
+   }
+   return out;
+ }
++
++/**
++ * The inverse of `renderKeyValue`: one property per `key=value` line of
++ * `text`, in line order. Blank lines and lines whose first non-space
++ * character is `#` are skipped. Only the first `=` splits a line; the key is
++ * trimmed, the value is taken verbatim (spaces, quotes and `#` included).
++ * A later duplicate key overwrites an earlier one. A line with no `=` or
++ * with an empty key throws a `SyntaxError` naming the line number.
++ * @param {string} text
++ * @returns {Record<string, string>}
++ */
++export function parseKeyValue(text) {
++  if (typeof text !== "string") throw new TypeError("parseKeyValue: string required");
++  const result = {};
++  const lines = text.split("\n");
++  for (let i = 0; i < lines.length; i++) {
++    const line = lines[i].endsWith("\r") ? lines[i].slice(0, -1) : lines[i];
++    const trimmed = line.trim();
++    if (trimmed === "" || trimmed.startsWith("#")) continue;
++    const eq = line.indexOf("=");
++    if (eq === -1) throw new SyntaxError(`parseKeyValue: line ${i + 1} has no "="`);
++    const key = line.slice(0, eq).trim();
++    if (key === "") throw new SyntaxError(`parseKeyValue: line ${i + 1} has an empty key`);
++    const value = line.slice(eq + 1);
++    // defineProperty so a key such as `__proto__` becomes an own property.
++    Object.defineProperty(result, key, { value, enumerable: true, writable: true, configurable: true });
++  }
++  return result;
++}
+diff --git a/tests/kv.test.mjs b/tests/kv.test.mjs
+index f5dd9aa..7c98522 100644
+--- a/tests/kv.test.mjs
++++ b/tests/kv.test.mjs
+@@ -1,7 +1,7 @@
+ import assert from "node:assert/strict";
+ import { test } from "node:test";
+ 
+-import { renderKeyValue } from "../src/kv.mjs";
++import { parseKeyValue, renderKeyValue } from "../src/kv.mjs";
+ 
+ test("renderKeyValue writes one line per key in order", () => {
+   assert.equal(renderKeyValue({ host: "localhost", port: "5432" }), "host=localhost\nport=5432\n");
+@@ -10,3 +10,81 @@ test("renderKeyValue writes one line per key in order", () => {
+ test("renderKeyValue refuses non-string values", () => {
+   assert.throws(() => renderKeyValue({ port: 5432 }), TypeError);
+ });
++
++test("parseKeyValue reads one key per line in order", () => {
++  assert.deepEqual(parseKeyValue("host=localhost\nport=5432\n"), { host: "localhost", port: "5432" });
++  assert.deepEqual(Object.keys(parseKeyValue("b=1\na=2\n")), ["b", "a"]);
++});
++
++test("parseKeyValue accepts text without a trailing newline", () => {
++  assert.deepEqual(parseKeyValue("host=localhost"), { host: "localhost" });
++  assert.deepEqual(parseKeyValue(""), {});
++});
++
++test("parseKeyValue skips blank lines and # comment lines", () => {
++  assert.deepEqual(parseKeyValue("\n# db\n  \n   # indented comment\nhost=localhost\n\n"), { host: "localhost" });
++});
++
++test("parseKeyValue splits on the first = only", () => {
++  assert.deepEqual(parseKeyValue("url=postgres://u:p@h/db?sslmode=require\nx=a=b=c\n"), {
++    url: "postgres://u:p@h/db?sslmode=require",
++    x: "a=b=c",
++  });
++});
++
++test("parseKeyValue trims whitespace around the key", () => {
++  assert.deepEqual(parseKeyValue("  host =localhost\n\tport\t=5432\n"), { host: "localhost", port: "5432" });
++});
++
++test("parseKeyValue keeps whitespace around the value", () => {
++  assert.deepEqual(parseKeyValue("greeting= hello \n"), { greeting: " hello " });
++  assert.deepEqual(parseKeyValue("empty=\n"), { empty: "" });
++});
++
++test("parseKeyValue keeps quotes as part of the value", () => {
++  assert.deepEqual(parseKeyValue('name="Ada Lovelace"\nother=\'x\'\n'), { name: '"Ada Lovelace"', other: "'x'" });
++});
++
++test("parseKeyValue keeps a trailing # as part of the value", () => {
++  assert.deepEqual(parseKeyValue("color=#fff # not a comment\n"), { color: "#fff # not a comment" });
++});
++
++test("parseKeyValue lets a later duplicate key win", () => {
++  assert.deepEqual(parseKeyValue("a=1\nb=2\na=3\n"), { a: "3", b: "2" });
++});
++
++test("parseKeyValue accepts CRLF line endings", () => {
++  assert.deepEqual(parseKeyValue("host=localhost\r\nport=5432\r\n# c\r\n\r\n"), { host: "localhost", port: "5432" });
++});
++
++test("parseKeyValue throws on a line with no =", () => {
++  assert.throws(() => parseKeyValue("host=localhost\njust-a-word\n"), { name: "SyntaxError", message: /line 2/ });
++});
++
++test("parseKeyValue throws on an empty key", () => {
++  assert.throws(() => parseKeyValue("=value\n"), { name: "SyntaxError", message: /line 1/ });
++  assert.throws(() => parseKeyValue("  =value\n"), { name: "SyntaxError", message: /line 1/ });
++});
++
++test("parseKeyValue refuses non-string input", () => {
++  assert.throws(() => parseKeyValue(null), TypeError);
++  assert.throws(() => parseKeyValue({ a: "b" }), TypeError);
++});
++
++test("parseKeyValue makes __proto__ an own property", () => {
++  const parsed = parseKeyValue("__proto__=x\n");
++  assert.equal(Object.getPrototypeOf(parsed), Object.prototype);
++  assert.equal(Object.getOwnPropertyDescriptor(parsed, "__proto__").value, "x");
++});
++
++test("parseKeyValue inverts renderKeyValue", () => {
++  const objects = [
++    {},
++    { host: "localhost", port: "5432" },
++    { url: "a=b=c", hash: "#fff", quoted: '"q"', spaced: " padded ", empty: "" },
++    { z: "1", a: "2", m: "3" },
++  ];
++  for (const object of objects) {
++    assert.deepEqual(parseKeyValue(renderKeyValue(object)), object);
++  }
++});

@@ -1,0 +1,35 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260921-044114: the clock form",
+    "PHASE-REVIEW.md: judge Write PHASE-REVIEW.md; judge Write PHASE-REVIEW.md",
+    "per-round report copies in the run folder: PHASE-REVIEW.md round 0",
+    "calc-in-phases--judge (Judge phase 1 tokenizer) read docs/PHASES.md, .grooph/calc-in-phases/runs/20260921-044114/diff-phase1-round0.patch, .grooph/calc-in-phases/runs/20260921-044114/test-output-phase1-round0.txt, src/tokenize.mjs, tests/tokenize.test.mjs, package.json; ran `npm test`, `node --input-type=module -e 'import { tokenize } from \"./src/tokenize.mjs\"; for (const s o\u2026`",
+    "calc-in-phases--judge (Judge phase 2 evaluator) read docs/PHASES.md, .grooph/calc-in-phases/runs/20260921-044114/diff-phase2-round1.patch, .grooph/calc-in-phases/runs/20260921-044114/test-output-phase2-round1.txt, src/evaluate.mjs, tests/evaluate.test.mjs, <local path>; ran `npm test`, `node --test <local path>\u2026`",
+    "no `ending` line before the final note n-0019 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "ending as expected: stop bar-passed, stop node done",
+    "dispatch count: n-0009 phases r0 recorded 3, started lines 3; n-0017 phases r1 recorded 6, started lines 6 (exact)",
+    "back edge taken: e-judge-next-phase; 1 loop note(s) beyond round 0; caught by judge (next-phase)",
+    "verdicts in order: judge \u2192 next-phase, pass",
+    "held-out evidence (evaluate-cases.test.mjs): touched by judge \u00d72; named in 1 dispatch prompt(s)",
+    "timestamps: 26 given, 0 out of append order",
+    "permission denials: Bash `RUN=$(date -u +%Y%m%d-%H%M%S); echo \"$RUN\"; mkdir -p .grooph/calc-in-phases/runs`; Bash `npm test 2>&1 | tee .grooph/calc-in-phases/runs/20260921-044114/test-output-phas`; Bash `date -u +%Y-%m-%dT%H:%M:%SZ; cp PHASE-REVIEW.md .grooph/calc-in-phases/runs/2026`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done"
+    ],
+    "back_edges": {
+      "later_rounds": 1,
+      "edge_notes": [],
+      "mentioned": [
+        "e-judge-next-phase"
+      ],
+      "caught_by": [
+        "judge (next-phase)"
+      ],
+      "taken": true
+    },
+    "last_round": 1
+  }
+}

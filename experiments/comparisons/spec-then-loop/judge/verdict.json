@@ -1,0 +1,70 @@
+{
+  "project": "spec-then-loop",
+  "model": "claude-fable-5-1",
+  "ledger_n": 40,
+  "cost_usd": 1.1166627500000001,
+  "harness_turns": 1,
+  "wall_s": 106,
+  "candidates": [
+    "R",
+    "N",
+    "T",
+    "D",
+    "Y",
+    "K",
+    "Q",
+    "H",
+    "J"
+  ],
+  "parsed": true,
+  "scores": {
+    "R": {
+      "score": 5,
+      "reasons": "Single-paragraph greedy wrap in src/wrap.mjs lines 21 to 37 is correct, and the README gains both an example and a prose description. Tests cover every acceptance item with concrete expected strings, including the exact-fit boundary at widths 9, 10 and 15 and whitespace-only input."
+    },
+    "N": {
+      "score": 4,
+      "reasons": "Correct greedy packing with newline-preserving paragraphs, and tests that loop over widths to check no line exceeds width or carries edge spaces. However it hard-splits long words (src/wrap.mjs lines 41 to 44), which departs from the conventional meaning of word wrapping, and newline-only input returns newlines rather than an empty string, which is neither specified nor tested."
+    },
+    "T": {
+      "score": 5,
+      "reasons": "Paragraph-aware wrapping that collapses blank-line runs and drops leading and trailing blanks (src/wrap.mjs lines 21 to 36) is correct and terminal-friendly. The tests are the most exhaustive: width loops, blank lines containing only whitespace, and the long-word-then-resume case at tests/wrap.test.mjs lines 47 to 58."
+    },
+    "D": {
+      "score": 5,
+      "reasons": "Same correct single-paragraph algorithm with a RangeError for width (src/wrap.mjs line 16), and README updated. Tests assert exact error messages, verify UTF-16 measurement with emoji (tests/wrap.test.mjs lines 24 to 29), and probe the exact-fit boundary at adjacent widths."
+    },
+    "Y": {
+      "score": 5,
+      "reasons": "Identical algorithm to R with a README example and prose. Tests are labelled per acceptance item and include the boundary case at widths 4 and 5, edge-space checks per line, and a CRLF input, so a regression in trimming or packing would be caught."
+    },
+    "K": {
+      "score": 4,
+      "reasons": "Greedy packing is correct and newline paragraphs are supported, but every input newline is preserved verbatim so a trailing newline or run of blank lines passes through (tests/wrap.test.mjs line 66), inconsistent with trimming every line. Its acceptance item 6 is contradicted by item 10, which the test comment at lines 14 to 16 acknowledges."
+    },
+    "Q": {
+      "score": 5,
+      "reasons": "Correct single-paragraph implementation seeded from the first word (src/wrap.mjs lines 20 to 30) with a longer README example. Tests cover the inclusive boundary at widths 4 and 5, a never-split-inside-a-word check, collapsed newline runs, and all invalid width forms."
+    },
+    "H": {
+      "score": 5,
+      "reasons": "Blank-line paragraphs are preserved while single newlines collapse (src/wrap.mjs lines 19 to 23), a sensible middle ground, and the regex is verified against four consecutive newlines and leading and trailing blanks (tests/wrap.test.mjs lines 54 to 59). Width 1 and edge-space checks round out solid regression coverage."
+    },
+    "J": {
+      "score": 5,
+      "reasons": "Same correct implementation as Q, README example added. Tests include an exact multi-line expectation at width 9, the inclusive boundary at widths 4 and 5, and CRLF collapse; coverage is adequate but a little thinner than Q on greedy packing."
+    }
+  },
+  "ranking": [
+    "T",
+    "H",
+    "D",
+    "R",
+    "Y",
+    "Q",
+    "J",
+    "K",
+    "N"
+  ],
+  "notes": "All nine share the same greedy line-packing loop and the same guards, and no test in any candidate fails against its implementation. The ranking among the five single-paragraph candidates rests on test depth and README quality; Q and J are close to indistinguishable. K and N lose a point for literal newline passthrough, and N additionally for splitting words mid-word."
+}

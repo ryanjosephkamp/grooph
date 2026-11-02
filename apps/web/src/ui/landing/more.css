@@ -1,0 +1,32 @@
+/* The front page's diagram in 3D, shown on request in the picture's place (SceneDemo.tsx).
+   Kept beside the component that uses it; the colors and radius are styles.css's variables. */
+
+.land-play {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 0;
+}
+
+/* As the picture's card is, and as tall as a phone leaves room for: the view's frame takes what its controls leave. */
+.land-3d {
+  height: min(580px, 78vh);
+  overflow: auto;
+  padding: 12px 0;
+  border: 1px solid oklch(1 0 0 / 0.1);
+  border-radius: 16px;
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: var(--shadow-night);
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

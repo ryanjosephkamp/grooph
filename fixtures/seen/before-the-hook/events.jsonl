@@ -1,0 +1,8 @@
+{"v":1,"t":"2026-01-01T03:39:33.847Z","harness":"claude-code","event":"turn-start","session":"seen-before-the-hook","cwd":"/work/demo"}
+{"v":1,"t":"2026-01-01T03:45:03.540Z","harness":"claude-code","event":"subagent-start","session":"seen-before-the-hook","agent":"a03","type":"general-purpose"}
+{"v":1,"t":"2026-01-01T03:45:03.553Z","harness":"claude-code","event":"tool","session":"seen-before-the-hook","tool":"Agent","spawned":"a03","cwd":"/work/demo"}
+{"v":1,"t":"2026-01-01T03:49:11.562Z","harness":"claude-code","event":"subagent-stop","session":"seen-before-the-hook","agent":"a03","type":"general-purpose"}
+{"v":1,"t":"2026-01-01T03:55:17.932Z","harness":"claude-code","event":"turn-start","session":"seen-before-the-hook","cwd":"/work/demo"}
+{"v":1,"t":"2026-01-01T03:55:17.932Z","harness":"claude-code","event":"turn-start","session":"seen-before-the-hook","cwd":"/work/demo"}
+{"v":1,"t":"2026-01-01T03:59:32.276Z","harness":"claude-code","event":"turn-end","session":"seen-before-the-hook","cwd":"/work/demo"}
+{"v":1,"t":"2026-01-01T03:59:34.042Z","harness":"claude-code","event":"subagent-stop","session":"seen-before-the-hook","agent":"a04"}

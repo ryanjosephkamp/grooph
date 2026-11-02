@@ -1,0 +1,14 @@
+{
+  "name": "grooph",
+  "displayName": "grooph",
+  "version": "0.2.0",
+  "description": "Draw the workflow for a project as grooph diagrams: one to three checked candidates, a comparison link to open on a phone, and on your pick the chosen diagram with its picture and a link, with nothing started. Starts grooph's experimental MCP server for the session. Needs the grooph CLI on PATH.",
+  "author": {
+    "name": "ryanjosephkamp",
+    "url": "https://github.com/ryanjosephkamp"
+  },
+  "homepage": "https://ryanjosephkamp.github.io/grooph/",
+  "repository": "https://github.com/ryanjosephkamp/grooph",
+  "license": "MIT",
+  "keywords": ["workflow", "diagram", "multi-agent", "loop-graph", "grooph"]
+}

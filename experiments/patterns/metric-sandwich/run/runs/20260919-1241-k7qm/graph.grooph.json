@@ -1,0 +1,182 @@
+{
+  "grooph": 0,
+  "id": "pages-from-one",
+  "name": "Pages from one",
+  "version": 1,
+  "goal": "Change `paginate(items, pageSize, page)` in src/paginate.mjs to number pages from 1 instead of 0, and add `pageCount(total, pageSize)` beside it, returning how many pages `total` items fill. Update and extend tests/paginate.test.mjs to match. Done when `npm run check` passes and a critic finds nothing unmet in docs/REVIEW-CHECKLIST.md.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "lineage": {
+    "pattern": "metric-sandwich",
+    "from": "metric-sandwich@1"
+  },
+  "description": "A builder works; a check runs the cheap deterministic suite. Only a passing change reaches the frontier critic, which judges what the suite cannot see against a checklist. Either failing returns to the builder, so one loop has two back edges. It stops when the critic passes, at its round cap, or at its turn budget.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Do the task in the code, with tests. On a later round you get either the failing check output or REVIEW.md; address what it names. Run `npm run check` before you report.",
+      "inputs": [
+        "the task",
+        "check output or REVIEW.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with tests",
+        "CHANGES.md: what changed this round"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "checks",
+      "kind": "check",
+      "name": "Cheap checks",
+      "check": {
+        "kind": "command",
+        "run": "npm run check",
+        "pass": "exit code 0"
+      }
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Judge only what `npm run check` cannot see, the items in the checklist, for a change that already passes it; use the repository only to understand what the change touches. Do not rerun or restate the checks. Cite the file and line for each finding; you judge, you do not fix. Verdict pass when no checklist item is unmet.",
+      "inputs": [
+        "diff of the change",
+        "the repository at the head commit, read-only",
+        "docs/REVIEW-CHECKLIST.md"
+      ],
+      "outputs": [
+        "REVIEW.md: findings by checklist item and a verdict line",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-checks",
+      "from": "builder",
+      "to": "checks"
+    },
+    {
+      "id": "e-checks-fail",
+      "from": "checks",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "check output"
+      ]
+    },
+    {
+      "id": "e-checks-critic",
+      "from": "checks",
+      "to": "critic",
+      "when": "pass",
+      "evidence": [
+        "diff of the change",
+        "the repository at the head commit, read-only",
+        "docs/REVIEW-CHECKLIST.md"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "sandwich",
+      "name": "Sandwich",
+      "members": [
+        "builder",
+        "checks",
+        "critic"
+      ],
+      "back": [
+        "e-checks-fail",
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Checks, then checklist",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "output of npm run check"
+          },
+          {
+            "kind": "checklist",
+            "ref": "docs/REVIEW-CHECKLIST.md"
+          }
+        ],
+        "acceptance": "`npm run check` exits 0 and the critic finds no unmet item in docs/REVIEW-CHECKLIST.md."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "turns",
+          "limit": 50
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { canonicalize, findCandidates, hasErrors, type Graph } from "@grooph/core";
+
+import { writeText } from "../io.js";
+import { printIssues, type Output } from "../print.js";
+import { oneLine } from "../reply.js";
+import { asAPlan, ownAndPackage, planLine } from "./plan.js";
+import { LoadError, loadProposals, shown } from "../share-io.js";
+
+export type PickFlags = { out: string; force?: boolean };
+
+export const PICK_HELP = `grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
+
+Write the chosen candidate out as an ordinary graph document. The candidate is
+named by its id or its label, ignoring case; a name that matches one candidate's id and
+another's label is refused as ambiguous. The graph is checked first and nothing is written
+while it has errors. A candidate with a step that is a person's, or one that names no
+harness, is a plan: what only a package would ask of it is no error of it, so it is picked
+like any other, and the command says so and that grooph plan exports it. An existing --out is replaced only with --force
+(or when it already holds the same graph).`;
+
+/** `grooph pick <proposals> <candidate> --out <file>` (docs/executive.md §4). */
+export function pickCommand(raw: Output, file: string, query: string, flags: PickFlags): number {
+  // One line a call: a candidate's label and a set's id are a document's words, and none of them ends a line of this command's.
+  const io: Output = { isTTY: raw.isTTY === true, out: (text) => raw.out(oneLine(text)), err: (text) => raw.err(oneLine(text)) };
+  let set;
+  try {
+    set = loadProposals(file).set;
+  } catch (err) {
+    if (!(err instanceof LoadError)) throw err;
+    io.err(`grooph: ${err.message}`);
+    for (const line of err.lines) io.err(line);
+    return 1;
+  }
+
+  const { byId, byLabel } = findCandidates(set, query);
+  const hits = [...new Set([...byId, ...byLabel])];
+  const known = set.candidates.map((c) => `${c.id} ("${c.label}")`).join(", ");
+  if (hits.length === 0) {
+    io.err(`grooph: no candidate "${query}" in ${set.id}; its candidates are ${known}`);
+    return 1;
+  }
+  if (hits.length > 1) {
+    io.err(
+      `grooph: "${query}" is ambiguous in ${set.id}: it is the id of ${byId.map((c) => `"${c.id}"`).join(", ")} and the label of ${byLabel
+        .map((c) => `"${c.id}"`)
+        .join(", ")}; pick by the other candidate's label, or ask the owner which one`,
+    );
+    return 1;
+  }
+
+  const candidate = hits[0]!;
+  const graph = candidate.graph as Graph;
+  // A candidate that is a plan (a person's step, or no harness) is picked like any other: what is in the way of a
+  // package by its being one is said after it. Everything else stops a pick as it did.
+  const { own, forPackage } = ownAndPackage(graph);
+  const { needs, rest } = asAPlan(graph, forPackage);
+  const issues = [...own, ...rest];
+  if (hasErrors(issues)) {
+    io.err(`grooph: cannot pick "${candidate.label}" (${candidate.id}): its graph has errors; fix them (grooph validate --complete lists them for a file) and pick again`);
+    printIssues(io, issues, candidate.id);
+    return 1;
+  }
+
+  const text = canonicalize(graph);
+  const out = resolve(flags.out);
+  if (existsSync(out) && flags.force !== true && readFileSync(out, "utf8") !== text) {
+    io.err(`grooph: ${flags.out} already exists and holds something else; pass --force to replace it`);
+    return 1;
+  }
+  writeText(out, text);
+
+  io.out(`picked "${candidate.label}" (${candidate.id}) from ${set.id} → ${shown(out)}`);
+  if (issues.length > 0) printIssues(io, issues, shown(out));
+  if (needs.length > 0) {
+    io.out(`"${candidate.label}" is ${planLine(graph, needs)}.`);
+    io.out(`next: grooph plan ${shown(out)}`);
+  }
+  return 0;
+}

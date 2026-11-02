@@ -1,0 +1,11 @@
+{
+  "name": "listkit",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "scripts": {
+    "lint": "node scripts/lint.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/lint.mjs && node --test tests/*.test.mjs"
+  }
+}

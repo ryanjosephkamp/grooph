@@ -1,0 +1,7 @@
+{
+  "issues": [
+    "E_PERSON_LEAD",
+    "E_PERSON_STEP_NOT_COMPILED"
+  ],
+  "note": "Invalid fixtures are validated as an export would: any document with a person's step also reports E_PERSON_STEP_NOT_COMPILED, which is true of it."
+}

@@ -1,0 +1,210 @@
+{
+  "grooph": 0,
+  "id": "solo-project",
+  "name": "A solo project",
+  "version": 1,
+  "goal": "{{project}} Done when every line of DONE.md is met and it is out at {{where}}.",
+  "template": {
+    "kind": "graph",
+    "title": "Solo project",
+    "summary": "One person's project: what done means written first, the work, a review of your own work with fresh eyes, and a decision before anything is published.",
+    "whenToUse": "You work alone on something you will put in front of other people, and you want what done means, and the decision to publish, written down first.",
+    "notFor": "Work with a second person available to review it (use team-handoffs).",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "project",
+        "ask": "What are you making? One or two sentences.",
+        "example": "A one-page website for my woodworking, with six photographs and a way to reach me."
+      },
+      {
+        "key": "where",
+        "ask": "Where will it be published? Finish the sentence: it is out at ...",
+        "example": "its own web address"
+      }
+    ],
+    "tags": [
+      "plan",
+      "solo",
+      "human-gate",
+      "loop",
+      "irreversible"
+    ]
+  },
+  "description": "A plan for one person; no step here is an agent's. You write down what you will make and how you will know it is done, before you start. You make it. Then you come back later, the next day if you can, and read your own work against that list as if someone else had made it, and it goes back to you while a line is not met. Before anything is published you stop and decide. If the review reaches its third round, stop and decide what to change: the work, the list, or the plan.",
+  "nodes": [
+    {
+      "id": "plan",
+      "kind": "agent",
+      "name": "Write what done means",
+      "by": "person",
+      "role": "planner",
+      "brief": "Before you start, write what you are making in two sentences, and under it a short list of things that will be true when it is done, each one something you could point at. Add what you will not do. Three to seven lines: this is the list you will be held to.",
+      "inputs": [
+        "{{project}}"
+      ],
+      "outputs": [
+        "DONE.md: what you are making, and what will be true when it is done"
+      ]
+    },
+    {
+      "id": "make",
+      "kind": "agent",
+      "name": "Make it",
+      "by": "person",
+      "role": "builder",
+      "brief": "Make what DONE.md describes. Stop when you believe every line is met. On a later round, start from REVIEW.md: deal with each line that was not met, and with anything you wrote there at the gate.",
+      "inputs": [
+        "DONE.md",
+        "REVIEW.md (from the second round on)"
+      ],
+      "outputs": [
+        "the work"
+      ]
+    },
+    {
+      "id": "review",
+      "kind": "agent",
+      "name": "Review it with fresh eyes",
+      "by": "person",
+      "role": "critic",
+      "brief": "Come back after a break, the next day if you can. Read the work against DONE.md as if someone else had made it, one line each: met, with where to see it, or not met. Fix nothing in this step: write it down and take it back to the making. Pass it when every line is met.",
+      "inputs": [
+        "the work",
+        "DONE.md"
+      ],
+      "outputs": [
+        "REVIEW.md: one line for each line of DONE.md, ending in pass or go again"
+      ]
+    },
+    {
+      "id": "publish-gate",
+      "kind": "human-gate",
+      "name": "Decide to publish",
+      "prompt": "Every line of DONE.md is met. Do you put it out at {{where}}? If not yet, write what is holding you back at the foot of REVIEW.md.",
+      "options": [
+        "publish",
+        "not yet"
+      ]
+    },
+    {
+      "id": "publish",
+      "kind": "agent",
+      "name": "Publish it",
+      "by": "person",
+      "role": "builder",
+      "brief": "Put the work out at {{where}}, and write down where it is and when it went out. Check it from somewhere else, as a visitor would see it.",
+      "inputs": [
+        "the work",
+        "{{where}}"
+      ],
+      "outputs": [
+        "the work, published",
+        "PUBLISHED.md: where and when"
+      ],
+      "irreversible": [
+        "publish"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Out",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-plan-make",
+      "from": "plan",
+      "to": "make"
+    },
+    {
+      "id": "e-make-review",
+      "from": "make",
+      "to": "review",
+      "evidence": [
+        "the work",
+        "DONE.md"
+      ]
+    },
+    {
+      "id": "e-review-fail",
+      "from": "review",
+      "to": "make",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-review-pass",
+      "from": "review",
+      "to": "publish-gate",
+      "when": "pass"
+    },
+    {
+      "id": "e-publish-gate-publish",
+      "from": "publish-gate",
+      "to": "publish",
+      "when": "pass"
+    },
+    {
+      "id": "e-publish-gate-not-yet",
+      "from": "publish-gate",
+      "to": "make",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md, with what is holding you back"
+      ]
+    },
+    {
+      "id": "e-publish-done",
+      "from": "publish",
+      "to": "done"
+    }
+  ],
+  "loops": [
+    {
+      "id": "review-loop",
+      "name": "Review",
+      "members": [
+        "make",
+        "review",
+        "publish-gate"
+      ],
+      "back": [
+        "e-review-fail",
+        "e-publish-gate-not-yet"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "What done means",
+        "inspects": [
+          {
+            "kind": "checklist",
+            "ref": "DONE.md"
+          },
+          {
+            "kind": "artifact",
+            "ref": "the work"
+          }
+        ],
+        "acceptance": "Every line of DONE.md is met, and you can point to where."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+[
+  { "name": "words, unique and the top three", "fn": "summary", "args": ["the cat saw the other cat"], "expect": { "words": 6, "unique": 4, "top": [["cat", 2], ["the", 2], ["other", 1]] } },
+  { "name": "empty text", "fn": "summary", "args": [""], "expect": { "words": 0, "unique": 0, "top": [] } },
+  { "name": "the summary agrees with tokenize on hyphens", "fn": "summary", "args": ["well-known, well known"], "expect": { "words": 4, "unique": 2, "top": [["known", 2], ["well", 2]] } }
+]

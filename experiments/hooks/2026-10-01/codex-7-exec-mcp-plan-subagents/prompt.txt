@@ -1,0 +1,6 @@
+Do exactly these five steps, in order, and nothing else. Do not read or change any file.
+1. Call the grooph MCP tool grooph_plan with title "two trivial checks" and agents [{"type":"default","count":2,"purpose":"one trivial task each"}].
+2. You are explicitly asked to delegate: use your spawn_agent tool twice, in the same turn, to start two subagents. First subagent's task: reply with the single word alpha. Second subagent's task: reply with the single word beta. Wait for both to finish.
+3. Call the grooph MCP tool grooph_running.
+4. Call the grooph MCP tool grooph_note with text "Both trivial subagents finished."
+5. Reply with: what each of the three grooph tool calls returned (one line each), and the two words the subagents gave.

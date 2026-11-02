@@ -1,0 +1,80 @@
+{
+  "grooph": 0,
+  "id": "two-leads",
+  "name": "Two leads",
+  "version": 1,
+  "goal": "Fix the failing test.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "lead",
+      "kind": "agent",
+      "name": "Lead",
+      "role": "lead",
+      "brief": "Lead: hand the failing test to the builder and report what it did.",
+      "outputs": [
+        "REPORT.md"
+      ],
+      "allow": [
+        "read-files",
+        "spawn-agents"
+      ]
+    },
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "brief": "Builder: make the failing test pass.",
+      "outputs": [
+        "src/"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "placed-lead",
+      "kind": "agent",
+      "name": "Lead of the placed template",
+      "description": "It came in with a template that had a lead of its own.",
+      "role": "lead",
+      "brief": "Lead: check the builder's change against the checklist.",
+      "outputs": [
+        "REVIEW.md"
+      ],
+      "allow": [
+        "read-files",
+        "spawn-agents"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-lead-build",
+      "from": "lead",
+      "to": "builder"
+    },
+    {
+      "id": "e-build-placed",
+      "from": "builder",
+      "to": "placed-lead"
+    },
+    {
+      "id": "e-placed-done",
+      "from": "placed-lead",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

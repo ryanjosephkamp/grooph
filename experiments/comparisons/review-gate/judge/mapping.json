@@ -1,0 +1,32 @@
+{
+  "about": "Which run each letter stood for. Written by the runner beside the verdict and read only by compare-summary.mjs; the judge never saw it.",
+  "letters": {
+    "E": "C-2",
+    "N": "B-1",
+    "X": "A-1",
+    "Z": "C-1",
+    "Y": "B-2",
+    "L": "A-2"
+  },
+  "order": [
+    "E",
+    "N",
+    "X",
+    "Z",
+    "Y",
+    "L"
+  ],
+  "files_judged": [
+    "src/",
+    "tests/",
+    "CHANGELOG.md"
+  ],
+  "redactions": {
+    "C-2": 0,
+    "B-1": 0,
+    "A-1": 0,
+    "C-1": 0,
+    "B-2": 0,
+    "A-2": 0
+  }
+}

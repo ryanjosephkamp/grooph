@@ -1,0 +1,7 @@
+{
+  "name": "Word wrap",
+  "values": {
+    "task": "Add word wrapping to this project: a function that wraps text to a given width.",
+    "test-command": "npm test"
+  }
+}

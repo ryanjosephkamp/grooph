@@ -1,0 +1,227 @@
+diff --git a/captures/CAPTURE.md b/captures/CAPTURE.md
+new file mode 100644
+index 0000000..627c3aa
+--- /dev/null
++++ b/captures/CAPTURE.md
+@@ -0,0 +1,36 @@
++# Capture of the current revision
++
++- rendered at 2026-10-04T22:31:15.599Z from src/statement.mjs, sha256 c023b762ac0c
++- file: captures/statement.txt, 24 lines, the widest 61 characters
++- lines that end in a space or a tab: 0
++- tabs: none
++- characters outside plain ASCII: none
++
++## The statement, with line numbers and each line's length
++
++```text
++ 1 | 61 | Northwind Robotics                           Account NW-20418
++ 2 | 34 | Usage statement for September 2026
++ 3 |  0 | 
++ 4 | 60 | Service             Usage                Share  Amount (USD)
++ 5 | 61 | -------------------------------------------------------------
++ 6 | 60 | Compute             18,250 vCPU-hours    39.5%      1,642.50
++ 7 | 60 | Managed database    720 instance-hours   31.2%      1,296.00
++ 8 | 60 | Dedicated support   1 plan               12.0%        500.00
++ 9 | 60 | Data transfer out   4,380 GB              9.5%        394.20
++10 | 60 | Object storage      9,120 GB-months       5.0%        209.76
++11 | 60 | Container registry  412 GB-months         1.0%         41.20
++12 | 60 | Key management      36 keys               0.9%         36.00
++13 | 60 | Load balancing      1,440 hours           0.9%         36.00
++14 | 61 | -------------------------------------------------------------
++15 | 60 | Charges                                 100.0%      4,155.66
++16 |  0 | 
++17 |  7 | Credits
++18 | 61 |   Committed-use discount                             (410.63)
++19 | 61 |   Service credit, 14 Sep outage                      (164.25)
++20 | 61 | -------------------------------------------------------------
++21 | 60 | Total due                                           3,580.78
++22 |  0 | 
++23 | 57 | 2 services with no usage are not listed: Machine learning
++24 | 25 | inference and Monitoring.
++```
+diff --git a/captures/statement.txt b/captures/statement.txt
+new file mode 100644
+index 0000000..0340ab0
+--- /dev/null
++++ b/captures/statement.txt
+@@ -0,0 +1,24 @@
++Northwind Robotics                           Account NW-20418
++Usage statement for September 2026
++
++Service             Usage                Share  Amount (USD)
++-------------------------------------------------------------
++Compute             18,250 vCPU-hours    39.5%      1,642.50
++Managed database    720 instance-hours   31.2%      1,296.00
++Dedicated support   1 plan               12.0%        500.00
++Data transfer out   4,380 GB              9.5%        394.20
++Object storage      9,120 GB-months       5.0%        209.76
++Container registry  412 GB-months         1.0%         41.20
++Key management      36 keys               0.9%         36.00
++Load balancing      1,440 hours           0.9%         36.00
++-------------------------------------------------------------
++Charges                                 100.0%      4,155.66
++
++Credits
++  Committed-use discount                             (410.63)
++  Service credit, 14 Sep outage                      (164.25)
++-------------------------------------------------------------
++Total due                                           3,580.78
++
++2 services with no usage are not listed: Machine learning
++inference and Monitoring.
+diff --git a/src/statement.mjs b/src/statement.mjs
+index 8bf919c..7a7877e 100644
+--- a/src/statement.mjs
++++ b/src/statement.mjs
+@@ -1,3 +1,64 @@
++const MONTHS = [
++  "January", "February", "March", "April", "May", "June",
++  "July", "August", "September", "October", "November", "December",
++];
++
++/** Whole number with thousands separators, e.g. 18250 -> "18,250". */
++function groupDigits(n) {
++  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
++}
++
++/** Whole cents as dollars and cents, e.g. -16425 -> "-164.25". Exact, no floats. */
++function money(cents) {
++  const sign = cents < 0 ? "-" : "";
++  const abs = Math.abs(cents);
++  const dollars = Math.trunc(abs / 100);
++  const rest = String(abs % 100).padStart(2, "0");
++  return `${sign}${groupDigits(dollars)}.${rest}`;
++}
++
++/** "2026-09" -> "September 2026"; anything else is passed through. */
++function monthName(period) {
++  const match = /^(\d{4})-(\d{2})$/.exec(period);
++  if (!match || Number(match[2]) < 1 || Number(match[2]) > 12) return period;
++  return `${MONTHS[Number(match[2]) - 1]} ${match[1]}`;
++}
++
++const padRight = (s, w) => s.padEnd(w, " ");
++const padLeft = (s, w) => s.padStart(w, " ");
++const trimEnd = (s) => s.replace(/\s+$/, "");
++
++/** Share of the whole as a percentage to one decimal, rounded half up, from whole cents. */
++function percent(part, whole) {
++  if (whole <= 0) return "0.0%";
++  const tenths = Math.floor((part * 2000 + whole) / (2 * whole));
++  return `${Math.trunc(tenths / 10)}.${tenths % 10}%`;
++}
++
++/** "A", "A and B", "A, B and C". */
++function listNames(names) {
++  if (names.length <= 1) return names.join("");
++  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
++}
++
++/** Greedy word wrap to at most `width` characters per line. */
++function wrap(text, width) {
++  const lines = [];
++  let line = "";
++  for (const word of text.split(" ")) {
++    if (line && line.length + 1 + word.length > width) {
++      lines.push(line);
++      line = word;
++    } else {
++      line = line ? `${line} ${word}` : word;
++    }
++  }
++  if (line) lines.push(line);
++  return lines;
++}
++
++const isUnused = (l) => l.quantity === 0 && l.amount_cents === 0;
++
+ /**
+  * The monthly usage statement as plain text.
+  * @param {{ customer: string, account: string, period: string, currency: string,
+@@ -6,17 +67,76 @@
+  * @returns {string}
+  */
+ export function renderStatement(data) {
++  const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
++  const unused = data.lines.filter(isUnused).sort((a, b) => byName(a.service, b.service));
++  // Services with usage, largest charge first; equal amounts by name.
++  const used = data.lines
++    .filter((l) => !isUnused(l))
++    .sort((a, b) => b.amount_cents - a.amount_cents || byName(a.service, b.service));
++  // Credits, largest first.
++  const credits = [...data.credits].sort(
++    (a, b) => Math.abs(b.amount_cents) - Math.abs(a.amount_cents) || byName(a.reason, b.reason),
++  );
++
++  const charges = data.lines.reduce((sum, l) => sum + l.amount_cents, 0);
++  const total = charges + data.credits.reduce((sum, c) => sum + c.amount_cents, 0);
++
++  const usageOf = (l) => `${groupDigits(l.quantity)} ${l.unit}`;
++  const serviceW = Math.max("Service".length, ...used.map((l) => l.service.length));
++  const usageW = Math.max("Usage".length, ...used.map((l) => usageOf(l).length));
++  const shareW = "100.0%".length;
++  const amountW = Math.max(
++    `Amount (${data.currency})`.length,
++    ...used.map((l) => money(l.amount_cents).length),
++    ...credits.map((c) => money(Math.abs(c.amount_cents)).length + 1),
++    money(charges).length,
++    money(total).length,
++  );
++  // One character after the amount column holds the closing parenthesis of a credit.
++  const slot = 1;
++  const gap = "  ";
++  const width = serviceW + usageW + shareW + amountW + slot + gap.length * 3;
++  const rule = "-".repeat(width);
++
++  const row = (a, b, c, d) =>
++    trimEnd(
++      `${[padRight(a, serviceW), padRight(b, usageW), padLeft(c, shareW), padLeft(d, amountW)].join(gap)} `,
++    );
++  const labelW = width - amountW - slot - gap.length;
++  // A label on the left and an amount flush with the amount column.
++  const summary = (label, text, tail = " ") =>
++    trimEnd(`${padRight(label, labelW)}${gap}${padLeft(text, amountW)}${tail}`);
++
+   const out = [];
+-  out.push(`Usage statement ${data.account} ${data.customer} ${data.period}`);
+-  let total = 0;
+-  for (const line of data.lines) {
+-    out.push(`${line.service} ${line.quantity} ${line.unit} ${line.amount_cents}`);
+-    total += line.amount_cents;
++  const account = `Account ${data.account}`;
++  out.push(`${padRight(data.customer, Math.max(1, width - account.length))}${account}`);
++  out.push(`Usage statement for ${monthName(data.period)}`);
++  out.push("");
++  out.push(row("Service", "Usage", "Share", `Amount (${data.currency})`));
++  out.push(rule);
++  for (const l of used) {
++    out.push(row(l.service, usageOf(l), percent(l.amount_cents, charges), money(l.amount_cents)));
++  }
++  out.push(rule);
++  out.push(row("Charges", "", percent(charges, charges), money(charges)));
++  out.push("");
++  out.push("Credits");
++  for (const c of credits) {
++    // Credits are stored as negative amounts and shown as (amount), decimal point in the column.
++    const label = `  ${c.reason}`;
++    out.push(
++      c.amount_cents < 0
++        ? summary(label, `(${money(-c.amount_cents)}`, ")")
++        : summary(label, money(c.amount_cents)),
++    );
+   }
+-  for (const credit of data.credits) {
+-    out.push(`${credit.reason} ${credit.amount_cents}`);
+-    total += credit.amount_cents;
++  out.push(rule);
++  out.push(summary("Total due", money(total)));
++  if (unused.length > 0) {
++    const n = unused.length;
++    const names = listNames(unused.map((l) => l.service));
++    out.push("");
++    out.push(...wrap(`${n} ${n === 1 ? "service" : "services"} with no usage ${n === 1 ? "is" : "are"} not listed: ${names}.`, width));
+   }
+-  out.push(`Total ${total} ${data.currency} cents`);
+   return `${out.join("\n")}\n`;
+ }

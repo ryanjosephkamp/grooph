@@ -1,0 +1,245 @@
+{
+  "grooph": 0,
+  "id": "tag-notes",
+  "name": "Tag notes",
+  "version": 1,
+  "goal": "Add tags to notes as README.md § \"The change\" describes: tag storage and lookup in the store, the two tag routes in the API, a text-table renderer and a CSV exporter that take plain notes, and `createApp()` in src/index.mjs wiring them, so that tests/app.test.mjs passes. Done when the pieces are integrated and `npm test` passes, with each coupled subsystem changed by exactly one owner.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "lineage": {
+    "pattern": "ownership-not-swarm",
+    "from": "ownership-not-swarm@1"
+  },
+  "description": "A planner splits the task into the coupled core and independent pieces. Two owners, both marked coupled and each owning one subsystem, work in sequence, the second building on the first. Only then do fast workers take the independent pieces, up to three at a time. An integrator joins everything and a test check closes a short grind loop. Parallel fan-out lost to sequential ownership on coupled systems (spec §13); this graph fans out only where nothing is coupled.",
+  "nodes": [
+    {
+      "id": "planner",
+      "kind": "agent",
+      "name": "Planner",
+      "role": "planner",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Split the task into the coupled core, the work inside src/db/ and src/api/, and independent pieces that touch neither. Write PLAN.md with what each owner does and the independent pieces as a list, each small enough for one worker. Write no code.",
+      "inputs": [
+        "the task"
+      ],
+      "outputs": [
+        "PLAN.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "owner-a",
+      "kind": "agent",
+      "name": "Owner A",
+      "coupled": true,
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "You are the only node that changes src/db/. Do its part of PLAN.md and record every interface the next owner relies on in HANDOFF-A.md. Run `npm test` before you report.",
+      "inputs": [
+        "PLAN.md"
+      ],
+      "outputs": [
+        "changes in src/db/",
+        "HANDOFF-A.md: interfaces and changes the next owner relies on"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "src/db/"
+      ]
+    },
+    {
+      "id": "owner-b",
+      "kind": "agent",
+      "name": "Owner B",
+      "coupled": true,
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "You are the only node that changes src/api/. Do its part of PLAN.md on top of what HANDOFF-A.md describes; if src/db/ needs to change, say so rather than changing it. Run `npm test` before you report.",
+      "inputs": [
+        "PLAN.md",
+        "HANDOFF-A.md"
+      ],
+      "outputs": [
+        "changes in src/api/",
+        "HANDOFF-B.md: interfaces the pieces rely on"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "src/api/"
+      ]
+    },
+    {
+      "id": "worker",
+      "kind": "agent",
+      "name": "Piece worker",
+      "description": "One dispatch per independent piece in PLAN.md.",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Build one independent piece from PLAN.md, touching only its own files; src/db/ and src/api/ are read-only to you. If the piece turns out to need a change in either, stop and say so instead of making it. Report the files you touched.",
+      "inputs": [
+        "PLAN.md",
+        "HANDOFF-B.md",
+        "the piece to build"
+      ],
+      "outputs": [
+        "the piece",
+        "a list of the files it touched"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "integrator",
+      "kind": "agent",
+      "name": "Integrator",
+      "role": "synthesizer",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Join the pieces to the coupled core so the task works end to end, changing only the seams between them. src/db/ and src/api/ belong to their owners: a change there is a note in your report, not an edit. Write ARCHITECTURE.md naming each owner, what they own, and how the pieces connect.",
+      "inputs": [
+        "PLAN.md",
+        "HANDOFF-A.md",
+        "HANDOFF-B.md",
+        "the pieces",
+        "failing test output (from round 1 on)"
+      ],
+      "outputs": [
+        "the integrated change",
+        "ARCHITECTURE.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-planner-owner-a",
+      "from": "planner",
+      "to": "owner-a",
+      "evidence": [
+        "PLAN.md"
+      ]
+    },
+    {
+      "id": "e-owner-a-owner-b",
+      "from": "owner-a",
+      "to": "owner-b",
+      "evidence": [
+        "PLAN.md",
+        "HANDOFF-A.md"
+      ]
+    },
+    {
+      "id": "e-owner-b-worker",
+      "from": "owner-b",
+      "to": "worker",
+      "concurrency": {
+        "max": 3
+      },
+      "evidence": [
+        "PLAN.md",
+        "HANDOFF-B.md"
+      ],
+      "label": "one worker per independent piece"
+    },
+    {
+      "id": "e-worker-integrator",
+      "from": "worker",
+      "to": "integrator",
+      "label": "after every piece is in"
+    },
+    {
+      "id": "e-integrator-tests",
+      "from": "integrator",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "integrator",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-tests-pass",
+      "from": "tests",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "integrate",
+      "name": "Integrate",
+      "members": [
+        "integrator",
+        "tests"
+      ],
+      "back": [
+        "e-tests-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 3
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 30
+        }
+      ]
+    }
+  ]
+}

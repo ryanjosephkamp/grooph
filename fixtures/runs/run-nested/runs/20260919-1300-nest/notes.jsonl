@@ -1,0 +1,13 @@
+{"id":"n-0001","run":"20260919-1300-nest","at":"graph","started":"2026-09-19T13:00:00Z","text":"run started"}
+{"id":"n-0002","run":"20260919-1300-nest","at":"node:builder","ended":"2026-09-19T13:04:00Z","outcome":"pass","round":0,"text":"phase 1: first module"}
+{"id":"n-0003","run":"20260919-1300-nest","at":"node:tests","ended":"2026-09-19T13:05:00Z","outcome":"fail","round":0}
+{"id":"n-0004","run":"20260919-1300-nest","at":"loop:grind","ended":"2026-09-19T13:05:00Z","outcome":"fail","round":0,"text":"grind pass 0 fails; max-iterations 1/5; taking e-tests-fail"}
+{"id":"n-0005","run":"20260919-1300-nest","at":"node:builder","ended":"2026-09-19T13:08:00Z","outcome":"pass","round":1}
+{"id":"n-0006","run":"20260919-1300-nest","at":"node:tests","ended":"2026-09-19T13:09:00Z","outcome":"pass","round":1}
+{"id":"n-0007","run":"20260919-1300-nest","at":"loop:grind","ended":"2026-09-19T13:09:00Z","outcome":"pass","round":1,"text":"tests green; leaving grind for the judge"}
+{"id":"n-0008","run":"20260919-1300-nest","at":"node:judge","ended":"2026-09-19T13:12:00Z","outcome":"fail","verdict":"next-phase","round":0,"text":"phase 1 signed off"}
+{"id":"n-0009","run":"20260919-1300-nest","at":"loop:phases","ended":"2026-09-19T13:12:00Z","outcome":"fail","round":0,"text":"phase 1 done; taking e-judge-next-phase"}
+{"id":"n-0010","run":"20260919-1300-nest","at":"node:builder","ended":"2026-09-19T13:16:00Z","outcome":"pass","round":0,"text":"phase 2: second module"}
+{"id":"n-0011","run":"20260919-1300-nest","at":"node:tests","ended":"2026-09-19T13:17:00Z","outcome":"pass","round":0}
+{"id":"n-0012","run":"20260919-1300-nest","at":"loop:grind","ended":"2026-09-19T13:17:00Z","outcome":"pass","round":0,"text":"green on the first pass"}
+{"id":"n-0013","run":"20260919-1300-nest","at":"node:judge","started":"2026-09-19T13:17:00Z","outcome":"started","round":1}

@@ -1,0 +1,9 @@
+{
+  "about": "The token <held-out> in a slot value becomes the absolute path of the held-out folder the runner copies beside the scratch project. The reference card, its element-by-element description and its notes live there. The planner reads the reference to cut the pieces (it needs to, to write each piece's reference cut); the piece critic and the final critic judge against it; the task text and the slot value tell the owner and the integrator it is not theirs to read, and the transcript digest records whether they read it anyway.",
+  "name": "Summary card",
+  "values": {
+    "task": "Make the summary card rendered by `npm run render` from src/card.mjs match the reference card the deck already uses, piece by piece: BRIEF.md says what the card should be, data/summary.json is the data, src/header.mjs and src/trend.mjs are the two parts src/card.mjs frames, and `npm run capture` produces what the critics judge. The reference itself is held outside this project for the planner and the critics; the owner and the integrator work from PIECES.md and do not read it.",
+    "reference": "the deck's reference card at <held-out>/reference.svg, described element by element in <held-out>/REFERENCE-CAPTURE.md, with what matters about it in <held-out>/REFERENCE.md (the planner cuts from it and the critics judge against it; the owner and the integrator do not read it)",
+    "capture-command": "npm run capture"
+  }
+}

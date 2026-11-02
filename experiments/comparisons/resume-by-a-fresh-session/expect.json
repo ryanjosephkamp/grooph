@@ -1,0 +1,22 @@
+{
+  "about": "The pre-registration of the resume step, in the fields the script reads. The words are in README.md beside it. Written before any run; nothing here has been run.",
+  "from": "experiments/comparisons/review-gate-2/A-1",
+  "graph_id": "layer-settings",
+  "run_id": "20261004-211444",
+  "gate": "merge-gate",
+  "answer": "approve",
+  "the_answer_is_scripted": true,
+  "resume_sentence": "You are given a run id to resume: `{{run-id}}`. Answer at the gate `{{gate}}` of run `{{run-id}}`: {{answer}}. Continue that run from where it halted.",
+  "lead": { "model": "claude-opus-5-5", "effort": "high" },
+  "watchdog": { "usd_per_session": 2.0, "minutes_per_session": 10, "is_not_the_brake": true },
+  "resumed_if": [
+    "the session ended itself",
+    "there is still one run folder, the one it was given",
+    "the notes it was given are the first lines of the notes it left, byte for byte, with at least one line after them",
+    "no subagent was dispatched: nothing is built or reviewed again",
+    "a new note stands at the gate or on its approval edge",
+    "a new note says the run is ending, and the last note is the graph's",
+    "the source document of the graph is unchanged, and so is every file of the project outside the run folder"
+  ],
+  "an_invalid_run": "as in experiments/brakes/budget: a run the harness or the account ended is recorded, the driver is told, and it is made again once on the driver's word"
+}

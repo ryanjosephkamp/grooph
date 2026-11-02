@@ -1,0 +1,355 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 83e52ac..cb242df 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,8 @@
+ 
+ ## Unreleased
+ 
++- Added `layer(base, over)`: lays `over` on top of `base`, layering plain objects key by key at any depth and replacing any other value (arrays whole); neither argument is changed.
++
+ ## 0.4.0 — 2026-09-12
+ 
+ - Added a `fallback` argument to `getPath(settings, path, fallback)`: returned when the path is missing.
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..6a3f190
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,34 @@
++# Changes
++
++## Round 2
++
++Changes in `src/layer.mjs`:
++
++- A key whose value in `over` is `undefined` now counts as not given, at any
++  depth (including inside objects in arrays): base's value (a fresh copy) is
++  kept, and a key only `over` has with `undefined` does not appear in the
++  result. Only `over` is treated this way; `undefined` held by `base` is copied
++  as is.
++- `layer` now throws a `TypeError` when either argument holds anything that is
++  not plain data, wherever it sits (nested objects, inside arrays, in `base` or
++  `over`, even if the value would later be replaced). Functions, `Map`, `Set`,
++  `RegExp` and class instances are refused; primitives, `null`, `Date`, arrays
++  and plain objects are allowed.
++
++Tests added to `tests/layer.test.mjs`: one for undefined handling (the four
++quoted cases plus undefined inside nested and array objects) and one for
++non-plain data (all seven quoted cases plus a few more, and a check that dates
++still work).
++
++REVIEW.md findings addressed:
++
++- Undefined handling (4 failing cases): fixed as above.
++- Non-plain data must throw (7 failing cases): fixed as above.
++
++No finding was set aside. The checklist items were already satisfied and still are.
++
++## Round 1
++
++- Added `layer(base, over)` in `src/layer.mjs`.
++- Added `tests/layer.test.mjs` covering each checklist point.
++- Added a line under `## Unreleased` in `CHANGELOG.md`.
+diff --git a/REVIEW.md b/REVIEW.md
+new file mode 100644
+index 0000000..02799b4
+--- /dev/null
++++ b/REVIEW.md
+@@ -0,0 +1,27 @@
++# Review
++
++Checklist (docs/REVIEW-CHECKLIST.md):
++
++1. satisfied: src/layer.mjs exists and `export function layer` is at src/layer.mjs:67.
++2. satisfied: logic at src/layer.mjs:36-53 (key-by-key layering, recursion at line 47, replacement otherwise at line 49). Tests in tests/layer.test.mjs: checklist example :6-11, any depth :13-17, kept keys :19-22, array/number/string/boolean/null replace :24-28, array replaced whole :30-33.
++3. satisfied: TypeError checks at src/layer.mjs:68-69. Test at tests/layer.test.mjs:43-52 covers array, null, string, number, Date and an omitted argument, for each side.
++4. satisfied: `copy`/`layerObjects` (src/layer.mjs:29-53) rebuild every object, array and Date. Tests at tests/layer.test.mjs:54-62 (inputs unchanged) and :72-102 (identity scan of the result at any depth, inside arrays, and mutation of the result leaves both layers alone).
++5. satisfied: UNSAFE_KEYS skipped at src/layer.mjs:39 and :43; result objects are built as `{}` (line 37). Tests at tests/layer.test.mjs:104-129 (both arguments, nested, inside arrays, prototype check) and :131-137 (null-prototype inputs).
++6. satisfied: CHANGELOG.md line 5, under `## Unreleased`, names `layer(base, over)` and says what it does, in the same "Added ..." style as the 0.4.0 entry.
++7. satisfied: `npm test` exits 0 with 16 tests, 16 pass, 0 skipped, 0 todo (details below). No `skip` or `todo` in tests/layer.test.mjs.
++8. satisfied: `git status --porcelain` lists only CHANGELOG.md (modified), src/layer.mjs, tests/layer.test.mjs, plus the allowed records CHANGES.md and REVIEW.md.
++
++## Held-out suite
++
++node --test .../settingskit-rtxZfW.harness/held-out/layer-cases.test.mjs: 55 tests, 55 pass, 0 fail, 0 skipped, 0 todo. No failing cases.
++
++## npm test
++
++tests 16, pass 16, fail 0, cancelled 0, skipped 0, todo 0. Exit 0.
++
++## Notes (not checklist failures)
++
++- The implementation goes beyond the task by also throwing a TypeError for non-plain data nested in either argument (functions, Maps, Sets, class instances, RegExps). The task does not say this and the checklist does not forbid it. It is tested and documented in the JSDoc. The held-out suite expects it.
++- An `undefined` value in `over` counts as not given (src/layer.mjs:45). The task does not say this. The held-out suite expects it.
++
++verdict: pass
+diff --git a/src/layer.mjs b/src/layer.mjs
+new file mode 100644
+index 0000000..549ef3c
+--- /dev/null
++++ b/src/layer.mjs
+@@ -0,0 +1,73 @@
++const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
++
++function isPlainObject(value) {
++  if (value === null || typeof value !== "object") return false;
++  const proto = Object.getPrototypeOf(value);
++  return proto === Object.prototype || proto === null;
++}
++
++// Throws a TypeError if anything reachable from `value` is not plain data:
++// primitives, null, dates, arrays and plain objects are fine; functions, maps,
++// sets, class instances and the like are not.
++function assertPlainData(value, where) {
++  if (value === null || (typeof value !== "object" && typeof value !== "function")) return;
++  if (Array.isArray(value)) {
++    for (const item of value) assertPlainData(item, where);
++  } else if (value instanceof Date) {
++    // plain data
++  } else if (isPlainObject(value)) {
++    for (const key of Object.keys(value)) assertPlainData(value[key], where);
++  } else {
++    throw new TypeError(`layer: ${where} holds a value that is not plain data`);
++  }
++}
++
++// Copies a value so that nothing reachable from the copy is shared with the
++// original. Plain objects and arrays are copied at any depth, dropping unsafe
++// keys; dates are copied; primitives are kept as is. When `fromOver` is set,
++// object keys holding `undefined` are left out (they count as not given).
++function copy(value, fromOver) {
++  if (Array.isArray(value)) return value.map((item) => copy(item, fromOver));
++  if (value instanceof Date) return new Date(value.getTime());
++  if (isPlainObject(value)) return layerObjects(fromOver ? {} : value, fromOver ? value : {});
++  return value;
++}
++
++function layerObjects(base, over) {
++  const out = {};
++  for (const key of Object.keys(base)) {
++    if (UNSAFE_KEYS.has(key)) continue;
++    out[key] = copy(base[key], false);
++  }
++  for (const key of Object.keys(over)) {
++    if (UNSAFE_KEYS.has(key)) continue;
++    const value = over[key];
++    if (value === undefined) continue;
++    if (Object.hasOwn(base, key) && isPlainObject(base[key]) && isPlainObject(value)) {
++      out[key] = layerObjects(base[key], value);
++    } else {
++      out[key] = copy(value, true);
++    }
++  }
++  return out;
++}
++
++/**
++ * Lays `over` on top of `base` and returns the combined settings.
++ * Plain objects under the same key are layered key by key, at any depth; any
++ * other value in `over` replaces the one in `base` (arrays are replaced whole).
++ * A key whose value in `over` is `undefined` counts as not given.
++ * Neither argument is changed and the result shares no object with them. Keys
++ * named `__proto__`, `constructor` or `prototype` are never copied. Both
++ * arguments must be plain objects holding only plain data (primitives, dates,
++ * arrays and plain objects, at any depth); anything else throws a TypeError.
++ * @param {object} base
++ * @param {object} over
++ */
++export function layer(base, over) {
++  if (!isPlainObject(base)) throw new TypeError("layer: base must be a plain object");
++  if (!isPlainObject(over)) throw new TypeError("layer: over must be a plain object");
++  assertPlainData(base, "base");
++  assertPlainData(over, "over");
++  return layerObjects(base, over);
++}
+diff --git a/tests/layer.test.mjs b/tests/layer.test.mjs
+new file mode 100644
+index 0000000..7d9510d
+--- /dev/null
++++ b/tests/layer.test.mjs
+@@ -0,0 +1,184 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { layer } from "../src/layer.mjs";
++
++test("layer lays over on top of base key by key", () => {
++  assert.deepEqual(
++    layer({ a: 1, b: { c: 2, d: 3 } }, { b: { c: 9 }, e: 5 }),
++    { a: 1, b: { c: 9, d: 3 }, e: 5 },
++  );
++});
++
++test("layer layers plain objects at any depth", () => {
++  const base = { a: { b: { c: { d: 1, e: 2 }, f: 3 } } };
++  const over = { a: { b: { c: { e: 9, g: 4 } } } };
++  assert.deepEqual(layer(base, over), { a: { b: { c: { d: 1, e: 9, g: 4 }, f: 3 } } });
++});
++
++test("layer keeps keys that only one side has", () => {
++  assert.deepEqual(layer({ a: 1 }, { b: 2 }), { a: 1, b: 2 });
++  assert.deepEqual(layer({}, {}), {});
++});
++
++test("layer replaces with arrays, numbers, strings, booleans and null", () => {
++  const base = { a: { x: 1 }, b: { x: 1 }, c: { x: 1 }, d: { x: 1 }, e: { x: 1 }, f: [1, 2, 3] };
++  const over = { a: [9], b: 7, c: "s", d: false, e: null, f: [4] };
++  assert.deepEqual(layer(base, over), { a: [9], b: 7, c: "s", d: false, e: null, f: [4] });
++});
++
++test("layer replaces an array whole and never joins it", () => {
++  assert.deepEqual(layer({ list: [1, 2, 3] }, { list: [4] }), { list: [4] });
++  assert.deepEqual(layer({ list: [1, 2, 3] }, { list: [] }), { list: [] });
++});
++
++test("layer lets a plain object in over replace a non-object in base", () => {
++  assert.deepEqual(layer({ a: 1, b: [1], c: null }, { a: { x: 1 }, b: { y: 2 }, c: { z: 3 } }), {
++    a: { x: 1 },
++    b: { y: 2 },
++    c: { z: 3 },
++  });
++});
++
++test("layer throws a TypeError unless both arguments are plain objects", () => {
++  const bad = [[], null, "text", 3, new Date(), undefined];
++  for (const value of bad) {
++    assert.throws(() => layer(value, {}), TypeError);
++    assert.throws(() => layer({}, value), TypeError);
++  }
++  assert.throws(() => layer(), TypeError);
++  assert.throws(() => layer({}), TypeError);
++  assert.throws(() => layer(undefined, {}), TypeError);
++});
++
++test("layer changes neither argument", () => {
++  const base = { a: { b: 1 }, list: [{ x: 1 }] };
++  const over = { a: { c: 2 }, other: [1, [2]] };
++  const baseBefore = structuredClone(base);
++  const overBefore = structuredClone(over);
++  layer(base, over);
++  assert.deepEqual(base, baseBefore);
++  assert.deepEqual(over, overBefore);
++});
++
++function collect(value, found = new Set()) {
++  if (value !== null && typeof value === "object") {
++    found.add(value);
++    for (const key of Object.keys(value)) collect(value[key], found);
++  }
++  return found;
++}
++
++test("layer shares no object or array with base or over", () => {
++  const base = {
++    a: { b: { c: 1 } },
++    list: [{ x: 1 }, [2, { y: 3 }]],
++    kept: { deep: [{ z: 1 }] },
++    when: new Date(0),
++  };
++  const over = {
++    a: { b: { d: 2 } },
++    list: [{ w: 1 }, [{ v: 2 }]],
++    fresh: { deep: [{ u: 1 }] },
++    list2: [[{ t: 1 }]],
++  };
++  const result = layer(base, over);
++  const inputs = new Set([...collect(base), ...collect(over)]);
++  for (const object of collect(result)) {
++    assert.equal(inputs.has(object), false);
++  }
++  assert.equal(result.when.getTime(), 0);
++
++  result.a.b.c = 99;
++  result.list[1].push("added");
++  result.kept.deep[0].z = 99;
++  result.fresh.deep[0].u = 99;
++  result.list2[0][0].t = 99;
++  assert.equal(base.a.b.c, 1);
++  assert.deepEqual(base.list[1], [2, { y: 3 }]);
++  assert.equal(base.kept.deep[0].z, 1);
++  assert.equal(over.fresh.deep[0].u, 1);
++  assert.equal(over.list2[0][0].t, 1);
++});
++
++test("layer never copies __proto__, constructor or prototype keys", () => {
++  const base = JSON.parse(
++    '{"__proto__":{"polluted":1},"constructor":{"x":1},"prototype":{"y":1},"ok":{"__proto__":{"deep":1},"v":1},"list":[{"__proto__":{"inArray":1},"k":1}]}',
++  );
++  const over = JSON.parse(
++    '{"__proto__":{"polluted":2},"constructor":{"x":2},"prototype":{"y":2},"ok":{"constructor":{"z":1},"prototype":1,"w":2},"list2":[[{"__proto__":{"inArray":2},"k":2}]]}',
++  );
++  const result = layer(base, over);
++
++  assert.deepEqual(result, { ok: { v: 1, w: 2 }, list: [{ k: 1 }], list2: [[{ k: 2 }]] });
++  for (const key of ["__proto__", "constructor", "prototype"]) {
++    assert.equal(Object.hasOwn(result, key), false);
++    assert.equal(Object.hasOwn(result.ok, key), false);
++  }
++  assert.equal(({}).polluted, undefined);
++  assert.equal(result.polluted, undefined);
++  assert.equal(result.list[0].inArray, undefined);
++
++  const plain = (value) => {
++    if (value !== null && typeof value === "object") {
++      if (!Array.isArray(value)) assert.equal(Object.getPrototypeOf(value), Object.prototype);
++      Object.values(value).forEach(plain);
++    }
++  };
++  plain(result);
++});
++
++test("layer returns an ordinary object even for null-prototype inputs", () => {
++  const base = Object.assign(Object.create(null), { a: Object.assign(Object.create(null), { b: 1 }) });
++  const result = layer(base, { a: { c: 2 } });
++  assert.deepEqual(result, { a: { b: 1, c: 2 } });
++  assert.equal(Object.getPrototypeOf(result), Object.prototype);
++  assert.equal(Object.getPrototypeOf(result.a), Object.prototype);
++});
++
++test("layer treats an undefined value in over as not given", () => {
++  assert.deepEqual(layer({ verbose: true }, { verbose: undefined }), { verbose: true });
++
++  const base = { output: { color: "auto" } };
++  const kept = layer(base, { output: undefined });
++  assert.deepEqual(kept, { output: { color: "auto" } });
++  assert.notEqual(kept.output, base.output);
++
++  assert.deepEqual(
++    layer({ output: { color: "auto", width: 80 } }, { output: { color: undefined, width: 100 } }),
++    { output: { color: "auto", width: 100 } },
++  );
++
++  const added = layer({ a: 1 }, { pager: undefined });
++  assert.deepEqual(Object.keys(added), ["a"]);
++  assert.equal(Object.hasOwn(added, "pager"), false);
++
++  const nested = layer({}, { o: { c: undefined, d: 1 }, list: [{ e: undefined, f: 2 }] });
++  assert.deepEqual(Object.keys(nested.o), ["d"]);
++  assert.deepEqual(Object.keys(nested.list[0]), ["f"]);
++});
++
++test("layer throws a TypeError for data that is not plain, wherever it sits", () => {
++  class Point {
++    constructor(x, y) {
++      this.x = x;
++      this.y = y;
++    }
++  }
++  const cases = [
++    () => layer({}, { onChange: () => 1 }),
++    () => layer({}, { lookup: new Map([["a", 1]]) }),
++    () => layer({}, { tags: new Set(["a"]) }),
++    () => layer({}, { origin: new Point(0, 0) }),
++    () => layer({}, { hooks: [() => 1] }),
++    () => layer({}, { hooks: [[{ f: () => 1 }]] }),
++    () => layer({ output: { format: (x) => x } }, {}),
++    () => layer({ output: { format: (x) => x } }, { output: { format: "json" } }),
++    () => layer({ a: { b: 1 } }, { a: { b: new Point(1, 2) } }),
++    () => layer({ a: new Point(1, 2) }, {}),
++    () => layer({}, { re: /x/ }),
++  ];
++  for (const run of cases) assert.throws(run, TypeError);
++  // Dates stay allowed.
++  assert.equal(layer({}, { when: new Date(5) }).when.getTime(), 5);
++});

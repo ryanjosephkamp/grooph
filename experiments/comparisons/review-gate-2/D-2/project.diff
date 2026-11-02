@@ -1,0 +1,251 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 83e52ac..795bd5d 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,8 @@
+ 
+ ## Unreleased
+ 
++- Added `layer(base, over)`: lays one layer of settings on top of another, layering plain objects key by key at any depth and letting any other value in `over` replace the one in `base`.
++
+ ## 0.4.0 — 2026-09-12
+ 
+ - Added a `fallback` argument to `getPath(settings, path, fallback)`: returned when the path is missing.
+diff --git a/src/layer.mjs b/src/layer.mjs
+new file mode 100644
+index 0000000..ad110b7
+--- /dev/null
++++ b/src/layer.mjs
+@@ -0,0 +1,76 @@
++// Keys that could reach or replace a prototype; never copied from a layer.
++const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
++
++function isPlainObject(value) {
++  if (value === null || typeof value !== "object") return false;
++  const proto = Object.getPrototypeOf(value);
++  return proto === Object.prototype || proto === null;
++}
++
++/**
++ * Returns a copy of a setting value that shares no object with it.
++ * @param {*} value
++ * @param {Set<object>} seen the objects being copied above this one
++ */
++function copy(value, seen) {
++  if (value === null || (typeof value !== "object" && typeof value !== "function")) return value;
++  if (value instanceof Date) return new Date(value.getTime());
++  if (seen.has(value)) throw new TypeError("layer: settings must not contain themselves");
++  seen.add(value);
++  let out;
++  if (Array.isArray(value)) {
++    out = Array.from(value, (item) => copy(item, seen));
++  } else if (isPlainObject(value)) {
++    out = {};
++    for (const key of Object.keys(value)) {
++      if (!UNSAFE_KEYS.has(key)) out[key] = copy(value[key], seen);
++    }
++  } else {
++    throw new TypeError("layer: settings may hold only plain objects, arrays, dates and primitives");
++  }
++  seen.delete(value);
++  return out;
++}
++
++/**
++ * @param {object} base
++ * @param {object} over
++ * @param {Set<object>} baseSeen the objects of `base` being layered above this one
++ * @param {Set<object>} overSeen the objects of `over` being layered above this one
++ */
++function merge(base, over, baseSeen, overSeen) {
++  if (baseSeen.has(base) || overSeen.has(over)) throw new TypeError("layer: settings must not contain themselves");
++  baseSeen.add(base);
++  overSeen.add(over);
++  const out = {};
++  for (const key of Object.keys(base)) {
++    if (!UNSAFE_KEYS.has(key) && !Object.hasOwn(over, key)) out[key] = copy(base[key], baseSeen);
++  }
++  for (const key of Object.keys(over)) {
++    if (UNSAFE_KEYS.has(key)) continue;
++    const under = Object.hasOwn(base, key) ? base[key] : undefined;
++    const value = over[key];
++    out[key] = isPlainObject(under) && isPlainObject(value)
++      ? merge(under, value, baseSeen, overSeen)
++      : copy(value, overSeen);
++  }
++  baseSeen.delete(base);
++  overSeen.delete(over);
++  return out;
++}
++
++/**
++ * Lays one layer of settings on top of another, such as a user's settings
++ * file on the defaults. Where both hold a plain object under the same key,
++ * the two are layered key by key; otherwise a value in `over` replaces the
++ * one in `base`. The result is a new object that shares nothing with either
++ * layer, and keys named `__proto__`, `constructor` or `prototype` are dropped.
++ * @param {object} base
++ * @param {object} over
++ * @returns {object}
++ */
++export function layer(base, over) {
++  if (!isPlainObject(base)) throw new TypeError("layer: base must be a plain object");
++  if (!isPlainObject(over)) throw new TypeError("layer: over must be a plain object");
++  return merge(base, over, new Set(), new Set());
++}
+diff --git a/tests/layer.test.mjs b/tests/layer.test.mjs
+new file mode 100644
+index 0000000..99479de
+--- /dev/null
++++ b/tests/layer.test.mjs
+@@ -0,0 +1,150 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { layer } from "../src/layer.mjs";
++
++// Every object and array reachable from a value, itself included.
++function reachable(value, found = new Set()) {
++  if (value === null || typeof value !== "object" || found.has(value)) return found;
++  found.add(value);
++  for (const key of Object.keys(value)) reachable(value[key], found);
++  return found;
++}
++
++// Every plain object reachable from a value, checked to be ordinary.
++function assertOrdinary(value) {
++  for (const object of reachable(value)) {
++    if (Array.isArray(object) || object instanceof Date) continue;
++    assert.equal(Object.getPrototypeOf(object), Object.prototype);
++    for (const key of ["__proto__", "constructor", "prototype"]) assert.equal(Object.hasOwn(object, key), false, key);
++  }
++}
++
++test("layer lays over on top of base", () => {
++  assert.deepEqual(
++    layer({ a: 1, b: { c: 2, d: 3 } }, { b: { c: 9 }, e: 5 }),
++    { a: 1, b: { c: 9, d: 3 }, e: 5 },
++  );
++  assert.deepEqual(layer({}, {}), {});
++  assert.deepEqual(layer({ a: 1 }, {}), { a: 1 });
++  assert.deepEqual(layer({}, { a: 1 }), { a: 1 });
++});
++
++test("layer layers plain objects at any depth", () => {
++  const base = { a: { b: { c: { d: 1, e: 2 }, f: 3 }, g: 4 } };
++  const over = { a: { b: { c: { e: 20, h: 5 } }, i: 6 } };
++  assert.deepEqual(layer(base, over), { a: { b: { c: { d: 1, e: 20, h: 5 }, f: 3 }, g: 4, i: 6 } });
++});
++
++test("layer layers objects without a prototype as plain objects", () => {
++  const base = Object.assign(Object.create(null), { a: Object.assign(Object.create(null), { b: 1, c: 2 }) });
++  const over = { a: { c: 3 } };
++  const result = layer(base, over);
++  assert.deepEqual(result, { a: { b: 1, c: 3 } });
++  assertOrdinary(result);
++});
++
++test("layer lets any other value in over replace the one in base", () => {
++  const replacements = [[9], 7, "seven", false, true, null, 0, ""];
++  for (const value of replacements) {
++    assert.deepEqual(layer({ k: { deep: 1 } }, { k: value }), { k: value });
++    assert.deepEqual(layer({ k: 1 }, { k: value }), { k: value });
++    assert.deepEqual(layer({ k: [1, 2] }, { k: value }), { k: value });
++  }
++  assert.deepEqual(layer({ k: 1 }, { k: { deep: 1 } }), { k: { deep: 1 } });
++  assert.deepEqual(layer({ k: [1] }, { k: { deep: 1 } }), { k: { deep: 1 } });
++  assert.deepEqual(layer({ k: null }, { k: { deep: 1 } }), { k: { deep: 1 } });
++});
++
++test("layer replaces an array whole and never joins it", () => {
++  assert.deepEqual(layer({ k: [1, 2, 3] }, { k: [9] }), { k: [9] });
++  assert.deepEqual(layer({ k: [{ a: 1, b: 2 }] }, { k: [{ a: 9 }] }), { k: [{ a: 9 }] });
++  assert.deepEqual(layer({ k: [1, 2] }, { k: [] }), { k: [] });
++});
++
++test("layer copies dates rather than sharing them", () => {
++  const when = new Date("2026-01-01T00:00:00Z");
++  const result = layer({ a: when }, { b: { when } });
++  assert.deepEqual(result, { a: when, b: { when } });
++  assert.notEqual(result.a, when);
++  assert.notEqual(result.b.when, when);
++});
++
++test("layer refuses a base or over that is not a plain object", () => {
++  const notPlain = [[], null, "a", 1, new Date(), undefined, true, new Map(), () => {}];
++  for (const value of notPlain) {
++    assert.throws(() => layer(value, {}), TypeError);
++    assert.throws(() => layer({}, value), TypeError);
++  }
++  assert.throws(() => layer(), TypeError);
++  assert.throws(() => layer({}), TypeError);
++});
++
++test("layer refuses settings that hold something other than plain data", () => {
++  assert.throws(() => layer({ a: new Map() }, {}), TypeError);
++  assert.throws(() => layer({}, { a: [() => {}] }), TypeError);
++  const loop = { a: 1 };
++  loop.self = loop;
++  assert.throws(() => layer(loop, {}), TypeError);
++  assert.throws(() => layer({}, { b: [loop] }), TypeError);
++});
++
++test("layer accepts the same object in several places", () => {
++  const shared = { x: [1] };
++  assert.deepEqual(layer(shared, shared), { x: [1] });
++  assert.deepEqual(layer({ a: shared, b: shared }, { c: shared }), { a: { x: [1] }, b: { x: [1] }, c: { x: [1] } });
++  assert.deepEqual(layer({ a: { b: 1 } }, { a: { c: 2 }, d: { a: { b: 1 } } }).a, { b: 1, c: 2 });
++});
++
++test("layer changes neither layer and shares nothing with them", () => {
++  const base = { a: { b: [1, { c: 2 }], d: { e: [[3]] } }, only: { f: [{ g: 4 }] }, h: [5] };
++  const over = { a: { b: [{ c: 9 }], d: { i: { j: [6] } } }, more: [{ k: [7] }], h: { l: 8 } };
++  const baseBefore = structuredClone(base);
++  const overBefore = structuredClone(over);
++
++  const result = layer(base, over);
++
++  assert.deepEqual(base, baseBefore);
++  assert.deepEqual(over, overBefore);
++  const fromLayers = new Set([...reachable(base), ...reachable(over)]);
++  for (const object of reachable(result)) assert.equal(fromLayers.has(object), false);
++
++  result.a.b[0].c = 0;
++  result.a.d.e[0].push(0);
++  result.only.f[0].g = 0;
++  result.more[0].k.push(0);
++  result.a.d.i.j.push(0);
++  assert.deepEqual(base, baseBefore);
++  assert.deepEqual(over, overBefore);
++});
++
++test("layer never copies __proto__, constructor or prototype keys", () => {
++  const base = JSON.parse(`{
++    "__proto__": { "polluted": "base" },
++    "constructor": { "prototype": { "polluted": "base" } },
++    "prototype": 1,
++    "a": { "__proto__": { "polluted": "base" }, "keep": 1 },
++    "list": [{ "__proto__": { "polluted": "base" }, "constructor": 2, "keep": 1 }]
++  }`);
++  const over = JSON.parse(`{
++    "__proto__": { "polluted": "over" },
++    "constructor": { "polluted": "over" },
++    "a": { "prototype": { "polluted": "over" }, "constructor": 3, "more": 2 },
++    "b": { "deep": { "__proto__": { "polluted": "over" } } },
++    "list2": [[{ "prototype": 4, "keep": 2 }]]
++  }`);
++
++  const result = layer(base, over);
++
++  assert.deepEqual(result, {
++    a: { keep: 1, more: 2 },
++    list: [{ keep: 1 }],
++    b: { deep: {} },
++    list2: [[{ keep: 2 }]],
++  });
++  assertOrdinary(result);
++  assert.equal(result.polluted, undefined);
++  assert.equal(result.a.polluted, undefined);
++  assert.equal({}.polluted, undefined);
++  assert.equal(Object.prototype.polluted, undefined);
++});

@@ -1,0 +1,30 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260920-172850: the clock form",
+    "ACCEPTANCE.md: planner Write .grooph/word-wrap/runs/20260920-172850/ACCEPTANCE.md; planner Write .grooph/word-wrap/runs/20260920-172850/ACCEPTANCE.md",
+    "REVIEW.md: critic Write .grooph/word-wrap/runs/20260920-172850/REVIEW.md",
+    "the lead wrote outside the run folder: notes.jsonl",
+    "word-wrap--critic (Critic round 0) read .grooph/word-wrap/runs/20260920-172850/ACCEPTANCE.md, .grooph/word-wrap/runs/20260920-172850/CHANGES.md, src/wrap.mjs, src/count.mjs, tests/wrap.test.mjs, tests/count.test.mjs, README.md, package.json, .grooph/word-wrap/runs/20260920-172850/npm-test-round-0.txt; ran `node --test <local path>\u2026`, `node --test --test-reporter=dot <local path>\u2026`",
+    "no `ending` line before the final note n-0014 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "dispatch count: n-0012 build r0 recorded 2, started lines 2 (exact)",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "verdicts in order: critic \u2192 pass",
+    "timestamps: 17 given, 0 out of append order",
+    "permission denials: Bash `cd <local path>`; Bash `cd <local path>`; Bash `cd <local path>`; Bash `cd <local path>`; Bash `cd <local path>`; Bash `git -C <local path>`; Bash `cd <local path>`; Bash `git -C <local path>`; Bash `cd <local path>`; Bash `cd <local path>`; Bash `cd <local path>`; Bash `npm --prefix <local path>`; Bash `npm --prefix <local path>`; Bash `git -C <local path>`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done",
+      "stop bar-passed"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

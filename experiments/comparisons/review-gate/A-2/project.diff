@@ -1,0 +1,131 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 71c19a1..d663ea9 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,8 @@
+ 
+ ## Unreleased
+ 
++- Added `truncate(text, max)`: cuts text longer than `max` characters and ends it with "…" so the result is exactly `max` characters.
++
+ ## 0.1.0 — 2026-08-30
+ 
+ - Added `padStart(text, width)`: pads text on the left with spaces to `width` characters.
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..fa84cd0
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,22 @@
++# Changes
++
++## Round 0
++
++First pass; no REVIEW.md findings to address yet.
++
++- `src/truncate.mjs` (new): exports `truncate(text, max)`. Returns `text`
++  unchanged when `text.length <= max`; otherwise returns the first `max - 1`
++  characters followed by "…" (U+2026), so the result is exactly `max` long.
++  A non-string `text` throws `TypeError`; a `max` that is not a positive
++  integer (`0`, `-1`, `2.5`, `"3"`, `NaN`, `Infinity`, `undefined`) throws
++  `RangeError`. Same shape and messages as `src/pad.mjs`.
++- `tests/truncate.test.mjs` (new): covers short text, the boundary at exactly
++  `max`, cutting with the ellipsis and exact length, `max` of 1 (returns "…"),
++  whitespace at the cut (kept, not trimmed, so the length stays exactly `max`),
++  and the refused `text` and `max` values.
++- `CHANGELOG.md`: added a `truncate` line under `## Unreleased` in the style of
++  the `padStart` entry.
++
++Decisions on points the task leaves open: "characters" means UTF-16 code
++units (`.length`), matching `padStart`; whitespace before the cut is kept
++rather than trimmed, since trimming would break the exact-`max` length rule.
+diff --git a/REVIEW.md b/REVIEW.md
+new file mode 100644
+index 0000000..20cfaca
+--- /dev/null
++++ b/REVIEW.md
+@@ -0,0 +1,11 @@
++# Review — round 0
++
++1. Satisfied — `src/truncate.mjs:10` declares `export function truncate(text, max)`.
++2. Satisfied — `src/truncate.mjs:13` returns `text` when `text.length <= max`, else `text.slice(0, max - 1) + "…"` (exactly `max` long, ending in U+2026); tests: unchanged short text `tests/truncate.test.mjs:6-9`, boundary at exactly `max` `tests/truncate.test.mjs:11-13`, cut to `max` with ellipsis and length/last-character asserts `tests/truncate.test.mjs:15-21`.
++3. Satisfied — `src/truncate.mjs:11` throws `TypeError` for non-string `text`; `src/truncate.mjs:12` throws `RangeError` when `!Number.isInteger(max) || max < 1`; tests: `TypeError` cases `tests/truncate.test.mjs:29-34`, `RangeError` cases `0`, `-1`, `2.5`, `"3"`, `NaN`, `Infinity`, `undefined` `tests/truncate.test.mjs:36-45`.
++4. Satisfied — `CHANGELOG.md:5` adds `- Added \`truncate(text, max)\`: cuts text longer than \`max\` characters and ends it with "…" so the result is exactly \`max\` characters.` under `## Unreleased` (`CHANGELOG.md:3`), matching the `- Added \`padStart(text, width)\`: ...` style at `CHANGELOG.md:9`.
++5. Satisfied — `npm test` run by the critic: exit 0, `tests 10`, `pass 10`, `fail 0`, `skipped 0`, `todo 0`; no `skip`/`todo` markers in `tests/truncate.test.mjs`.
++6. Satisfied — `git status --short --untracked-files=all` shows only `CHANGELOG.md` (modified), `src/truncate.mjs`, `tests/truncate.test.mjs`, `CHANGES.md`, and `.grooph/truncate/runs/20260921-215704/*` (the review's own files).
++7. Satisfied — held-out suite run by the critic from the project root: exit 0, `tests 41`, `pass 41`, `fail 0`, `skipped 0`, `todo 0`; no failing cases to quote.
++
++verdict: pass
+diff --git a/src/truncate.mjs b/src/truncate.mjs
+new file mode 100644
+index 0000000..098791a
+--- /dev/null
++++ b/src/truncate.mjs
+@@ -0,0 +1,14 @@
++/**
++ * Cuts `text` so that it is at most `max` characters long. Text that is
++ * already `max` characters or shorter comes back unchanged; longer text is
++ * cut and ends with "…" (U+2026) so that the result is exactly `max` long.
++ *
++ * @param {string} text
++ * @param {number} max a positive integer
++ * @returns {string}
++ */
++export function truncate(text, max) {
++  if (typeof text !== "string") throw new TypeError("truncate: text must be a string");
++  if (!Number.isInteger(max) || max < 1) throw new RangeError("truncate: max must be a positive integer");
++  return text.length <= max ? text : text.slice(0, max - 1) + "…";
++}
+diff --git a/tests/truncate.test.mjs b/tests/truncate.test.mjs
+new file mode 100644
+index 0000000..8846729
+--- /dev/null
++++ b/tests/truncate.test.mjs
+@@ -0,0 +1,47 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { truncate } from "../src/truncate.mjs";
++
++test("truncate leaves short text alone", () => {
++  assert.equal(truncate("hi", 5), "hi");
++  assert.equal(truncate("", 1), "");
++});
++
++test("truncate leaves text that is exactly max long alone", () => {
++  assert.equal(truncate("hello", 5), "hello");
++});
++
++test("truncate cuts long text to max characters ending in an ellipsis", () => {
++  const result = truncate("hello world", 5);
++  assert.equal(result, "hell…");
++  assert.equal(result.length, 5);
++  assert.equal(result.at(-1), "…");
++  assert.equal(truncate("hello world", 10), "hello wor…");
++});
++
++test("truncate with a max of 1 returns only the ellipsis", () => {
++  assert.equal(truncate("hello", 1), "…");
++});
++
++test("truncate keeps whitespace where the cut lands", () => {
++  assert.equal(truncate("hello world", 7), "hello …");
++  assert.equal(truncate("  hi  ", 4), "  h…");
++});
++
++test("truncate refuses text that is not a string", () => {
++  assert.throws(() => truncate(7, 3), TypeError);
++  assert.throws(() => truncate(null, 3), TypeError);
++  assert.throws(() => truncate(undefined, 3), TypeError);
++  assert.throws(() => truncate(["a"], 3), TypeError);
++});
++
++test("truncate refuses a max that is not a positive integer", () => {
++  assert.throws(() => truncate("hello", 0), RangeError);
++  assert.throws(() => truncate("hello", -1), RangeError);
++  assert.throws(() => truncate("hello", 2.5), RangeError);
++  assert.throws(() => truncate("hello", "3"), RangeError);
++  assert.throws(() => truncate("hello", NaN), RangeError);
++  assert.throws(() => truncate("hello", Infinity), RangeError);
++  assert.throws(() => truncate("hello", undefined), RangeError);
++});

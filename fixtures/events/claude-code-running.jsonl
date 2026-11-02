@@ -1,0 +1,10 @@
+{"v":1,"t":"2026-10-01T02:00:00.000Z","harness":"claude-code","event":"session-start","session":"11111111-2222-4333-8444-555555555555","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T02:00:01.000Z","harness":"claude-code","event":"turn-start","session":"11111111-2222-4333-8444-555555555555","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T02:00:05.000Z","harness":"claude-code","event":"subagent-start","session":"11111111-2222-4333-8444-555555555555","agent":"a01","type":"review-loop--builder"}
+{"v":1,"t":"2026-10-01T02:00:05.010Z","harness":"claude-code","event":"tool","session":"11111111-2222-4333-8444-555555555555","tool":"Agent","spawned":"a01","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T02:00:20.000Z","harness":"claude-code","event":"tool","session":"11111111-2222-4333-8444-555555555555","agent":"a01","type":"review-loop--builder","tool":"Edit"}
+{"v":1,"t":"2026-10-01T02:00:41.000Z","harness":"claude-code","event":"tool","session":"11111111-2222-4333-8444-555555555555","agent":"a01","type":"review-loop--builder","tool":"Bash"}
+{"v":1,"t":"2026-10-01T02:00:44.000Z","harness":"claude-code","event":"subagent-stop","session":"11111111-2222-4333-8444-555555555555","agent":"a01","type":"review-loop--builder","transcript":"~/.claude/projects/-work-demo/11111111-2222-4333-8444-555555555555/subagents/agent-a01.jsonl"}
+{"v":1,"t":"2026-10-01T02:00:50.000Z","harness":"claude-code","event":"subagent-start","session":"11111111-2222-4333-8444-555555555555","agent":"a02","type":"review-loop--critic"}
+{"v":1,"t":"2026-10-01T02:00:50.010Z","harness":"claude-code","event":"tool","session":"11111111-2222-4333-8444-555555555555","tool":"Agent","spawned":"a02","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T02:00:58.000Z","harness":"claude-code","event":"tool","session":"11111111-2222-4333-8444-555555555555","agent":"a02","type":"review-loop--critic","tool":"Read"}

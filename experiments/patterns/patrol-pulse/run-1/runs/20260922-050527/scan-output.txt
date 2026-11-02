@@ -1,0 +1,31 @@
+4:2026-09-21T00:03:12Z WARN  auth     token expiring soon for user usr_4471 (23h left)
+8:2026-09-21T00:19:05Z WARN  http     deprecated header X-Legacy-Client from 203.0.113.44 on GET /orders
+11:2026-09-21T00:41:17Z ERROR payments webhook signature mismatch for event evt_9a0b77; dropped
+13:2026-09-21T00:41:52Z ERROR payments webhook signature mismatch for event evt_9a0b77; dropped
+16:2026-09-21T01:14:03Z WARN  http     retry 1/3 for POST /orders account=acc_042 (upstream reset) succeeded on retry
+19:2026-09-21T02:03:15Z WARN  http     slow request GET /reports account=acc_311 1240ms
+20:2026-09-21T02:06:40Z WARN  http     slow request GET /reports account=acc_118 1512ms
+21:2026-09-21T02:11:02Z WARN  http     slow request GET /reports account=acc_204 1108ms
+22:2026-09-21T02:17:55Z WARN  http     slow request GET /reports account=acc_042 1377ms
+27:2026-09-21T03:20:07Z WARN  http     deprecated header X-Legacy-Client from 198.51.100.7 on GET /orders/ord_77190
+29:2026-09-21T04:00:02Z WARN  cache    cache miss key=orders:acc_118 (cold start)
+30:2026-09-21T04:00:02Z WARN  cache    cache miss key=orders:acc_204 (cold start)
+31:2026-09-21T04:00:03Z WARN  cache    cache miss key=orders:acc_311 (cold start)
+34:2026-09-21T05:31:26Z ERROR health   probe failed (1/3): connect ETIMEDOUT 10.0.3.14:5432
+37:2026-09-21T06:45:10Z WARN  auth     token expiring soon for user usr_1029 (11h left)
+40:2026-09-21T08:14:52Z ERROR payments webhook signature mismatch for event evt_9a2e88; dropped
+43:2026-09-21T09:47:31Z WARN  http     retry 1/3 for GET /orders/ord_77302 account=acc_311 (upstream reset) succeeded on retry
+53:2026-09-21T12:00:19Z WARN  db       pool busy 18/20 connections, 4 waiting
+54:2026-09-21T12:00:21Z WARN  db       pool busy 20/20 connections, 11 waiting
+55:2026-09-21T12:00:26Z ERROR db       pool exhausted: 20/20 connections busy, waited 5000ms
+56:2026-09-21T12:00:26Z ERROR http     503 GET /orders account=acc_311 (db pool exhausted)
+57:2026-09-21T12:00:26Z ERROR db       pool exhausted: 20/20 connections busy, waited 5000ms
+58:2026-09-21T12:00:26Z ERROR http     503 POST /orders account=acc_118 (db pool exhausted)
+59:2026-09-21T12:00:27Z ERROR db       pool exhausted: 20/20 connections busy, waited 5000ms
+60:2026-09-21T12:00:27Z ERROR http     503 GET /orders/ord_77410 account=acc_204 (db pool exhausted)
+61:2026-09-21T12:00:31Z ERROR db       pool exhausted: 20/20 connections busy, waited 5000ms
+62:2026-09-21T12:00:31Z ERROR http     503 POST /orders account=acc_311 (db pool exhausted)
+63:2026-09-21T12:00:44Z WARN  db       pool busy 16/20 connections, 0 waiting
+68:2026-09-21T14:22:38Z WARN  http     deprecated header X-Legacy-Client from 203.0.113.44 on GET /orders
+71:2026-09-21T17:45:19Z WARN  auth     token expiring soon for user usr_4471 (5h left)
+76:2026-09-21T21:08:33Z ERROR payments webhook signature mismatch for event evt_9a4d02; dropped

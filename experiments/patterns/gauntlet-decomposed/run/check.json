@@ -1,0 +1,49 @@
+{
+  "problems": [
+    "integrator never ran as its own subagent (no summary-card--integrator transcript)",
+    "the lead never dispatched summary-card--integrator",
+    "no note at node:integrator",
+    "final-critic never ran as its own subagent (no summary-card--final-critic transcript)",
+    "the lead never dispatched summary-card--final-critic",
+    "no note at node:final-critic",
+    "final-critic never wrote FINAL.md itself",
+    "replaying every amendment's patch on the source does not give the working copy",
+    "note n-0019: loop:polish records 3 dispatches, but 6 started line(s) at its members precede it",
+    "final-critic never read or ran the held-out evidence, so its judgment was not made against it"
+  ],
+  "findings": [
+    "run id 20261004-224501: the clock form",
+    "owner dispatched 2 time(s)",
+    "critic dispatched 2 time(s)",
+    "GAPS.md: critic Write GAPS.md; critic Write GAPS.md",
+    "FINAL.md: never written",
+    "per-round report copies missing from the run folder (LEAD.md \u00a78; only the last round's survives in project.diff): GAPS.md round 0",
+    "the lead wrote outside the run folder: +",
+    "summary-card--critic (Critic: piece 1 card frame) read PIECES.md, captures/card.svg, captures/CAPTURE.md, <local path>, <local path>, <local path>; ran nothing",
+    "summary-card--critic (Critic: piece 2 header) read PIECES.md, captures/card.svg, captures/CAPTURE.md, <local path>, <local path>, <local path>; ran nothing",
+    "the final note is at loop:pieces, not at graph",
+    "ending as expected: stop human",
+    "dispatch count: n-0011 polish r0 recorded 3, started lines 3; n-0013 pieces r0 recorded 4, started lines 4; n-0019 polish r0 recorded 3, started lines 6; n-0022 pieces r1 recorded 8, started lines 8 (off by 3)",
+    "back edge taken: e-next-piece-pass; 1 loop note(s) beyond round 0; caught by no fail verdict recorded",
+    "verdicts in order: critic \u2192 pass, pass",
+    "held-out evidence (REFERENCE-CAPTURE.md, REFERENCE.md, reference.svg): touched by critic \u00d73, planner \u00d74; named in 3 dispatch prompt(s)",
+    "timestamps: 22 given, 0 out of append order",
+    "permission denials: Bash `cd <local path>`; Bash `sed -i 's| <tspan font-weight=\"400\" fill=\"${MUTED}\">vs previous period</tspan></`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done",
+      "stop human"
+    ],
+    "back_edges": {
+      "later_rounds": 1,
+      "edge_notes": [],
+      "mentioned": [
+        "e-next-piece-pass"
+      ],
+      "caught_by": [],
+      "taken": true
+    },
+    "last_round": 1
+  }
+}

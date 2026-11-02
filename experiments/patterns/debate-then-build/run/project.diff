@@ -1,0 +1,173 @@
+diff --git a/CASE-A.md b/CASE-A.md
+new file mode 100644
+index 0000000..e801cc9
+--- /dev/null
++++ b/CASE-A.md
+@@ -0,0 +1,31 @@
++# CASE-A: cache the parsed list, invalidate on the file's mtime
++
++## The problem, measured against the code
++
++`lookup` in `src/dictionary.mjs` does `readFileSync(...).split("\n").filter(Boolean)` then a linear `includes` on every call. `data/words.txt` is 4001 lines. A page of text is a few hundred calls, so the cost is dominated by re-reading and re-splitting the whole file hundreds of times, not by the search itself. The README promises: results are case-insensitive, `lookup` never throws on a string, throws `TypeError` on a non-string, and hand edits to the file are picked up without a restart.
++
++## Proposed approach (the simplest that meets all four promises)
++
++Keep a module-level cache: `{ mtimeMs, size, words: Set }`. On each call:
++
++1. Non-string check, unchanged.
++2. `statSync(WORDS)`; if `mtimeMs` and `size` both equal the cached values, reuse the cached `Set`.
++3. Otherwise `readFileSync`, build the `Set` with exactly the current `split("\n").filter(Boolean)` pipeline, store it with the new stat values.
++4. Return `words.has(word.toLowerCase())`.
++
++That is one small function, no new dependencies, no timers, no watchers, no changes to the data format or to how the file is edited. Results are identical by construction: the `Set` holds the very same strings `includes` was searching, so `has` answers the same as `includes` for every input, including `""` (empty lines are filtered, so `""` is still `false`) and lines with stray `\r` or spaces (they still fail to match, as they do today).
++
++Cost per call drops from "read + parse 4001 lines + linear scan" to "one `stat` syscall + one hash lookup". A `stat` is a few microseconds; the current path is milliseconds. A page goes from seconds to well under a millisecond of dictionary time. Reparsing happens only when the file actually changes, which the README says is "now and then".
++
++## Why not more
++
++- `fs.watch` picks up edits with no per-call `stat`, but it has platform quirks (events can arrive before the write finishes, on rename the watcher can follow the old inode, the handle keeps the process alive unless unref'd). All of that is machinery to save microseconds we do not need to save.
++- A sorted array with binary search saves a little memory over a `Set` but depends on the file staying sorted, which the README describes but nothing enforces. A `Set` is correct whether or not the list is sorted. 4000 short strings in a `Set` is a few hundred kilobytes.
++- Caching without any invalidation is simpler still but breaks the "picked up without restarting" promise outright.
++
++## Risks I concede
++
++- **mtime granularity.** If a save lands in the same timestamp tick as the previous read and leaves the byte count unchanged (e.g. swapping one word for another of equal length, on a filesystem with coarse mtime), the stale cache is served until the next change. Checking `size` alongside `mtimeMs` narrows this; it does not close it entirely. For a hand-edited list this is a real but very small window, and the next edit heals it.
++- **Errors while the file is being rewritten.** If an editor truncates then writes, a `stat` or read in between can see an empty file or throw `ENOENT`. Today's code throws in the same situation, so this is not a regression, but the plan should decide whether to fall back to the last good `Set` on a read error (I would: it keeps "never throws on a string" truer than it is now) and note it.
++- **Still one syscall per call.** If someone later wants zero syscalls, a watcher becomes the next step; nothing in this design blocks that, the cache and the `Set` carry over.
++- **The existing tests do not cover reload.** The first version should add a test that edits a temp copy of the list (or rewrites `data/words.txt` and restores it) and asserts the change is seen, so the invalidation is actually exercised by `npm test`. Doing that safely against the shared data file needs care in the builder plan.
+diff --git a/CASE-B.md b/CASE-B.md
+new file mode 100644
+index 0000000..30e4f39
+--- /dev/null
++++ b/CASE-B.md
+@@ -0,0 +1,33 @@
++# CASE-B: cache on the file's content, not its timestamp
++
++## Where A is right
++
++The diagnosis is correct: the milliseconds are in `split` + `filter` + `includes` (allocating 4001 strings and scanning them), not in reading ~30 KB. A `Set` is the right structure, `fs.watch` is the wrong tool, and a cache with no invalidation breaks the README's reload promise. B keeps all of that and changes one thing: what decides "the file changed".
++
++## Where A is weaker than it needs to be
++
++A invalidates on `(mtimeMs, size)`. That is a proxy for "the content changed", and A concedes the proxy has a hole: a same-size edit inside one timestamp tick. How small that window is depends on the filesystem, not on the code. APFS and ext4 report nanoseconds; exFAT rounds to 2 s, HFS+ and many SMB/NFS mounts to 1 s. The edit that slips through is swapping one word for another of the same length (`bala` -> `balb`), which is exactly the edit the README describes, and "the next edit heals it" can be days away for a list edited "now and then". The task says results must not change. A makes that true with high probability. It can be made true by construction.
++
++## Proposed approach
++
++Module-level cache `{ text, words: Set }`. On each call:
++
++1. Non-string check, unchanged.
++2. `text = readFileSync(WORDS, "utf8")`: the same read today's code does.
++3. If `text !== cached.text`, rebuild the `Set` with the same `split("\n").filter(Boolean)` pipeline and store both.
++4. Return `words.has(word.toLowerCase())`.
++
++Why this is the stronger design:
++
++- **Exact by construction.** Every call sees precisely the bytes today's `lookup` would see, and the `Set` is built from those bytes. No filesystem, editor, clock, `cp -p`, or `rsync -a` behaviour can serve a stale answer. That includes a torn write: an empty read yields an empty `Set` and `false`, which is what today's code returns, and the next call self-heals.
++- **Fewer moving parts.** No `stat`, no key tuple, no stat-then-read race, no reliance on timestamp semantics. One string comparison: O(1) when lengths differ, a memcmp when they match.
++- **Testable without timing games.** A's reload test must avoid a same-size edit landing in the same tick or it will flake, or pass for the wrong reason. B's test rewrites the file and asserts.
++
++**Answering A's best point, cost.** A: "one stat vs read + parse". B keeps the read and drops the parse, which is where the time goes. Reading 30 KB is a few syscalls and a copy; comparing it is a memcmp; both are tens of microseconds at most. A's single `stat` is cheaper, by roughly an order of magnitude, and I do not dispute that. But the target is "seconds per page" to "not the bottleneck", and 300 calls at ~30 us is ~10 ms per page, invisible next to tokenising it. Paying that to turn "almost certainly right" into "right" is the correct trade for a task whose hard constraint is unchanged results. If a later measurement shows the read matters, putting A's stat gate in front of the read is a two-line change, and it should be made then, knowingly, as a trade of exactness for microseconds, not adopted by default.
++
++## Risks I concede
++
++- **Per-call cost scales with file size.** At 4001 lines it is noise. At 100x that, A's `stat` would be right and B would be wrong. The README says the list changes by a word at a time, so size is stable, but this is the real boundary of the argument.
++- **Memory.** Holds the raw text (~30 KB) beside the `Set`. Trivial, but it is a second copy.
++- **Read errors mid-save.** Same open decision as A: `ENOENT` during an atomic-rename save throws today, while the README says "never throws on a string". I would serve the last good `Set` if one exists and rethrow otherwise, but that is a product call for the human and it is identical for both cases.
++- **Test hygiene.** Same as A: exercising reload means mutating `data/words.txt` (the path is hardcoded) and restoring it in `finally`. B only removes the timing hazard on top of that.
+diff --git a/PLAN.md b/PLAN.md
+new file mode 100644
+index 0000000..b2147cb
+--- /dev/null
++++ b/PLAN.md
+@@ -0,0 +1,91 @@
++# PLAN: cache the parsed word list, invalidated by file content (CASE-B)
++
++## Decision
++
++Adopt CASE-B: a module-level cache `{ text, words: Set }` in `src/dictionary.mjs`. Each
++`lookup(word)` call keeps the non-string `TypeError` check, reads `data/words.txt` exactly as
++today, rebuilds the `Set` with the existing `split("\n").filter(Boolean)` pipeline only when the
++text differs from the cached text, and returns `words.has(word.toLowerCase())` (CASE-B.md:13-18).
++
++## Why it won
++
++- **The hard constraint is unchanged results.** A's invalidation key `(mtimeMs, size)` is a proxy
++  for "content changed", and A concedes it has a hole: a same-length word swap inside one timestamp
++  tick serves a stale answer until the next edit (CASE-A.md:28). B closes that hole by construction:
++  every call sees the same bytes today's code would see, and the `Set` is built from those bytes
++  (CASE-B.md:22). Coarse-mtime filesystems (exFAT 2 s, HFS+/SMB/NFS 1 s) and `cp -p`/`rsync -a`
++  make A's window a filesystem property, not a code property (CASE-B.md:9).
++- **Both sides agree where the time goes.** A: cost is "dominated by re-reading and re-splitting
++  the whole file" (CASE-A.md:5). B: the milliseconds are in `split` + `filter` + `includes`, not in
++  reading ~30 KB (CASE-B.md:5). B drops the parse and keeps the read; A drops both. The residual
++  difference is a `stat` versus a 30 KB read plus a string compare, tens of microseconds per call
++  and ~10 ms per 300-call page (CASE-B.md:26). B conceded A is cheaper by about an order of
++  magnitude (CASE-B.md:26); that is a trade of exactness for microseconds the task does not ask for.
++- **Fewer moving parts.** No `stat`, no key tuple, no stat-then-read race, no dependence on
++  timestamp semantics (CASE-B.md:23). No `fs.watch`, which both sides reject for its platform
++  quirks (CASE-A.md:22, CASE-B.md:5).
++- **Torn writes degrade the same way today's code does.** An empty read yields an empty `Set` and
++  `false`, matching current behaviour, and the next call self-heals (CASE-B.md:22).
++- **The reload test cannot flake.** A's test must dodge a same-size edit landing in the same tick
++  or it passes for the wrong reason (CASE-B.md:24); B's test rewrites the file and asserts.
++
++## What A got right, and where it stays in reserve
++
++A's `Set` structure, its rejection of `fs.watch`, its rejection of a sorted-array binary search
++(nothing enforces sort order, CASE-A.md:23), and its rejection of a never-invalidated cache
++(CASE-A.md:24) are all kept. A's `(mtimeMs, size)` gate is the named follow-up if a measurement
++ever shows the read itself is the bottleneck: put it in front of the read as a two-line change,
++knowingly trading exactness for microseconds (CASE-B.md:26). The boundary where that flips is a
++word list roughly 100x larger than today's 4001 lines (CASE-B.md:30); the README says the list
++changes a word at a time, so it is not expected.
++
++## Open product call for the human approver
++
++Both cases raise the same question and defer it (CASE-A.md:29, CASE-B.md:32): if `readFileSync`
++throws mid-save (e.g. `ENOENT` during an atomic-rename write), today's code throws, while the
++README says `lookup` never throws on a string (CASE-A.md:5). Recommended default, as both authors
++would choose: **serve the last good `Set` if one exists, rethrow otherwise.** This makes the
++"never throws on a string" promise truer than it is now and changes no result for any input the
++current code answers. If the approver prefers strict parity with today's behaviour, drop the
++try/catch and let it throw; the rest of the plan is unaffected.
++
++## Smallest first version
++
++Change only `src/dictionary.mjs` and the test file. No new dependencies, no change to
++`data/words.txt`, its format, or how it is edited (README.md).
++
++1. Add a module-level `let cache = null;` holding `{ text, words }`.
++2. In `lookup(word)`:
++   - Keep the existing non-string check and `TypeError` unchanged.
++   - `const text = readFileSync(WORDS, "utf8");` (the same read as today), wrapped per the
++     product call above.
++   - `if (cache === null || cache.text !== text) cache = { text, words: new Set(text.split("\n").filter(Boolean)) };`
++   - `return cache.words.has(word.toLowerCase());`
++3. Do not touch the split/filter pipeline, the path constant, or any exported name.
++
++## Checks for the first version
++
++All must pass under `npm test`; the last one is a bench, run once and recorded in the PR
++description rather than asserted in CI.
++
++1. **Existing suite unchanged and green.** No existing assertion is edited.
++2. **Result parity.** For a fixed sample (a known word in its listed case, the same word in
++   upper/mixed case, a word not in the list, `""`, a word with a trailing space, a word with a
++   trailing `\r`), the new `lookup` returns exactly what the old implementation returns. The old
++   implementation may be kept in the test as an inline reference function built from the same
++   `readFileSync/split/filter/includes` pipeline so the comparison is literal.
++3. **Non-string still throws `TypeError`.** `lookup(42)`, `lookup(null)`, `lookup(undefined)`.
++4. **Reload is seen without restart.** Read `data/words.txt`, append a word that is not present
++   (assert `false` before), write the file, assert `true`; then perform a same-length swap of that
++   word for another (e.g. change its last character) immediately, with no sleep, assert the old
++   spelling is `false` and the new one `true`; restore the original bytes in `finally`. The
++   same-length, no-sleep step is the one A's design cannot promise (CASE-A.md:28) and is what
++   makes this test meaningful for B (CASE-B.md:24).
++5. **Repeated calls hit the cache.** After one call, a second call with the file unchanged must
++   not rebuild the `Set`; assert via a counter on a wrapped `Set` constructor or by checking the
++   cached object identity through a test-only export, whichever the builder finds least invasive.
++   If neither is clean, drop this check and rely on the bench.
++6. **Bench (not asserted).** Time 300 calls before and after on the 4001-line list. Expect the
++   after figure well under 100 ms in total (CASE-B.md:26 predicts ~10 ms). If the after figure is
++   dominated by the read rather than the compare, record it and open the `(mtimeMs, size)` gate
++   from CASE-A as a follow-up; do not add it in this version.

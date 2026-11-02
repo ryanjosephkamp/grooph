@@ -1,0 +1,35 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260920-192538: the clock form",
+    "REVIEW.md: critic Write REVIEW.md; critic Write REVIEW.md",
+    "per-round report copies missing from the run folder (LEAD.md \u00a78; only the last round's survives in project.diff): REVIEW.md round 0",
+    "parse-duration--critic (Critic reviews round-1 change) read docs/REVIEW-CHECKLIST.md, .grooph/parse-duration/runs/20260920-192538/round1.diff, .grooph/parse-duration/runs/20260920-192538/round1-npm-test.txt, src/duration.mjs, README.md, package.json, tests/duration.test.mjs; ran `npm test 2>&1; echo \"EXIT=$?\"`, `node --test <local path>\u2026`",
+    "parse-duration--critic (Critic reviews round-0 change) read docs/REVIEW-CHECKLIST.md, .grooph/parse-duration/runs/20260920-192538/round0.diff, .grooph/parse-duration/runs/20260920-192538/round0-npm-test.txt, src/duration.mjs, README.md, package.json, CHANGES.md; ran `npm test 2>&1; echo \"EXIT=$?\"`, `node --test <local path>\u2026`, `git status --short`",
+    "the final note is at node:merge-gate, not at graph",
+    "ending as expected: halt at merge-gate",
+    "dispatch count: n-0006 review r0 recorded 2, started lines 2; n-0011 review r1 recorded 4, started lines 4 (exact)",
+    "back edge taken: e-critic-fail; 1 loop note(s) beyond round 0; caught by critic (fail)",
+    "verdicts in order: critic \u2192 fail, pass",
+    "held-out evidence (duration-cases.test.mjs): touched by critic \u00d71; named in 0 dispatch prompt(s)",
+    "timestamps: 16 given, 0 out of append order",
+    "permission denials: Bash `printf '%s\\n' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260920-192538\\\",\\\"at\\\":\\\"node:buil`; Bash `npm test 2>&1 | tail -30; echo \"exit: ${pipestatus[1]}\"`; Bash `git status --short; git add -N . ; git diff -- src tests README.md > .grooph/par`; Bash `{ git diff -- README.md; git diff --no-index /dev/null src/duration.mjs; git dif`; Bash `git diff HEAD --stat; git status --short; echo ---; git diff HEAD -- README.md |`; Bash `git status --short; echo \"--- README\"; git diff HEAD -- README.md > /tmp/critic-`; Bash `node --input-type=module -e '\nimport { parseDuration } from \"/private/var/folder`; Bash `git status --short; echo ---; git diff --stat; echo ---; git diff --no-index /de`; Bash `{ git diff HEAD -- README.md; git diff --no-index /dev/null src/duration.mjs; gi`"
+  ],
+  "facts": {
+    "ending": [
+      "halt at merge-gate"
+    ],
+    "back_edges": {
+      "later_rounds": 1,
+      "edge_notes": [],
+      "mentioned": [
+        "e-critic-fail"
+      ],
+      "caught_by": [
+        "critic (fail)"
+      ],
+      "taken": true
+    },
+    "last_round": 1
+  }
+}

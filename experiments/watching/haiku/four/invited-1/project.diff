@@ -1,0 +1,933 @@
+diff --git a/csvline/src/csv.mjs b/csvline/src/csv.mjs
+index d5d662e..7f31f99 100644
+--- a/csvline/src/csv.mjs
++++ b/csvline/src/csv.mjs
+@@ -6,29 +6,90 @@ export class CsvError extends Error {
+ }
+ 
+ /**
+- * Parses one CSV record into its fields (README.md). Handles the plain and the
+- * quoted case; the rest of the contract is not enforced yet.
++ * Parses one CSV record into its fields (README.md).
+  * @param {string} text
+  * @returns {string[]}
+  */
+ export function parseCsvLine(text) {
+   if (typeof text !== "string") throw new TypeError("parseCsvLine: text must be a string");
++
++  // Remove trailing \r\n or \n
++  let cleanText = text;
++  if (cleanText.endsWith("\r\n")) {
++    cleanText = cleanText.slice(0, -2);
++  } else if (cleanText.endsWith("\n")) {
++    cleanText = cleanText.slice(0, -1);
++  }
++
+   const fields = [];
+   let field = "";
+   let quoted = false;
+-  let rest = text;
+-  while (rest.length > 0) {
+-    const ch = rest[0];
+-    rest = rest.slice(1);
+-    if (ch === '"') {
+-      quoted = !quoted;
+-    } else if (ch === "," && !quoted) {
+-      fields.push(field);
+-      field = "";
++  let afterClosingQuote = false;
++  let i = 0;
++
++  while (i < cleanText.length) {
++    const ch = cleanText[i];
++
++    if (quoted) {
++      // Inside a quoted field
++      if (ch === '"') {
++        // Check if it's an escaped quote ("")
++        if (i + 1 < cleanText.length && cleanText[i + 1] === '"') {
++          // Escaped quote: add one quote, skip both characters
++          field += '"';
++          i += 2;
++        } else {
++          // Closing quote
++          quoted = false;
++          afterClosingQuote = true;
++          i++;
++        }
++      } else {
++        // Any other character (including \n, \r) is literal inside quotes
++        field += ch;
++        i++;
++      }
++    } else if (afterClosingQuote) {
++      // After closing quote, only comma or end of text allowed
++      if (ch === ",") {
++        fields.push(field);
++        field = "";
++        afterClosingQuote = false;
++        i++;
++      } else {
++        throw new CsvError("Characters after closing quote");
++      }
+     } else {
+-      field += ch;
++      // In unquoted field
++      if (ch === '"') {
++        if (field.length === 0) {
++          // Opening quote at start of field
++          quoted = true;
++          i++;
++        } else {
++          // Quote after non-empty field content
++          throw new CsvError("Quote outside quoted field");
++        }
++      } else if (ch === ",") {
++        fields.push(field);
++        field = "";
++        i++;
++      } else if (ch === "\n" || ch === "\r") {
++        // Unquoted newline
++        throw new CsvError("Unquoted newline in field");
++      } else {
++        // Regular character
++        field += ch;
++        i++;
++      }
+     }
+   }
++
++  // Check for unclosed quote
++  if (quoted) {
++    throw new CsvError("Unclosed quoted field");
++  }
++
+   fields.push(field);
+   return fields;
+ }
+diff --git a/csvline/tests/csv.test.mjs b/csvline/tests/csv.test.mjs
+index 816adc6..041d560 100644
+--- a/csvline/tests/csv.test.mjs
++++ b/csvline/tests/csv.test.mjs
+@@ -13,10 +13,105 @@ test("quoted fields keep commas", () => {
+   assert.deepEqual(parseCsvLine('"x, y",z'), ["x, y", "z"]);
+ });
+ 
+-test("non-string input", () => {
++test("escaped quotes inside quoted fields", () => {
++  assert.deepEqual(parseCsvLine('"say ""hi"""'), ['say "hi"']);
++  assert.deepEqual(parseCsvLine('"say ""hi""",'), ['say "hi"', ""]);
++  assert.deepEqual(parseCsvLine('"a""b"'), ['a"b']);
++  assert.deepEqual(parseCsvLine('""'), ['']);
++  assert.deepEqual(parseCsvLine('""""'), ['"']);
++  assert.deepEqual(parseCsvLine('""""""'), ['""']);
++});
++
++test("non-string input throws TypeError", () => {
+   assert.throws(() => parseCsvLine(null), TypeError);
++  assert.throws(() => parseCsvLine(undefined), TypeError);
++  assert.throws(() => parseCsvLine(123), TypeError);
++  assert.throws(() => parseCsvLine({}), TypeError);
++  assert.throws(() => parseCsvLine([]), TypeError);
++});
++
++test("unclosed quoted field throws CsvError", () => {
++  assert.throws(() => parseCsvLine('"a'), CsvError);
++  assert.throws(() => parseCsvLine('"a,b'), CsvError);
++  assert.throws(() => parseCsvLine('"'), CsvError);
++});
++
++test("quote outside quoted field throws CsvError", () => {
++  assert.throws(() => parseCsvLine('a"b'), CsvError);
++  assert.throws(() => parseCsvLine('a "b'), CsvError);
++  assert.throws(() => parseCsvLine('a"'), CsvError);
++  assert.throws(() => parseCsvLine('a,"b'), CsvError);
++});
++
++test("characters after closing quote throw CsvError", () => {
++  assert.throws(() => parseCsvLine('"a"b'), CsvError);
++  assert.throws(() => parseCsvLine('"a"x,y'), CsvError);
++  assert.throws(() => parseCsvLine('"a" "b"'), CsvError);
++});
++
++test("unquoted newline throws CsvError", () => {
++  assert.throws(() => parseCsvLine('a\nb'), CsvError);
++  assert.throws(() => parseCsvLine('a\rb'), CsvError);
++});
++
++test("trailing newline is removed", () => {
++  assert.deepEqual(parseCsvLine('a,b\n'), ["a", "b"]);
++  assert.deepEqual(parseCsvLine('a,b\r\n'), ["a", "b"]);
++  assert.deepEqual(parseCsvLine('a\n'), ["a"]);
++  assert.deepEqual(parseCsvLine('\n'), [""]);
++});
++
++test("newline inside quoted field is literal", () => {
++  assert.deepEqual(parseCsvLine('"a\nb"'), ["a\nb"]);
++  assert.deepEqual(parseCsvLine('"a\rb"'), ["a\rb"]);
++  assert.deepEqual(parseCsvLine('"a\r\nb"'), ["a\r\nb"]);
++});
++
++test("whitespace outside quotes is literal", () => {
++  assert.deepEqual(parseCsvLine(' a '), [" a "]);
++  assert.deepEqual(parseCsvLine('a , b'), ["a ", " b"]);
++  assert.deepEqual(parseCsvLine('  '), ["  "]);
++});
++
++test("empty fields", () => {
++  assert.deepEqual(parseCsvLine(','), ["", ""]);
++  assert.deepEqual(parseCsvLine(',,'), ["", "", ""]);
++  assert.deepEqual(parseCsvLine('a,,b'), ["a", "", "b"]);
++});
++
++test("quoted empty field", () => {
++  assert.deepEqual(parseCsvLine('""'), [""]);
++  assert.deepEqual(parseCsvLine('"",a'), ["", "a"]);
+ });
+ 
+ test("CsvError is an Error", () => {
+   assert.ok(new CsvError("x") instanceof Error);
+ });
++
++test("tabs and control characters are literal", () => {
++  assert.deepEqual(parseCsvLine("a\tb"), ["a\tb"]);
++  assert.deepEqual(parseCsvLine('"a\tb"'), ["a\tb"]);
++});
++
++test("unicode characters are literal", () => {
++  assert.deepEqual(parseCsvLine("café"), ["café"]);
++  assert.deepEqual(parseCsvLine('"café"'), ["café"]);
++  assert.deepEqual(parseCsvLine("a,🎉,b"), ["a", "🎉", "b"]);
++});
++
++test("mixed quotes and commas", () => {
++  assert.deepEqual(parseCsvLine('"a,b",c'), ["a,b", "c"]);
++  assert.deepEqual(parseCsvLine('a,"b,c"'), ["a", "b,c"]);
++  assert.deepEqual(parseCsvLine('"a,b","c,d"'), ["a,b", "c,d"]);
++});
++
++test("carriage return handling", () => {
++  assert.deepEqual(parseCsvLine("a,b\r\n"), ["a", "b"]);
++  assert.throws(() => parseCsvLine("a,b\r"), CsvError);
++  assert.throws(() => parseCsvLine("a\rb"), CsvError);
++});
++
++test("multiple empty fields", () => {
++  assert.deepEqual(parseCsvLine('"",,""'), ["", "", ""]);
++  assert.deepEqual(parseCsvLine(',"",'), ["", "", ""]);
++});
+diff --git a/semver-mini/src/semver.mjs b/semver-mini/src/semver.mjs
+index c20a655..c02bda2 100644
+--- a/semver-mini/src/semver.mjs
++++ b/semver-mini/src/semver.mjs
+@@ -11,5 +11,168 @@
+  * @returns {-1 | 0 | 1}
+  */
+ export function compare(a, b) {
+-  throw new Error("not implemented");
++  // Type check
++  if (typeof a !== 'string') throw new TypeError('a must be a string');
++  if (typeof b !== 'string') throw new TypeError('b must be a string');
++
++  // Parse versions
++  const versionA = parseVersion(a);
++  const versionB = parseVersion(b);
++
++  // Compare major.minor.patch
++  if (versionA.major !== versionB.major) {
++    return versionA.major < versionB.major ? -1 : 1;
++  }
++  if (versionA.minor !== versionB.minor) {
++    return versionA.minor < versionB.minor ? -1 : 1;
++  }
++  if (versionA.patch !== versionB.patch) {
++    return versionA.patch < versionB.patch ? -1 : 1;
++  }
++
++  // Compare prerelease
++  // No prerelease > has prerelease
++  if (!versionA.prerelease && !versionB.prerelease) {
++    return 0; // Both are releases
++  }
++  if (!versionA.prerelease) {
++    return 1; // A is a release, B is prerelease
++  }
++  if (!versionB.prerelease) {
++    return -1; // A is prerelease, B is a release
++  }
++
++  // Both have prerelease, compare identifiers
++  const preA = versionA.prerelease;
++  const preB = versionB.prerelease;
++
++  for (let i = 0; i < Math.max(preA.length, preB.length); i++) {
++    // Longer prerelease has greater precedence
++    if (i >= preA.length) return -1;
++    if (i >= preB.length) return 1;
++
++    const idA = preA[i];
++    const idB = preB[i];
++
++    // Check if identifiers are numeric
++    const isNumA = /^\d+$/.test(idA);
++    const isNumB = /^\d+$/.test(idB);
++
++    // Numeric < non-numeric
++    if (isNumA && !isNumB) return -1;
++    if (!isNumA && isNumB) return 1;
++
++    // Compare
++    if (isNumA && isNumB) {
++      // Both numeric, compare as numbers
++      const numA = parseInt(idA, 10);
++      const numB = parseInt(idB, 10);
++      if (numA !== numB) return numA < numB ? -1 : 1;
++    } else {
++      // Both non-numeric, compare lexically
++      if (idA !== idB) return idA < idB ? -1 : 1;
++    }
++  }
++
++  return 0;
++}
++
++function parseVersion(str) {
++  // Check for invalid characters/spacing
++  if (str.includes(' ')) {
++    throw new RangeError(`Invalid semantic version: ${str}`);
++  }
++
++  // Split build metadata
++  let version = str;
++  const plusIdx = version.indexOf('+');
++  if (plusIdx !== -1) {
++    const build = version.substring(plusIdx + 1);
++    version = version.substring(0, plusIdx);
++
++    // Validate build metadata
++    if (!build || !isValidBuildMetadata(build)) {
++      throw new RangeError(`Invalid semantic version: ${str}`);
++    }
++  }
++
++  // Split prerelease
++  let prerelease = null;
++  const dashIdx = version.indexOf('-');
++  if (dashIdx !== -1) {
++    const preStr = version.substring(dashIdx + 1);
++    version = version.substring(0, dashIdx);
++
++    // Validate prerelease
++    if (!preStr || !isValidPrerelease(preStr)) {
++      throw new RangeError(`Invalid semantic version: ${str}`);
++    }
++    prerelease = preStr.split('.');
++  }
++
++  // Parse major.minor.patch
++  const parts = version.split('.');
++  if (parts.length !== 3) {
++    throw new RangeError(`Invalid semantic version: ${str}`);
++  }
++
++  // Validate major.minor.patch format
++  if (!isValidVersionNumber(parts[0]) || !isValidVersionNumber(parts[1]) || !isValidVersionNumber(parts[2])) {
++    throw new RangeError(`Invalid semantic version: ${str}`);
++  }
++
++  const major = parseInt(parts[0], 10);
++  const minor = parseInt(parts[1], 10);
++  const patch = parseInt(parts[2], 10);
++
++  return { major, minor, patch, prerelease };
++}
++
++function isValidVersionNumber(str) {
++  // Must be all digits
++  if (!/^\d+$/.test(str)) return false;
++
++  // No leading zeros (except for "0" itself)
++  if (str[0] === '0' && str.length > 1) return false;
++
++  return true;
++}
++
++function isValidPrerelease(str) {
++  if (!str) return false;
++  const identifiers = str.split('.');
++  if (identifiers.length === 0) return false;
++
++  for (const id of identifiers) {
++    if (!id) return false; // Empty identifier (e.g., "a..b")
++
++    // Each identifier is alphanumeric (including hyphens)
++    if (!/^[0-9a-zA-Z-]+$/.test(id)) {
++      return false;
++    }
++
++    // If it's purely numeric, no leading zeros allowed
++    if (/^\d+$/.test(id) && id[0] === '0' && id.length > 1) {
++      return false;
++    }
++  }
++
++  return true;
++}
++
++function isValidBuildMetadata(str) {
++  if (!str) return false;
++  const identifiers = str.split('.');
++  if (identifiers.length === 0) return false;
++
++  for (const id of identifiers) {
++    if (!id) return false; // Empty identifier
++
++    // Each identifier is alphanumeric (including hyphens, leading zeros allowed)
++    if (!/^[0-9a-zA-Z-]+$/.test(id)) {
++      return false;
++    }
++  }
++
++  return true;
+ }
+diff --git a/settingskit/CHANGELOG.md b/settingskit/CHANGELOG.md
+index 83e52ac..1389e98 100644
+--- a/settingskit/CHANGELOG.md
++++ b/settingskit/CHANGELOG.md
+@@ -2,6 +2,8 @@
+ 
+ ## Unreleased
+ 
++- Added `layer(base, over)`: lays over on top of base, recursively merging objects under the same keys and replacing other values.
++
+ ## 0.4.0 — 2026-09-12
+ 
+ - Added a `fallback` argument to `getPath(settings, path, fallback)`: returned when the path is missing.
+diff --git a/settingskit/src/layer.mjs b/settingskit/src/layer.mjs
+new file mode 100644
+index 0000000..b133172
+--- /dev/null
++++ b/settingskit/src/layer.mjs
+@@ -0,0 +1,97 @@
++/**
++ * Returns the settings obtained by laying over on top of base.
++ * Both arguments must be plain objects. When both have an object under the same key,
++ * they are layered recursively. Other values in over replace the base values.
++ * Keys named __proto__, constructor, and prototype are never copied.
++ * Neither argument is changed, and the result shares no objects or arrays with them.
++ * @param {object} base - The base settings object
++ * @param {object} over - The settings to layer on top
++ * @returns {object} A new object with over layered on top of base
++ * @throws {TypeError} If either argument is not a plain object
++ */
++export function layer(base, over) {
++  // Helper function to check if a value is a plain object
++  function isPlainObject(value) {
++    if (value === null || typeof value !== "object") return false;
++    if (Array.isArray(value)) return false;
++    if (value instanceof Date) return false;
++    // Check if prototype is Object.prototype
++    const proto = Object.getPrototypeOf(value);
++    return proto === Object.prototype || proto === null;
++  }
++
++  // Validate that both arguments are plain objects
++  if (!isPlainObject(base)) {
++    throw new TypeError("layer: base must be a plain object");
++  }
++  if (!isPlainObject(over)) {
++    throw new TypeError("layer: over must be a plain object");
++  }
++
++  // Helper function to check if a key should be blocked
++  function isBlockedKey(key) {
++    return key === "__proto__" || key === "constructor" || key === "prototype";
++  }
++
++  // Helper function to deep copy a value, ensuring no objects are shared
++  function deepCopy(value) {
++    if (value === null || typeof value !== "object") {
++      return value; // Primitives are fine to return directly
++    }
++
++    if (Array.isArray(value)) {
++      // Deep copy arrays
++      return value.map(item => deepCopy(item));
++    }
++
++    if (value instanceof Date) {
++      return new Date(value);
++    }
++
++    if (isPlainObject(value)) {
++      // Deep copy plain objects, excluding blocked keys
++      const copy = {};
++      for (const key in value) {
++        if (Object.prototype.hasOwnProperty.call(value, key) && !isBlockedKey(key)) {
++          copy[key] = deepCopy(value[key]);
++        }
++      }
++      return copy;
++    }
++
++    // For other objects, return as-is
++    return value;
++  }
++
++  // Helper function to merge two objects
++  function mergeObjects(baseObj, overObj) {
++    const result = {};
++
++    // Copy all keys from base
++    for (const key in baseObj) {
++      if (Object.prototype.hasOwnProperty.call(baseObj, key) && !isBlockedKey(key)) {
++        result[key] = deepCopy(baseObj[key]);
++      }
++    }
++
++    // Overlay all keys from over
++    for (const key in overObj) {
++      if (Object.prototype.hasOwnProperty.call(overObj, key) && !isBlockedKey(key)) {
++        const baseValue = result[key];
++        const overValue = overObj[key];
++
++        // If both are plain objects, layer them recursively
++        if (isPlainObject(baseValue) && isPlainObject(overValue)) {
++          result[key] = mergeObjects(baseValue, overValue);
++        } else {
++          // Otherwise, use the over value
++          result[key] = deepCopy(overValue);
++        }
++      }
++    }
++
++    return result;
++  }
++
++  return mergeObjects(base, over);
++}
+diff --git a/settingskit/tests/layer.test.mjs b/settingskit/tests/layer.test.mjs
+new file mode 100644
+index 0000000..34e6e51
+--- /dev/null
++++ b/settingskit/tests/layer.test.mjs
+@@ -0,0 +1,260 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { layer } from "../src/layer.mjs";
++
++test("layer performs basic layering as specified", () => {
++  const result = layer(
++    { a: 1, b: { c: 2, d: 3 } },
++    { b: { c: 9 }, e: 5 }
++  );
++  assert.deepEqual(result, { a: 1, b: { c: 9, d: 3 }, e: 5 });
++});
++
++test("layer handles plain objects under the same key recursively at any depth", () => {
++  const result = layer(
++    { x: { y: { z: 1, w: 2 }, p: 3 }, q: 4 },
++    { x: { y: { z: 9 } } }
++  );
++  assert.deepEqual(result, { x: { y: { z: 9, w: 2 }, p: 3 }, q: 4 });
++});
++
++test("layer replaces arrays wholesale without joining", () => {
++  const baseArray = [1, 2, 3];
++  const overArray = [4, 5];
++  const result = layer(
++    { data: baseArray },
++    { data: overArray }
++  );
++  assert.deepEqual(result, { data: [4, 5] });
++});
++
++test("layer replaces numbers, strings, booleans, and null from over", () => {
++  const result = layer(
++    { a: "hello", b: 42, c: true, d: null },
++    { a: "world", b: 100, c: false, d: null }
++  );
++  assert.deepEqual(result, { a: "world", b: 100, c: false, d: null });
++});
++
++test("layer throws TypeError if base is not a plain object", () => {
++  assert.throws(() => layer([], {}), TypeError);
++  assert.throws(() => layer(null, {}), TypeError);
++  assert.throws(() => layer("string", {}), TypeError);
++  assert.throws(() => layer(42, {}), TypeError);
++  assert.throws(() => layer(new Date(), {}), TypeError);
++});
++
++test("layer throws TypeError if over is not a plain object", () => {
++  assert.throws(() => layer({}, []), TypeError);
++  assert.throws(() => layer({}, null), TypeError);
++  assert.throws(() => layer({}, "string"), TypeError);
++  assert.throws(() => layer({}, 42), TypeError);
++  assert.throws(() => layer({}, new Date()), TypeError);
++});
++
++test("layer throws TypeError if base argument is missing", () => {
++  assert.throws(() => layer(undefined, {}), TypeError);
++});
++
++test("layer throws TypeError if over argument is missing", () => {
++  assert.throws(() => layer({}), TypeError);
++});
++
++test("layer does not mutate base", () => {
++  const base = { a: 1, b: { c: 2 } };
++  const baseCopy = JSON.parse(JSON.stringify(base));
++  layer(base, { a: 9, b: { c: 99 } });
++  assert.deepEqual(base, baseCopy);
++});
++
++test("layer does not mutate over", () => {
++  const over = { a: 9, b: { c: 99 } };
++  const overCopy = JSON.parse(JSON.stringify(over));
++  layer({ a: 1, b: { c: 2 } }, over);
++  assert.deepEqual(over, overCopy);
++});
++
++test("layer result shares no objects with base", () => {
++  const baseNested = { x: 1 };
++  const base = { a: baseNested };
++  const result = layer(base, {});
++  assert.notStrictEqual(result, base);
++  assert.notStrictEqual(result.a, baseNested);
++});
++
++test("layer result shares no objects with over", () => {
++  const overNested = { x: 1 };
++  const over = { a: overNested };
++  const result = layer({}, over);
++  assert.notStrictEqual(result, over);
++  assert.notStrictEqual(result.a, overNested);
++});
++
++test("layer result shares no arrays with base", () => {
++  const baseArray = [1, 2, 3];
++  const base = { data: baseArray };
++  const result = layer(base, {});
++  assert.notStrictEqual(result.data, baseArray);
++});
++
++test("layer result shares no arrays with over", () => {
++  const overArray = [1, 2, 3];
++  const over = { data: overArray };
++  const result = layer({}, over);
++  assert.notStrictEqual(result.data, overArray);
++});
++
++test("layer never copies __proto__ key from base", () => {
++  const base = Object.create(null);
++  base.normal = "value";
++  base.__proto__ = "evil";
++  const result = layer(base, {});
++  assert.equal(result.__proto__, Object.prototype);
++  assert.equal(result.normal, "value");
++  assert(!Object.prototype.hasOwnProperty.call(result, "__proto__"));
++});
++
++test("layer never copies __proto__ key from over", () => {
++  const over = Object.create(null);
++  over.normal = "value";
++  over.__proto__ = "evil";
++  const result = layer({}, over);
++  assert.equal(result.__proto__, Object.prototype);
++  assert.equal(result.normal, "value");
++  assert(!Object.prototype.hasOwnProperty.call(result, "__proto__"));
++});
++
++test("layer never copies constructor key from base", () => {
++  const base = { constructor: "evil", normal: "value" };
++  const result = layer(base, {});
++  assert.equal(result.constructor, Object);
++  assert.equal(result.normal, "value");
++  assert(!Object.prototype.hasOwnProperty.call(result, "constructor"));
++});
++
++test("layer never copies constructor key from over", () => {
++  const over = { constructor: "evil", normal: "value" };
++  const result = layer({}, over);
++  assert.equal(result.constructor, Object);
++  assert.equal(result.normal, "value");
++  assert(!Object.prototype.hasOwnProperty.call(result, "constructor"));
++});
++
++test("layer never copies prototype key from base", () => {
++  const base = { prototype: "evil", normal: "value" };
++  const result = layer(base, {});
++  assert.equal(result.normal, "value");
++  assert(!Object.prototype.hasOwnProperty.call(result, "prototype"));
++});
++
++test("layer never copies prototype key from over", () => {
++  const over = { prototype: "evil", normal: "value" };
++  const result = layer({}, over);
++  assert.equal(result.normal, "value");
++  assert(!Object.prototype.hasOwnProperty.call(result, "prototype"));
++});
++
++test("layer never copies blocked keys at any depth", () => {
++  const result = layer(
++    { nested: { __proto__: "evil1", constructor: "evil2", prototype: "evil3" } },
++    { nested: { normal: "ok" } }
++  );
++  assert.equal(result.nested.normal, "ok");
++  assert(!Object.prototype.hasOwnProperty.call(result.nested, "__proto__"));
++  assert(!Object.prototype.hasOwnProperty.call(result.nested, "constructor"));
++  assert(!Object.prototype.hasOwnProperty.call(result.nested, "prototype"));
++});
++
++test("layer result objects have Object.prototype as their prototype", () => {
++  const result = layer(
++    { a: { b: 1 } },
++    { c: { d: 2 } }
++  );
++  assert.equal(Object.getPrototypeOf(result), Object.prototype);
++  assert.equal(Object.getPrototypeOf(result.a), Object.prototype);
++  assert.equal(Object.getPrototypeOf(result.c), Object.prototype);
++});
++
++test("layer handles deeply nested structures", () => {
++  const result = layer(
++    {
++      level1: {
++        level2: {
++          level3: {
++            level4: {
++              value: "base",
++              keep: "me"
++            }
++          }
++        }
++      }
++    },
++    {
++      level1: {
++        level2: {
++          level3: {
++            level4: {
++              value: "over"
++            }
++          }
++        }
++      }
++    }
++  );
++  assert.deepEqual(result, {
++    level1: {
++      level2: {
++        level3: {
++          level4: {
++            value: "over",
++            keep: "me"
++          }
++        }
++      }
++    }
++  });
++});
++
++test("layer handles arrays inside objects without losing them", () => {
++  const result = layer(
++    { config: { items: [1, 2], name: "base" } },
++    { config: { items: [3, 4, 5] } }
++  );
++  assert.deepEqual(result, {
++    config: {
++      items: [3, 4, 5],
++      name: "base"
++    }
++  });
++});
++
++test("layer handles empty objects", () => {
++  const result = layer({}, {});
++  assert.deepEqual(result, {});
++  assert.equal(Object.getPrototypeOf(result), Object.prototype);
++});
++
++test("layer handles layering empty over onto non-empty base", () => {
++  const base = { a: 1, b: { c: 2 } };
++  const result = layer(base, {});
++  assert.deepEqual(result, base);
++  assert.notStrictEqual(result, base);
++});
++
++test("layer handles layering non-empty over onto empty base", () => {
++  const over = { a: 1, b: { c: 2 } };
++  const result = layer({}, over);
++  assert.deepEqual(result, over);
++  assert.notStrictEqual(result, over);
++});
++
++test("layer blocks keys in arrays inside objects", () => {
++  const result = layer(
++    { items: [{ __proto__: "evil", data: 1 }] },
++    {}
++  );
++  // The array itself is preserved, and its contents are deep copied
++  assert.deepEqual(result.items, [{ data: 1 }]);
++  assert(!Object.prototype.hasOwnProperty.call(result.items[0], "__proto__"));
++});
+diff --git a/textwrap/README.md b/textwrap/README.md
+index 0cac2e6..9ca378c 100644
+--- a/textwrap/README.md
++++ b/textwrap/README.md
+@@ -2,8 +2,26 @@
+ 
+ Small helpers for laying out plain text in a terminal.
+ 
++## countWords
++
++Counts the words in text (runs of non-whitespace characters).
++
+ ```js
+ import { countWords } from "./src/count.mjs";
+ 
+ countWords("one two  three"); // 3
+ ```
++
++## wrap
++
++Wraps text to a given width, breaking on word boundaries.
++
++```js
++import { wrap } from "./src/wrap.mjs";
++
++wrap("one two three", 10);
++// "one two\nthree"
++
++wrap("hello world foo bar", 12);
++// "hello world\nfoo bar"
++```
+diff --git a/textwrap/src/wrap.mjs b/textwrap/src/wrap.mjs
+new file mode 100644
+index 0000000..f5f0183
+--- /dev/null
++++ b/textwrap/src/wrap.mjs
+@@ -0,0 +1,49 @@
++/**
++ * Wraps text to a given width, breaking on word boundaries.
++ *
++ * @param {string} text - The text to wrap
++ * @param {number} width - The maximum width of each line
++ * @returns {string} - The wrapped text
++ */
++export function wrap(text, width) {
++  if (typeof text !== "string") throw new TypeError("wrap: text must be a string");
++  if (typeof width !== "number" || !Number.isInteger(width) || width < 1) throw new TypeError("wrap: width must be a positive integer");
++
++  // Handle empty or whitespace-only text
++  const trimmed = text.trim();
++  if (trimmed === "") return "";
++
++  const words = trimmed.split(/\s+/);
++  const lines = [];
++  let currentLine = "";
++
++  for (const word of words) {
++    // If word is longer than width, we need to add it on its own line
++    if (word.length > width) {
++      // If we have content in current line, save it first
++      if (currentLine) {
++        lines.push(currentLine);
++        currentLine = "";
++      }
++      // Add the long word on its own line
++      lines.push(word);
++    } else if (!currentLine) {
++      // First word on the line
++      currentLine = word;
++    } else if (currentLine.length + 1 + word.length <= width) {
++      // Add word to current line with space
++      currentLine += " " + word;
++    } else {
++      // Word doesn't fit, start new line
++      lines.push(currentLine);
++      currentLine = word;
++    }
++  }
++
++  // Don't forget the last line
++  if (currentLine) {
++    lines.push(currentLine);
++  }
++
++  return lines.join("\n");
++}
+diff --git a/textwrap/tests/wrap.test.mjs b/textwrap/tests/wrap.test.mjs
+new file mode 100644
+index 0000000..9f5fa88
+--- /dev/null
++++ b/textwrap/tests/wrap.test.mjs
+@@ -0,0 +1,67 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { wrap } from "../src/wrap.mjs";
++
++test("wrap wraps text to a given width", () => {
++  assert.equal(wrap("one two three", 10), "one two\nthree");
++  assert.equal(wrap("one two three", 8), "one two\nthree");
++  assert.equal(wrap("one two three", 7), "one two\nthree");
++  assert.equal(wrap("one two three", 6), "one\ntwo\nthree");
++});
++
++test("wrap handles single words", () => {
++  assert.equal(wrap("hello", 10), "hello");
++  assert.equal(wrap("hello", 5), "hello");
++});
++
++test("wrap handles words longer than width", () => {
++  assert.equal(wrap("supercalifragilisticexpialidocious", 10), "supercalifragilisticexpialidocious");
++});
++
++test("wrap handles empty string", () => {
++  assert.equal(wrap("", 10), "");
++});
++
++test("wrap handles whitespace-only string", () => {
++  assert.equal(wrap("   ", 10), "");
++});
++
++test("wrap handles multiple spaces between words", () => {
++  assert.equal(wrap("one   two   three", 10), "one two\nthree");
++});
++
++test("wrap handles tabs and newlines", () => {
++  assert.equal(wrap("one\ttwo\nthree", 10), "one two\nthree");
++});
++
++test("wrap throws on invalid text argument", () => {
++  assert.throws(() => wrap(null, 10), TypeError);
++  assert.throws(() => wrap(123, 10), TypeError);
++});
++
++test("wrap throws on invalid width argument", () => {
++  assert.throws(() => wrap("text", "10"), TypeError);
++  assert.throws(() => wrap("text", 0), TypeError);
++  assert.throws(() => wrap("text", -5), TypeError);
++  assert.throws(() => wrap("text", 1.5), TypeError);
++});
++
++test("wrap preserves single spaces in normal case", () => {
++  assert.equal(wrap("hello world", 20), "hello world");
++  assert.equal(wrap("hello world foo bar", 12), "hello world\nfoo bar");
++});
++
++test("wrap handles very long text", () => {
++  const longText = "the quick brown fox jumps over the lazy dog";
++  const result = wrap(longText, 15);
++  const lines = result.split("\n");
++
++  // Verify no line exceeds width (except for words longer than width)
++  for (const line of lines) {
++    assert(line.length <= 15, `Line "${line}" exceeds width 15`);
++  }
++
++  // Verify the wrapped result reconstructs the original when spaces removed
++  assert.equal(result.replace(/\n/g, " "), longText);
++});

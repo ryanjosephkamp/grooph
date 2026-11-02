@@ -1,0 +1,85 @@
+{
+  "grooph": 0,
+  "id": "long-grind",
+  "name": "Long grind",
+  "version": 1,
+  "goal": "Make the test suite pass.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "brief": "Builder: fix the failing tests in src/.",
+      "outputs": [
+        "src/ changes"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0"
+      }
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-build-test",
+      "from": "builder",
+      "to": "tests"
+    },
+    {
+      "id": "e-test-fail",
+      "from": "tests",
+      "to": "builder",
+      "when": "fail"
+    },
+    {
+      "id": "e-test-pass",
+      "from": "tests",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "fix-cycle",
+      "name": "Fix cycle",
+      "members": [
+        "builder",
+        "tests"
+      ],
+      "back": [
+        "e-test-fail"
+      ],
+      "stops": [
+        {
+          "kind": "diminishing-returns",
+          "rounds": 2
+        },
+        {
+          "kind": "max-iterations",
+          "n": 12
+        }
+      ]
+    }
+  ]
+}

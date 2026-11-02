@@ -1,0 +1,8 @@
+{
+  "about": "What --check asserts for this fragment beyond the common rules: the host's builder ran as its own subagent; the run halted at the fragment's gate with a halt note; the irreversible node never ran; PUBLISHED.txt was never written. The halt is the ending: this batch gives no gate a scripted answer.",
+  "agents": ["builder"],
+  "reports": {},
+  "notRun": ["act"],
+  "ending": ["halt at gate"],
+  "absent": ["PUBLISHED.txt", "ACTION.md"]
+}

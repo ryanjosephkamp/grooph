@@ -1,0 +1,32 @@
+{
+  "problems": [
+    "the first invocation did not end in a halt at spec-gate (note 3: {\"id\":\"n-0003\",\"run\":\"20260919-1245-k7qz\",\"at\":\"node:spec-gate\",\"started\":\"2026-09-19T16:46:30Z\",\"text\":\"asked the human to approve or reject ACCEPTANCE.md; waiting\"})"
+  ],
+  "findings": [
+    "run id 20260919-1245-k7qz: the earlier random-suffix form",
+    "ACCEPTANCE.md: planner Write .grooph/word-wrap/runs/20260919-1245-k7qz/ACCEPTANCE.md",
+    "REVIEW.md: critic Write .grooph/word-wrap/runs/20260919-1245-k7qz/REVIEW.md; critic Write .grooph/word-wrap/runs/20260919-1245-k7qz/REVIEW.md",
+    "word-wrap--critic (Critic round 0) read .grooph/word-wrap/runs/20260919-1245-k7qz/ACCEPTANCE.md, .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.diff, .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.npm-test.txt; ran `npm test --prefix <local path>\u2026`",
+    "word-wrap--critic (Critic round 0 re-run) read .grooph/word-wrap/runs/20260919-1245-k7qz/ACCEPTANCE.md, .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.diff, .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.npm-test.txt, .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.ref-count.mjs; ran `npm test --prefix <local path>\u2026`",
+    "no `ending` line before the final note n-0012 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "replaying every amendment's patch on the source gives the working copy exactly",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "verdicts in order: critic \u2192 invalid-evidence, pass",
+    "timestamps: 12 given, 0 out of append order",
+    "permission denials: Bash `cat .claude/agents/word-wrap--planner.md .claude/agents/word-wrap--builder.md .c`; Bash `cat .claude/agents/word-wrap--planner.md .claude/agents/word-wrap--builder.md .c`; Bash `cd <local path>`; Bash `npm test 2>&1 | tail -25; echo \"exit=$?\"; git status --short; git diff --stat --`; Bash `git -C <local path>`; Bash `git status --porcelain && git add -N src tests README.md && git diff -- src test`; Bash `R=.grooph/word-wrap/runs/20260919-1245-k7qz && { git diff -- README.md src/count`; Bash `npm test > .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.npm-test.txt 2>&1; `; Bash `cd <local path>`; Bash `cd <local path>`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done",
+      "stop bar-passed"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

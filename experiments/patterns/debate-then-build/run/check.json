@@ -1,0 +1,30 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260920-185756: the clock form",
+    "CASE-A.md: planner-a Write CASE-A.md",
+    "CASE-B.md: planner-b Write CASE-B.md",
+    "PLAN.md: judge Write PLAN.md",
+    "fast-lookup--judge (Judge reads both cases) read CASE-A.md, CASE-B.md; ran nothing",
+    "the final note is at node:plan-gate, not at graph",
+    "ending as expected: halt at plan-gate",
+    "dispatch count: n-0008 debate r0 recorded 3, started lines 3 (exact)",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "verdicts in order: judge \u2192 pass",
+    "timestamps: 12 given, 0 out of append order",
+    "permission denials: Bash `test -s CASE-A.md && echo \"CASE-A ok $(wc -l < CASE-A.md) lines\"; T=$(date -u +%`"
+  ],
+  "facts": {
+    "ending": [
+      "halt at plan-gate"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

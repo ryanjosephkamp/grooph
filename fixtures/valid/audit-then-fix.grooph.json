@@ -1,0 +1,94 @@
+{
+  "grooph": 0,
+  "id": "audit-then-fix",
+  "name": "Audit then fix",
+  "version": 1,
+  "goal": "Find and fix the input-validation gaps in the upload handler.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "A red team audits the existing code before anyone writes, then a builder fixes what it found. The red team and the builder share a tier, but the red team judges code no writer in this graph produced.",
+  "nodes": [
+    {
+      "id": "audit",
+      "kind": "agent",
+      "name": "Audit",
+      "role": "red-team",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Red team: find inputs the upload handler accepts but should refuse. Report each as a failing case.",
+      "outputs": [
+        "FINDINGS.md"
+      ],
+      "allow": [
+        "read-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "fix",
+      "kind": "agent",
+      "name": "Fix",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Builder: make every case in FINDINGS.md fail safely, with a test for each.",
+      "inputs": [
+        "FINDINGS.md"
+      ],
+      "outputs": [
+        "the fix in src/",
+        "a test per finding"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "pnpm test",
+        "pass": "exit code 0"
+      }
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-audit-fix",
+      "from": "audit",
+      "to": "fix",
+      "evidence": [
+        "FINDINGS.md"
+      ]
+    },
+    {
+      "id": "e-fix-tests",
+      "from": "fix",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-done",
+      "from": "tests",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": []
+}

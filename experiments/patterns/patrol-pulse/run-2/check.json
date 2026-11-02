@@ -1,0 +1,42 @@
+{
+  "problems": [
+    "investigator never ran as its own subagent (no orders-api-patrol--investigator transcript)",
+    "the lead never dispatched orders-api-patrol--investigator",
+    "no note at node:investigator",
+    "ticket-writer never ran as its own subagent (no orders-api-patrol--ticket-writer transcript)",
+    "the lead never dispatched orders-api-patrol--ticket-writer",
+    "no note at node:ticket-writer",
+    "investigator never wrote PULSE.md itself",
+    "ticket-writer never wrote FILED.md itself",
+    "replaying every amendment's patch on the source does not give the working copy",
+    "TICKETS.md: 0 added line(s) match /^## T-/; the template expects 1"
+  ],
+  "findings": [
+    "run id 20261004-225445: the clock form",
+    "PULSE.md: never written",
+    "FILED.md: never written",
+    "`ending` line before the final note",
+    "ending as expected: halt at prioritize",
+    "ticket-writer wrote 0 file(s): nothing",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "timestamps: 8 given, 0 out of append order",
+    "permission denials: Bash `find / -name app.log -path '*logs*' -maxdepth 6 2>/dev/null`; Bash `grooph apply --help`"
+  ],
+  "facts": {
+    "ending": [
+      "halt at prioritize",
+      "stop node clean",
+      "stop node no-log"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [
+        "log-present"
+      ],
+      "taken": false
+    },
+    "last_round": null
+  }
+}

@@ -1,0 +1,367 @@
+{
+  "grooph": 0,
+  "id": "research-study",
+  "name": "A research study",
+  "version": 1,
+  "goal": "{{question}} Done when REPORT.md says what was planned, what was found, and what it does not show.",
+  "template": {
+    "kind": "graph",
+    "title": "Research study",
+    "summary": "A study of your own: a design locked in writing before any data, collection, the planned analysis and a report, with a critic's reading of the design and of the analysis.",
+    "whenToUse": "You are running a study of your own and want the plan written down and locked before you see any data, and a second reader for the design and for the analysis.",
+    "notFor": "Looking through data you already have to see what turns up. Here the plan comes first.",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "question",
+        "ask": "What is the question, in one sentence?",
+        "example": "Do short daily quizzes raise exam scores in a first statistics course?"
+      },
+      {
+        "key": "data-source",
+        "ask": "What will you measure, and where will the data come from?",
+        "example": "End-of-term exam scores for two sections of the course, one with quizzes and one without"
+      }
+    ],
+    "tags": [
+      "plan",
+      "research",
+      "human-gate",
+      "loop"
+    ]
+  },
+  "description": "A plan a person follows, with three steps an agent may take. You state the question, design the study, and lock the design in writing before any data is collected. You collect the data and write the report. An agent may read the design as a critic, run the analysis that was planned, and read the analysis as a critic against the plan. Work comes back twice: the design while it still leaves out what would count against the idea, and the analysis while it departs from the plan without saying so. After the gate before collection the plan asks that the design not be edited: a later change is written in the collection log with its date and reason. If a loop reaches its third round, stop and decide what to change. Nothing here needs a tool that runs agents: where a step is an agent's, give its brief to whatever AI assistant you use.",
+  "nodes": [
+    {
+      "id": "question",
+      "kind": "agent",
+      "name": "State the question",
+      "by": "person",
+      "role": "planner",
+      "brief": "Write the question in one sentence, why it matters, and what answer would change what you do. If no answer would change anything, say so now.",
+      "inputs": [
+        "{{question}}"
+      ],
+      "outputs": [
+        "QUESTION.md"
+      ]
+    },
+    {
+      "id": "design",
+      "kind": "agent",
+      "name": "Design the study",
+      "by": "person",
+      "role": "planner",
+      "brief": "Say what you will measure and on what, how many, and how you will analyze it. Name in advance the result that would count for the idea, the result that would count against it, and what else could produce the hoped-for result. If you cannot name a result that would count against it, the design is not finished. On a later round, start from DESIGN-REVIEW.md, or from what you said was not settled.",
+      "inputs": [
+        "QUESTION.md",
+        "{{data-source}}",
+        "DESIGN-REVIEW.md (from the second round on)"
+      ],
+      "outputs": [
+        "DESIGN.md: the measure, the sample, the analysis, what would count for and against, and what else could explain the result"
+      ]
+    },
+    {
+      "id": "design-critic",
+      "kind": "agent",
+      "name": "A critic reads the design",
+      "role": "critic",
+      "brief": "Read the design as a skeptic. Can the question be answered by this measure on this sample? Is there a result that would count against the idea, and would the planned analysis show it? Does the design say what else could produce the hoped-for result? You judge the design and do not rewrite it. Verdict pass only when each of those has an answer in DESIGN.md.",
+      "inputs": [
+        "DESIGN.md",
+        "QUESTION.md"
+      ],
+      "outputs": [
+        "DESIGN-REVIEW.md: one line per point, and a verdict line",
+        "verdict: pass | fail"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "lock",
+      "kind": "human-gate",
+      "name": "Lock the design",
+      "prompt": "Is this the study you will run? Once you say yes, the design is written out as the plan of record, and the plan asks you not to edit it again. If not yet, write down what is not settled.",
+      "options": [
+        "lock it",
+        "not yet"
+      ]
+    },
+    {
+      "id": "preregister",
+      "kind": "agent",
+      "name": "Pre-register the plan",
+      "by": "person",
+      "role": "planner",
+      "brief": "Write PREREGISTRATION.md: copy from DESIGN.md what will be measured, on what and how many, the analysis, and the results that would count for and against. Date it. From here this file is not edited: a change is written in COLLECTION-LOG.md with its date and the reason.",
+      "inputs": [
+        "DESIGN.md"
+      ],
+      "outputs": [
+        "PREREGISTRATION.md, dated"
+      ]
+    },
+    {
+      "id": "collect",
+      "kind": "agent",
+      "name": "Collect the data",
+      "by": "person",
+      "role": "researcher",
+      "brief": "Collect what PREREGISTRATION.md says, as it says. Keep a log as you go: what was collected and when, anything that went differently from the plan, and anything you left out and why.",
+      "inputs": [
+        "PREREGISTRATION.md",
+        "{{data-source}}"
+      ],
+      "outputs": [
+        "the data, as collected",
+        "COLLECTION-LOG.md"
+      ]
+    },
+    {
+      "id": "analyze",
+      "kind": "agent",
+      "name": "Run the planned analysis",
+      "role": "researcher",
+      "brief": "Run the analysis PREREGISTRATION.md names, first and as written. Anything else you look at goes in a section of its own, headed as exploratory. Give the numbers before the conclusions, and say what each conclusion rests on. On a later round, start from ANALYSIS-REVIEW.md.",
+      "inputs": [
+        "PREREGISTRATION.md",
+        "the data, as collected",
+        "COLLECTION-LOG.md",
+        "ANALYSIS-REVIEW.md (from the second round on)"
+      ],
+      "outputs": [
+        "ANALYSIS.md: the planned analysis, then anything exploratory, each labeled"
+      ],
+      "allow": [
+        "read-files",
+        "run-commands",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "analysis-critic",
+      "kind": "agent",
+      "name": "A critic reads the analysis",
+      "role": "critic",
+      "brief": "Read the analysis beside PREREGISTRATION.md. Was each planned analysis run as written? Is everything else labeled exploratory? Does each conclusion follow from its numbers? You judge and do not rerun or rewrite. Verdict pass only when all three hold.",
+      "inputs": [
+        "ANALYSIS.md",
+        "PREREGISTRATION.md",
+        "COLLECTION-LOG.md"
+      ],
+      "outputs": [
+        "ANALYSIS-REVIEW.md: one line per point, and a verdict line",
+        "verdict: pass | fail"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "write",
+      "kind": "agent",
+      "name": "Write the report",
+      "by": "person",
+      "role": "synthesizer",
+      "brief": "Write what was asked, what was planned before any data was seen, what was found, and what it does not show. Report the planned result whichever way it came out, and every departure the log records. Keep exploratory findings apart and call them that.",
+      "inputs": [
+        "QUESTION.md",
+        "PREREGISTRATION.md",
+        "COLLECTION-LOG.md",
+        "ANALYSIS.md",
+        "ANALYSIS-REVIEW.md"
+      ],
+      "outputs": [
+        "REPORT.md"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-question-design",
+      "from": "question",
+      "to": "design"
+    },
+    {
+      "id": "e-design-critic",
+      "from": "design",
+      "to": "design-critic",
+      "evidence": [
+        "DESIGN.md",
+        "QUESTION.md"
+      ]
+    },
+    {
+      "id": "e-design-critic-fail",
+      "from": "design-critic",
+      "to": "design",
+      "when": "fail",
+      "evidence": [
+        "DESIGN-REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-design-critic-pass",
+      "from": "design-critic",
+      "to": "lock",
+      "when": "pass"
+    },
+    {
+      "id": "e-lock-preregister",
+      "from": "lock",
+      "to": "preregister",
+      "when": "pass"
+    },
+    {
+      "id": "e-lock-not-yet",
+      "from": "lock",
+      "to": "design",
+      "when": "fail",
+      "evidence": [
+        "what is not settled yet"
+      ]
+    },
+    {
+      "id": "e-preregister-collect",
+      "from": "preregister",
+      "to": "collect"
+    },
+    {
+      "id": "e-collect-analyze",
+      "from": "collect",
+      "to": "analyze"
+    },
+    {
+      "id": "e-analyze-critic",
+      "from": "analyze",
+      "to": "analysis-critic",
+      "evidence": [
+        "ANALYSIS.md",
+        "PREREGISTRATION.md",
+        "COLLECTION-LOG.md"
+      ]
+    },
+    {
+      "id": "e-analysis-critic-fail",
+      "from": "analysis-critic",
+      "to": "analyze",
+      "when": "fail",
+      "evidence": [
+        "ANALYSIS-REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-analysis-critic-pass",
+      "from": "analysis-critic",
+      "to": "write",
+      "when": "pass"
+    },
+    {
+      "id": "e-write-done",
+      "from": "write",
+      "to": "done"
+    }
+  ],
+  "loops": [
+    {
+      "id": "design-loop",
+      "name": "Design",
+      "members": [
+        "design",
+        "design-critic",
+        "lock"
+      ],
+      "back": [
+        "e-design-critic-fail",
+        "e-lock-not-yet"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "A design that could fail",
+        "inspects": [
+          {
+            "kind": "file",
+            "ref": "DESIGN.md"
+          },
+          {
+            "kind": "file",
+            "ref": "QUESTION.md"
+          }
+        ],
+        "acceptance": "DESIGN.md says what is measured and on how many, what result would count against the idea, and what else could explain it."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
+    },
+    {
+      "id": "analysis-loop",
+      "name": "Analysis",
+      "members": [
+        "analyze",
+        "analysis-critic"
+      ],
+      "back": [
+        "e-analysis-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "The planned analysis",
+        "inspects": [
+          {
+            "kind": "file",
+            "ref": "PREREGISTRATION.md"
+          },
+          {
+            "kind": "file",
+            "ref": "ANALYSIS.md"
+          }
+        ],
+        "acceptance": "Every planned analysis is in ANALYSIS.md as planned, the rest is labeled exploratory, and each conclusion follows from its numbers."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    }
+  ]
+}

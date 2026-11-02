@@ -1,0 +1,73 @@
+{
+  "moments": ["2026-01-01T00:00:00.000Z","2026-01-01T00:00:00.013Z","2026-01-01T00:04:27.886Z","2026-01-01T00:08:37.776Z","2026-01-01T03:39:33.847Z","2026-01-01T03:45:03.540Z","2026-01-01T03:49:11.562Z","2026-01-01T03:59:32.276Z"],
+  "record": {"hook":{"lines":8,"last":"2026-01-01T03:59:34.042Z","stopsNotDrawn":1},"harness":{"agents":3}},
+  "graphs": [
+    {
+      "at": "2026-01-01T00:00:00.013Z",
+      "nodes": [
+        {"id":"seen-before-the-hook","kind":"session","harness":"claude-code","depth":0,"state":"working","started":"2026-01-01T00:00:00.000Z"},
+        {"id":"a01","kind":"subagent","type":"claude-code-guide","depth":1,"state":"running","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:00.000Z","source":"harness"}],"source":"harness"},
+        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"running","shape":"background","model":"claude-opus-5-5","runs":[{"from":"2026-01-01T00:00:00.013Z","source":"harness"}],"source":"harness"}
+      ],
+      "edges": [
+        {"from":"seen-before-the-hook","to":"a01","kind":"started","at":"2026-01-01T00:00:00.000Z","knownAt":"2026-01-01T00:00:00.000Z","source":"harness"},
+        {"from":"seen-before-the-hook","to":"a02","kind":"started","at":"2026-01-01T00:00:00.013Z","knownAt":"2026-01-01T00:00:00.013Z","source":"harness"}
+      ],
+      "differs": [
+        {"agent":"a01","what":"not-in-hook"},
+        {"agent":"a02","what":"not-in-hook"}
+      ]
+    },
+    {
+      "at": "2026-01-01T00:08:37.776Z",
+      "nodes": [
+        {"id":"seen-before-the-hook","kind":"session","harness":"claude-code","depth":0,"state":"not-yet-seen","started":"2026-01-01T00:00:00.000Z"},
+        {"id":"a01","kind":"subagent","type":"claude-code-guide","depth":1,"state":"done","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:00.000Z","to":"2026-01-01T00:04:27.886Z","end":"completed","source":"harness"}],"source":"harness"},
+        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-opus-5-5","runs":[{"from":"2026-01-01T00:00:00.013Z","to":"2026-01-01T00:08:37.776Z","end":"completed","source":"harness"}],"source":"harness"}
+      ],
+      "edges": [
+        {"from":"seen-before-the-hook","to":"a01","kind":"started","at":"2026-01-01T00:00:00.000Z","knownAt":"2026-01-01T00:00:00.000Z","source":"harness"},
+        {"from":"seen-before-the-hook","to":"a02","kind":"started","at":"2026-01-01T00:00:00.013Z","knownAt":"2026-01-01T00:00:00.013Z","source":"harness"}
+      ],
+      "differs": [
+        {"agent":"a01","what":"not-in-hook"},
+        {"agent":"a02","what":"not-in-hook"}
+      ]
+    },
+    {
+      "at": "2026-01-01T03:59:32.276Z",
+      "nodes": [
+        {"id":"seen-before-the-hook","kind":"session","harness":"claude-code","depth":0,"state":"waiting","started":"2026-01-01T00:00:00.000Z"},
+        {"id":"a01","kind":"subagent","type":"claude-code-guide","depth":1,"state":"done","shape":"background","model":"claude-haiku-4-5-20251001","runs":[{"from":"2026-01-01T00:00:00.000Z","to":"2026-01-01T00:04:27.886Z","end":"completed","source":"harness"}],"source":"harness"},
+        {"id":"a02","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-opus-5-5","runs":[{"from":"2026-01-01T00:00:00.013Z","to":"2026-01-01T00:08:37.776Z","end":"completed","source":"harness"}],"source":"harness"},
+        {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"done","shape":"background","model":"claude-opus-5-5","runs":[{"from":"2026-01-01T03:45:03.540Z","to":"2026-01-01T03:49:11.562Z","end":"completed","source":"both"}],"source":"both"}
+      ],
+      "edges": [
+        {"from":"seen-before-the-hook","to":"a01","kind":"started","at":"2026-01-01T00:00:00.000Z","knownAt":"2026-01-01T00:00:00.000Z","source":"harness"},
+        {"from":"seen-before-the-hook","to":"a02","kind":"started","at":"2026-01-01T00:00:00.013Z","knownAt":"2026-01-01T00:00:00.013Z","source":"harness"},
+        {"from":"seen-before-the-hook","to":"a03","kind":"started","at":"2026-01-01T03:45:03.540Z","knownAt":"2026-01-01T03:45:03.540Z","source":"both"}
+      ],
+      "differs": [
+        {"agent":"a01","what":"not-in-hook"},
+        {"agent":"a02","what":"not-in-hook"}
+      ]
+    }
+  ],
+  "fromTheHookAlone": {
+    "moments": ["2026-01-01T03:39:33.847Z","2026-01-01T03:45:03.540Z","2026-01-01T03:45:03.553Z","2026-01-01T03:49:11.562Z","2026-01-01T03:59:32.276Z"],
+    "record": {"hook":{"lines":8,"last":"2026-01-01T03:59:34.042Z","stopsNotDrawn":1}},
+    "graphs": [
+      {
+        "at": "2026-01-01T03:59:32.276Z",
+        "nodes": [
+          {"id":"seen-before-the-hook","kind":"session","harness":"claude-code","depth":0,"state":"waiting","started":"2026-01-01T03:39:33.847Z"},
+          {"id":"a03","kind":"subagent","type":"general-purpose","depth":1,"state":"done","runs":[{"from":"2026-01-01T03:45:03.540Z","to":"2026-01-01T03:49:11.562Z","source":"hook"}],"source":"hook"}
+        ],
+        "edges": [
+          {"from":"seen-before-the-hook","to":"a03","kind":"started","at":"2026-01-01T03:45:03.540Z","knownAt":"2026-01-01T03:45:03.553Z","source":"hook"}
+        ],
+        "differs": []
+      }
+    ]
+  }
+}

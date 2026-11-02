@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-23 -26 273 206" width="273" height="206" role="img" fill="none" stroke-linecap="round" stroke-linejoin="round" class="grooph-glyph">
+<title>Specialist critic bank</title>
+<rect x="-19" y="-22" width="220" height="198" rx="10" stroke-width="1.3" stroke-dasharray="4 3" style="stroke:var(--loop-0, #7a4cc2)"/>
+<path d="M10.5,54.5 L51.3,9.6" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M51.3,9.6 L49.2,17.1 L44,12.4 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M11.9,61.6 L46.9,48.8" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M46.9,48.8 L41.6,54.5 L39.2,47.9 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M11.9,70.4 L46.9,83.2" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M46.9,83.2 L39.2,84.1 L41.6,77.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M10.5,77.5 L51.3,122.4" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M51.3,122.4 L44,119.6 L49.2,114.9 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M67.3,8.1 L111.3,56.4" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M111.3,56.4 L104,53.6 L109.2,48.9 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M71.2,48.1 L106.9,61.2" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M106.9,61.2 L99.2,62.1 L101.6,55.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M71.2,83.9 L106.9,70.8" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M106.9,70.8 L101.6,76.5 L99.2,69.9 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M67.3,123.9 L111.3,75.6" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M111.3,75.6 L109.2,83.1 L104,78.4 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M120,81 C120,160 -3,160 -3,80" stroke-width="1.6" stroke-dasharray="5 3" style="stroke:var(--warning, #955500)"/>
+<path d="M-3,80 L0.5,87 L-6.5,87 Z" style="fill:var(--warning, #955500)"/>
+<path d="M135,66 L164,66" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M164,66 L157,69.5 L157,62.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M194,66 L231,66" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M231,66 L224,69.5 L224,62.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M180,80 C180,168 3,168 3,80" stroke-width="1.6" stroke-dasharray="5 3" style="stroke:var(--warning, #955500)"/>
+<path d="M3,80 L6.5,87 L-0.5,87 Z" style="fill:var(--warning, #955500)"/>
+<rect x="-11" y="55" width="22" height="22" rx="2" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M60,-14 L74,0 L60,14 L46,0 Z" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M60,30 L74,44 L60,58 L46,44 Z" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M60,74 L74,88 L60,102 L46,88 Z" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M60,118 L74,132 L60,146 L46,132 Z" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M120,52 L134,66 L120,80 L106,66 Z" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M192,71 L185,78 L175,78 L168,71 L168,61 L175,54 L185,54 L192,61 Z" stroke-width="2.4" style="fill:var(--surface, #ffffff);stroke:var(--kind-human-gate, #b25e09)"/>
+<circle cx="240" cy="66" r="6" style="fill:var(--ink, #2b302e)"/>
+</svg>

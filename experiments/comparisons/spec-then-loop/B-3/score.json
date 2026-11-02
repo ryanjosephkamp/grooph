@@ -1,0 +1,62 @@
+{
+  "scored_at": "2026-09-21T23:59:41.338Z",
+  "scorer": "scripts/lib/compare-score.mjs",
+  "held_out": {
+    "ran": true,
+    "command": "node --test <harness>/held-out/wrap-invariants.test.mjs",
+    "cases": 88,
+    "passed": 88,
+    "failed": 0,
+    "skipped": 0,
+    "rate": 1,
+    "failing": [],
+    "exit": 0,
+    "suite": [
+      {
+        "path": "wrap-invariants.test.mjs",
+        "sha256": "21f5a9903ceffde55490ae2baedf52a43a323584675c40d9d7361a66cd362f16"
+      }
+    ]
+  },
+  "tests": {
+    "command": "npm test",
+    "exit": 0,
+    "pass": true,
+    "tests": 9,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "failing": [],
+    "error": null
+  },
+  "scope": {
+    "allowed": [
+      "src/",
+      "tests/",
+      "README.md",
+      "ACCEPTANCE.md",
+      "REVIEW.md",
+      "CHANGES.md"
+    ],
+    "ignored": [
+      ".grooph/",
+      ".claude/"
+    ],
+    "changed": [
+      "ACCEPTANCE.md",
+      "CHANGES.md",
+      "README.md",
+      "REVIEW.md",
+      "src/wrap.mjs",
+      "tests/wrap.test.mjs"
+    ],
+    "outside": [],
+    "protected": [],
+    "protected_changed": []
+  },
+  "ending": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  }
+}

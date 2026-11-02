@@ -1,0 +1,50 @@
+{
+  "problems": [
+    "the final note names no stop, stop node or halt at a gate: {\"id\":\"n-0028\",\"run\":\"20260920-200356\",\"at\":\"graph\",\"ended\":\"2026-09-20T20:19:07Z\",\"outcome\":\"halt\",\"text\":\"run halted after round 1 on session USD budget exhaustion (not a graph stop); resume with the same run id from e-triage-fail into builder round 2 with TRIAGE.md as evidence\"}",
+    "the run ended by nothing named; the template expects one of: halt at gate",
+    "note n-0014: loop:review records 8 dispatches, but 6 started line(s) at its members precede it",
+    "note n-0027: loop:review records 16 dispatches, but 12 started line(s) at its members precede it"
+  ],
+  "findings": [
+    "run id 20260920-200356: the clock form",
+    "REVIEW-CORRECTNESS.md: correctness Write .grooph/search-user-files/runs/20260920-200356/REVIEW-CORRECTNESS.md; correctness Write .grooph/search-user-files/runs/20260920-200356/REVIEW-CORRECTNESS.md",
+    "REVIEW-SECURITY.md: security Write .grooph/search-user-files/runs/20260920-200356/REVIEW-SECURITY.md; security Write .grooph/search-user-files/runs/20260920-200356/REVIEW-SECURITY.md",
+    "REVIEW-PERFORMANCE.md: performance Write .grooph/search-user-files/runs/20260920-200356/REVIEW-PERFORMANCE.md; performance Write .grooph/search-user-files/runs/20260920-200356/REVIEW-PERFORMANCE.md",
+    "REVIEW-TASTE.md: taste Write .grooph/search-user-files/runs/20260920-200356/REVIEW-TASTE.md; taste Write .grooph/search-user-files/runs/20260920-200356/REVIEW-TASTE.md",
+    "TRIAGE.md: triage Write .grooph/search-user-files/runs/20260920-200356/TRIAGE.md; triage Write .grooph/search-user-files/runs/20260920-200356/TRIAGE.md",
+    "per-round report copies in the run folder: TRIAGE.md round 0",
+    "per-round report copies missing from the run folder (LEAD.md \u00a78; only the last round's survives in project.diff): REVIEW-CORRECTNESS.md round 0, REVIEW-SECURITY.md round 0, REVIEW-PERFORMANCE.md round 0, REVIEW-TASTE.md round 0",
+    "search-user-files--security (Security review round 0) read .grooph/search-user-files/runs/20260920-200356/DIFF.patch, src/store.mjs, tests/store.test.mjs, package.json, README.md; ran `npm test 2>&1 | tail -15; node -e '\nimport(\"<local path>\u2026`",
+    "search-user-files--correctness (Correctness review round 0) read .grooph/search-user-files/runs/20260920-200356/DIFF.patch, src/store.mjs, tests/store.test.mjs, .grooph/search-user-files/runs/20260920-200356/NPM-TEST.txt; ran `npm test 2>&1 | tail -12`, `node -e '\nimport(\"<local path>\u2026`",
+    "search-user-files--taste (Taste review round 1) read .grooph/search-user-files/runs/20260920-200356/DIFF.patch, src/store.mjs, tests/store.test.mjs, README.md; ran nothing",
+    "search-user-files--triage (Triage round 1) read .grooph/search-user-files/runs/20260920-200356/REVIEW-CORRECTNESS.md, .grooph/search-user-files/runs/20260920-200356/REVIEW-SECURITY.md, .grooph/search-user-files/runs/20260920-200356/REVIEW-PERFORMANCE.md, .grooph/search-user-files/runs/20260920-200356/REVIEW-TASTE.md; ran nothing",
+    "search-user-files--correctness (Correctness review round 1) read .grooph/search-user-files/runs/20260920-200356/DIFF.patch, src/store.mjs, tests/store.test.mjs, .grooph/search-user-files/runs/20260920-200356/NPM-TEST.txt; ran `npm test 2>&1 | tail -12`, `node -e '\nimport(\"./src/store.mjs\").then(({searchFiles, writeUserFile, listFiles}) => {\n  \u2026`",
+    "search-user-files--triage (Triage round 0) read .grooph/search-user-files/runs/20260920-200356/REVIEW-CORRECTNESS.md, .grooph/search-user-files/runs/20260920-200356/REVIEW-SECURITY.md, .grooph/search-user-files/runs/20260920-200356/REVIEW-PERFORMANCE.md, .grooph/search-user-files/runs/20260920-200356/REVIEW-TASTE.md; ran nothing",
+    "search-user-files--taste (Taste review round 0) read .grooph/search-user-files/runs/20260920-200356/DIFF.patch, src/store.mjs, tests/store.test.mjs, README.md; ran nothing",
+    "search-user-files--performance (Performance review round 1) read .grooph/search-user-files/runs/20260920-200356/DIFF.patch, src/store.mjs, tests/store.test.mjs, README.md; ran `node --test tests/ 2>&1 | tail -15`, `node --test tests/store.test.mjs 2>&1 | tail -12`",
+    "search-user-files--performance (Performance review round 0) read .grooph/search-user-files/runs/20260920-200356/DIFF.patch, src/store.mjs, tests/store.test.mjs, README.md; ran `node --test tests/ 2>&1 | tail -8`, `node --test tests/store.test.mjs 2>&1 | tail -12`",
+    "search-user-files--security (Security review round 1) read .grooph/search-user-files/runs/20260920-200356/DIFF.patch, src/store.mjs, tests/store.test.mjs, README.md, package.json; ran `node --test tests/*.test.mjs 2>&1 | tail -15`",
+    "no `ending` line before the final note n-0028 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "proposal patches replayed on the source: n-0027: no op list",
+    "dispatch count: n-0014 review r0 recorded 8, started lines 6; n-0027 review r1 recorded 16, started lines 12 (off by 4)",
+    "back edge taken: e-triage-fail; 1 loop note(s) beyond round 0; caught by triage (fail)",
+    "verdicts in order: correctness \u2192 done, done; security \u2192 done, done; performance \u2192 done, done; taste \u2192 done, done; triage \u2192 fail, fail",
+    "timestamps: 28 given, 0 out of append order",
+    "permission denials: Bash `cat > .grooph/search-user-files/runs/20260920-200356/PROGRESS.md <<'EOF'\n# Run 2`; Bash `TS=$(date -u +%Y-%m-%dT%H:%M:%SZ); printf '%s\\n' \"{\\\"id\\\":\\\"n-0004\\\",\\\"run\\\":\\\"2`; Bash `cat >> .grooph/search-user-files/runs/20260920-200356/notes.jsonl <<'EOF'\n{\"id\":`"
+  ],
+  "facts": {
+    "ending": [],
+    "back_edges": {
+      "later_rounds": 1,
+      "edge_notes": [],
+      "mentioned": [
+        "e-triage-fail"
+      ],
+      "caught_by": [
+        "triage (fail)"
+      ],
+      "taken": true
+    },
+    "last_round": 1
+  }
+}

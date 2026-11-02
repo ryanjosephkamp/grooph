@@ -1,0 +1,318 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 83e52ac..5d70594 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,8 @@
+ 
+ ## Unreleased
+ 
++- Added `layer(base, over)`: lays `over` on top of `base`, layering plain objects key by key at any depth and replacing any other value; returns a new object and never copies `__proto__`, `constructor` or `prototype` keys.
++
+ ## 0.4.0 — 2026-09-12
+ 
+ - Added a `fallback` argument to `getPath(settings, path, fallback)`: returned when the path is missing.
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..0380acc
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,12 @@
++# Changes
++
++## Round 1
++
++Addressed the two failing groups in REVIEW.md's held-out suite report.
++
++- Group "undefined" (4 failures): a key whose value is `undefined` now counts as not given. In `src/layer.mjs`, `merge` skips `undefined` values in `over` (so `base`'s value, or its object, is kept and a key only `over` has with `undefined` does not appear, at any depth), and `copy` leaves out `undefined` values so none reach the result. I applied the same rule to `base` for consistency, so the result never holds an `undefined` value (a judgement call; the report only specified `over`). `undefined` inside arrays is unchanged, since positions matter.
++- Group "not plain data" (7 failures): added `assertPlainData` in `src/layer.mjs`, run on both arguments before merging. A function, Map, Set or class instance anywhere (nested objects, inside arrays, in `base` or `over`, even a `base` value that `over` would replace) throws a `TypeError`. Values under forbidden keys are not checked since they are dropped. `Date` values are still accepted and copied, as before (the checklist treats `Date` as data in values; it is only refused as an argument).
++- Note on checklist item 4 (shared references for such values): resolved by the same change, since those values are now refused rather than copied by reference.
++- Tests added in `tests/layer.test.mjs`: undefined-in-over (all four reported cases plus nested), undefined-in-base, refusal of function/Map/Set/class instance in many positions, and Dates/null still accepted.
++- Round 0 items 1-8 were reported satisfied; their behaviour is unchanged.
++- `CHANGELOG.md` line left as is.
+diff --git a/REVIEW.md b/REVIEW.md
+new file mode 100644
+index 0000000..78b587c
+--- /dev/null
++++ b/REVIEW.md
+@@ -0,0 +1,15 @@
++# Review
++
++1. satisfied: `src/layer.mjs:74` has `export function layer(base, over)`.
++2. satisfied: behaviour in `src/layer.mjs:46-57` (merge); tests in `tests/layer.test.mjs:6` (checklist example), `:13` (any depth), `:19` (keys only one side has), `:25` (array/number/string/boolean/null replace), `:34` (array replaced whole, never joined).
++3. satisfied: `src/layer.mjs:75-76` throws TypeError for non-plain-object arguments; `tests/layer.test.mjs:41` covers array, null, string, number, Date, undefined, boolean, function, and missing arguments.
++4. satisfied: `copy` in `src/layer.mjs:33-44` deep-copies objects, arrays (inside arrays too) and Dates; tests at `tests/layer.test.mjs:52` (arguments unchanged) and `:70` (no shared object or array, mutation of result leaves layers intact).
++5. satisfied: `FORBIDDEN` filter in `src/layer.mjs:1`, applied in `copy` and `merge`, results built as `{}`; test at `tests/layer.test.mjs:88` (both arguments, nested, inside arrays, prototype is Object.prototype) and `:112` (null-prototype inputs).
++6. satisfied: `CHANGELOG.md:5` under `## Unreleased` names `layer` and says what it does, in the style of the entries below.
++7. satisfied: `npm test` exits 0, 17 tests, 17 pass, 0 fail, 0 skipped, 0 todo.
++8. satisfied: `git status --porcelain` shows only `CHANGELOG.md` (modified), `src/layer.mjs`, `tests/layer.test.mjs`, plus the records `CHANGES.md` and `REVIEW.md`.
++
++npm test: exit 0, 17 pass / 0 fail / 0 skipped / 0 todo.
++held-out suite: 55 pass / 0 fail, no failing cases.
++
++verdict: pass
+diff --git a/src/layer.mjs b/src/layer.mjs
+new file mode 100644
+index 0000000..e5433b5
+--- /dev/null
++++ b/src/layer.mjs
+@@ -0,0 +1,80 @@
++const FORBIDDEN = new Set(["__proto__", "constructor", "prototype"]);
++
++function isPlainObject(value) {
++  if (value === null || typeof value !== "object") return false;
++  const proto = Object.getPrototypeOf(value);
++  return proto === Object.prototype || proto === null;
++}
++
++// Refuses anything that is not plain data: functions, Maps, Sets, class
++// instances and the like, anywhere (inside arrays too). Dates are data.
++// Forbidden keys are dropped later, so what sits under them is not checked.
++function assertPlainData(value, path) {
++  if (typeof value === "function") {
++    throw new TypeError(`layer: ${path} is a function, not plain data`);
++  }
++  if (value === null || typeof value !== "object") return;
++  if (Array.isArray(value)) {
++    value.forEach((item, i) => assertPlainData(item, `${path}[${i}]`));
++    return;
++  }
++  if (value instanceof Date) return;
++  if (!isPlainObject(value)) {
++    throw new TypeError(`layer: ${path} is not plain data`);
++  }
++  for (const key of Object.keys(value)) {
++    if (FORBIDDEN.has(key)) continue;
++    assertPlainData(value[key], `${path}.${key}`);
++  }
++}
++
++// Deep copy that shares no object or array with the source, drops forbidden
++// keys at every depth (inside arrays too) and yields ordinary objects.
++// Keys holding undefined count as not given and are left out.
++function copy(value) {
++  if (Array.isArray(value)) return Array.from(value, copy);
++  if (value instanceof Date) return new Date(value.getTime());
++  if (isPlainObject(value)) {
++    const out = {};
++    for (const key of Object.keys(value)) {
++      if (FORBIDDEN.has(key) || value[key] === undefined) continue;
++      out[key] = copy(value[key]);
++    }
++    return out;
++  }
++  return value;
++}
++
++function merge(base, over) {
++  const out = copy(base);
++  for (const key of Object.keys(over)) {
++    if (FORBIDDEN.has(key) || over[key] === undefined) continue;
++    if (Object.hasOwn(out, key) && isPlainObject(base[key]) && isPlainObject(over[key])) {
++      out[key] = merge(base[key], over[key]);
++    } else {
++      out[key] = copy(over[key]);
++    }
++  }
++  return out;
++}
++
++/**
++ * Lays `over` on top of `base` and returns the combined settings.
++ * Plain objects under the same key are layered key by key, at any depth;
++ * any other value in `over` replaces the one in `base`; keys only one side
++ * has are kept. Neither argument is changed and the result shares no object
++ * or array with them. Keys named __proto__, constructor and prototype are
++ * never copied. A key whose value is undefined counts as not given. A
++ * function, Map, Set or class instance anywhere in either argument throws a
++ * TypeError.
++ * @param {object} base
++ * @param {object} over
++ * @returns {object}
++ */
++export function layer(base, over) {
++  if (!isPlainObject(base)) throw new TypeError("layer: base must be a plain object");
++  if (!isPlainObject(over)) throw new TypeError("layer: over must be a plain object");
++  assertPlainData(base, "base");
++  assertPlainData(over, "over");
++  return merge(base, over);
++}
+diff --git a/tests/layer.test.mjs b/tests/layer.test.mjs
+new file mode 100644
+index 0000000..f856f66
+--- /dev/null
++++ b/tests/layer.test.mjs
+@@ -0,0 +1,174 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { layer } from "../src/layer.mjs";
++
++test("layer lays over on top of base, key by key", () => {
++  assert.deepEqual(
++    layer({ a: 1, b: { c: 2, d: 3 } }, { b: { c: 9 }, e: 5 }),
++    { a: 1, b: { c: 9, d: 3 }, e: 5 },
++  );
++});
++
++test("layer layers plain objects at any depth", () => {
++  const base = { a: { b: { c: { d: 1, e: 2 }, f: 3 } } };
++  const over = { a: { b: { c: { e: 20, g: 30 } } } };
++  assert.deepEqual(layer(base, over), { a: { b: { c: { d: 1, e: 20, g: 30 }, f: 3 } } });
++});
++
++test("layer keeps keys only one side has", () => {
++  assert.deepEqual(layer({ a: 1 }, {}), { a: 1 });
++  assert.deepEqual(layer({}, { a: 1 }), { a: 1 });
++  assert.deepEqual(layer({}, {}), {});
++});
++
++test("layer replaces with arrays, numbers, strings, booleans and null", () => {
++  const base = { a: { x: 1 }, b: { x: 1 }, c: { x: 1 }, d: { x: 1 }, e: { x: 1 } };
++  const over = { a: [1], b: 2, c: "s", d: false, e: null };
++  assert.deepEqual(layer(base, over), over);
++  assert.deepEqual(layer({ a: 1, b: "x", c: true, d: null }, { a: { y: 1 }, b: { y: 2 }, c: { y: 3 }, d: { y: 4 } }), {
++    a: { y: 1 }, b: { y: 2 }, c: { y: 3 }, d: { y: 4 },
++  });
++});
++
++test("layer replaces an array whole and never joins it", () => {
++  assert.deepEqual(layer({ list: [1, 2, 3] }, { list: [9] }), { list: [9] });
++  assert.deepEqual(layer({ list: [1, 2, 3] }, { list: [] }), { list: [] });
++  assert.deepEqual(layer({ list: { a: 1 } }, { list: [1] }), { list: [1] });
++  assert.deepEqual(layer({ list: [1] }, { list: { a: 1 } }), { list: { a: 1 } });
++});
++
++test("layer refuses arguments that are not plain objects", () => {
++  const ok = {};
++  for (const bad of [[], null, "str", 3, new Date(), undefined, true, () => {}]) {
++    assert.throws(() => layer(bad, ok), TypeError);
++    assert.throws(() => layer(ok, bad), TypeError);
++  }
++  assert.throws(() => layer(), TypeError);
++  assert.throws(() => layer(ok), TypeError);
++  assert.throws(() => layer(undefined, ok), TypeError);
++});
++
++test("layer changes neither argument", () => {
++  const base = { a: 1, b: { c: 2, list: [{ k: 1 }] } };
++  const over = { b: { c: 9, more: { z: 1 } }, e: [1, { q: 2 }] };
++  const baseCopy = structuredClone(base);
++  const overCopy = structuredClone(over);
++  layer(base, over);
++  assert.deepEqual(base, baseCopy);
++  assert.deepEqual(over, overCopy);
++});
++
++function collect(value, seen = new Set()) {
++  if (value !== null && typeof value === "object") {
++    seen.add(value);
++    for (const v of Object.values(value)) collect(v, seen);
++  }
++  return seen;
++}
++
++test("layer result shares no object or array with the arguments", () => {
++  const base = { a: { b: [1, { c: 1 }, [2, { d: 2 }]] }, keep: { deep: { deeper: [{ x: 1 }] } }, when: new Date(0) };
++  const over = { a: { n: { m: [{ o: 1 }] } }, arr: [[{ p: 1 }]], b: { z: 1 } };
++  const result = layer(base, over);
++  const inputs = new Set([...collect(base), ...collect(over)]);
++  for (const obj of collect(result)) assert.equal(inputs.has(obj), false);
++
++  // changing the result later never changes a layer
++  result.a.b[1].c = 99;
++  result.keep.deep.deeper.push(1);
++  result.arr[0][0].p = 99;
++  result.a.n.m[0].o = 99;
++  assert.equal(base.a.b[1].c, 1);
++  assert.equal(base.keep.deep.deeper.length, 1);
++  assert.equal(over.arr[0][0].p, 1);
++  assert.equal(over.a.n.m[0].o, 1);
++});
++
++test("layer never copies __proto__, constructor or prototype keys", () => {
++  const evilBase = JSON.parse(
++    '{"__proto__":{"polluted":1},"a":{"__proto__":{"polluted":2},"constructor":{"x":1},"ok":1},"list":[{"__proto__":{"polluted":3},"prototype":1,"ok":2}]}',
++  );
++  const evilOver = JSON.parse(
++    '{"__proto__":{"polluted":4},"constructor":{"prototype":{"polluted":5}},"a":{"prototype":{"y":1},"b":2},"list2":[[{"__proto__":{"polluted":6},"ok":3}]]}',
++  );
++  const result = layer(evilBase, evilOver);
++
++  assert.equal({}.polluted, undefined);
++  assert.deepEqual(result, { a: { ok: 1, b: 2 }, list: [{ ok: 2 }], list2: [[{ ok: 3 }]] });
++
++  const walk = (value) => {
++    if (value === null || typeof value !== "object") return;
++    if (Array.isArray(value)) return value.forEach(walk);
++    assert.equal(Object.getPrototypeOf(value), Object.prototype);
++    for (const key of ["__proto__", "constructor", "prototype"]) {
++      assert.equal(Object.hasOwn(value, key), false);
++    }
++    Object.values(value).forEach(walk);
++  };
++  walk(result);
++});
++
++test("layer returns ordinary objects even for prototype-less inputs", () => {
++  const base = Object.create(null);
++  base.a = Object.create(null);
++  base.a.x = 1;
++  const result = layer(base, { a: { y: 2 } });
++  assert.equal(Object.getPrototypeOf(result), Object.prototype);
++  assert.equal(Object.getPrototypeOf(result.a), Object.prototype);
++  assert.deepEqual(result, { a: { x: 1, y: 2 } });
++});
++
++test("layer treats an undefined value in over as not given", () => {
++  assert.deepEqual(layer({ verbose: true }, { verbose: undefined }), { verbose: true });
++  const kept = layer({ output: { color: "auto" } }, { output: undefined });
++  assert.deepEqual(kept, { output: { color: "auto" } });
++  assert.deepEqual(
++    layer({ output: { color: "auto", width: 80 } }, { output: { color: undefined, width: 100 } }),
++    { output: { color: "auto", width: 100 } },
++  );
++  const added = layer({ a: 1 }, { pager: undefined });
++  assert.deepEqual(Object.keys(added), ["a"]);
++  assert.equal(Object.hasOwn(added, "pager"), false);
++  assert.deepEqual(Object.keys(layer({ a: 1 }, { o: { x: undefined } }).o), []);
++});
++
++test("layer leaves out undefined values from base too", () => {
++  assert.deepEqual(Object.keys(layer({ a: undefined, b: 1 }, {})), ["b"]);
++  assert.deepEqual(Object.keys(layer({ a: { x: undefined } }, {}).a), []);
++});
++
++class Point {
++  constructor(x, y) {
++    this.x = x;
++    this.y = y;
++  }
++}
++
++test("layer refuses functions, Maps, Sets and class instances anywhere", () => {
++  const cases = {
++    "function in over": () => layer({}, { onChange: () => 1 }),
++    "Map in over": () => layer({}, { lookup: new Map([["a", 1]]) }),
++    "Set in over": () => layer({}, { tags: new Set(["a"]) }),
++    "class instance in over": () => layer({}, { origin: new Point(0, 0) }),
++    "function in array": () => layer({}, { hooks: [() => 1] }),
++    "function in nested array": () => layer({}, { hooks: [[{ f() {} }]] }),
++    "function deep in base": () => layer({ output: { format: (x) => x } }, {}),
++    "class instance deep in over": () => layer({ a: { b: 1 } }, { a: { b: new Point(1, 2) } }),
++    "class instance in base array": () => layer({ list: [new Point(1, 2)] }, {}),
++    "Map in base": () => layer({ m: new Map() }, {}),
++    "base value that over replaces": () => layer({ a: new Set() }, { a: 1 }),
++    "over value that replaces nothing": () => layer({ a: { b: 1 } }, { a: { c: () => 1 } }),
++  };
++  for (const [name, run] of Object.entries(cases)) {
++    assert.throws(run, TypeError, name);
++  }
++});
++
++test("layer still accepts Dates, null and plain data values", () => {
++  const when = new Date(5);
++  const result = layer({ a: null }, { when, list: [1, "x", null, { y: true }], n: Object.create(null) });
++  assert.equal(result.when.getTime(), 5);
++  assert.notEqual(result.when, when);
++  assert.equal(result.a, null);
++});

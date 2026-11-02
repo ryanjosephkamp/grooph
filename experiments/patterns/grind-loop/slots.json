@@ -1,0 +1,7 @@
+{
+  "name": "Semver compare",
+  "values": {
+    "task": "Implement `compare(a, b)` in src/semver.mjs so that every test in tests/semver.test.mjs passes. The tests are the specification: do not change them.",
+    "test-command": "npm test"
+  }
+}

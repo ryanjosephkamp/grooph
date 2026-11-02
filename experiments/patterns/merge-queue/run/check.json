@@ -1,0 +1,35 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260922-051355: the clock form",
+    "BISECT.md: bisect Write BISECT.md",
+    "the final note is at node:land-gate, not at graph",
+    "ending as expected: halt at land-gate",
+    "LANDED.txt absent, as expected",
+    "LANDING.md absent, as expected",
+    "QUEUE.md: 1 added line(s) match /^\\| queue/002-search-case\\.patch \\| held \\|/: \"| queue/002-search-case.patch | held | search ignores case (review: ok); held by\"",
+    "bisect wrote 5 file(s): QUEUE.md, BISECT.md",
+    "BISECT.md names queue/002-search-case.patch; no line says which won in so many words",
+    "dispatch count: n-0011 queue r0 recorded 2, started lines 2; n-0014 queue r1 recorded 3, started lines 3 (exact)",
+    "back edge taken: e-bisect-integrate; 1 loop note(s) beyond round 0; caught by integrate",
+    "timestamps: 20 given, 0 out of append order",
+    "permission denials: Bash `echo '{\"id\":\"n-0002\",\"run\":\"20260922-051355\",\"at\":\"node:builder\",\"started\":\"'$(d`"
+  ],
+  "facts": {
+    "ending": [
+      "halt at land-gate"
+    ],
+    "back_edges": {
+      "later_rounds": 1,
+      "edge_notes": [],
+      "mentioned": [
+        "e-bisect-integrate"
+      ],
+      "caught_by": [
+        "integrate"
+      ],
+      "taken": true
+    },
+    "last_round": 1
+  }
+}

@@ -1,0 +1,178 @@
+#!/usr/bin/env node
+/**
+ * What the app and the CLI weigh, against a budget: so polish never costs speed without someone deciding it should.
+ *
+ *   node scripts/perf-budget.mjs            print the numbers
+ *   node scripts/perf-budget.mjs --check    the same, and exit 1 when a number is over its budget
+ *
+ * It reads the built app (apps/web/dist: run `pnpm -r build` first) and times the built CLI. Sizes are gzip, in units of 1,024 bytes,
+ * which is what GitHub Pages sends. The app's first load is index.html, its scripts and its styles, at the front page;
+ * an address that draws on the canvas (a graph, a link, a run) loads the canvas screens as well; an embed's
+ * is what an `#/embed` address loads, which is much less (the build lists the sets in dist/routes.json). Budgets are in
+ * scripts/perf-budget.json; raising one is a decision, made in a pull request that says why.
+ *
+ * the front page's own picture is a file only the front page asks for: it is in the first load, which
+ * is the front page's, and not in a canvas's. The built-in templates are a file the template screens ask for: a graph or a
+ * share link does not load it, so the canvas's line does not count it, and a template's own address, which does, has a line
+ * of its own with the limit the canvas's line has had.
+ *
+ * the site's fonts are its own files, and they have a line of their own: the two a first visit to the
+ * front page fetches (the upright face and the mono one; the italic is fetched by a page that has italics), as they are
+ * sent, since woff2 is already compressed. They are asked for once the page is up, so they are not in the first load; the
+ * last line is what a first visit to the front page fetches in all: the first load, those fonts and the footer's icons.
+ * apps/web/e2e/landing.spec.ts checks that the front page asks for exactly these fonts.
+ */
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { gzipSync } from "node:zlib";
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const dist = join(root, "apps", "web", "dist");
+const budget = JSON.parse(readFileSync(join(root, "scripts", "perf-budget.json"), "utf8"));
+const kb = (file) => gzipSync(readFileSync(file)).length / 1024;
+// A figure is compared with its budget as it is, and printed to two places so a reader sees what was compared.
+// It was once rounded to one place first, and a template's address at 276.04 read "ok 276 of 276".
+const two = (n) => n.toFixed(2);
+
+if (!existsSync(join(dist, "index.html"))) {
+  console.error("perf-budget: apps/web/dist/index.html is not there. Run pnpm -r build first.");
+  process.exit(1);
+}
+const sum = (files) => files.reduce((n, f) => n + kb(join(dist, f)), 0);
+const html = kb(join(dist, "index.html"));
+// What each address loads. since then the entry chooses by the address, and the build writes the sets to
+// routes.json. A build without that file cannot be weighed: index.html names only the entry script.
+if (!existsSync(join(dist, "routes.json"))) {
+  console.error("perf-budget: apps/web/dist/routes.json is not there, so there is nothing to say what each address loads. The build should have written it (apps/web/vite.config.ts).");
+  process.exit(1);
+}
+const routes = JSON.parse(readFileSync(join(dist, "routes.json"), "utf8"));
+const appJs = [...routes.entry, ...routes.app.js];
+const appCss = routes.app.css;
+// the front page's picture and tiles are a piece that only the front page's address asks for,
+// beside the app, in its first round. The first load is the front page's, so the piece is weighed in it; an
+// address that draws on the canvas does not fetch it. A build that does not say which files it is would let the
+// first load read lighter than the front page is, which is not a pass.
+if (!Array.isArray(routes.front) || routes.front.length === 0) {
+  console.error("perf-budget: apps/web/dist/routes.json does not say which files hold the front page's picture (front). The build should have listed them (apps/web/vite.config.ts).");
+  process.exit(1);
+}
+const everywhere = sum(appJs);
+const js = everywhere + sum(routes.front);
+const css = sum(appCss);
+// And the built-in templates are a piece the template screens fetch. An address that draws on the canvas does not
+// carry them any more, so the canvas's line no longer says what a template's own address loads: that address has a
+// line of its own, the app, the canvas's screens and the templates, held to the limit the canvas's line has had.
+if (!Array.isArray(routes.templates) || routes.templates.length === 0) {
+  console.error("perf-budget: apps/web/dist/routes.json does not say which files hold the built-in templates (templates). The build should have listed them (apps/web/vite.config.ts).");
+  process.exit(1);
+}
+const embed = sum([...routes.entry, ...routes.embed.js, ...routes.embed.css]) + html;
+// the canvas screens are a set of their own, loaded by the addresses that draw on the canvas.
+const canvasFiles = [...routes.canvas.js, ...routes.canvas.css];
+const canvas = everywhere + css + html + sum(canvasFiles);
+const template = canvas + sum(routes.templates);
+// a map's view in three dimensions is a piece of its own, fetched only when it is chosen. No
+// address loads it, so it is in no line above; it has a line to itself. A build that does not say which files
+// it is cannot be weighed, and a piece with no files weighs nothing, which is not a pass.
+if (!Array.isArray(routes.space) || routes.space.length === 0) {
+  console.error("perf-budget: apps/web/dist/routes.json does not say which files draw a map in three dimensions (space). The build should have listed them (apps/web/vite.config.ts).");
+  process.exit(1);
+}
+const space = sum(routes.space);
+// a graph has other kinds of view in three dimensions, all in one piece that choosing any of them
+// fetches; and since then every address that draws on the canvas fetches, once the canvas is drawn, the piece
+// that holds the switch and the graph's reading. Neither is in an address's first load, so neither is in a line
+// above, and each has a line to itself: a piece nothing measures grows. As with the map's, a build that does not
+// say which files they are cannot be weighed.
+for (const [key, what] of [
+  ["stage", "draw a graph's other kinds of view in three dimensions (stage)"],
+  ["views", "hold the switch between a graph's views (views)"],
+  ["more", "draw a graph's kinds of view that are not in the stage (more)"],
+  ["sketch", "read a sketch drawn by hand (sketch)"],
+]) {
+  if (!Array.isArray(routes[key]) || routes[key].length === 0) {
+    console.error(`perf-budget: apps/web/dist/routes.json does not say which files ${what}. The build should have listed them (apps/web/vite.config.ts).`);
+    process.exit(1);
+  }
+}
+const stage = sum(routes.stage);
+const views = sum(routes.views);
+// And the kinds the stage's piece has no room for (Rings, and Columns with it) are a piece of their own, fetched
+// beside the stage when one of them is chosen: all the kinds together would pass the stage's line.
+const more = sum(routes.more);
+// And Sketch it, with mermaidify's drawing surface and reader: fetched when it is pressed, on no address's first load.
+const sketch = sum(routes.sketch);
+// The fonts and the icons are files of public/, under names that carry a version, so they are named here and not found.
+const FIRST_VISIT_FONTS = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2"];
+const ICONS = "assets/site-icons.v1.svg";
+for (const f of [...FIRST_VISIT_FONTS, ICONS]) {
+  if (!existsSync(join(dist, f))) {
+    console.error(`perf-budget: apps/web/dist/${f} is not there. The front page asks for it (apps/web/src/styles.css, ui/landing/Chrome.tsx).`);
+    process.exit(1);
+  }
+}
+const sent = (file) => statSync(join(dist, file)).size / 1024;
+const fonts = FIRST_VISIT_FONTS.reduce((n, f) => n + sent(f), 0);
+const firstVisit = js + css + html + fonts + kb(join(dist, ICONS));
+const counted = new Set([...appJs, ...routes.front, ...routes.templates, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css, ...routes.space, ...routes.stage, ...routes.views, ...routes.more, ...routes.sketch]);
+const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !counted.has(`assets/${f}`));
+
+// The CLI's cold start: the middle of five runs of the quickest command there is.
+const bin = join(root, "packages", "cli", "bin", "grooph.js");
+const times = [];
+for (let i = 0; i < 5; i += 1) {
+  const began = process.hrtime.bigint();
+  execFileSync(process.execPath, [bin, "--version"], { stdio: "ignore" });
+  times.push(Number(process.hrtime.bigint() - began) / 1e6);
+}
+const cli = times.sort((a, b) => a - b)[2];
+// grooph on a page (packages/cli/browser): the script a page loads with one tag, as a CDN sends it, gzipped. The ES
+// module beside it is the same code.
+const browserBuild = join(root, "packages", "cli", "dist", "browser", "grooph.global.js");
+if (!existsSync(browserBuild)) {
+  console.error("perf-budget: packages/cli/dist/browser/grooph.global.js is not there. Run pnpm -r build first.");
+  process.exit(1);
+}
+const browser = kb(browserBuild);
+
+const rows = [
+  ["the app's first load (HTML, scripts and styles), gzip KB", js + css + html, budget.firstLoadKB],
+  ["  of which scripts", js, budget.entryJsKB],
+  ["  of which styles", css, budget.cssKB],
+  ["the fonts a first visit to the front page fetches, KB as sent", fonts, budget.fontsKB],
+  ["a first visit to the front page in all (first load, fonts, icons), KB", firstVisit, budget.firstVisitKB],
+  ["the first load of an address that draws on the canvas, gzip KB", canvas, budget.canvasLoadKB],
+  ["the first load of a template's own address (the canvas's, and the built-in templates), gzip KB", template, budget.templateLoadKB],
+  ["an embed's first load, gzip KB", embed, budget.embedLoadKB],
+  ["a map in three dimensions: what choosing it fetches, on no address's first load, gzip KB", space, budget.mapSpaceKB],
+  ["a graph's other kinds of 3D: what choosing one fetches, on no address's first load, gzip KB", stage, budget.graphStageKB],
+  ["the kinds not in the stage (rings, columns): what choosing one fetches beside it, on no first load, gzip KB", more, budget.graphMoreKB],
+  ["the switch and the graph's reading: what every canvas fetches once it is drawn, gzip KB", views, budget.graphViewsKB],
+  ["Sketch: what choosing it over a graph fetches, on no address's first load, gzip KB", sketch, budget.sketchKB],
+  ["grooph on a page: the script a page loads with one tag (dist/browser/grooph.global.js), gzip KB", browser, budget.browserKB],
+  ["the CLI's cold start, ms (middle of five)", cli, budget.cliColdMs],
+];
+// A line with no limit is not held to anything: `value > undefined` is false, and it would read "ok". A budget
+// file that has lost a line, or has one that is not a number, is not a pass.
+const limitless = rows.filter(([, , limit]) => typeof limit !== "number" || !Number.isFinite(limit));
+if (limitless.length > 0) {
+  console.error(`perf-budget: scripts/perf-budget.json has no limit, as a number, for: ${limitless.map(([what]) => what.trim()).join("; ")}.`);
+  process.exit(1);
+}
+let over = 0;
+for (const [what, value, limit] of rows) {
+  const bad = value > limit;
+  if (bad) over += 1;
+  console.log(`${bad ? "OVER " : "ok   "} ${two(value).padStart(7)} of ${String(limit).padStart(5)}  ${what}`);
+}
+for (const f of others) console.log(`      ${two(kb(join(dist, "assets", f))).padStart(7)}            loaded later: ${f}`);
+for (const f of readdirSync(join(dist, "assets", "fonts")).filter((name) => name.endsWith(".woff2") && !FIRST_VISIT_FONTS.includes(`assets/fonts/${name}`))) {
+  console.log(`      ${two(sent(`assets/fonts/${f}`)).padStart(7)}            a font fetched by a page that uses it: ${f}`);
+}
+if (process.argv.includes("--check") && over > 0) {
+  console.error(`perf-budget: ${over} over budget. Make it lighter, or raise the budget in scripts/perf-budget.json in a pull request that says why.`);
+  process.exit(1);
+}

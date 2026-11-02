@@ -1,0 +1,7 @@
+[
+  { "name": "words in order, lower-cased", "fn": "tokenize", "args": ["Hello, World!"], "expect": ["hello", "world"] },
+  { "name": "an apostrophe inside a word stays", "fn": "tokenize", "args": ["Don't stop"], "expect": ["don't", "stop"] },
+  { "name": "runs of whitespace and punctuation are one boundary", "fn": "tokenize", "args": ["  one,  two...three  "], "expect": ["one", "two", "three"] },
+  { "name": "empty text has no words", "fn": "tokenize", "args": [""], "expect": [] },
+  { "name": "a non-string throws", "fn": "tokenize", "args": [42], "throws": "TypeError" }
+]

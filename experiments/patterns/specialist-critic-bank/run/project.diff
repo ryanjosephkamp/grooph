@@ -1,0 +1,623 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..50988d5
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,23 @@
++# Changes
++
++## Round 0
++
++- `src/store.mjs`: added `searchFiles(root, query, { within } = {})`. It
++  returns, sorted, the names of the files directly under the user's root (or
++  under the subfolder `within`) whose text contains `query`, using a plain
++  case-sensitive substring match. `query` must be a non-empty string.
++  - `within` is request input, so it is confined to the user's root: `..`,
++    absolute paths and symlinks that resolve outside the root are refused
++    with an error. A missing subfolder throws `ENOENT`.
++  - The file-listing logic in `listFiles` was pulled out into an internal
++    `fileNames(dir)` helper shared by both functions, so `searchFiles` reads
++    each file once (via `readUserFile`) instead of going through `listFiles`,
++    which would read every file a second time only to compute its size.
++    `listFiles` behaves exactly as before.
++- `README.md`: documented `searchFiles`, including the `within` confinement
++  and the error cases.
++- `tests/store.test.mjs`: eight new tests covering matches at the root,
++  sorting, exact/case-sensitive/multibyte matching, folders being ignored,
++  `within` (including nested subfolders and `""`/`"."` meaning the root),
++  traversal and symlink escapes, a `..`-prefixed folder name that is still
++  inside the root, missing `within`, and invalid queries.
+diff --git a/README.md b/README.md
+index b7b3264..af8931f 100644
+--- a/README.md
++++ b/README.md
+@@ -6,17 +6,26 @@ user's root and whatever the request carried: a file name, a subfolder, a
+ search string.
+ 
+ ```js
+-import { listFiles, readUserFile, writeUserFile } from "./src/store.mjs";
++import { listFiles, readUserFile, searchFiles, writeUserFile } from "./src/store.mjs";
+ 
+ writeUserFile(root, "notes.txt", "hello");
+ readUserFile(root, "notes.txt");        // "hello"
+ listFiles(root);                        // [{ name: "notes.txt", size: 5 }]
++searchFiles(root, "ell");               // ["notes.txt"]
++searchFiles(root, "ell", { within: "docs" });  // only files in root/docs
+ ```
+ 
+ - `readUserFile(root, name)` returns the text of the named file under `root`.
+ - `writeUserFile(root, name, text)` writes it, creating `root` if needed.
+ - `listFiles(root)` lists the files directly under `root` with their sizes in
+   bytes, sorted by name.
++- `searchFiles(root, query, { within })` returns, sorted, the names of the
++  files directly under `root` (or under the subfolder `within`, when the
++  request names one) whose text contains `query`. The match is a plain,
++  case-sensitive substring match, and `query` must be a non-empty string.
++  `within` is request input: anything that would escape the user's root, by
++  `..`, an absolute path or a symlink, is refused with an error, and a
++  subfolder that does not exist throws `ENOENT`.
+ 
+ Users keep anything from a few notes to thousands of documents of a few
+ megabytes each; the page calls the store on every request, with no cache in
+diff --git a/REVIEW-CORRECTNESS.md b/REVIEW-CORRECTNESS.md
+new file mode 100644
+index 0000000..2c0be04
+--- /dev/null
++++ b/REVIEW-CORRECTNESS.md
+@@ -0,0 +1,36 @@
++# Correctness review — round 0
++
++Evidence: `git diff`, `git diff --no-index /dev/null CHANGES.md`, the working tree, and my own `npm test` run (10 tests, 10 pass, 0 fail; matches .grooph/search-user-files/runs/20260921-032821/npm-test-round-0.txt).
++
++## Verdict
++
++No blocker, no major. The implementation returns the right results for the cases the task names, and the tests exercise them (root, subfolder, sorting, case sensitivity, multibyte, folders ignored, `""`/`"."`, traversal and symlink escapes, missing subfolder, invalid query). Findings below are minor gaps.
++
++## Findings
++
++### minor — `within` naming a file surfaces as a raw `ENOTDIR`, undocumented and untested
++
++- src/store.mjs:42-45 — `folderWithin` only checks containment; it never checks that `dir` is a directory. `searchFiles(root, q, { within: "a.txt" })` then reaches src/store.mjs:17 `readdirSync(dir)` and throws `ENOTDIR: not a directory, scandir …` (verified by running it).
++- README.md:26-28 documents `ENOENT` for a missing subfolder but says nothing about a `within` that exists and is a file.
++- tests/store.test.mjs:93-97 covers the missing case only; no test pins the file case.
++
++Not wrong, but the behaviour is accidental rather than chosen; either document `ENOTDIR` alongside `ENOENT` or add a test so the contract is stable.
++
++### minor — a symlinked *file* under the searched folder is read even when its target is outside the root
++
++- src/store.mjs:18 — `statSync` follows symlinks, so `root/leak.txt -> /elsewhere/theirs.txt` is listed as a file, and src/store.mjs:58 reads it through `readUserFile`. Verified: with such a link in place `searchFiles(root, "secret")` returns `["a.txt", "leak.txt"]`.
++- README.md:25-27 says "anything that would escape the user's root … by a symlink is refused", which a reader may take to cover files as well as the `within` folder; the code only checks the folder (src/store.mjs:42).
++
++This is pre-existing behaviour shared with `listFiles`/`readUserFile` (the store's own API cannot create symlinks), so I do not rate it higher; but the README sentence overstates what is enforced. Either narrow the wording to `within`, or apply `lstatSync` in `fileNames`.
++
++### minor — no test for a missing `root`
++
++- src/store.mjs:17 (no `within`) and src/store.mjs:42 (`realpathSync(root)` with `within`) both throw `ENOENT` when the root does not exist (verified), which is consistent, but tests/store.test.mjs has no case for it. Low value, noted for completeness.
++
++## Checked and found correct
++
++- src/store.mjs:30 — `..secret` is accepted and `..`/`../bob`/`docs/../../bob`/absolute paths are rejected (tests/store.test.mjs:65-78).
++- src/store.mjs:42 — realpath comparison on both sides handles a root that is itself a symlink, and a folder symlink pointing outside the root (tests/store.test.mjs:80-88).
++- src/store.mjs:39-40 — `null` for `within` falls to the `TypeError` branch; `undefined`/`""` mean the root; `"."` resolves to the root and is accepted.
++- src/store.mjs:23-24 — `listFiles` behaviour unchanged after the `fileNames` extraction (tests/store.test.mjs:12-25 still pass).
++- README.md:12-13 example output matches actual behaviour.
+diff --git a/REVIEW-PERFORMANCE.md b/REVIEW-PERFORMANCE.md
+new file mode 100644
+index 0000000..5bf6c4b
+--- /dev/null
++++ b/REVIEW-PERFORMANCE.md
+@@ -0,0 +1,70 @@
++# Performance review: `searchFiles` (round 0)
++
++Scope: work that grows badly with input, needless I/O, memory. README.md:30-32
++sets the load profile: up to thousands of documents of a few megabytes each,
++called on every request, no cache.
++
++## Major
++
++1. **src/store.mjs:58 — every search reads and UTF-8-decodes every file in the
++   folder, synchronously, on every request.**
++   `fileNames(dir).filter((name) => readUserFile(dir, name).includes(query))`
++   is O(total bytes in the folder) per request: for the documented upper end
++   (thousands of files x a few MB) that is gigabytes of disk I/O plus full
++   UTF-8 -> JS-string decoding per search, all via `readFileSync`, which
++   blocks the event loop of the HTTP layer for the whole scan. `includes`
++   then rescans the decoded string. There is no early exit, no size bound,
++   no streaming, no index. The task says "build on the store's existing
++   helpers", so a full scan is the expected baseline, but this is the cost
++   that will dominate and should be recorded: at minimum consider reading
++   as a Buffer and using `Buffer.includes(Buffer.from(query))` to skip the
++   decode (the query is plain-substring, so byte search is equivalent for
++   valid UTF-8), and consider an async/streaming read so a single large
++   user's search does not stall every other request.
++
++2. **src/store.mjs:24 — `listFiles` reads every file in full just to learn
++   its size, immediately after `fileNames` (line 18) already `stat`ed it.**
++   `fileNames` calls `statSync` per entry and discards the `Stats` object
++   (keeping only `isFile()`); `listFiles` then does `readFileSync(...).length`
++   per file. That is one full read of every document per listing (again
++   gigabytes at the documented upper end) when `stats.size` was already in
++   hand. This behaviour predates the change, but the diff rewrote this line
++   and introduced the helper that throws the size away, so it is the place to
++   fix it: have `fileNames` (or a sibling) return `{ name, size }` from the
++   stat, and drop the read.
++
++## Minor
++
++3. **src/store.mjs:17-18 — `readdirSync` followed by a `statSync` per entry.**
++   `readdirSync(dir, { withFileTypes: true })` returns `Dirent`s whose
++   `isFile()` answers the same question with no extra syscall, cutting
++   N stat syscalls per call (N = entries in the folder). Note that for
++   symlinked entries `Dirent.isFile()` is false where `statSync` follows the
++   link, so the semantics differ slightly; if following symlinked files is
++   required, keep `statSync` but reuse its `size` (see finding 2).
++
++4. **src/store.mjs:42 — two `realpathSync` calls per search with `within`.**
++   `realpathSync(root)` and `realpathSync(dir)` each walk every path
++   component. Fixed cost, small relative to finding 1; noted for
++   completeness. Could be reduced to one by checking that
++   `realpathSync(dir)` starts under `realpathSync(root)` computed once, but
++   both are needed for correctness, so this is at most a cache opportunity.
++
++5. **src/store.mjs:19 — `.sort()` on names.** O(N log N) string sort per call
++   is negligible next to the I/O; not a problem, listed only to state it was
++   considered.
++
++## Not a finding
++
++- Memory: files are read one at a time inside `filter` (line 58), so peak
++  memory is one document's UTF-8 buffer plus its decoded string (up to ~3x
++  the file size for non-ASCII text), not the whole folder. Acceptable for
++  "a few megabytes".
++- Tests (tests/store.test.mjs) use tiny fixtures; no performance test exists,
++  but none was asked for.
++
++## Verdict
++
++No blocker. Two major findings, both about full-file reads that scale with
++total bytes stored (searchFiles by design, listFiles needlessly), and three
++minor.
+diff --git a/REVIEW-SECURITY.md b/REVIEW-SECURITY.md
+new file mode 100644
+index 0000000..b0d6ea7
+--- /dev/null
++++ b/REVIEW-SECURITY.md
+@@ -0,0 +1,86 @@
++# Security review — `searchFiles` (round 0)
++
++Scope: input handling, secrets, authentication/authorisation, dependencies.
++Evidence: `git diff` (src/store.mjs, README.md, tests/store.test.mjs),
++`git diff --no-index /dev/null CHANGES.md`, the working tree, package.json.
++Test suite: `npm test` passes (10/10).
++
++## Blocker
++
++None.
++
++## Major
++
++### M1. Symlinked *files* inside the searched folder are followed and read from outside the root
++
++- `src/store.mjs:42` realpath-confines the `within` **directory** only.
++- `src/store.mjs:18` `fileNames` uses `statSync` (follows symlinks), so a
++  symlink to a file outside the root is classified as a regular file.
++- `src/store.mjs:58` then reads it via `readUserFile` -> `readFileSync`
++  (`src/store.mjs:6`), which also follows symlinks, and matches `query`
++  against its contents.
++
++Reproduced: with `root/leak.txt -> <outside>/outside.txt` containing
++`TOP-SECRET-TOKEN`, `searchFiles(root, "SECRET-TOK")` returns `["leak.txt"]`.
++Repeated queries turn this into a byte-by-byte substring oracle on any file
++the process can read (e.g. `/etc/passwd`, a `.env`, another user's root).
++
++The change's own threat model treats symlinks in the user's root as
++attacker-controlled (`tests/store.test.mjs:88-96` creates one and expects
++refusal), and `README.md:25-26` promises that "a symlink" escaping the root
++"is refused" — that promise holds for `within` but not for the files
++themselves. Either apply the same realpath check per file (or use `lstatSync`
++and skip non-regular files) before reading, or narrow the README claim.
++Note `listFiles`/`readUserFile` had the same gap before this change; the new
++function widens it from "size/contents of a named file" to "search across
++every symlink in the folder" and newly documents a guarantee it does not meet.
++
++## Minor
++
++### m1. Error messages echo raw request input and absolute server paths
++
++- `src/store.mjs:43` interpolates the unvalidated `within` string verbatim
++  into the thrown `Error` message (reproduced: `within must name a folder
++  under the user's root: ../bob<script>`).
++- `src/store.mjs:42` lets `realpathSync`'s ENOENT propagate; its message
++  carries the absolute filesystem path of the user's root (reproduced:
++  `ENOENT: no such file or directory, lstat '/private/var/.../alice/nope'`),
++  and `README.md:27` documents that ENOENT as the contract.
++
++If a caller surfaces `error.message` to the client this reflects attacker
++input and discloses server directory layout. Low severity at the store layer;
++worth noting so the HTTP layer maps these to a fixed message.
++
++### m2. Check-then-use gap between the realpath check and the read
++
++- `src/store.mjs:42` verifies `realpathSync(dir)` but `src/store.mjs:45`
++  returns the lexical `dir`, which `src/store.mjs:58` then reads. A symlink
++  swapped in between the check and `readdirSync`/`readFileSync` is not
++  re-checked. Small window, requires write access to the root, and M1 already
++  gives the same capability without a race — noted for completeness; fixing
++  M1 per file makes this moot.
++
++### m3. Unbounded read of every file on every request
++
++- `src/store.mjs:58` reads each file fully into memory for a plain
++  `includes`, with no cap on file count, file size or `query` length.
++  `README.md:31-32` states users hold thousands of multi-megabyte documents
++  and the store is called per request with no cache. A cheap request can make
++  the process read gigabytes, which is a resource-exhaustion vector if the
++  endpoint is reachable without rate limiting. Primarily a performance
++  concern (left to that reviewer); flagged here only for its DoS aspect.
++
++## Checked and clean
++
++- Path traversal via `within`: `src/store.mjs:28-31` lexical check handles
++  `..`, `../x`, absolute paths, and a `..`-prefixed folder name correctly;
++  `src/store.mjs:42` adds a realpath check for symlinked directories.
++  Tests at `tests/store.test.mjs:72-96` cover these. No bypass found.
++- `query` (`src/store.mjs:54-55`): typed as non-empty string and matched with
++  `String.prototype.includes` — no regex, so no ReDoS or injection.
++- Non-string `within` rejected (`src/store.mjs:40`).
++- Secrets: none introduced in the diff or CHANGES.md.
++- Auth: unchanged; the store trusts `root` as the caller's already-authorised
++  user root, consistent with the existing functions.
++- Dependencies: `package.json` declares none; the diff adds only `node:fs` /
++  `node:path` built-ins. No lockfile exists, but nothing to lock.
+diff --git a/REVIEW-TASTE.md b/REVIEW-TASTE.md
+new file mode 100644
+index 0000000..88cb482
+--- /dev/null
++++ b/REVIEW-TASTE.md
+@@ -0,0 +1,48 @@
++# REVIEW-TASTE — searchFiles (round 0)
++
++Scope: naming, structure, readability, fit with surrounding code. No blockers.
++
++## Minor
++
++1. `src/store.mjs:42` — the whole confinement check is one dense condition
++   mixing two different ideas (lexical containment via `resolve`, physical
++   containment via `realpathSync`). Two named booleans, or two `if`s with their
++   own comment, would read as the two-step defence the JSDoc on lines 34-36
++   describes. Also `resolve(root)` is recomputed here while line 41 already
++   resolved against `root`; hoisting `const base = resolve(root)` would tidy it.
++
++2. `src/store.mjs:39` vs `src/store.mjs:45` — `folderWithin` returns `root`
++   as given on the early path but an absolute, `resolve`d path on the other.
++   Harmless, but the function's return shape is inconsistent; returning
++   `resolve(root)` on line 39 too would make it uniform.
++
++3. `src/store.mjs:28` — `isWithin(root, dir)` reads as "root is within dir"
++   at the call site (`isWithin(resolve(root), dir)`, line 42). Something like
++   `contains(root, dir)` or `isUnder(dir, root)` would match argument order to
++   the name.
++
++4. `src/store.mjs:58` — `readUserFile(dir, name)` passes a subfolder as the
++   `root` of a helper documented (line 4) as "under the user's root". It
++   works and honours the brief's "build on existing helpers", but the
++   parameter name now lies slightly; `readFileSync(join(dir, name), "utf8")`
++   as on line 24 (`listFiles` reads directly too) would be more honest, or
++   the JSDoc on line 4 could be generalised.
++
++5. `tests/store.test.mjs:47` — test title says "skips an empty root" but the
++   root it builds is not empty (it holds a folder named `needle`). Title
++   should say something like "ignores folders, even ones whose name matches".
++
++6. `tests/store.test.mjs:62-66` and `:71-79` — the `within` tests pack four
++   to six assertions each with different intents (nested folder, `""`, `"."`,
++   `..`-prefixed name). Fine for a small suite, but a failing assertion will
++   name only the test, not the case; the sibling tests on lines 28-35 keep
++   one intent per test.
++
++## Fit
++
++- `fileNames` extraction (`src/store.mjs:16-20`) is a clean refactor;
++  `listFiles` (line 24) is unchanged in behaviour and shorter.
++- README entry (`README.md:22-28`) follows the existing bullet style and the
++  example block (`README.md:14-15`) matches the others.
++- `CHANGES.md` is a new top-level file the task did not ask for; its content
++  is accurate, but whether it belongs in the tree is for the lead.
+diff --git a/TRIAGE.md b/TRIAGE.md
+new file mode 100644
+index 0000000..818f825
+--- /dev/null
++++ b/TRIAGE.md
+@@ -0,0 +1,128 @@
++# Triage — round 0 — `searchFiles`
++
++Merged from REVIEW-CORRECTNESS.md, REVIEW-SECURITY.md, REVIEW-PERFORMANCE.md,
++REVIEW-TASTE.md. Every citation below was checked against the working tree.
++Duplicates are merged; a reviewer's own severity label is noted where I ranked
++differently and why.
++
++## Blocker
++
++None.
++
++## Major
++
++None.
++
++Three findings were labelled major by their reviewers and are ranked minor
++here; the reasons are given inline under each.
++
++## Minor
++
++1. **Symlinked files under the searched folder are read even when the target
++   is outside the root.** (Security M1, Correctness #2 — merged.)
++   src/store.mjs:18 `statSync` follows links so a file symlink is listed;
++   src/store.mjs:58 then reads it via `readUserFile` (src/store.mjs:6). Both
++   reviewers reproduced it. Ranked minor, not major: (a) the store's own API
++   cannot create symlinks, so the precondition is disk write access to the
++   root, and whoever has that already gets the whole file through the
++   pre-existing `readUserFile(root, "leak.txt")` — the search adds no new
++   capability; (b) the README promise at README.md:26-27 is scoped to
++   `within` ("`within` is request input: anything that would escape … by a
++   symlink, is refused"), and that promise holds (tests/store.test.mjs:84-92).
++   Fix either way: narrow the README sentence to say folders only, or use
++   `lstatSync` (or `readdirSync(dir, { withFileTypes: true })`, see #6) in
++   `fileNames` so link entries are skipped — the latter also closes #2.
++
++2. **Check-then-use gap between realpath check and read.** (Security m2.)
++   src/store.mjs:42 checks `realpathSync(dir)` but src/store.mjs:45 returns
++   the lexical `dir`, which src/store.mjs:17 and :58 then open. Requires write
++   access to the root; subsumed by #1's fix.
++
++3. **Every search reads and UTF-8-decodes every file in full, synchronously.**
++   (Performance #1, Security m3 — merged.) src/store.mjs:58 is O(total bytes)
++   per request against the load profile at README.md:30-32. Ranked minor:
++   the task says to build on the existing helpers and the reviewer itself
++   calls a full scan "the expected baseline"; no cheaper approach is required
++   by the brief. Worth recording as optimisation candidates: read as a
++   Buffer and use `Buffer.includes(Buffer.from(query))` to skip the decode,
++   and consider an async read so one large root does not block other
++   requests.
++
++4. **`listFiles` reads every file in full to learn its size.** (Performance
++   #2.) src/store.mjs:24 does `readFileSync(...).length` right after
++   src/store.mjs:18 already `stat`ed the entry and discarded `size`. Ranked
++   minor: pre-existing, outside the task (which adds `searchFiles`), and
++   the change deliberately preserves `listFiles` behaviour (CHANGES.md:16).
++   Cheap to fix by having `fileNames` return the stat.
++
++5. **`within` naming a file surfaces as a raw `ENOTDIR`, undocumented and
++   untested.** (Correctness #1.) src/store.mjs:42-45 checks containment only;
++   src/store.mjs:17 `readdirSync` then throws `ENOTDIR`. README.md:27-28
++   documents `ENOENT` only; tests/store.test.mjs:94-98 covers the missing case
++   only. Document `ENOTDIR` alongside `ENOENT` or pin it with a test.
++
++6. **`readdirSync` followed by a `statSync` per entry.** (Performance #3.)
++   src/store.mjs:17-18. `readdirSync(dir, { withFileTypes: true })` answers
++   `isFile()` without N extra syscalls; note `Dirent.isFile()` is false for
++   symlinks, which is the behaviour #1 wants.
++
++7. **Error messages echo raw request input and absolute server paths.**
++   (Security m1.) src/store.mjs:43 interpolates the unvalidated `within`
++   verbatim; src/store.mjs:42 lets `realpathSync`'s `ENOENT` propagate with
++   the absolute root path, and README.md:28 makes that ENOENT the contract.
++   Low severity at the store layer; the HTTP layer should map these to fixed
++   messages.
++
++8. **No test for a missing `root`.** (Correctness #3.) src/store.mjs:17 (no
++   `within`) and :42 (with `within`) both throw `ENOENT`; tests/store.test.mjs
++   has no case for it.
++
++9. **Two `realpathSync` calls per search with `within`.** (Performance #4.)
++   src/store.mjs:42. Fixed cost; the reviewer notes both are needed for
++   correctness. At most a cache opportunity.
++
++10. **Confinement check is one dense condition mixing lexical and physical
++    containment.** (Taste #1.) src/store.mjs:42; `resolve(root)` is recomputed
++    although src/store.mjs:41 already resolved against `root`. Two named
++    booleans or two `if`s would mirror the JSDoc at src/store.mjs:33-36.
++
++11. **`folderWithin` returns `root` unresolved on one path and resolved on
++    the other.** (Taste #2.) src/store.mjs:39 vs src/store.mjs:45.
++
++12. **`isWithin(root, dir)` reads backwards at the call site.** (Taste #3.)
++    src/store.mjs:28, called at src/store.mjs:42. `contains(root, dir)` or
++    `isUnder(dir, root)` would match argument order.
++
++13. **`readUserFile(dir, name)` passes a subfolder as the helper's `root`.**
++    (Taste #4.) src/store.mjs:58 against the JSDoc at src/store.mjs:4. Either
++    read directly as src/store.mjs:24 does, or generalise the JSDoc.
++
++14. **Test title "skips an empty root" but the root is not empty.** (Taste
++    #5; reviewer cited :47, it is :48.) tests/store.test.mjs:48-52 builds a
++    folder named `needle`. Retitle to "ignores folders, even ones whose name
++    matches".
++
++15. **`within` tests pack several intents per test.** (Taste #6.)
++    tests/store.test.mjs:61-64 and :75-81; a failure names only the test, not
++    the case. Sibling tests at :28-36 keep one intent each.
++
++16. **CHANGES.md is a new top-level file the task did not ask for.** (Taste,
++    "Fit".) CHANGES.md:1-23 is accurate; whether it belongs in the tree is
++    for the lead.
++
++## Dropped
++
++- Performance #5 (`.sort()` at src/store.mjs:19): the reviewer states it is
++  "not a problem", listed only as considered. Not a finding.
++
++## Checked and clean (agreed by all reviewers who looked)
++
++- Traversal via `within`: src/store.mjs:28-31 and :42, tests at
++  tests/store.test.mjs:67-92. No bypass found.
++- `query` validation at src/store.mjs:54-56; plain `includes`, no regex.
++- `listFiles` behaviour unchanged after the `fileNames` extraction
++  (tests/store.test.mjs:11-26).
++- README.md:14-15 example matches behaviour; no secrets or dependencies added.
++- `npm test`: 10/10 pass (reported by Correctness and Security).
++
++verdict: pass
+diff --git a/src/store.mjs b/src/store.mjs
+index ec1df5d..1867c3b 100644
+--- a/src/store.mjs
++++ b/src/store.mjs
+@@ -1,5 +1,5 @@
+-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+-import { join } from "node:path";
++import { mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
++import { isAbsolute, join, relative, resolve, sep } from "node:path";
+ 
+ /** The text of the named file under the user's root. */
+ export function readUserFile(root, name) {
+@@ -12,8 +12,48 @@ export function writeUserFile(root, name, text) {
+   writeFileSync(join(root, name), text, "utf8");
+ }
+ 
++/** The names of the files (not folders) directly under `dir`, sorted. */
++function fileNames(dir) {
++  return readdirSync(dir)
++    .filter((name) => statSync(join(dir, name)).isFile())
++    .sort();
++}
++
+ /** The files directly under the user's root, with their sizes in bytes, sorted by name. */
+ export function listFiles(root) {
+-  const names = readdirSync(root).filter((name) => statSync(join(root, name)).isFile());
+-  return names.sort().map((name) => ({ name, size: readFileSync(join(root, name)).length }));
++  return fileNames(root).map((name) => ({ name, size: readFileSync(join(root, name)).length }));
++}
++
++/** True when `dir` is `root` itself or somewhere beneath it. */
++function isWithin(root, dir) {
++  const rel = relative(root, dir);
++  return rel === "" || (!isAbsolute(rel) && rel !== ".." && !rel.startsWith(`..${sep}`));
++}
++
++/**
++ * The folder the request named under the user's root. `within` is untrusted
++ * input, so anything that would escape the root, lexically (`..`, an absolute
++ * path) or through a symlink, is refused.
++ */
++function folderWithin(root, within) {
++  if (within === undefined || within === "") return root;
++  if (typeof within !== "string") throw new TypeError("within must be a string");
++  const dir = resolve(root, within);
++  if (!isWithin(resolve(root), dir) || !isWithin(realpathSync(root), realpathSync(dir))) {
++    throw new Error(`within must name a folder under the user's root: ${within}`);
++  }
++  return dir;
++}
++
++/**
++ * The names, sorted, of the files directly under the user's root (or under the
++ * subfolder `within`, when given) whose text contains `query`. The match is a
++ * plain, case-sensitive substring match.
++ */
++export function searchFiles(root, query, { within } = {}) {
++  if (typeof query !== "string" || query === "") {
++    throw new TypeError("query must be a non-empty string");
++  }
++  const dir = folderWithin(root, within);
++  return fileNames(dir).filter((name) => readUserFile(dir, name).includes(query));
+ }
+diff --git a/tests/store.test.mjs b/tests/store.test.mjs
+index 3815d8b..a39c2e1 100644
+--- a/tests/store.test.mjs
++++ b/tests/store.test.mjs
+@@ -1,10 +1,10 @@
+ import assert from "node:assert/strict";
+-import { mkdtempSync } from "node:fs";
++import { mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ import { join } from "node:path";
+ import { test } from "node:test";
+ 
+-import { listFiles, readUserFile, writeUserFile } from "../src/store.mjs";
++import { listFiles, readUserFile, searchFiles, writeUserFile } from "../src/store.mjs";
+ 
+ const fresh = () => join(mkdtempSync(join(tmpdir(), "userfiles-")), "root");
+ 
+@@ -24,3 +24,83 @@ test("sizes are in bytes, not characters", () => {
+   writeUserFile(root, "u.txt", "héllo");
+   assert.deepEqual(listFiles(root), [{ name: "u.txt", size: 6 }]);
+ });
++
++test("searchFiles returns the sorted names of files under root containing the query", () => {
++  const root = fresh();
++  writeUserFile(root, "c.txt", "needle at the end");
++  writeUserFile(root, "a.txt", "a needle here");
++  writeUserFile(root, "b.txt", "nothing to see");
++  writeUserFile(join(root, "sub"), "d.txt", "needle in a subfolder");
++  assert.deepEqual(searchFiles(root, "needle"), ["a.txt", "c.txt"]);
++  assert.deepEqual(searchFiles(root, "absent"), []);
++});
++
++test("searchFiles matches an exact, case-sensitive substring", () => {
++  const root = fresh();
++  writeUserFile(root, "lower.txt", "hello world");
++  writeUserFile(root, "upper.txt", "Hello World");
++  writeUserFile(root, "accent.txt", "héllo");
++  assert.deepEqual(searchFiles(root, "hello"), ["lower.txt"]);
++  assert.deepEqual(searchFiles(root, "é"), ["accent.txt"]);
++  assert.deepEqual(searchFiles(root, "o w"), ["lower.txt"]);
++});
++
++test("searchFiles ignores folders and skips an empty root", () => {
++  const root = fresh();
++  mkdirSync(join(root, "needle"), { recursive: true });
++  assert.deepEqual(searchFiles(root, "needle"), []);
++});
++
++test("searchFiles with `within` searches only that subfolder", () => {
++  const root = fresh();
++  writeUserFile(root, "top.txt", "needle at the top");
++  writeUserFile(join(root, "docs"), "z.txt", "needle in docs");
++  writeUserFile(join(root, "docs"), "y.txt", "needle in docs too");
++  writeUserFile(join(root, "docs"), "x.txt", "no match");
++  writeUserFile(join(root, "docs", "deep"), "w.txt", "needle deeper still");
++  assert.deepEqual(searchFiles(root, "needle", { within: "docs" }), ["y.txt", "z.txt"]);
++  assert.deepEqual(searchFiles(root, "needle", { within: "docs/deep" }), ["w.txt"]);
++  assert.deepEqual(searchFiles(root, "needle", { within: "" }), ["top.txt"]);
++  assert.deepEqual(searchFiles(root, "needle", { within: "." }), ["top.txt"]);
++});
++
++test("searchFiles refuses a `within` that escapes the user's root", () => {
++  const base = fresh();
++  const root = join(base, "alice");
++  const other = join(base, "bob");
++  writeUserFile(root, "mine.txt", "secret");
++  writeUserFile(other, "theirs.txt", "secret");
++  writeUserFile(join(root, "..secret"), "dots.txt", "secret");
++
++  assert.throws(() => searchFiles(root, "secret", { within: "../bob" }), /under the user's root/);
++  assert.throws(() => searchFiles(root, "secret", { within: ".." }), /under the user's root/);
++  assert.throws(() => searchFiles(root, "secret", { within: "docs/../../bob" }), /under the user's root/);
++  assert.throws(() => searchFiles(root, "secret", { within: other }), /under the user's root/);
++  assert.throws(() => searchFiles(root, "secret", { within: 42 }), TypeError);
++  // A folder whose name merely starts with ".." is still inside root.
++  assert.deepEqual(searchFiles(root, "secret", { within: "..secret" }), ["dots.txt"]);
++});
++
++test("searchFiles refuses a `within` that escapes the user's root through a symlink", () => {
++  const base = fresh();
++  const root = join(base, "alice");
++  const other = join(base, "bob");
++  writeUserFile(root, "mine.txt", "secret");
++  writeUserFile(other, "theirs.txt", "secret");
++  symlinkSync(other, join(root, "link"), "dir");
++  assert.throws(() => searchFiles(root, "secret", { within: "link" }), /under the user's root/);
++});
++
++test("searchFiles throws when `within` does not exist", () => {
++  const root = fresh();
++  writeUserFile(root, "a.txt", "needle");
++  assert.throws(() => searchFiles(root, "needle", { within: "missing" }), { code: "ENOENT" });
++});
++
++test("searchFiles requires a non-empty string query", () => {
++  const root = fresh();
++  writeUserFile(root, "a.txt", "anything");
++  assert.throws(() => searchFiles(root, ""), TypeError);
++  assert.throws(() => searchFiles(root), TypeError);
++  assert.throws(() => searchFiles(root, /any/), TypeError);
++});

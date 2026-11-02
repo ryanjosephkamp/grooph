@@ -1,0 +1,23 @@
+{
+  "from": "https://github.com/ryanjosephkamp/mermaidify",
+  "release": "1.0.1",
+  "tag": "v1.0.1",
+  "commit": "cdcffc9d636c10027b17d476015492ce21183b38",
+  "files": {
+    "reader/arrows.ts": "9bd363478ebcf19c7d961481734db5f596884106e2f368069771bc3e4493c811",
+    "reader/geometry.ts": "2b99258b685ba1e4b1bde387d27d109cdabe752d55fca2d1d6b5d47beaaff6b7",
+    "reader/index.ts": "8a605ef0d427da62d94e57ad29119ec29e9c849ffe8106ab13f3aa05488edc2d",
+    "reader/mermaid.ts": "ea6555fbdbfe46af564b413f6cea8bcbf95dc19fcd4a4e8e6b16abdc8139757e",
+    "reader/recognize.ts": "3281a60d6c883267408096ca74af5add4a6e201c17f7178f7e8111c80443c85c",
+    "reader/shapes.ts": "c16f547891a0945a9d86f8bdf682a634732194be56ccaf8b967a018741c5eff1",
+    "reader/snap.ts": "b2c2b0d212332ff13e6d2b9b609731d24b5d378dbdbd2b6913d57faeea765eb1",
+    "app/cut.ts": "9ddbf1b4ad02f9e658516dedacf68889a84f59f727bef0c84a41fb2dc14d079b",
+    "app/drawing.ts": "c275774e4fec6e4e6547a0dccb3c95d154ed82b0de0d86166372a906b740f560",
+    "app/pad.ts": "270f841a590b5410e2af5fed02e2183eb769d192acfadfcac7f8d81ae733172b",
+    "app/select.ts": "5d752251dfe18698516a48fa0fac01235cf46c2a2b49115453ee528ade855bf3",
+    "app/templates.ts": "c621d5f849f2b9211e1645d7f0e94af550c2b148cd19c11475d74737c2333994",
+    "app/tidy.ts": "5de51b31b6f9f9a2a4fd013dc57c359924321cfcb7cfc939498c4e4d0564de50",
+    "example.ts": "92efb1d0041bc52cc8748e425f103aedfdeae791858d3a593c32c7cbe9f54eb5",
+    "LICENSE": "c090cc9b6b3155d41ce3872f9df4bdc1532988241b7f2bca709fa90e115d8219"
+  }
+}

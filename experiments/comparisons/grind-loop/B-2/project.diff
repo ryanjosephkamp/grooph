@@ -1,0 +1,144 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..c4b0312
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,63 @@
++# Changes
++
++## This round
++
++Implemented `compare(a, b)` in `src/semver.mjs`, replacing the
++`throw new Error("not implemented")` stub.
++
++### Why
++
++The task required a faithful implementation of semver 2.0.0 precedence
++comparison (§11), since a held-out test suite (not just the visible
++`tests/semver.test.mjs`) will exercise it afterward. So the implementation
++follows the spec directly rather than special-casing the visible tests.
++
++### What
++
++- Added a `parse(version)` helper that:
++  - Throws `TypeError` when the input is not a `string`.
++  - Validates the string against the official semver 2.0.0 grammar (§2, §9,
++    §10) using the canonical regex from semver.org, which rejects:
++    - missing/extra numeric components (`"1"`, `"1.0"`, `"1.0.0.0"`)
++    - leading `v` or leading zeros in major/minor/patch (`"v1.0.0"`,
++      `"01.0.0"`, `"1.01.0"`)
++    - empty/malformed pre-release or build metadata (`"1.0.0-"`,
++      `"1.0.0-01"`, `"1.0.0-alpha..1"`, `"1.0.0+"`)
++    - trailing whitespace, leading `-`, empty string, etc.
++    and throws `RangeError` on failure.
++  - Splits the validated string into numeric `major`/`minor`/`patch` and a
++    pre-release identifier array (build metadata is parsed only to validate
++    it, then discarded — it never affects precedence per §10).
++- Added `compareIdentifiers(a, b)` implementing §11's per-identifier rule:
++  numeric identifiers compare numerically; a numeric identifier always has
++  lower precedence than an alphanumeric one; two alphanumeric identifiers
++  compare lexically (ASCII).
++- Added `comparePrerelease(a, b)` implementing the §11 rules for the
++  pre-release chain as a whole: no pre-release has higher precedence than a
++  version with one (`1.0.0-alpha` < `1.0.0`); a shorter list of identifiers
++  has lower precedence than a longer one when all shared leading identifiers
++  are equal; otherwise the first differing identifier (via
++  `compareIdentifiers`) decides.
++- `compare(a, b)` parses both inputs, compares major/minor/patch numerically
++  first, and falls back to `comparePrerelease` only when major/minor/patch
++  are all equal.
++
++### Result
++
++`npm test` — exit code 0.
++
++```
++tests 10
++pass 10
++fail 0
++cancelled 0
++skipped 0
++todo 0
++```
++
++All tests in `tests/semver.test.mjs` pass, including numeric ordering,
++pre-release precedence chains, numeric-vs-alphanumeric identifier ranking,
++build-metadata exclusion, sorting via `Array.prototype.sort(compare)`,
++invalid-version `RangeError` cases, non-string `TypeError` cases, and the
++leading-zero allowances specific to build metadata / alphanumeric
++identifiers.
+diff --git a/src/semver.mjs b/src/semver.mjs
+index c20a655..190e4d5 100644
+--- a/src/semver.mjs
++++ b/src/semver.mjs
+@@ -10,6 +10,69 @@
+  * @param {string} b
+  * @returns {-1 | 0 | 1}
+  */
++
++const SEMVER_RE =
++  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
++
++function parse(version) {
++  if (typeof version !== "string") {
++    throw new TypeError(`Expected a string, got ${typeof version}`);
++  }
++
++  const match = SEMVER_RE.exec(version);
++  if (!match) {
++    throw new RangeError(`Invalid semantic version: ${JSON.stringify(version)}`);
++  }
++
++  const [, major, minor, patch, prerelease] = match;
++  return {
++    major: Number(major),
++    minor: Number(minor),
++    patch: Number(patch),
++    prerelease: prerelease ? prerelease.split(".") : [],
++  };
++}
++
++function compareIdentifiers(a, b) {
++  const aIsNumeric = /^\d+$/.test(a);
++  const bIsNumeric = /^\d+$/.test(b);
++
++  if (aIsNumeric && bIsNumeric) {
++    const an = Number(a);
++    const bn = Number(b);
++    if (an === bn) return 0;
++    return an < bn ? -1 : 1;
++  }
++
++  if (aIsNumeric) return -1;
++  if (bIsNumeric) return 1;
++
++  if (a === b) return 0;
++  return a < b ? -1 : 1;
++}
++
++function comparePrerelease(a, b) {
++  if (a.length === 0 && b.length === 0) return 0;
++  if (a.length === 0) return 1;
++  if (b.length === 0) return -1;
++
++  const len = Math.max(a.length, b.length);
++  for (let i = 0; i < len; i += 1) {
++    if (i >= a.length) return -1;
++    if (i >= b.length) return 1;
++    const cmp = compareIdentifiers(a[i], b[i]);
++    if (cmp !== 0) return cmp;
++  }
++  return 0;
++}
++
+ export function compare(a, b) {
+-  throw new Error("not implemented");
++  const va = parse(a);
++  const vb = parse(b);
++
++  if (va.major !== vb.major) return va.major < vb.major ? -1 : 1;
++  if (va.minor !== vb.minor) return va.minor < vb.minor ? -1 : 1;
++  if (va.patch !== vb.patch) return va.patch < vb.patch ? -1 : 1;
++
++  return comparePrerelease(va.prerelease, vb.prerelease);
+ }

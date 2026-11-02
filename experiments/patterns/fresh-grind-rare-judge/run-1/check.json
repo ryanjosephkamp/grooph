@@ -1,0 +1,38 @@
+{
+  "problems": [
+    "PHASE-REVIEW.md was also written by general-purpose, not only judge",
+    "judge never read or ran the held-out evidence, so its judgment was not made against it"
+  ],
+  "findings": [
+    "run id 20260920-195457: the clock form",
+    "dispatches outside the package's agents: general-purpose (Judge phase 2 evaluator)",
+    "PHASE-REVIEW.md: general-purpose Write PHASE-REVIEW.md; judge Write PHASE-REVIEW.md",
+    "per-round report copies missing from the run folder (LEAD.md \u00a78; only the last round's survives in project.diff): PHASE-REVIEW.md round 0",
+    "calc-in-phases--judge (Judge phase 1 tokenizer) read docs/PHASES.md, .grooph/calc-in-phases/runs/20260920-195457/evidence-phase1.md, src/tokenize.mjs, CHANGES.md, tests/tokenize.test.mjs, package.json; ran nothing",
+    "no `ending` line before the final note n-0018 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "ending as expected: stop bar-passed, stop node done",
+    "replaying every amendment's patch on the source gives the working copy exactly",
+    "dispatch count: n-0009 phases r0 recorded 3, started lines 3; n-0016 phases r1 recorded 6, started lines 6 (exact)",
+    "back edge taken: a later round is recorded; 1 loop note(s) beyond round 0; caught by judge (next-phase)",
+    "verdicts in order: judge \u2192 next-phase, pass",
+    "held-out evidence (evaluate-cases.test.mjs): touched by general-purpose \u00d71; named in 1 dispatch prompt(s)",
+    "timestamps: 23 given, 0 out of append order",
+    "permission denials: Bash `grooph apply --help 2>&1 | head -40`; Bash `date -u +%Y-%m-%dT%H:%M:%SZ; npm test 2>&1 | tee .grooph/calc-in-phases/runs/202`; Bash `date -u +%Y-%m-%dT%H:%M:%SZ; shasum -a 256 src/tokenize.mjs tests/tokenize.test.`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done",
+      "stop bar-passed"
+    ],
+    "back_edges": {
+      "later_rounds": 1,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [
+        "judge (next-phase)"
+      ],
+      "taken": true
+    },
+    "last_round": 1
+  }
+}

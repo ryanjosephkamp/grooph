@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-23 -26 393 74" width="393" height="74" role="img" fill="none" stroke-linecap="round" stroke-linejoin="round" class="grooph-glyph">
+<title>Debate then build</title>
+<rect x="-19" y="-22" width="161" height="66" rx="10" stroke-width="1.3" stroke-dasharray="4 3" style="stroke:var(--loop-0, #7a4cc2)"/>
+<rect x="221" y="-20" width="101" height="54" rx="10" stroke-width="1.3" stroke-dasharray="4 3" style="stroke:var(--loop-1, #0f7c8c)"/>
+<path d="M12,0 L46,0" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M46,0 L39,3.5 L39,-3.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M72,0 L103,0" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M103,0 L96,3.5 L96,-3.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M120,15 C120,36 0,36 0,14" stroke-width="1.6" stroke-dasharray="1.5 3.5" style="stroke:var(--ink-3, #6b7370)"/>
+<path d="M0,14 L3.5,21 L-3.5,21 Z" style="fill:var(--ink-3, #6b7370)"/>
+<path d="M135,0 L164,0" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M164,0 L157,3.5 L157,-3.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M194,0 L226,0" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M226,0 L219,3.5 L219,-3.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M252,0 L284,0" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M284,0 L277,3.5 L277,-3.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M300,13 C300,26 240,26 240,14" stroke-width="1.6" stroke-dasharray="5 3" style="stroke:var(--warning, #955500)"/>
+<path d="M240,14 L243.5,21 L236.5,21 Z" style="fill:var(--warning, #955500)"/>
+<path d="M314,0 L351,0" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M351,0 L344,3.5 L344,-3.5 Z" style="fill:var(--edge, #5c6663)"/>
+<rect x="-11" y="-11" width="22" height="22" rx="2" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<rect x="49" y="-11" width="22" height="22" rx="2" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M120,-14 L134,0 L120,14 L106,0 Z" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M192,5 L185,12 L175,12 L168,5 L168,-5 L175,-12 L185,-12 L192,-5 Z" stroke-width="2.4" style="fill:var(--surface, #ffffff);stroke:var(--kind-human-gate, #b25e09)"/>
+<rect x="229" y="-11" width="22" height="22" rx="2" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M293,-12 L307,-12 L314,0 L307,12 L293,12 L286,0 Z" stroke-width="1.8" style="fill:var(--surface, #ffffff);stroke:var(--kind-check, #2b5f9e)"/>
+<circle cx="360" cy="0" r="6" style="fill:var(--ink, #2b302e)"/>
+</svg>

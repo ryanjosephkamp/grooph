@@ -1,0 +1,19 @@
+{
+  "about": "What the runner, the scorer and the summary read for this project (protocol §7). The proving keys (agents, reports, heldOut) drive the check on arm A's run record, as in experiments/patterns/grind-loop/expect.json; the rest is the pre-registration and the scorer's paths.",
+  "template": "grind-loop",
+  "replicates": 2,
+  "bet": "grind-loop's mechanism is a check the lead runs itself, fresh, after a fast-tier builder reports: when the visible tests are the whole specification, that check confirms rather than catches, so the graph should do no better than one session on the held-out suite and should cost more (a lead plus a subagent against one session). This project is the study's floor: it shows what the structure costs when it has nothing to add.",
+  "measure": "held-out passes out of 62 (cases beyond the visible suite: large numeric identifiers, ASCII order, field-count precedence, refused shapes), the visible suite passing untouched, cost.",
+  "loses_if": "the graph loses when arm A's held-out passes are not above arm B's in either replicate while A costs more; it earns its cost only if A's held-out range lies wholly above B's.",
+  "scope": {
+    "allowed": ["src/", "tests/", "CHANGES.md"],
+    "protected": ["tests/semver.test.mjs"]
+  },
+  "judge": {
+    "files": ["src/", "tests/"],
+    "acceptance": ["README.md", "tests/semver.test.mjs"]
+  },
+  "agents": ["builder"],
+  "reports": {},
+  "heldOut": { "notReaders": ["builder"] }
+}

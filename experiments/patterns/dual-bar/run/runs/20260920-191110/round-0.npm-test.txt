@@ -1,0 +1,29 @@
+
+> kvconf@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ renderKeyValue writes one line per key in order (0.439084ms)
+✔ renderKeyValue refuses non-string values (0.6305ms)
+✔ parseKeyValue reads one key per line in order (0.405583ms)
+✔ parseKeyValue accepts text without a trailing newline (0.076375ms)
+✔ parseKeyValue skips blank lines and # comment lines (0.074917ms)
+✔ parseKeyValue splits on the first = only (0.054959ms)
+✔ parseKeyValue trims whitespace around the key (0.046125ms)
+✔ parseKeyValue keeps whitespace around the value (0.05825ms)
+✔ parseKeyValue keeps quotes as part of the value (0.055209ms)
+✔ parseKeyValue keeps a trailing # as part of the value (0.089583ms)
+✔ parseKeyValue lets a later duplicate key win (0.054125ms)
+✔ parseKeyValue accepts CRLF line endings (0.054791ms)
+✔ parseKeyValue throws on a line with no = (0.117916ms)
+✔ parseKeyValue throws on an empty key (0.058666ms)
+✔ parseKeyValue refuses non-string input (0.057375ms)
+✔ parseKeyValue makes __proto__ an own property (0.059167ms)
+✔ parseKeyValue inverts renderKeyValue (0.077875ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 49.322334

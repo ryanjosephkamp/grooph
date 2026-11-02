@@ -1,0 +1,186 @@
+{
+  "grooph": 0,
+  "id": "parse-duration",
+  "name": "Parse duration",
+  "version": 1,
+  "goal": "Add `parseDuration(text)` to a new file src/duration.mjs, the inverse of `formatSeconds`: it turns a duration such as \"1h30m\", \"45s\" or \"500ms\" into a number of seconds. Units are h, m, s and ms, in that order, each at most once; anything else throws a RangeError, and a non-string throws a TypeError. Tests go in tests/duration.test.mjs. A held-out set of cases exists outside this project and settles what this text leaves open; the critic judges against it, and it is not yours to read. Done when every item in docs/REVIEW-CHECKLIST.md is shown to hold, `npm test` passes, and a human approves the merge.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "lineage": {
+    "pattern": "heterogeneous-critic",
+    "from": "heterogeneous-critic@1"
+  },
+  "description": "The review-gate shape with the critic on the frontier tier and the builder on the strong tier. Within one harness both tiers are one model family, so this varies capability, not lineage; true cross-family judging needs a critic running in a second harness, which arrives with dual-harness nodes (stage 11).",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Do the task in the code, with tests. On a later round, read REVIEW.md first and address each finding, or say why it does not apply. Run the test command before you report, and do not review your own work beyond that.",
+      "inputs": [
+        "the task",
+        "docs/REVIEW-CHECKLIST.md",
+        "REVIEW.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with tests",
+        "CHANGES.md: what changed this round and which findings it addresses"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "description": "Runs on a different tier from the builder on purpose. For a critic from another model family, re-host this node on a second harness when dual-harness nodes exist (stage 11).",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Judge the change against the checklist, one line per item, citing the file and line that satisfies it or saying it is unmet; use the repository only to understand what the change touches. Run the test command yourself rather than trusting a report. You judge; you do not fix. Verdict pass only when every item holds and the tests pass; invalid-evidence when the diff or checklist cannot be read.",
+      "inputs": [
+        "diff of the change",
+        "the repository as the change leaves it, read-only",
+        "docs/REVIEW-CHECKLIST.md"
+      ],
+      "outputs": [
+        "REVIEW.md: one line per checklist item and a verdict line",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "run-tests"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "merge-gate",
+      "kind": "human-gate",
+      "name": "Merge approval",
+      "prompt": "The critic passed the change against the checklist. Merge it?",
+      "options": [
+        "approve",
+        "reject with feedback"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-critic",
+      "from": "builder",
+      "to": "critic",
+      "evidence": [
+        "diff of the change",
+        "the repository as the change leaves it, read-only",
+        "output of npm test",
+        "docs/REVIEW-CHECKLIST.md"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "merge-gate",
+      "when": "pass"
+    },
+    {
+      "id": "e-merge-gate-done",
+      "from": "merge-gate",
+      "to": "done",
+      "when": "pass"
+    },
+    {
+      "id": "e-merge-gate-reject",
+      "from": "merge-gate",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "the human's feedback"
+      ]
+    }
+  ],
+  "loops": [
+    {
+      "id": "review",
+      "name": "Review",
+      "members": [
+        "builder",
+        "critic",
+        "merge-gate"
+      ],
+      "back": [
+        "e-critic-fail",
+        "e-merge-gate-reject"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Review checklist",
+        "inspects": [
+          {
+            "kind": "checklist",
+            "ref": "docs/REVIEW-CHECKLIST.md"
+          },
+          {
+            "kind": "artifact",
+            "ref": "output of npm test"
+          }
+        ],
+        "acceptance": "Every checklist item is cited as satisfied with a file and line, and `npm test` exits 0."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 4
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 10
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

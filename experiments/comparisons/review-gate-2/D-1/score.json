@@ -1,0 +1,66 @@
+{
+  "scored_at": "2026-10-04T21:27:01.658Z",
+  "scorer": "scripts/lib/compare-score.mjs",
+  "held_out": {
+    "ran": true,
+    "command": "node --test <harness>/held-out/layer-cases.test.mjs",
+    "cases": 55,
+    "passed": 51,
+    "failed": 4,
+    "skipped": 0,
+    "rate": 0.927,
+    "failing": [
+      "undefined: undefined in over leaves base's value",
+      "undefined: undefined in over leaves base's object, copied",
+      "undefined: undefined deeper in over leaves base's value there",
+      "undefined: a key only over has, with undefined, does not appear"
+    ],
+    "exit": 1,
+    "suite": [
+      {
+        "path": "layer-cases.test.mjs",
+        "sha256": "9dc52036ea37c1eb6d8b9e2c8f985cf7c29a42f354f29b7d1cc4ed565c388e04",
+        "at_run": false
+      }
+    ],
+    "scored_from": "experiments/comparisons/review-gate-2/held-out",
+    "reviewers_copy_changed": []
+  },
+  "tests": {
+    "command": "npm test",
+    "exit": 0,
+    "pass": true,
+    "tests": 15,
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "failing": [],
+    "error": null
+  },
+  "scope": {
+    "allowed": [
+      "src/",
+      "tests/",
+      "CHANGELOG.md",
+      "REVIEW.md",
+      "CHANGES.md"
+    ],
+    "ignored": [
+      ".grooph/",
+      ".claude/"
+    ],
+    "changed": [
+      "CHANGELOG.md",
+      "src/layer.mjs",
+      "tests/layer.test.mjs"
+    ],
+    "outside": [],
+    "protected": [],
+    "protected_changed": []
+  },
+  "ending": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  }
+}

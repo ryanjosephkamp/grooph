@@ -1,0 +1,106 @@
+{
+  "template": "review-gate",
+  "template_version": "review-gate@1",
+  "graph_id": "truncate",
+  "run_id": "20260920-172408",
+  "run_ids": [
+    "20260920-172408"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.276 (Claude Code)",
+  "models": {
+    "claude-haiku-4-5-20251001": {
+      "cost_usd": 0.001613,
+      "output_tokens": 15
+    },
+    "claude-opus-5[1m]": {
+      "cost_usd": 1.356217,
+      "output_tokens": 19222
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "truncate--builder": [
+      "claude-opus-5"
+    ],
+    "truncate--critic": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 1.35783,
+  "harness_turns": 22,
+  "lead_turns": null,
+  "duration_s": 257,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "halt at merge-gate"
+  ],
+  "subagents": {
+    "truncate--builder": 1,
+    "truncate--critic": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "printf '%s\\n' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260920-172408\\\",\\\"at\\\":\\\"node:builder\\\",\\\"started\\\":\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\",\\\"outcome\\\":\\\"started\\\",\\\"round\\\":0,\\\"text\\\":\\\"dispatching builder, round 0\\\"}\" >> .grooph/truncate/runs/20260920-172408/notes.jsonl && tail -1 .grooph/truncate/runs/20260920-172408/notes.jsonl"
+    },
+    {
+      "tool": "Bash",
+      "command": "cd <local path> && echo '{\"id\":\"n-0005\",\"run\":\"20260920-172408\",\"at\":\"node:critic\",\"started\":\"2026-09-20T17:25:57Z\",\"ended\":\"2026-09-20T17:27:29Z\",\"outcome\":\"pass\",\"verdict\":\"pass\",\"round\":0,\"evidence\":[\"git status/diff of the uncommitted change\",\"src/truncate.mjs\",\"tests/truncate.test.mjs\",\"CHANGELOG.md\",\"docs/REVIEW-CHECKLIST.md\",\"npm test output it ran itself\"],\"cost\":{\"measure\":\"dispatches\",\"amount\":1},\"text\":\"all 6 checklist items cited as satisfied with file and line; npm test 12/12, 0 skipped, 0 todo; wrote REVIEW.md. One non-blocking note: CHANGES.md cites a line one off.\"}' >> notes.jsonl && echo '{\"id\":\"n-0006\",\"run\":\"20260920-172408\",\"at\":\"loop:review\",\"ended\":\"2026-09-20T17:27:29Z\",\"outcome\":\"pass\",\"round\":0,\"stop\":\"bar-passed\",\"text\":\"round 0 finished; stops evaluated in order: bar-passed fires (every checklist item cited satisfied, npm test exit 0), so max-iterations and budget not reached; taking pass exit edge e-critic-pass to merge-gate\"}' >> notes.jsonl && echo '{\"id\":\"n-0007\",\"run\":\"20260920-172408\",\"at\":\"node:merge-gate\",\"started\":\"2026-09-20T17:27:29Z\",\"outcome\":\"halt\",\"round\":0,\"text\":\"human gate merge-gate: asking the human whether to merge the change the critic passed; run halts here until answered\"}' >> notes.jsonl && wc -l notes.jsonl"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 9,
+      "session_id": "session-1",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.35783,
+      "reported_cost_usd": 1.3578299999999999,
+      "max_budget_usd": 6,
+      "harness_turns": 22,
+      "duration_s": 257,
+      "wall_s": 258,
+      "notes_after": 7,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "15bb77a7d2f6872e5339aff710f5eb165992a39f",
+  "source_sha256_before": "db509537b88f5a774d9707ffb1a8033ae5b79b80308ddbd63d920ea13ff2f033",
+  "project_files_changed": [
+    "M CHANGELOG.md",
+    "A CHANGES.md",
+    "A REVIEW.md",
+    "A src/truncate.mjs",
+    "A tests/truncate.test.mjs"
+  ],
+  "scratch": "<local path>",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}

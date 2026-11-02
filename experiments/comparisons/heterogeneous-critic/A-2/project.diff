@@ -1,0 +1,244 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..8d8210c
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,24 @@
++# Changes
++
++## Round 1
++
++Addresses the REVIEW.md (round 0) held-out failures. All five findings applied.
++
++- order: pages now come back in the order typed (`"5,1-3"` is `[5, 1, 2, 3]`);
++  the sort is gone from `src/parse-ranges.mjs`.
++- repeats: a page typed twice comes back twice (`"2,2"` is `[2, 2]`); the Set is
++  gone.
++- backward: a range written last-first runs backward (`"5-3"` is `[5, 4, 3]`)
++  instead of throwing.
++- open end: `"8-"` runs to the last page and `"-3"` starts from page 1; a lone
++  `-` still throws a `RangeError`, as do open ends out of bounds (`"0-"`, `"11-"`).
++- empty: an empty or blank text means every page; an empty part between commas
++  (`"1,,2"`, `"1,"`, `",1"`) is still refused.
++
++Along with src/: `tests/parse-ranges.test.mjs` no longer expects sorted,
++deduplicated output, nor throws for backward ranges, open ends or an empty box,
++and has new tests for each; `README.md` documents the new behaviour.
++
++## Round 0
++
++- Added `parseRanges(text, pageCount)`, its tests, and a README.md section.
+diff --git a/README.md b/README.md
+index c8aa9b8..15f02b3 100644
+--- a/README.md
++++ b/README.md
+@@ -16,3 +16,26 @@ that is not a string throws a `TypeError`.
+ 
+ The dialog also has a page box, where a person types which pages of the
+ document to print.
++
++```js
++import { parseRanges } from "./src/parse-ranges.mjs";
++
++parseRanges("1-3,5", 10); // [1, 2, 3, 5]
++parseRanges("7", 10);     // [7]
++```
++
++`parseRanges(text, pageCount)` reads what was typed in the page box and gives
++the page numbers to print as an array. Pages are numbered from 1 to
++`pageCount`; parts are separated by commas, and a part is one page (`7`) or a
++range written first-last (`1-3`). Spaces around parts and around the dash are
++ignored. Pages come back in the order typed, and a page typed twice comes back
++twice (`"2,2"` is `[2, 2]`). A range written last-first runs backward (`"5-3"`
++is `[5, 4, 3]`). A range may leave out its first page (`"-3"` is pages 1 to 3)
++or its last (`"8-"` is page 8 to the last page), but not both. An empty box
++(`""`, or only spaces) means every page.
++
++A `text` that is not a string, or a `pageCount` that is not a positive integer,
++throws a `TypeError`. A text that cannot be read as pages of the document (a
++page past the last one, page `0`, a word, an empty part between commas such as
++`"1,,2"`, a lone `-`, or a part that is neither a page nor a range) throws a
++`RangeError`.
+diff --git a/REVIEW.md b/REVIEW.md
+new file mode 100644
+index 0000000..69368fc
+--- /dev/null
++++ b/REVIEW.md
+@@ -0,0 +1,32 @@
++# Review — parse-page-ranges, round 1
++
++Judged from `git diff` (README.md), `git diff --no-index /dev/null` for src/parse-ranges.mjs, tests/parse-ranges.test.mjs and CHANGES.md, `npm test`, and the held-out suite run from the project root.
++
++## Checklist
++
++1. Met. src/parse-ranges.mjs:15 has `export function parseRanges(text, pageCount)`.
++2. Met. The test at tests/parse-ranges.test.mjs:6 checks both examples: `"1-3,5"` gives `[1, 2, 3, 5]` (line 7) and `"7"` gives `[7]` (line 8).
++3. Met. The checks are in src/parse-ranges.mjs:
++   - A non-string text throws TypeError (line 16).
++   - A pageCount that is not a positive integer throws TypeError (lines 17-19).
++   - A part that cannot be parsed throws RangeError (lines 35-37).
++   - A page out of bounds throws RangeError (lines 43-45).
++
++   tests/parse-ranges.test.mjs has a test for each case:
++   - Non-string text: line 57.
++   - pageCount values 0, -1, 2.5 and "10", plus NaN, Infinity, undefined and null: lines 64-67.
++   - A page past the last one: line 70.
++   - Page 0: line 75.
++   - A word and parts that are neither a page nor a range: lines 80-83.
++4. Met. README.md:17-41 sits right after the paperSize section (README.md:5-15). It has an example (README.md:20-25) and says what throws (README.md:37-41).
++5. Met. `npm test` exits 0: 16 tests, 16 pass, 0 fail, 0 skipped, 0 todo.
++6. Met. `git status` shows only these changes:
++   - Modified: README.md.
++   - New files: src/parse-ranges.mjs, tests/parse-ranges.test.mjs, CHANGES.md and REVIEW.md.
++   - Run bookkeeping under `.grooph/`, which is excluded.
++
++## Held-out suite
++
++`node --test …/held-out/parse-ranges-cases.test.mjs`: 70 tests, 70 pass, 0 fail, 0 skipped, 0 todo. Every group passes (stated, careful, order, repeats, backward, spaces, open end, empty, zeros), so no failing cases are quoted here.
++
++verdict: pass
+diff --git a/src/parse-ranges.mjs b/src/parse-ranges.mjs
+new file mode 100644
+index 0000000..9bbb11c
+--- /dev/null
++++ b/src/parse-ranges.mjs
+@@ -0,0 +1,49 @@
++/**
++ * The page numbers to print, from what a person typed in the page box.
++ *
++ * Parts are separated by commas; a part is one page ("7") or a range written
++ * first-last ("1-3"). Spaces around parts and around the dash are ignored.
++ * Pages come back in the order typed, and a page typed twice comes back twice.
++ * A range written last-first ("5-3") runs backward. A range may leave out its
++ * first page ("-3", from page 1) or its last ("8-", to the last page), but not
++ * both. An empty (or blank) text means every page; an empty part between commas
++ * is refused.
++ * @param {string} text e.g. "1-3,5"
++ * @param {number} pageCount pages in the document, a positive integer
++ * @returns {number[]}
++ */
++export function parseRanges(text, pageCount) {
++  if (typeof text !== "string") throw new TypeError("parseRanges: text must be a string");
++  if (!Number.isInteger(pageCount) || pageCount < 1) {
++    throw new TypeError("parseRanges: pageCount must be a positive integer");
++  }
++
++  const pages = [];
++  const push = (first, last) => {
++    const step = first <= last ? 1 : -1;
++    for (let page = first; page !== last + step; page += step) pages.push(page);
++  };
++
++  if (text.trim() === "") {
++    push(1, pageCount);
++    return pages;
++  }
++
++  for (const raw of text.split(",")) {
++    const part = raw.trim();
++    const match = /^(\d+)?(?:\s*(-)\s*(\d+)?)?$/.exec(part);
++    if (!match || part === "" || part === "-") {
++      throw new RangeError(`parseRanges: cannot read "${part}" as a page or a range`);
++    }
++    const [, from, dash, to] = match;
++    const first = from === undefined ? 1 : Number(from);
++    let last;
++    if (dash === undefined) last = first;
++    else last = to === undefined ? pageCount : Number(to);
++    if (first < 1 || first > pageCount || last < 1 || last > pageCount) {
++      throw new RangeError(`parseRanges: "${part}" is not within pages 1 to ${pageCount}`);
++    }
++    push(first, last);
++  }
++  return pages;
++}
+diff --git a/tests/parse-ranges.test.mjs b/tests/parse-ranges.test.mjs
+new file mode 100644
+index 0000000..a88bb40
+--- /dev/null
++++ b/tests/parse-ranges.test.mjs
+@@ -0,0 +1,84 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { parseRanges } from "../src/parse-ranges.mjs";
++
++test("parseRanges reads ranges and single pages", () => {
++  assert.deepEqual(parseRanges("1-3,5", 10), [1, 2, 3, 5]);
++  assert.deepEqual(parseRanges("7", 10), [7]);
++  assert.deepEqual(parseRanges("4-4", 10), [4]);
++  assert.deepEqual(parseRanges("1-10", 10), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
++});
++
++test("parseRanges ignores spaces", () => {
++  assert.deepEqual(parseRanges(" 1 - 3 , 5 ", 10), [1, 2, 3, 5]);
++});
++
++test("parseRanges keeps the order typed", () => {
++  assert.deepEqual(parseRanges("5,1-3", 10), [5, 1, 2, 3]);
++  assert.deepEqual(parseRanges("3,1", 10), [3, 1]);
++  assert.deepEqual(parseRanges("10,4-5,1", 10), [10, 4, 5, 1]);
++});
++
++test("parseRanges repeats a page typed twice", () => {
++  assert.deepEqual(parseRanges("2,2", 10), [2, 2]);
++  assert.deepEqual(parseRanges("1-3,2", 10), [1, 2, 3, 2]);
++  assert.deepEqual(parseRanges("1-2,1-2", 10), [1, 2, 1, 2]);
++});
++
++test("parseRanges runs a range written last-first backward", () => {
++  assert.deepEqual(parseRanges("5-3", 10), [5, 4, 3]);
++  assert.deepEqual(parseRanges("10-8", 10), [10, 9, 8]);
++  assert.deepEqual(parseRanges("2-1", 10), [2, 1]);
++  assert.deepEqual(parseRanges("1,5-3", 10), [1, 5, 4, 3]);
++});
++
++test("parseRanges lets a range leave out one end", () => {
++  assert.deepEqual(parseRanges("8-", 10), [8, 9, 10]);
++  assert.deepEqual(parseRanges("-3", 10), [1, 2, 3]);
++  assert.deepEqual(parseRanges("10-", 10), [10]);
++  assert.deepEqual(parseRanges("-1", 10), [1]);
++  assert.deepEqual(parseRanges("1,8-", 10), [1, 8, 9, 10]);
++  assert.deepEqual(parseRanges(" 8 - ", 10), [8, 9, 10]);
++});
++
++test("parseRanges refuses a range with neither end, or an open end out of bounds", () => {
++  for (const bad of ["-", " - ", "1,-", "0-", "-0", "11-", "-11"]) {
++    assert.throws(() => parseRanges(bad, 10), RangeError, JSON.stringify(bad));
++  }
++});
++
++test("parseRanges reads an empty box as every page", () => {
++  assert.deepEqual(parseRanges("", 10), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
++  assert.deepEqual(parseRanges("   ", 10), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
++  assert.deepEqual(parseRanges("", 1), [1]);
++});
++
++test("parseRanges refuses a text that is not a string", () => {
++  assert.throws(() => parseRanges(7, 10), TypeError);
++  assert.throws(() => parseRanges(undefined, 10), TypeError);
++  assert.throws(() => parseRanges(null, 10), TypeError);
++  assert.throws(() => parseRanges(["1"], 10), TypeError);
++});
++
++test("parseRanges refuses a pageCount that is not a positive integer", () => {
++  for (const bad of [0, -1, 2.5, "10", NaN, Infinity, undefined, null]) {
++    assert.throws(() => parseRanges("1", bad), TypeError, String(bad));
++  }
++});
++
++test("parseRanges refuses a page past the last one", () => {
++  assert.throws(() => parseRanges("11", 10), RangeError);
++  assert.throws(() => parseRanges("8-11", 10), RangeError);
++});
++
++test("parseRanges refuses page 0", () => {
++  assert.throws(() => parseRanges("0", 10), RangeError);
++  assert.throws(() => parseRanges("0-3", 10), RangeError);
++});
++
++test("parseRanges refuses a word and parts that are neither page nor range", () => {
++  for (const bad of ["abc", "1-2-3", "1.5", "1,,2", "1,", ",1", ",", "1 2", "a-b"]) {
++    assert.throws(() => parseRanges(bad, 10), RangeError, JSON.stringify(bad));
++  }
++});

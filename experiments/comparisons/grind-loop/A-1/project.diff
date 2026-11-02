@@ -1,0 +1,119 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..6abf794
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,28 @@
++# Changes
++
++## Round 0
++
++Implemented `compare(a, b)` in `src/semver.mjs`, which previously threw
++`not implemented`.
++
++- Validate argument types, throwing `TypeError` for non-strings.
++- Parse each version with a strict semver regex (`SEMVER_RE`) enforcing:
++  - numeric major/minor/patch with no leading zeros,
++  - an optional dot-separated pre-release identifier list (`[0-9A-Za-z-]+`
++    per identifier),
++  - an optional dot-separated build metadata list (ignored for comparison).
++  - Additionally reject numeric pre-release identifiers with leading zeros
++    (e.g. `1.0.0-01`), which the base regex alone does not exclude.
++  - Any string not matching, throws `RangeError`.
++- Compare major, minor, then patch numerically.
++- If those are equal, compare pre-release identifier lists per §11:
++  - a version without a pre-release has higher precedence than one with,
++  - identifiers are compared left to right,
++  - purely numeric identifiers compare numerically, others lexically (ASCII),
++  - numeric identifiers have lower precedence than alphanumeric ones,
++  - if all shared identifiers are equal, the longer list has higher
++    precedence.
++- Build metadata (`+...`) is parsed but never used in the comparison.
++
++Ran `npm test`: all 10 tests in `tests/semver.test.mjs` pass, 0 failed,
++0 skipped.
+diff --git a/src/semver.mjs b/src/semver.mjs
+index c20a655..5f799fe 100644
+--- a/src/semver.mjs
++++ b/src/semver.mjs
+@@ -10,6 +10,79 @@
+  * @param {string} b
+  * @returns {-1 | 0 | 1}
+  */
++
++const SEMVER_RE =
++  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
++
++function parse(version) {
++  if (typeof version !== "string") {
++    throw new TypeError(`Expected a string, got ${typeof version}`);
++  }
++
++  const match = SEMVER_RE.exec(version);
++  if (!match) {
++    throw new RangeError(`Invalid semantic version: ${JSON.stringify(version)}`);
++  }
++
++  const [, major, minor, patch, prerelease] = match;
++
++  const identifiers = prerelease ? prerelease.split(".") : [];
++  for (const id of identifiers) {
++    if (/^\d+$/.test(id) && id.length > 1 && id[0] === "0") {
++      throw new RangeError(`Invalid semantic version: ${JSON.stringify(version)}`);
++    }
++  }
++
++  return {
++    major: Number(major),
++    minor: Number(minor),
++    patch: Number(patch),
++    prerelease: identifiers,
++  };
++}
++
++function compareIdentifiers(a, b) {
++  const aIsNumeric = /^\d+$/.test(a);
++  const bIsNumeric = /^\d+$/.test(b);
++
++  if (aIsNumeric && bIsNumeric) {
++    const an = Number(a);
++    const bn = Number(b);
++    if (an === bn) return 0;
++    return an < bn ? -1 : 1;
++  }
++
++  if (aIsNumeric !== bIsNumeric) {
++    // numeric identifiers have lower precedence than alphanumeric ones
++    return aIsNumeric ? -1 : 1;
++  }
++
++  if (a === b) return 0;
++  return a < b ? -1 : 1;
++}
++
++function comparePrerelease(a, b) {
++  if (a.length === 0 && b.length === 0) return 0;
++  if (a.length === 0) return 1; // no prerelease has higher precedence
++  if (b.length === 0) return -1;
++
++  const len = Math.min(a.length, b.length);
++  for (let i = 0; i < len; i += 1) {
++    const cmp = compareIdentifiers(a[i], b[i]);
++    if (cmp !== 0) return cmp;
++  }
++
++  if (a.length === b.length) return 0;
++  return a.length < b.length ? -1 : 1;
++}
++
+ export function compare(a, b) {
+-  throw new Error("not implemented");
++  const va = parse(a);
++  const vb = parse(b);
++
++  if (va.major !== vb.major) return va.major < vb.major ? -1 : 1;
++  if (va.minor !== vb.minor) return va.minor < vb.minor ? -1 : 1;
++  if (va.patch !== vb.patch) return va.patch < vb.patch ? -1 : 1;
++
++  return comparePrerelease(va.prerelease, vb.prerelease);
+ }

@@ -1,0 +1,8 @@
+{
+  "name": "Line diff",
+  "values": {
+    "task": "Implement `diffLines(before, after)` as README.md specifies, producing a minimal line edit script. The final implementation lives at src/diff.mjs; `npm test` checks every candidates/*/diff.mjs and src/diff.mjs against the same contract.",
+    "test-command": "npm test",
+    "criteria": "Among candidates that pass the tests, prefer the one whose code reads most clearly at its size, that stays fast on inputs of a few thousand lines, and whose approach is explained honestly in its APPROACH.md; a smaller change beats a more general one."
+  }
+}

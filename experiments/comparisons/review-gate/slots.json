@@ -1,0 +1,9 @@
+{
+  "name": "Truncate",
+  "values": {
+    "task": "Add `truncate(text, max)` in a new file, src/truncate.mjs: it returns `text` unchanged when it has at most `max` characters, and otherwise cuts it and ends it with \"…\" (one character) so that the result is exactly `max` characters long. A `text` that is not a string throws a TypeError, and a `max` that is not a positive integer throws a RangeError. Tests go in tests/truncate.test.mjs. A held-out set of cases exists outside this project and settles what this text leaves open; the critic judges against it, and it is not yours to read.",
+    "test-command": "npm test",
+    "checklist": "docs/REVIEW-CHECKLIST.md"
+  },
+  "about": "The token <held-out> in a slot value or a task file becomes the absolute path of the held-out folder the runner copies beside the scratch project (never into it). Here the checklist in the repository points at the held-out suite; the checklist reaches both the builder (as an input) and the critic, and tells the builder the suite is not its to read. Copied from experiments/patterns/review-gate/slots.json with the held-out sentence added, as heterogeneous-critic's task has it."
+}

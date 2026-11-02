@@ -1,0 +1,6 @@
+{"id":"n-0001","run":"20260919-1000-bad1","at":"graph","started":"2026-09-19T10:00:00Z","text":"run started"}
+{"id":"n-0002","run":"20260919-1000-bad1","at":"node:builder","started":"2026-09-19T10:00:10Z","outcome":"started","round":0}
+{"id":"n-0003","run":"20260919-1000-bad1","at":"node:builder","ended":"2026-09-19T10:04:00Z","outcome":"pa
+{"id":"n-0004","run":"20260919-1000-bad1","at":"nodes:critic","outcome":"pass"}
+
+{"id":"n-0005","run":"20260919-1000-bad1","at":"node:builder","ended":"2026-09-19T10:05:00Z","outcome":"pass","round":0,"text":"tests pass; CHANGES.md written"}

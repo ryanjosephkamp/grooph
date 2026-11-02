@@ -1,0 +1,29 @@
+
+> userfiles@0.4.0 test
+> node --test tests/*.test.mjs
+
+✔ write, read and list (1.926ms)
+✔ sizes are in bytes, not characters (0.359792ms)
+✔ search returns matching names under the root, sorted (0.835375ms)
+✔ search is a case-sensitive substring match (0.54475ms)
+✔ search matches multibyte text (0.557166ms)
+✔ search finds a match that straddles a read boundary (2.512708ms)
+✔ search refuses a non-string query (0.525917ms)
+✔ empty query matches every file (0.5955ms)
+✔ search looks only at files directly under the folder (0.7155ms)
+✔ search within a subfolder looks only at that subfolder's files (1.047125ms)
+✔ search refuses a subfolder that escapes the root (0.595834ms)
+✔ search refuses a subfolder that is a symbolic link out of the root (0.589208ms)
+✔ search and list skip symbolic links to files (0.615583ms)
+✔ search refuses a sibling folder whose name merely starts with the root's (0.401625ms)
+✔ search on a missing subfolder throws (0.323791ms)
+✔ search on a subfolder that is really a file throws (0.308334ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 59.470125
+exit=0

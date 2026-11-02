@@ -1,0 +1,209 @@
+import {
+  KNOWN_TARGETS,
+  optText,
+  setConstraint,
+  setGraphField,
+  setGraphName,
+  setPositions,
+  setTarget,
+  targetTitle,
+  type Adaptation,
+} from "@grooph/core";
+import { useState, type ReactNode } from "react";
+
+import { resolvePositions } from "../../doc/layout.js";
+import { useDoc } from "../../doc/store.js";
+import { useEditor } from "../editorContext.js";
+import { More, Section, Segmented, Select, TextArea, TextInput } from "../fields.js";
+import { IdField } from "./IdField.js";
+
+const OTHER = "__other";
+
+/** graph-ir §2, one line each. Brakes (gates, approvals, budgets, …) never loosen at any level. */
+const ADAPTATION_LEVELS: { value: Adaptation; label: string; line: string }[] = [
+  { value: "adaptive", label: "adaptive", line: "The lead may amend its copy of the graph during a run, visibly; brakes never loosen." },
+  { value: "propose", label: "propose", line: "The lead changes nothing and records proposals for you." },
+  { value: "fixed", label: "fixed", line: "The lead follows the graph exactly and halts to ask when it cannot." },
+];
+
+/** Graph-level fields (criterion 3), plus a read-only account of what this view cannot edit yet. */
+export function GraphInspector({ autoFocusName, renameWarning }: { autoFocusName?: boolean; renameWarning?: ReactNode }) {
+  const editor = useEditor();
+  const doc = useDoc(editor.store);
+  const harness = doc.target?.harness;
+  const known = harness === undefined || KNOWN_TARGETS.includes(harness);
+  const [other, setOther] = useState(!known);
+  const { unplaced } = resolvePositions(doc);
+
+  return (
+    <div className="inspector">
+      <TextInput
+        label="Name"
+        value={doc.name}
+        autoFocus={autoFocusName}
+        onChange={(v) => editor.store.update((d) => setGraphName(d, v))}
+      />
+      {renameWarning}
+      <IdField id={doc.id} name={doc.name} graph />
+      <TextArea
+        label="Goal"
+        value={doc.goal ?? ""}
+        rows={3}
+        placeholder="What this is for, in a sentence or two."
+        onChange={(v) => editor.store.update((d) => setGraphField(d, "goal", optText(v)))}
+      />
+
+      <Section title="Constraints">
+        <TextInput
+          label="Budget"
+          value={doc.constraints?.budget ?? ""}
+          placeholder="about 40 lead turns"
+          onChange={(v) => editor.store.update((d) => setConstraint(d, "budget", optText(v)))}
+        />
+        <TextInput
+          label="Time"
+          value={doc.constraints?.time ?? ""}
+          onChange={(v) => editor.store.update((d) => setConstraint(d, "time", optText(v)))}
+        />
+        <TextArea
+          label="Other"
+          value={doc.constraints?.other ?? ""}
+          rows={2}
+          onChange={(v) => editor.store.update((d) => setConstraint(d, "other", optText(v)))}
+        />
+      </Section>
+
+      <TextArea
+        label="Description"
+        value={doc.description ?? ""}
+        rows={3}
+        placeholder="One paragraph a human or an executive can read."
+        onChange={(v) => editor.store.update((d) => setGraphField(d, "description", optText(v)))}
+      />
+
+      <Section title="Loops">
+        {doc.loops.length === 0 ? <p className="field-hint">No loops yet. Use Loop in the toolbar.</p> : null}
+        <div className="chips">
+          {doc.loops.map((loop) => (
+            <button key={loop.id} type="button" className="chip" onClick={() => editor.openPanel({ type: "loop", id: loop.id })}>
+              {loop.name || loop.id}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Reuse">
+        <p className="field-hint">Keep this graph, or some of its nodes, as a template in Yours, to start from or insert later.</p>
+        <button type="button" className="btn" onClick={() => editor.openPanel({ type: "save-template" })}>
+          Save as template…
+        </button>
+      </Section>
+
+      <Section title="Layout">
+        <p className="field-hint">
+          {unplaced.length === 0
+            ? "Every node's position is saved in the document."
+            : doc.layout
+              ? `${unplaced.length} node${unplaced.length === 1 ? " is" : "s are"} placed automatically and not saved yet.`
+              : "Placed automatically. Positions are saved when you move a node, or now:"}
+        </p>
+        {unplaced.length > 0 ? (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => editor.store.update((d) => setPositions(d, resolvePositions(d).positions))}
+          >
+            Save layout
+          </button>
+        ) : null}
+      </Section>
+
+      <Section title="In the document, not editable here yet">
+        <dl className="readonly">
+          <dt>Version</dt>
+          <dd>{doc.version}</dd>
+          {doc.lineage?.pattern ? (
+            <>
+              <dt>Pattern</dt>
+              <dd className="mono">{doc.lineage.pattern}</dd>
+            </>
+          ) : null}
+          {doc.lineage?.from ? (
+            <>
+              <dt>Derived from</dt>
+              <dd className="mono">{doc.lineage.from}</dd>
+            </>
+          ) : null}
+          <dt>Policies</dt>
+          <dd>
+            {(doc.policies ?? []).length === 0
+              ? "none"
+              : (doc.policies ?? []).map((p) => (
+                  <span key={p.id} className="mono readonly-item">
+                    {typeof p.kind === "string" ? p.kind : `custom: ${p.kind.custom}`} ({p.scope})
+                  </span>
+                ))}
+          </dd>
+          <dt>Groups</dt>
+          <dd>{(doc.groups ?? []).length === 0 ? "none" : (doc.groups ?? []).map((g) => g.name).join(", ")}</dd>
+          <dt>Run notes</dt>
+          <dd>{(doc.notes ?? []).length}</dd>
+        </dl>
+      </Section>
+
+      {/* What only a package for a harness reads, which is experimental: at the foot, folded, its title saying what is
+          in it, or which harness is set. */}
+      <More title={`Experimental: ${harness ? `a package for ${targetTitle(harness) ?? harness}` : "target harness and adaptation"}`}>
+        <Select
+          label="Target harness"
+          value={other ? OTHER : (harness ?? "")}
+          options={[
+            { value: "", label: "None: this is a plan" },
+            ...KNOWN_TARGETS.map((target) => ({ value: target, label: targetTitle(target) ?? target })),
+            { value: OTHER, label: "other…" },
+          ]}
+          hint={
+            harness === undefined
+              ? "A plan needs no harness. A harness matters only to Export's package for one, which is experimental."
+              : known
+                ? "Experimental: Export compiles a package for the selected harness."
+                : `grooph has no compiler for "${harness}". The plan can still be kept; a package needs ${KNOWN_TARGETS.map((target) => targetTitle(target) ?? target).join(" or ")}, chosen from this list.`
+          }
+          onChange={(v) => {
+            setOther(v === OTHER);
+            if (v !== OTHER) editor.store.update((d) => setTarget(d, v === "" ? undefined : v));
+          }}
+        />
+        {other ? (
+          <TextInput
+            label="Harness id"
+            value={harness ?? ""}
+            mono
+            onChange={(v) => editor.store.update((d) => setTarget(d, optText(v)))}
+          />
+        ) : null}
+
+        <Segmented
+          label="Adaptation"
+          value={doc.adaptation ?? "adaptive"}
+          options={ADAPTATION_LEVELS}
+          // adaptive is the default: choosing it clears the field rather than writing the default in.
+          onChange={(v) => editor.store.update((d) => setGraphField(d, "adaptation", v === "adaptive" ? undefined : v))}
+          hint={
+            <>
+              <p>Experimental: what a lead may change while it runs a package.</p>
+              <ul className="level-list">
+                {ADAPTATION_LEVELS.map((level) => (
+                  <li key={level.value} className={level.value === (doc.adaptation ?? "adaptive") ? "is-on" : undefined}>
+                    <strong>{level.label}</strong>
+                    {level.value === "adaptive" ? " (default)" : ""} — {level.line}
+                  </li>
+                ))}
+              </ul>
+            </>
+          }
+        />
+      </More>
+    </div>
+  );
+}

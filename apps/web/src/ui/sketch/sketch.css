@@ -1,0 +1,1151 @@
+/*
+ * The Sketch view (studio.ts): mermaidify's Draw page, its rules brought over with their classes started `sk-`, so
+ * none of the app's own reaches them. On a phone: the tools, the drawing as tall as the view leaves room for, what was
+ * read, then the graph, the names, and the code below. Where the view is 1024 px wide or more the drawing stays on
+ * the left and the graph reads beside it. Put in the page by the piece when it first opens, not loaded with the app.
+ *
+ * mermaidify's drawing surface paints with the page's own colors, read by these names from the root; the five inks are
+ * its own, the same in every look.
+ */
+:root {
+  --draw-ink: var(--ink);
+  --draw-green: #1f7a5a;
+  --draw-blue: #2563eb;
+  --draw-red: #c0392b;
+  --draw-amber: #b26b00;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --draw-green: #5dbb94;
+    --draw-blue: #7aa2ff;
+    --draw-red: #ff8f80;
+    --draw-amber: #f0b35a;
+  }
+}
+
+/* The view lies over the canvas, below the band the switch sits in, and scrolls by itself: the drawing, then the graph
+   below it. Nothing scrolls under the switch. */
+.graph-sketch {
+  position: absolute;
+  inset: 52px 0 0;
+  z-index: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  container: sk / size;
+  background: var(--bg);
+  pointer-events: auto;
+}
+.sk {
+  --sk-radius-lg: 10px;
+  --sk-gutter: 12px;
+  display: grid;
+  gap: 20px;
+  min-height: 100%;
+  padding: 6px var(--sk-gutter) 32px;
+  box-sizing: border-box;
+}
+.sk-draw {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  align-content: start;
+}
+@container sk (min-width: 1024px) {
+  .sk {
+    grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr);
+    align-items: start;
+    padding-inline: 20px;
+  }
+  .sk-draw {
+    position: sticky;
+    top: 12px;
+  }
+}
+
+/* ─── the tools ──────────────────────────────────────────────────────────── */
+
+/*
+ * One quiet bar of icons over the drawing, grouped by thin rules rather than boxes: the tools and the inks, then what
+ * acts on the drawing, then Make it a graph. The chosen tool is drawn in reverse, ink on the page's own color. The
+ * tools keep their icons, their names going to screen readers and tooltips.
+ */
+.sk-bar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+.sk-tools-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.sk-tools-row:last-child {
+  flex: 1 1 auto;
+}
+.sk-spacer {
+  flex: 1 1 0;
+}
+.sk-rule {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin-inline: 7px;
+  background: var(--line-strong);
+}
+.sk-bar svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sk-bar svg circle {
+  fill: currentColor;
+  stroke: none;
+}
+
+.sk-seg {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+}
+.sk-seg button,
+.sk-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 11px 0 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--ink-2);
+  font: 600 0.9rem/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sk-icon {
+  width: 40px;
+  padding: 0;
+}
+.sk-seg button svg,
+.sk-icon svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.sk-seg button[aria-checked="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+/* A tool with kinds to choose from shows a small corner: tapped again, it opens them. */
+.sk-seg button[data-options] {
+  position: relative;
+}
+.sk-seg button[data-options]::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  border: 3px solid transparent;
+  border-right-color: currentColor;
+  border-bottom-color: currentColor;
+  opacity: 0.55;
+}
+@media (hover: hover) {
+  .sk-seg button[aria-checked="false"]:hover,
+  .sk-icon:not(:disabled):hover {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+}
+.sk-icon[aria-expanded="true"] {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.sk-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sk-seg button {
+    transition:
+      background-color 120ms ease-out,
+      color 120ms ease-out;
+  }
+}
+/* The tools show their icons alone; their names are for screen readers and tooltips. */
+.sk-seg button {
+  padding: 0;
+}
+.sk-seg button span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.sk-inks {
+  display: inline-flex;
+  flex: none;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.sk-inks input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.sk-inks label {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 40px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.sk-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px oklch(0 0 0 / 0.18);
+}
+.sk-inks input:checked + label .sk-swatch {
+  box-shadow:
+    inset 0 0 0 1px oklch(0 0 0 / 0.18),
+    0 0 0 2.5px var(--bg),
+    0 0 0 4px var(--ink);
+}
+@media (hover: hover) {
+  .sk-inks input:not(:checked) + label:hover {
+    background: var(--surface-2);
+  }
+}
+.sk-inks input:focus-visible + label {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+/* With the system's own colors, as in Windows' contrast themes, the chosen tool and ink keep a plain outline. */
+@media (forced-colors: active) {
+  .sk-seg button[aria-checked="true"],
+  .sk-inks input:checked + label {
+    outline: 2px solid CanvasText;
+    outline-offset: -2px;
+  }
+}
+
+.sk-go {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 15px 0 13px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 650 0.95rem/1 var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sk-go svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  stroke-width: 1.8;
+}
+@media (hover: hover) {
+  .sk-go:hover {
+    filter: brightness(1.08);
+  }
+}
+.sk-go:active {
+  transform: translateY(1px);
+}
+/* A dot on the button when the drawing has changed since the last reading; it takes no room, so nothing shifts. */
+.sk-go[data-stale="true"]::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-ink);
+  opacity: 0.7;
+}
+
+/* Two rows where the view is narrow, with the bar's menus as wide as the bar. */
+@container sk (max-width: 719px) {
+  .sk-tools-row {
+    flex: 1 1 100%;
+  }
+  .sk-bar .sk-more,
+  .sk-bar .sk-tools {
+    position: static;
+  }
+  .sk-bar .sk-menu,
+  .sk-bar .sk-add .sk-menu {
+    left: 0;
+    right: 0;
+    width: auto;
+    min-width: 0;
+  }
+}
+/* Up to the commonest phone widths, a few pixels of slack, as fonts set a little wider on some systems. */
+@container sk (max-width: 419px) {
+  .sk-rule {
+    margin-inline: 4px;
+  }
+  .sk-go {
+    padding-inline: 11px 12px;
+  }
+}
+@container sk (max-width: 399px) {
+  .sk-inks label {
+    width: 30px;
+  }
+  .sk-icon,
+  .sk-seg button {
+    width: 36px;
+    min-width: 36px;
+  }
+  .sk-rule {
+    margin-inline: 4px;
+  }
+  .sk-go svg {
+    display: none;
+  }
+  .sk-go {
+    padding-inline: 12px;
+  }
+}
+@container sk (max-width: 349px) {
+  .sk-inks label {
+    width: 27px;
+  }
+  .sk-icon,
+  .sk-seg button {
+    width: 30px;
+    min-width: 30px;
+  }
+  .sk-tools-row:last-child .sk-rule {
+    display: none;
+  }
+  .sk-go {
+    padding-inline: 10px;
+    font-size: 0.9rem;
+  }
+}
+
+/* The menus: More, and Add with its steps, arrows, and templates. */
+.sk-more,
+.sk-tools {
+  position: relative;
+}
+.sk-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  display: grid;
+  gap: 2px;
+  min-width: 260px;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--sk-radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  list-style: none;
+}
+.sk-menu[hidden] {
+  display: none;
+}
+.sk-menu button {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: 450 0.95rem/1.2 var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+.sk-menu [role="menuitemcheckbox"] {
+  position: relative;
+  padding-left: 40px;
+}
+.sk-menu [role="menuitemcheckbox"]::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 4px;
+}
+.sk-menu [role="menuitemcheckbox"][aria-checked="true"]::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.sk-menu [role="menuitemcheckbox"][aria-checked="true"]::after {
+  content: "";
+  position: absolute;
+  left: 17.5px;
+  top: 50%;
+  width: 5px;
+  height: 9px;
+  margin-top: -6.5px;
+  border: solid var(--accent-ink);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.sk-menu [role="menuitemradio"] {
+  position: relative;
+  padding-left: 40px;
+}
+.sk-menu [role="menuitemradio"][aria-checked="true"]::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.sk-menu button small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+.sk-tool-menu {
+  width: 290px;
+}
+.sk-tool-menu button {
+  padding-block: 8px;
+}
+.sk-menu [role="separator"] {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--line);
+}
+@media (hover: hover) {
+  .sk-menu button:hover {
+    background: var(--surface-2);
+  }
+}
+.sk-menu button:focus-visible {
+  outline-offset: -2px;
+}
+.sk-add .sk-menu {
+  width: 340px;
+  max-height: min(60cqh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sk-menu-head {
+  margin: 8px 12px 4px;
+  color: var(--ink-3);
+  font: 600 0.8rem/1.2 var(--font);
+}
+.sk-menu-head:first-child {
+  margin-top: 4px;
+}
+.sk-add-shapes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+}
+.sk-add-shapes button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 8px;
+  font-size: 0.9rem;
+}
+.sk-add-shapes svg {
+  flex: none;
+  width: 28px;
+  height: 20px;
+  stroke-width: 1.4;
+}
+.sk-add-shapes svg circle {
+  fill: none;
+  stroke: currentColor;
+}
+.sk-add-shapes svg .sk-fill {
+  fill: currentColor;
+  stroke: none;
+}
+.sk-add-arrows {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sk-add-templates {
+  display: grid;
+  gap: 2px;
+}
+.sk-add-templates button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ─── the drawing ────────────────────────────────────────────────────────── */
+
+.sk-pad {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--sk-radius-lg);
+  background: var(--surface);
+}
+/* Where the view is narrow the drawing runs to its edges: the whole width is for drawing. */
+@container sk (max-width: 719px) {
+  .sk-pad {
+    margin-inline: calc(-1 * var(--sk-gutter));
+    border-inline: 0;
+    border-radius: 0;
+  }
+}
+.sk-pad canvas {
+  display: block;
+  width: 100%;
+  /* As tall as the view leaves room for under the tools, and over the line of what was read. */
+  height: clamp(260px, calc(100cqh - 6px - var(--sk-toolbar, 92px) - 70px), 1100px);
+  touch-action: none;
+  cursor: crosshair;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.sk-pad canvas[data-tool="erase"],
+.sk-pad canvas[data-tool="cut"] {
+  cursor: cell;
+}
+.sk-pad canvas[data-tool="select"] {
+  cursor: default;
+}
+.sk-pad canvas[data-tool="select"][data-over] {
+  cursor: move;
+}
+.sk-pad canvas[data-tool="hand"],
+.sk-pad canvas[data-space] {
+  cursor: grab;
+}
+.sk-pad canvas[data-panning] {
+  cursor: grabbing;
+}
+/*
+ * A short view, as on a phone on its side: the tools, the drawing, and the line under it fill the view together, and
+ * what was read keeps to two lines at most with "See the graph" in sight.
+ */
+@container sk (max-height: 540px) {
+  .sk-pad canvas {
+    height: max(150px, calc(100cqh - var(--sk-toolbar, 52px) - 54px));
+  }
+  .sk-read-row {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .sk-read {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    font-size: 0.86rem;
+    line-height: 1.35;
+  }
+  .sk-read > span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  .sk-read .sk-ms {
+    display: none;
+  }
+  .sk-read .sk-to-result {
+    flex: none;
+  }
+  .sk-read-row .sk-check {
+    flex: none;
+  }
+}
+/* On a narrow view that is short too, the outlines' switch is left to More, as in full screen. */
+@container sk (max-height: 540px) and (max-width: 699px) {
+  .sk-read-row .sk-check {
+    display: none;
+  }
+}
+.sk-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 24px;
+  color: var(--ink-2);
+  text-align: center;
+  pointer-events: none;
+}
+.sk-hint[hidden] {
+  display: none;
+}
+.sk-hint p {
+  max-width: 30ch;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.sk-hint strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink);
+  font-size: 1.06rem;
+  font-weight: 600;
+}
+.sk-hint .btn {
+  pointer-events: auto;
+}
+.sk-chip {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  max-width: calc(100% - 16px);
+  margin: 0;
+  padding: 3px 3px 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--surface) 90%, transparent);
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+.sk-chip[hidden] {
+  display: none;
+}
+.sk-chip button,
+.sk-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 0.8rem/1 var(--font);
+  cursor: pointer;
+}
+/* In the drawing's corner: the zoom, which fits the drawing to the screen when pressed, and full screen. */
+.sk-corner {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+}
+.sk-full {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--surface) 90%, transparent);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.sk-full svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sk-zoom {
+  min-height: 32px;
+  background: color-mix(in oklch, var(--surface) 90%, transparent);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.sk-zoom::after {
+  content: "Fit";
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 600;
+}
+.sk-zoom[hidden] {
+  display: none;
+}
+/* What can be done with the chosen strokes, floating over them. */
+.sk-sel-bar {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  max-width: calc(100% - 8px);
+  padding: 3px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.12),
+    0 8px 20px -6px oklch(0 0 0 / 0.32);
+}
+.sk-sel-bar[hidden],
+.sk-sel-bar button[hidden] {
+  display: none;
+}
+.sk-sel-bar button {
+  height: 32px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: 600 0.82rem/1 var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sk-sel-bar button[data-sel="delete"] {
+  color: var(--error);
+}
+/* On a narrow view the bar keeps to one row; on the narrowest, with Paste too, it may take two. */
+@container sk (max-width: 399px) {
+  .sk-sel-bar button {
+    padding: 0 7px;
+  }
+}
+/* The full-screen button shows the way it goes: corners out to fill the screen, corners in to leave it. */
+.sk-full[aria-pressed="false"] .sk-leave,
+.sk-full[aria-pressed="true"] .sk-enter {
+  display: none;
+}
+@media (hover: hover) {
+  .sk-full:hover {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+  .sk-sel-bar button:hover,
+  .sk-zoom:hover,
+  .sk-chip button:hover {
+    background: var(--surface-2);
+  }
+}
+.sk-name-edit {
+  position: absolute;
+  z-index: 5;
+  margin: 0;
+}
+.sk-name-edit[hidden] {
+  display: none;
+}
+.sk-name-edit input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 1rem/1.2 var(--font);
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+
+.sk-read-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+}
+.sk-read {
+  margin: 0;
+  min-width: 0;
+  color: var(--ink-2);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+.sk-read strong {
+  color: var(--ink);
+}
+.sk-read .sk-ms {
+  color: var(--ink-3);
+  font: 0.8rem var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sk-read .sk-to-result {
+  margin-left: 4px;
+  color: var(--accent);
+  font-weight: 560;
+  white-space: nowrap;
+}
+@container sk (min-width: 1024px) {
+  .sk-read .sk-to-result {
+    display: none;
+  }
+}
+.sk-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  color: var(--ink-2);
+  font-size: 0.94rem;
+  cursor: pointer;
+}
+.sk-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* ─── the graph ──────────────────────────────────────────────────────────── */
+
+.sk-result {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  align-content: start;
+  scroll-margin-top: 8px;
+}
+.sk-back {
+  justify-self: start;
+  color: var(--accent);
+  font-size: 0.92rem;
+  font-weight: 560;
+}
+@container sk (min-width: 1024px) {
+  .sk-back {
+    display: none;
+  }
+}
+.sk-panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--sk-radius-lg);
+  background: var(--surface);
+}
+.sk-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.sk-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+.sk-panel h2 label {
+  cursor: inherit;
+}
+.sk-panel-head span {
+  color: var(--ink-3);
+  font-size: 0.86rem;
+}
+.sk-diagram {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  overflow-x: auto;
+  border-radius: var(--radius);
+}
+.sk-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+.sk-diagram [data-node] {
+  cursor: pointer;
+}
+.sk-empty {
+  max-width: 32ch;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.94rem;
+  text-align: center;
+}
+.sk-guesses {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 12px 10px 28px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.sk-guesses[hidden] {
+  display: none;
+}
+.sk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sk-row .btn[hidden] {
+  display: none;
+}
+.sk-status {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.88rem;
+}
+.sk-note {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.sk-note strong {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.sk-names {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
+  gap: 8px 14px;
+}
+.sk-names > .sk-status {
+  grid-column: 1 / -1;
+}
+.sk-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.sk-names label {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+/* Each step's shape menu: a plain select with a drawn chevron, so it takes the theme's colors. */
+.sk-names select,
+.sk-shape-note {
+  flex: none;
+  width: 11em;
+}
+.sk-names select {
+  min-height: 40px;
+  padding: 0 26px 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--ink-2) 50%) right 14px center / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--ink-2) 50%, transparent 50%) right 9px center / 5px 5px no-repeat,
+    var(--surface-2);
+  color: var(--ink);
+  font: 400 0.9rem/1.2 var(--font);
+  appearance: none;
+  cursor: pointer;
+}
+.sk-shape-note {
+  padding-left: 10px;
+  color: var(--ink-3);
+  font-size: 0.86rem;
+}
+.sk-names input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 400 0.95rem/1.3 var(--font);
+}
+.sk-names input::placeholder {
+  color: var(--ink-3);
+}
+.sk-tag {
+  flex: none;
+  min-width: 28px;
+  padding: 5px 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 600 0.78rem/1 var(--mono);
+  text-align: center;
+}
+/* A line's tag names its two ends, and is outlined where a shape's is filled. */
+.sk-line-tag {
+  padding: 4px 5px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.sk-code {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 240px;
+  padding: 12px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 0.86rem/1.55 var(--mono);
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+}
+
+/* ─── full screen ────────────────────────────────────────────────────────── */
+
+/* The tools, the drawing, and the line under it take the whole screen; the rest of the page waits underneath. */
+.sk-full-page,
+.sk-full-page body {
+  overflow: hidden;
+}
+/* Over everything: the views, and the stage that holds them, rise above the editor's own bars while it is on. */
+.sk-full-page .stage,
+.sk-full-page .graph-views {
+  z-index: 100;
+}
+/* The switch is the page's, which waits underneath; Escape, F, or the corner button leave full screen. */
+.sk-full-page .graph-switch,
+.sk-full-page .graph-views-note {
+  display: none;
+}
+.sk.is-full .sk-draw {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  background: var(--bg);
+}
+.sk.is-full .sk-pad {
+  display: grid;
+  min-height: 0;
+  margin-inline: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.sk.is-full .sk-pad canvas {
+  height: 100%;
+  min-height: 0;
+}
+.sk.is-full .sk-read-row {
+  flex-wrap: nowrap;
+  align-items: center;
+  min-height: 30px;
+  padding-inline: 4px;
+}
+/* What was read takes two lines at most, and "See the graph" stays in sight beside it. */
+.sk.is-full .sk-read {
+  display: flex;
+  align-items: center;
+  gap: 2px 10px;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+.sk.is-full .sk-read > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.sk.is-full .sk-read .sk-ms {
+  display: none;
+}
+.sk.is-full .sk-read .sk-to-result {
+  display: inline;
+  flex: none;
+  margin-left: 0;
+}
+.sk.is-full .sk-read-row .sk-check {
+  flex: none;
+  min-height: 30px;
+  font-size: 0.86rem;
+}
+/* On a phone the outlines' switch is in More, which leaves the line under the drawing its whole width. */
+@media (max-width: 559px) {
+  .sk.is-full .sk-read-row .sk-check {
+    display: none;
+  }
+}
+/* The toolbar's rows and menus follow the window in full screen, which the view's own width no longer is. */
+@media (max-width: 719px) {
+  .sk.is-full .sk-tools-row {
+    flex: 1 1 100%;
+  }
+}
+
+/* ─── the switch and the canvas's own bars, while the drawing is up ─────── */
+
+/* The drawing takes the canvas's whole place, the band its switch sits in included: the canvas under it is out of reach.
+   The switch sits at the band's right. */
+.graph-views.is-sketch {
+  background: var(--bg);
+  pointer-events: auto;
+}
+.graph-views.is-sketch .graph-switch {
+  top: 8px;
+}
+/* The canvas's bar (Add, Connect, Loop, Fit, Undo, Redo), the loops' names, and its picture's look are the canvas's; the
+   drawing has its own. */
+.stage:has(> .graph-views.is-sketch) > .toolbar,
+.stage:has(> .graph-views.is-sketch) > .loop-legend,
+.stage:has(> .graph-views.is-sketch) > .empty-canvas,
+.stage:has(> .graph-views.is-sketch) > .look-dot {
+  display: none;
+}

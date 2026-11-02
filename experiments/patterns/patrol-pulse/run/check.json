@@ -1,0 +1,30 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20261005-042756: the clock form",
+    "PULSE.md: investigator Write .grooph/orders-api-patrol/runs/20261005-042756/PULSE.md",
+    "FILED.md: ticket-writer Write .grooph/orders-api-patrol/runs/20261005-042756/FILED.md",
+    "orders-api-patrol--investigator (Investigator judges scan signals) read .grooph/orders-api-patrol/runs/20261005-042756/scan-output.txt, TICKETS.md, README.md, logs/app.log, src/db.mjs, src/payments.mjs; ran `ls <local path>\u2026`",
+    "the final note is at node:prioritize, not at graph",
+    "ending as expected: halt at prioritize",
+    "TICKETS.md: 1 added line(s) match /^## T-/: \"## T-0008 \u00b7 DB connection pool exhausted during flash sale, users get 503s (open\"",
+    "ticket-writer wrote 2 file(s): TICKETS.md, .grooph/orders-api-patrol/runs/20261005-042756/FILED.md",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "verdicts in order: investigator \u2192 finding",
+    "timestamps: 9 given, 0 out of append order",
+    "permission denials: Write `<local path>`"
+  ],
+  "facts": {
+    "ending": [
+      "halt at prioritize"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": null
+  }
+}

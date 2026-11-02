@@ -1,0 +1,47 @@
+{
+  "problems": [
+    "integrator never ran as its own subagent (no summary-card--integrator transcript)",
+    "the lead never dispatched summary-card--integrator",
+    "no note at node:integrator",
+    "final-critic never ran as its own subagent (no summary-card--final-critic transcript)",
+    "the lead never dispatched summary-card--final-critic",
+    "no note at node:final-critic",
+    "PIECES.md was also written by summary-card--critic, not only planner",
+    "final-critic never wrote FINAL.md itself",
+    "the run ended by stop human; the template expects one of: halt at release-gate",
+    "final-critic never read or ran the held-out evidence, so its judgment was not made against it"
+  ],
+  "findings": [
+    "run id 20260922-151855: the clock form",
+    "owner dispatched 2 time(s)",
+    "critic dispatched 2 time(s)",
+    "PIECES.md: summary-card--critic Write PIECES.md; planner Write PIECES.md; summary-card--critic Write PIECES.md",
+    "GAPS.md: critic Write GAPS.md; critic Write GAPS.md",
+    "FINAL.md: never written",
+    "per-round report copies missing from the run folder (LEAD.md \u00a78; only the last round's survives in project.diff): GAPS.md round 0",
+    "summary-card--critic (Critic: piece 2 header) read PIECES.md, captures/CAPTURE.md, captures/card.svg, <local path>, <local path>, <local path>; ran nothing",
+    "summary-card--critic (Critic: piece 1 card frame) read PIECES.md, captures/card.svg, captures/CAPTURE.md, <local path>, <local path>, <local path>; ran nothing",
+    "the final note is at loop:pieces, not at graph",
+    "loop polish has a dispatches budget, but no loop note records a dispatch count",
+    "loop pieces has a dispatches budget, but no loop note records a dispatch count",
+    "back edge taken: e-next-piece-pass; 1 loop note(s) beyond round 0; caught by no fail verdict recorded",
+    "verdicts in order: critic \u2192 pass, pass",
+    "held-out evidence (REFERENCE-CAPTURE.md, REFERENCE.md, reference.svg): touched by critic \u00d73, planner \u00d73; named in 3 dispatch prompt(s)",
+    "timestamps: 30 given, 1 out of append order (estimated, not read from the clock)"
+  ],
+  "facts": {
+    "ending": [
+      "stop human"
+    ],
+    "back_edges": {
+      "later_rounds": 1,
+      "edge_notes": [],
+      "mentioned": [
+        "e-next-piece-pass"
+      ],
+      "caught_by": [],
+      "taken": true
+    },
+    "last_round": 1
+  }
+}

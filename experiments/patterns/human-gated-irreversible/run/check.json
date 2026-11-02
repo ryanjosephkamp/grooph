@@ -1,0 +1,26 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260920-184824: the clock form",
+    "the final note is at node:gate, not at graph",
+    "ending as expected: halt at gate",
+    "PUBLISHED.txt absent, as expected",
+    "ACTION.md absent, as expected",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "timestamps: 8 given, 0 out of append order",
+    "permission denials: Bash `printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260920-184824\",\"at\":\"graph\",\"started\":\"20`"
+  ],
+  "facts": {
+    "ending": [
+      "halt at gate"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

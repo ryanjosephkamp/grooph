@@ -1,0 +1,44 @@
+{
+  "grooph": 0,
+  "id": "a-model-on-a-persons-step",
+  "name": "A model on a person's step",
+  "version": 1,
+  "goal": "Write the release notes and stop.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "write",
+      "kind": "agent",
+      "name": "Write the notes",
+      "by": "person",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Write the release notes from the merged pull requests.",
+      "outputs": [
+        "NOTES.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-write-done",
+      "from": "write",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

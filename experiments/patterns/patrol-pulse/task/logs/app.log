@@ -1,0 +1,78 @@
+2026-09-21T00:00:03Z INFO  http     GET /orders account=acc_118 200 41ms
+2026-09-21T00:00:09Z INFO  http     GET /orders/ord_77120 account=acc_118 200 12ms
+2026-09-21T00:01:44Z INFO  http     POST /orders account=acc_204 201 88ms
+2026-09-21T00:03:12Z WARN  auth     token expiring soon for user usr_4471 (23h left)
+2026-09-21T00:07:58Z INFO  http     GET /health 200 1ms
+2026-09-21T00:12:30Z INFO  payments webhook received event evt_9a01f2 type=payment.succeeded
+2026-09-21T00:12:30Z INFO  payments webhook verified event evt_9a01f2
+2026-09-21T00:19:05Z WARN  http     deprecated header X-Legacy-Client from 203.0.113.44 on GET /orders
+2026-09-21T00:26:41Z INFO  http     GET /orders account=acc_311 200 63ms
+2026-09-21T00:41:17Z INFO  payments webhook received event evt_9a0b77 type=payment.succeeded
+2026-09-21T00:41:17Z ERROR payments webhook signature mismatch for event evt_9a0b77; dropped
+2026-09-21T00:41:52Z INFO  payments webhook received event evt_9a0b77 type=payment.succeeded (resend 1)
+2026-09-21T00:41:52Z ERROR payments webhook signature mismatch for event evt_9a0b77; dropped
+2026-09-21T00:55:00Z INFO  http     GET /health 200 1ms
+2026-09-21T01:10:22Z INFO  http     GET /orders account=acc_042 200 38ms
+2026-09-21T01:14:03Z WARN  http     retry 1/3 for POST /orders account=acc_042 (upstream reset) succeeded on retry
+2026-09-21T01:30:48Z INFO  http     GET /orders/ord_77201 account=acc_204 200 9ms
+2026-09-21T01:58:00Z INFO  export   nightly export started (312 accounts)
+2026-09-21T02:03:15Z WARN  http     slow request GET /reports account=acc_311 1240ms
+2026-09-21T02:06:40Z WARN  http     slow request GET /reports account=acc_118 1512ms
+2026-09-21T02:11:02Z WARN  http     slow request GET /reports account=acc_204 1108ms
+2026-09-21T02:17:55Z WARN  http     slow request GET /reports account=acc_042 1377ms
+2026-09-21T02:24:31Z INFO  export   nightly export finished in 26m31s
+2026-09-21T02:40:00Z INFO  http     GET /health 200 1ms
+2026-09-21T03:02:19Z INFO  payments webhook received event evt_9a1c40 type=payment.refunded
+2026-09-21T03:02:19Z INFO  payments webhook verified event evt_9a1c40
+2026-09-21T03:20:07Z WARN  http     deprecated header X-Legacy-Client from 198.51.100.7 on GET /orders/ord_77190
+2026-09-21T04:00:00Z INFO  deploy   orders-api 1.4.2 started (instance i-0f3a)
+2026-09-21T04:00:02Z WARN  cache    cache miss key=orders:acc_118 (cold start)
+2026-09-21T04:00:02Z WARN  cache    cache miss key=orders:acc_204 (cold start)
+2026-09-21T04:00:03Z WARN  cache    cache miss key=orders:acc_311 (cold start)
+2026-09-21T04:00:41Z INFO  cache    cache warm (312 keys)
+2026-09-21T04:15:00Z INFO  http     GET /health 200 1ms
+2026-09-21T05:31:26Z ERROR health   probe failed (1/3): connect ETIMEDOUT 10.0.3.14:5432
+2026-09-21T05:31:36Z INFO  health   probe ok
+2026-09-21T06:02:48Z INFO  http     GET /orders account=acc_118 200 44ms
+2026-09-21T06:45:10Z WARN  auth     token expiring soon for user usr_1029 (11h left)
+2026-09-21T07:30:00Z INFO  http     GET /health 200 1ms
+2026-09-21T08:14:52Z INFO  payments webhook received event evt_9a2e88 type=payment.succeeded
+2026-09-21T08:14:52Z ERROR payments webhook signature mismatch for event evt_9a2e88; dropped
+2026-09-21T09:00:14Z INFO  http     GET /orders account=acc_042 200 35ms
+2026-09-21T09:03:27Z INFO  http     POST /orders account=acc_042 201 92ms
+2026-09-21T09:47:31Z WARN  http     retry 1/3 for GET /orders/ord_77302 account=acc_311 (upstream reset) succeeded on retry
+2026-09-21T10:30:00Z INFO  http     GET /health 200 1ms
+2026-09-21T11:20:05Z INFO  http     GET /orders account=acc_204 200 40ms
+2026-09-21T12:00:00Z INFO  campaign flash sale started (acc_311, acc_118, acc_204 notified)
+2026-09-21T12:00:14Z INFO  http     POST /orders account=acc_311 201 95ms
+2026-09-21T12:00:15Z INFO  http     POST /orders account=acc_311 201 101ms
+2026-09-21T12:00:15Z INFO  http     POST /orders account=acc_118 201 97ms
+2026-09-21T12:00:16Z INFO  http     GET /orders account=acc_311 200 210ms
+2026-09-21T12:00:17Z INFO  http     POST /orders account=acc_204 201 340ms
+2026-09-21T12:00:18Z INFO  http     GET /orders account=acc_118 200 880ms
+2026-09-21T12:00:19Z WARN  db       pool busy 18/20 connections, 4 waiting
+2026-09-21T12:00:21Z WARN  db       pool busy 20/20 connections, 11 waiting
+2026-09-21T12:00:26Z ERROR db       pool exhausted: 20/20 connections busy, waited 5000ms
+2026-09-21T12:00:26Z ERROR http     503 GET /orders account=acc_311 (db pool exhausted)
+2026-09-21T12:00:26Z ERROR db       pool exhausted: 20/20 connections busy, waited 5000ms
+2026-09-21T12:00:26Z ERROR http     503 POST /orders account=acc_118 (db pool exhausted)
+2026-09-21T12:00:27Z ERROR db       pool exhausted: 20/20 connections busy, waited 5000ms
+2026-09-21T12:00:27Z ERROR http     503 GET /orders/ord_77410 account=acc_204 (db pool exhausted)
+2026-09-21T12:00:31Z ERROR db       pool exhausted: 20/20 connections busy, waited 5000ms
+2026-09-21T12:00:31Z ERROR http     503 POST /orders account=acc_311 (db pool exhausted)
+2026-09-21T12:00:44Z WARN  db       pool busy 16/20 connections, 0 waiting
+2026-09-21T12:01:10Z INFO  http     GET /orders account=acc_311 200 48ms
+2026-09-21T12:15:00Z INFO  http     GET /health 200 1ms
+2026-09-21T13:40:52Z INFO  payments webhook received event evt_9a3f10 type=payment.succeeded
+2026-09-21T13:40:52Z INFO  payments webhook verified event evt_9a3f10
+2026-09-21T14:22:38Z WARN  http     deprecated header X-Legacy-Client from 203.0.113.44 on GET /orders
+2026-09-21T15:00:00Z INFO  http     GET /health 200 1ms
+2026-09-21T16:31:07Z INFO  http     GET /orders account=acc_118 200 39ms
+2026-09-21T17:45:19Z WARN  auth     token expiring soon for user usr_4471 (5h left)
+2026-09-21T18:30:00Z INFO  http     GET /health 200 1ms
+2026-09-21T19:12:44Z INFO  http     POST /orders account=acc_204 201 84ms
+2026-09-21T20:00:00Z INFO  http     GET /health 200 1ms
+2026-09-21T21:08:33Z INFO  payments webhook received event evt_9a4d02 type=payment.succeeded
+2026-09-21T21:08:33Z ERROR payments webhook signature mismatch for event evt_9a4d02; dropped
+2026-09-21T22:30:00Z INFO  http     GET /health 200 1ms
+2026-09-21T23:41:56Z INFO  http     GET /orders account=acc_042 200 36ms

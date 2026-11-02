@@ -1,0 +1,43 @@
+{
+  "scored_at": "2026-10-10T15:57:40.285Z",
+  "scorer": "scripts/lib/compare-score.mjs (scoreHeldOut): the project's unseen suite alone, from the repository's copy",
+  "ending": {
+    "kind": "clean",
+    "reason": "the session ended itself"
+  },
+  "packages": [
+    {
+      "package": "printkit",
+      "folder": ".",
+      "scored_from": "experiments/comparisons/heterogeneous-critic/held-out",
+      "ran": true,
+      "command": "node --test <harness>/held-out/parse-ranges-cases.test.mjs",
+      "cases": 70,
+      "passed": 52,
+      "failed": 18,
+      "skipped": 0,
+      "rate": 0.743,
+      "failing": [
+        "order: parseRanges(\"5,1-3\", 10) is [5, 1, 2, 3]",
+        "order: parseRanges(\"3,1\", 10) is [3, 1]",
+        "order: parseRanges(\"10,4-5,1\", 10) is [10, 4, 5, 1]",
+        "repeats: parseRanges(\"2,2\", 10) is [2, 2]",
+        "repeats: parseRanges(\"1-3,2\", 10) is [1, 2, 3, 2]",
+        "repeats: parseRanges(\"1-2,1-2\", 10) is [1, 2, 1, 2]",
+        "backward: parseRanges(\"5-3\", 10) is [5, 4, 3]",
+        "backward: parseRanges(\"10-8\", 10) is [10, 9, 8]",
+        "backward: parseRanges(\"2-1\", 10) is [2, 1]",
+        "backward: parseRanges(\"1,5-3\", 10) is [1, 5, 4, 3]",
+        "open end: parseRanges(\"8-\", 10) is [8, 9, 10]",
+        "open end: parseRanges(\"-3\", 10) is [1, 2, 3]",
+        "open end: parseRanges(\"10-\", 10) is [10]",
+        "open end: parseRanges(\"-1\", 10) is [1]",
+        "open end: parseRanges(\"1,8-\", 10) is [1, 8, 9, 10]",
+        "empty: parseRanges(\"\", 10) is [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]",
+        "empty: parseRanges(\"   \", 10) is [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]",
+        "empty: parseRanges(\"\", 1) is [1]"
+      ],
+      "exit": 1
+    }
+  ]
+}

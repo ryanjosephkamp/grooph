@@ -1,0 +1,28 @@
+{
+  "grooph": 0,
+  "id": "no-terminal",
+  "name": "No terminal",
+  "version": 1,
+  "goal": "Write a draft.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "writer",
+      "kind": "agent",
+      "name": "Writer",
+      "role": "builder",
+      "brief": "Writer: write the draft.",
+      "outputs": [
+        "DRAFT.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    }
+  ],
+  "edges": [],
+  "loops": []
+}

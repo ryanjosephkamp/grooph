@@ -1,0 +1,12 @@
+{
+  "about": "What --check asserts for this fragment beyond the common rules: the host's builder and the fragment's bisector ran as their own subagents; the bisector wrote BISECT.md itself and names the change at fault (queue/002-search-case.patch); the bisector wrote only QUEUE.md (and its report) and nobody else wrote there; QUEUE.md gained exactly one `held` row; the run halted at land-gate with a halt note; land never ran; LANDED.txt and LANDING.md were never written. The design bet (write-up): the integration fails at round 0 on the three-patch batch, e-integrate-fail is taken, the bisector holds 002 and leaves 001 and 003 queued, the batch of two integrates green, and the run halts at the gate with nothing landed.",
+  "agents": ["builder", "bisect"],
+  "reports": { "bisect": ["BISECT.md"] },
+  "ownership": { "bisect": ["QUEUE.md"] },
+  "added": { "QUEUE.md": { "pattern": "^\\| queue/002-search-case\\.patch \\| held \\|", "count": 1 } },
+  "pick": { "report": "BISECT.md", "among": ["queue/002-search-case.patch"] },
+  "backEdge": true,
+  "notRun": ["land"],
+  "ending": ["halt at land-gate"],
+  "absent": ["LANDED.txt", "LANDING.md"]
+}

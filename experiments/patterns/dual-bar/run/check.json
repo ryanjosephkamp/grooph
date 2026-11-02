@@ -1,0 +1,29 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260920-191110: the clock form",
+    "REVIEW.md: critic Write REVIEW.md",
+    "parse-key-value--critic (Critic round 0: judge parseKeyValue) read .grooph/parse-key-value/runs/20260920-191110/round-0.diff, .grooph/parse-key-value/runs/20260920-191110/round-0.npm-test.txt, src/kv.mjs, tests/kv.test.mjs, README.md; ran `npm test 2>&1 | tail -8`, `node --input-type=module -e '\nimport { parseKeyValue, renderKeyValue } from \"/private/var/\u2026`",
+    "no `ending` line before the final note n-0007 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "ending as expected: stop bar-passed, stop node done",
+    "dispatch count: n-0006 review r0 recorded 2, started lines 2 (exact)",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "verdicts in order: critic \u2192 pass",
+    "timestamps: 9 given, 0 out of append order",
+    "permission denials: Bash `N=.grooph/parse-key-value/runs/20260920-191110/notes.jsonl; T=$(date -u +%Y-%m-%`; Bash `date -u +%Y-%m-%dT%H:%M:%SZ; git add -N . ; git diff > .grooph/parse-key-value/r`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done",
+      "stop bar-passed"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

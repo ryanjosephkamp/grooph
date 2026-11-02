@@ -1,0 +1,73 @@
+{
+  "scored_at": "2026-10-04T22:25:57.872Z",
+  "scorer": "scripts/lib/compare-score.mjs",
+  "held_out": {
+    "ran": true,
+    "command": "node --test <harness>/held-out/statement-properties.test.mjs",
+    "cases": 24,
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "rate": 1,
+    "failing": [],
+    "exit": 0,
+    "suite": [
+      {
+        "path": "REFERENCE.md",
+        "sha256": "9b93e695b609131422401708863017cca902f9421537386631a7ff2f590e0f63",
+        "at_run": true
+      },
+      {
+        "path": "reference.txt",
+        "sha256": "62ef2a7d8494e7e569375912b0dd1034f9476723083454f61be614cedaa381ca",
+        "at_run": true
+      },
+      {
+        "path": "statement-properties.test.mjs",
+        "sha256": "45d00ffd095b5c2d5155ea55c43a5a74f886db95d079a4c52ccc03ae8734c49a",
+        "at_run": false
+      }
+    ],
+    "scored_from": "experiments/comparisons/taste-polish/held-out",
+    "reviewers_copy_changed": []
+  },
+  "tests": {
+    "command": "npm test",
+    "exit": 0,
+    "pass": true,
+    "tests": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "failing": [],
+    "error": null
+  },
+  "scope": {
+    "allowed": [
+      "src/",
+      "tests/",
+      "captures/",
+      "GAPS.md",
+      "CHANGES.md"
+    ],
+    "ignored": [
+      ".grooph/",
+      ".claude/"
+    ],
+    "changed": [
+      "CHANGES.md",
+      "GAPS.md",
+      "captures/CAPTURE.md",
+      "captures/statement.txt",
+      "src/statement.mjs"
+    ],
+    "outside": [],
+    "protected": [],
+    "protected_changed": []
+  },
+  "ending": {
+    "kind": "clean",
+    "reason": "iteration 1 of 5 said done and the tests passed"
+  }
+}

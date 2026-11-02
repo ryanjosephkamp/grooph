@@ -1,0 +1,41 @@
+{
+  "about": "What the runner, the scorer and the summary read for this project (protocol version 2, §7). The proving keys (agents, reports, heldOut, ending) drive the check on arm A's run record; the rest is the pre-registration and the scorer's paths. The template has no test-command slot, so `test_command` names the project's own. `held_out_scorer_only` names the file of held-out/ that is the scorer's alone: the template names its critic a reference, not a suite, so the suite leaves the folder before a run and nobody in any arm can read it. `tier_map` is the model each tier means in every package and prompt of this project: null until it is named, and no paid run starts on null.",
+  "protocol": 2,
+  "template": "taste-polish",
+  "replicates": 2,
+  "models": { "lead": "claude-opus-5-5", "lead_effort": "high", "judge": "claude-opus-5-5" },
+  "tier_map": { "frontier": "claude-opus-5-5", "strong": "claude-sonnet-5-5", "fast": "claude-sonnet-5-5" },
+  "tier_map_named": "the owner, 2026-10-04, relayed by the driver before any run: frontier Opus 5.5, strong Sonnet 5.5, fast Sonnet 5.5; lead and blind judge Opus 5.5; never Fable, never Astra. No node of this project is on the fast tier.",
+  "test_command": "npm test",
+  "held_out_scorer_only": ["statement-properties.test.mjs"],
+  "bet": "taste-polish's mechanism is one owner who revises a rendered artifact and a critic in a fresh context who compares readable captures against a named reference and returns the gaps that matter most, bounded by rounds, a dispatch budget and a human check-in. The reference statement has seven properties the style brief does not state (the order of the lines, how a credit is written, what happens to a service with no usage, a share column, a line that adds up the charges, the month by name, the quantity beside its unit), so an owner working from the brief alone is expected to miss most of them; the bet is that the critic's side-by-side names them, `e-critic-fail` is taken, and the statement ends closer to the reference than one polished with no reviewer (arm D). Against the same design said in prose (arms B and C) the bet is narrower: that the package closes at least as many of the seven, at a cost the difference justifies.",
+  "measure": "held-out passes out of 24, by group (style: what the brief states; and the seven properties only the reference shows); whether a loop turned and how many gaps the critic named each round, from each run's record; who read the reference (transcript digest); cost and wall time; the blind judgment of the rendered statement.",
+  "loses_if": "the graph loses when arm B matches or beats arm A on held-out passes in both replicates at lower cost. It earns its cost only if A's held-out range lies above B's, or A reaches B's passes at lower cost in both replicates. The design itself (A, B and C alike) loses to no design when D's held-out range is not below theirs.",
+  "round0_pass_probability": 0.01,
+  "round0_why": "Of the suite's 24 cases, 17 check properties of the reference statement that the style brief does not state: a line that adds up the charges, with the total last under a rule; charges and credits largest first; credits in parentheses, in line with the amounts above, thousands with a comma and the currency named once above the table; services with no usage left out of the table and counted and named at the foot; a share column; the month by name with the account at the right of the customer's line; the quantity with a comma beside its unit. An owner passes at round 0 only by making all of those choices without the reference, and two are choices no brief suggests (the share column, the sentence at the foot). The estimate is 0.01. The plain first pass kept in reference/first-pass passes 14 of 24: the seven style cases and seven of the reference's by habit; the task as it ships passes 4.",
+  "held_out_cases": 24,
+  "bare_task_passes": 4,
+  "expected_brake": {
+    "fires": "the human check-in (every 2 rounds), in arm A, before round 2",
+    "probability": 0.4,
+    "probability_bar_passed_at_round_1": 0.5,
+    "why": "The reference's notes name eight kinds of major gap; a plain first pass leaves about five open, and five is as many as the critic may name in one round. If the owner closes every one at round 1 the bar passes there; if one stays open the check-in comes due before round 2 and, with no scripted answer, the run halts. The cap of 5 rounds and the budget of 16 dispatches cannot fire in A because the check-in comes first. Bounding is shown if A ends at the check-in while a prompt arm told the same stop in prose runs past it; not shown if B and C stop at the same point or the check-in never comes due. It is read from endings, rounds and cost, not from held-out passes."
+  },
+  "expected_arm_c": {
+    "iterations": "more than 1 in about half the runs",
+    "probability": 0.5,
+    "why": "A session that stops at the check-in with gaps open may end `done: no`, and the next fresh session starts its own count of rounds, so no check-in holds across C's sessions; its bounds are N = 5 iterations and the ceiling of each."
+  },
+  "first_pass": {
+    "about": "reference/first-pass laid over task/: what STYLE.md asks for, done the usual way, one author's, written without the reference. scripts/lib/compare-projects.test.mjs holds these numbers to the files, and holds reference/solution to held-out/reference.txt byte for byte.",
+    "held_out_passes": 14,
+    "fails_in": ["structure", "order", "money", "no usage", "share", "heading"]
+  },
+  "acceptance": ["README.md", "STYLE.md"],
+  "scope": { "allowed": [ "src/", "tests/", "captures/", "GAPS.md", "CHANGES.md" ] },
+  "judge": { "files": [ "src/", "tests/" ], "artifact": { "command": "npm run render", "path": "out/statement.txt" } },
+  "agents": ["owner", "critic"],
+  "reports": { "critic": [ "GAPS.md" ] },
+  "heldOut": { "readers": [ "critic" ], "notReaders": [ "owner" ] },
+  "ending": ["stop human", "stop diminishing-returns", "stop bar-passed", "stop max-iterations", "stop budget", "stop node done"]
+}

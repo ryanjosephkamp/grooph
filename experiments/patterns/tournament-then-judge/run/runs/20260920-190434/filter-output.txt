@@ -1,0 +1,52 @@
+
+> linediff@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ at least one implementation exists (candidates/*/diff.mjs or src/diff.mjs) (0.541125ms)
+✔ candidates/a: both empty (0.757584ms)
+✔ candidates/a: empty before (0.168708ms)
+✔ candidates/a: empty after (0.099125ms)
+✔ candidates/a: identical (0.184459ms)
+✔ candidates/a: the README example (0.476209ms)
+✔ candidates/a: a swap needs two edits (0.084458ms)
+✔ candidates/a: repeated lines (0.0995ms)
+✔ candidates/a: blank and whitespace lines are distinct (0.077917ms)
+✔ candidates/a: unicode lines (0.113833ms)
+✔ candidates/a: long unrelated inputs (0.661208ms)
+✔ candidates/a: long shifted inputs (0.642792ms)
+✔ candidates/a: refuses bad input (0.2365ms)
+✔ candidates/a: does not change its inputs (0.063791ms)
+✔ candidates/b: both empty (0.3455ms)
+✔ candidates/b: empty before (0.116584ms)
+✔ candidates/b: empty after (0.060625ms)
+✔ candidates/b: identical (0.055042ms)
+✔ candidates/b: the README example (0.069792ms)
+✔ candidates/b: a swap needs two edits (0.046584ms)
+✔ candidates/b: repeated lines (0.058958ms)
+✔ candidates/b: blank and whitespace lines are distinct (0.045542ms)
+✔ candidates/b: unicode lines (0.054041ms)
+✔ candidates/b: long unrelated inputs (0.786375ms)
+✔ candidates/b: long shifted inputs (0.861291ms)
+✔ candidates/b: refuses bad input (0.082959ms)
+✔ candidates/b: does not change its inputs (0.049584ms)
+✔ candidates/c: both empty (0.310292ms)
+✔ candidates/c: empty before (0.128166ms)
+✔ candidates/c: empty after (0.047334ms)
+✔ candidates/c: identical (0.0445ms)
+✔ candidates/c: the README example (0.047209ms)
+✔ candidates/c: a swap needs two edits (0.041417ms)
+✔ candidates/c: repeated lines (0.040083ms)
+✔ candidates/c: blank and whitespace lines are distinct (0.035375ms)
+✔ candidates/c: unicode lines (0.036542ms)
+✔ candidates/c: long unrelated inputs (1.312917ms)
+✔ candidates/c: long shifted inputs (0.805459ms)
+✔ candidates/c: refuses bad input (0.079291ms)
+✔ candidates/c: does not change its inputs (0.053666ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 58.468458

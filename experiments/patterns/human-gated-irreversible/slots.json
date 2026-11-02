@@ -1,0 +1,22 @@
+{
+  "about": "A fragment is proved inside a host (handoff 0011, criterion 2): grind-loop is instantiated, human-gated-irreversible is inserted with `grooph template insert`, and the ops route the tests' pass edge into the gate and drop the host's own stop node, so the graph reads builder → tests → gate → act (publish) → done.",
+  "name": "Release notes-store",
+  "host": {
+    "template": "grind-loop",
+    "values": {
+      "task": "Implement `removeNote(notes, id)` in src/notes.mjs as README.md describes, so that tests/notes.test.mjs passes.",
+      "test-command": "npm test"
+    }
+  },
+  "insert": {
+    "values": {
+      "action": "Publish this release: write PUBLISHED.txt at the project root containing one line, `published <run id>`, which marks notes-store 0.3.0 as released and cannot be taken back.",
+      "irreversible": "publish"
+    }
+  },
+  "ops": [
+    { "op": "updateEdge", "id": "e-tests-pass", "set": { "to": "gate" } },
+    { "op": "removeNode", "id": "done" },
+    { "op": "renameId", "from": "done-2", "to": "done" }
+  ]
+}

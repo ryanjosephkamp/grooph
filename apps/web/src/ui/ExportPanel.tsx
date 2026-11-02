@@ -1,0 +1,374 @@
+import { buildShareEnvelope, encodeSharePayload, formatIssue, SHARE_LINK_WARN, ShareError, targetTitle, type Graph, type Issue } from "@grooph/core";
+import type { PlanBundle } from "@grooph/core/plan";
+import { deflateSync } from "fflate";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+
+import {
+  attemptExport,
+  compilerHere,
+  copyText,
+  download,
+  graphFileName,
+  graphFileText,
+  loadCompiler,
+  packageFileName,
+  zipPackage,
+  type ExportAttempt,
+} from "../doc/exportPackage.js";
+import { planFileType, planFolder, planOf, planZipName } from "../doc/plan.js";
+
+/**
+ * What the panel is handed by its door (`ExportDoor.tsx`), which is part of the canvas's screens: the document, its
+ * own findings, what a package would still need in words, the "Keep a copy" section, and the editor's two doings.
+ * The panel imports nothing of the canvas's own files: a file two pieces import is moved by the bundler into what
+ * every address loads (the findings' file went there, 0.56 KB, when this panel first imported it).
+ */
+export type ExportPanelProps = {
+  doc: Graph;
+  own: Issue[];
+  needs: string[];
+  keep: ReactNode;
+  open: (panel: "issues" | "graph") => void;
+  exported: () => void;
+};
+
+/**
+ * Export . A graph is a plan first, and a plan can always be kept: its three files, for
+ * any document that reads as a graph, whatever the validator found. Under it, a package for a harness: what it
+ * still needs, said plainly, and then the files `compile()` emits, as a zip, with the kickoff prompt on the
+ * clipboard in one tap. A package is refused with the error list when the graph has errors, as the CLI refuses.
+ *
+ * The panel is a piece of the app, fetched through `ExportDoor.tsx` when Export is pressed (the editor asks for it
+ * soon after it opens): a canvas that only draws a graph does not carry it. The plan's maker comes with it.
+ */
+export function ExportPanel({ doc, own, needs, keep, open, exported }: ExportPanelProps) {
+  // The compiler arrives once (the editor asks for it soon after it opens); after that this is as it always was.
+  const [compiler, setCompiler] = useState<"here" | "coming" | "failed">(compilerHere() ? "here" : "coming");
+  useEffect(() => {
+    if (compiler !== "coming") return;
+    let gone = false;
+    loadCompiler().then(
+      () => !gone && setCompiler("here"),
+      () => !gone && setCompiler("failed"),
+    );
+    return () => {
+      gone = true;
+    };
+  }, [compiler]);
+  const attempt = useMemo(() => attemptExport(doc), [doc, compiler]);
+  // A document that does not match the schema yet cannot be drawn or outlined, so there is no plan of it.
+  const reads = !own.some((issue) => issue.code === "E_SCHEMA");
+  const plan = useMemo(() => (reads ? planOf(doc) : undefined), [doc, reads]);
+
+  const downloadGraph = (
+    <button type="button" className="btn" onClick={() => download(graphFileName(doc), graphFileText(doc), "application/json")}>
+      Download graph (.grooph.json)
+    </button>
+  );
+
+  if (!reads) {
+    return (
+      <div className="inspector">
+        <div className="refusal" role="alert">
+          <p>
+            <strong>This does not read as a graph yet: fix these first.</strong>
+          </p>
+          <p className="field-hint">The document does not match the graph schema yet, so it has no plan and no package. The file itself can be kept.</p>
+          <pre className="issue-lines">{own.map(formatIssue).join("\n")}</pre>
+          <button type="button" className="btn" onClick={() => open("issues")}>
+            Show issues
+          </button>
+        </div>
+        <div className="export-actions">{downloadGraph}</div>
+        {keep}
+      </div>
+    );
+  }
+
+  return (
+    <div className="inspector">
+      <TheLink doc={doc} open={open} />
+      {plan ? <ThePlan doc={doc} plan={plan} graph={downloadGraph} /> : null}
+      {keep}
+      <ThePackage doc={doc} attempt={attempt} compiler={compiler} own={own} needs={needs} open={open} exported={exported} />
+    </div>
+  );
+}
+
+/**
+ * A link to the graph: the whole document, in a link anyone can open to see it, read-only, from this page's own
+ * address, as `grooph share` makes one. Nothing is uploaded. It is made when asked for, and refused, as the command
+ * refuses, while the graph has errors. Where the device has a share sheet (a phone), it is offered beside the copy.
+ */
+function TheLink({ doc, open }: Pick<ExportPanelProps, "doc" | "open">) {
+  const [said, setSaid] = useState<{ copied?: boolean; url?: string; errors?: number } | null>(null);
+  const made = (): string | undefined => {
+    try {
+      return `${location.origin}${location.pathname}#/open?d=${encodeSharePayload(buildShareEnvelope(doc), (bytes) => deflateSync(bytes, { level: 9 }))}`;
+    } catch (e) {
+      if (!(e instanceof ShareError)) throw e;
+      setSaid({ errors: e.issues.filter((issue) => issue.severity === "error").length });
+      return undefined;
+    }
+  };
+  return (
+    <div role="group" aria-label="A link">
+      <h3 className="files-title">A link</h3>
+      <p className="field-hint">Anyone with the link can open the graph in a browser, read-only. Nothing is uploaded: the graph is in the link itself.</p>
+      <div className="export-actions">
+        <button
+          type="button"
+          className="btn"
+          onClick={async () => {
+            const url = made();
+            if (url) setSaid({ url, copied: await copyText(url) });
+          }}
+        >
+          Copy link
+        </button>
+        {typeof navigator.share === "function" ? (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              const url = made();
+              if (url) navigator.share({ title: doc.name, url }).catch(() => undefined);
+            }}
+          >
+            Share…
+          </button>
+        ) : null}
+      </div>
+      {said?.errors !== undefined ? (
+        <div className="refusal" role="alert">
+          <p>
+            <strong>A link needs a graph with no errors: this one has {said.errors}.</strong>
+          </p>
+          <button type="button" className="btn" onClick={() => open("issues")}>
+            Show issues
+          </button>
+        </div>
+      ) : said?.url ? (
+        <p className="field-hint" role="status">
+          {said.copied ? "Copied." : "This browser did not allow copying. Select the link and copy it:"}
+          {said.url.length > SHARE_LINK_WARN ? ` It is ${said.url.length.toLocaleString("en-US")} characters long, and some messengers cut links that long: Download graph sends the file instead.` : ""}
+        </p>
+      ) : null}
+      {said?.url && !said.copied ? <input className="mono" readOnly value={said.url} aria-label="The link" onFocus={(e) => e.currentTarget.select()} /> : null}
+    </div>
+  );
+}
+
+/**
+ * The plan: `PLAN.md`, the picture and the document, one by one and together. Always offered for a graph that
+ * reads; what the validator found is written in `PLAN.md`, and said here in one line.
+ */
+function ThePlan({ doc, plan, graph }: { doc: Graph; plan: PlanBundle; graph: ReactNode }) {
+  const errors = plan.toFix.filter((issue) => issue.severity === "error").length;
+  const picture = `${doc.id}.svg`;
+  return (
+    <div role="group" aria-label="The plan">
+      <h3 className="files-title">The plan</h3>
+      <p className="field-hint">A plan is this graph to read and follow: who does what, the picture and the file. It can always be kept, whatever the validator found.</p>
+      <div className="export-actions">
+        <button type="button" className="btn btn-primary" onClick={() => download(planZipName(doc), zipPackage(planFolder(doc, plan)), "application/zip")}>
+          The plan, all three (.zip)
+        </button>
+        <button type="button" className="btn" onClick={() => download("PLAN.md", plan.files["PLAN.md"]!, planFileType("PLAN.md"))}>
+          Plan (PLAN.md)
+        </button>
+        <button type="button" className="btn" onClick={() => download(picture, plan.files[picture]!, planFileType(picture))}>
+          Its picture (.svg)
+        </button>
+        {graph}
+      </div>
+      {errors > 0 ? (
+        <p className="field-hint">
+          PLAN.md lists what a harness would need before it could run this: {errors} thing{errors === 1 ? "" : "s"}. None of them stops the plan.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * A package for a harness. What it still needs is said plainly: a harness grooph has a compiler for, a goal, and a
+ * graph with no errors. None of those is a fault of a plan, and only the graph's own errors are shown as errors.
+ */
+function ThePackage({ doc, attempt, compiler, own, needs, open: show, exported }: { doc: Graph; attempt: ExportAttempt | undefined; compiler: "here" | "coming" | "failed" } & Pick<ExportPanelProps, "own" | "needs" | "open" | "exported">) {
+  const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle");
+  const [open, setOpen] = useState<string | null>(null);
+  const errors = own.filter((issue) => issue.severity === "error");
+  const title = (
+    <>
+      <h3 className="files-title">
+        A package for a harness <span className="badge badge-quiet">Experimental</span>
+      </h3>
+      <p className="field-hint">A package asks a coding session to follow this graph. It is a trial, and may change, or go, in a later version.</p>
+    </>
+  );
+
+  if (errors.length > 0 || needs.length > 0) {
+    const named = doc.target?.harness?.trim();
+    return (
+      <div className="keep" role="group" aria-label="A package for a harness">
+        {title}
+        <p className="field-hint">The files a coding harness runs this graph from. To write them, grooph still needs:</p>
+        <ul className="files">
+          {needs.map((need) => (
+            <li key={need} className="field-hint">
+              {need}
+            </li>
+          ))}
+          {errors.length > 0 ? (
+            <li className="field-hint">
+              A graph with no errors: this one has {errors.length}.
+            </li>
+          ) : null}
+        </ul>
+        {needs.length > 0 ? (
+          <button type="button" className="btn" onClick={() => show("graph")}>
+            Open the graph's details
+          </button>
+        ) : null}
+        {errors.length > 0 ? (
+          <div className="refusal" role="alert">
+            <p>
+              <strong>{named ? `Cannot export for ${named}: fix these first.` : "Cannot write a package: fix these first."}</strong>
+            </p>
+            <p className="field-hint">{`${errors.length} validation error${errors.length === 1 ? "" : "s"} — ${errors.map((i) => i.code).join(", ")}`}</p>
+            <pre className="issue-lines">{own.map(formatIssue).join("\n")}</pre>
+            <button type="button" className="btn" onClick={() => show("issues")}>
+              Show issues
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (!attempt) {
+    return (
+      <div className="keep" role="group" aria-label="A package for a harness">
+        {title}
+        {compiler === "failed" ? (
+          <div className="refusal" role="alert">
+            <p>
+              <strong>The exporter could not be fetched.</strong> It needs a connection the first time.
+            </p>
+            <button type="button" className="btn" onClick={() => location.reload()}>
+              Load the page again
+            </button>
+          </div>
+        ) : (
+          <p className="field-hint" role="status">
+            Preparing the package…
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (!attempt.ok && attempt.reason === "id") {
+    // The graph's id is a folder grooph keeps for something else, so no package can live under it. The plan and the
+    // copies above and below are offered all the same: this stops a package and nothing else.
+    return (
+      <div className="keep" role="group" aria-label="A package for a harness">
+        {title}
+        <div className="refusal" role="alert">
+          <p>
+            <strong>Cannot export for {attempt.target}.</strong>
+          </p>
+          <p className="field-hint">{attempt.said} Give the graph an id of its own, in the graph's panel, and export again.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!attempt.ok) {
+    // The compiler's own refusal, for what the validator's two lists did not say (a harness named by a document
+    // made elsewhere, say). Said in its words, as the CLI prints them.
+    return (
+      <div className="keep" role="group" aria-label="A package for a harness">
+        {title}
+        <div className="refusal" role="alert">
+          <p>
+            <strong>Cannot export for {attempt.target}: fix these first.</strong>
+          </p>
+          <pre className="issue-lines">{attempt.issues.map(formatIssue).join("\n")}</pre>
+          <button type="button" className="btn" onClick={() => show("issues")}>
+            Show issues
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const { files, kickoff, warnings } = attempt.result;
+  const paths = Object.keys(files);
+  return (
+    <div className="keep" role="group" aria-label="A package for a harness">
+      {title}
+      <div className="export-actions">
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => {
+            download(packageFileName(doc, attempt.target), zipPackage(files), "application/zip");
+            // Remembered so a later rename can warn that the package folder name changes (criterion 9).
+            exported();
+          }}
+        >
+          Download package (.zip)
+        </button>
+        <button
+          type="button"
+          className="btn"
+          onClick={async () => {
+            setCopied((await copyText(kickoff)) ? "done" : "failed");
+            setTimeout(() => setCopied("idle"), 2500);
+          }}
+        >
+          {copied === "done" ? "Kickoff copied" : copied === "failed" ? "Copy failed" : "Copy kickoff prompt"}
+        </button>
+      </div>
+      <p className="field-hint">
+        Unzip at the root of the project the run works in, then paste the kickoff prompt into a {targetTitle(attempt.target)} session opened there.
+      </p>
+
+      {warnings.length > 0 ? (
+        <div className="warnings">
+          <p>
+            {warnings.length} warning{warnings.length === 1 ? "" : "s"}, carried into the lead brief:
+          </p>
+          <pre className="issue-lines">{warnings.map(formatIssue).join("\n")}</pre>
+        </div>
+      ) : null}
+
+      <h3 className="files-title">
+        {paths.length} files for {attempt.target}
+      </h3>
+      <ul className="files">
+        {paths.map((path) => (
+          <li key={path}>
+            <button type="button" className="file" aria-expanded={open === path} onClick={() => setOpen(open === path ? null : path)}>
+              <span className="mono file-path">{path}</span>
+              <span className="file-size">{bytes(files[path]!)}</span>
+            </button>
+            {open === path ? <pre className="file-body">{files[path]}</pre> : null}
+          </li>
+        ))}
+      </ul>
+
+      <details className="more">
+        <summary>Kickoff prompt</summary>
+        <pre className="file-body">{kickoff}</pre>
+      </details>
+    </div>
+  );
+}
+
+const bytes = (text: string): string => {
+  const n = new TextEncoder().encode(text).length;
+  return n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`;
+};

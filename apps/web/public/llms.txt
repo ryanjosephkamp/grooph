@@ -1,0 +1,25 @@
+# grooph
+
+> grooph draws lightweight workflow diagrams in 2D and 3D. A diagram is one small JSON document that says who does the work, who checks it, where a person decides, and what stops each loop. grooph checks the document against rules with stable codes, draws it, and makes a link that opens it in the app on any device. A person can draw one, an agent can draw one, or both can take turns. grooph never runs an agent and never calls a model.
+
+If you are an agent asked for a grooph diagram, a loop graph, or a diagram of a team of agents, read the page for agents first. It has the shortest path (name a template, fill it, check it, share it), every operation by example, and what to do about each rule.
+
+## For agents
+
+- [Drawing with an agent](https://ryanjosephkamp.github.io/grooph/docs/agents/): the page to read first, including what works in a chat app
+- [The same page as Markdown](https://raw.githubusercontent.com/ryanjosephkamp/grooph/main/docs/agents.md)
+- [The document](https://ryanjosephkamp.github.io/grooph/docs/graph-ir/): every field, what it means, and the rules
+- [Every rule by its code](https://ryanjosephkamp.github.io/grooph/docs/rules/): each with a document that fires it
+
+## Reaching grooph
+
+- The command line: `npx grooph --help` (Node 22 or later)
+- The app, which opens a pasted document or a link and checks it: https://ryanjosephkamp.github.io/grooph/
+- An MCP server over standard input and output, experimental: `npx -y grooph mcp` (in a chat app: `npx -y grooph mcp --chat`)
+
+## Reference
+
+- [Templates](https://ryanjosephkamp.github.io/grooph/docs/templates/): the pattern library and its index, [patterns/index.json](https://ryanjosephkamp.github.io/grooph/patterns/index.json)
+- [The JSON Schema of a graph document](https://raw.githubusercontent.com/ryanjosephkamp/grooph/main/packages/core/schema/grooph-0.schema.json)
+- [The field guide](https://ryanjosephkamp.github.io/grooph/docs/field-guide/): every template as a shape, with when to use it
+- [Source](https://github.com/ryanjosephkamp/grooph)

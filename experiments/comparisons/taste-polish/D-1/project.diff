@@ -1,0 +1,219 @@
+diff --git a/captures/CAPTURE.md b/captures/CAPTURE.md
+new file mode 100644
+index 0000000..d8c63fd
+--- /dev/null
++++ b/captures/CAPTURE.md
+@@ -0,0 +1,40 @@
++# Capture of the current revision
++
++- rendered at 2026-10-04T22:26:48.007Z from src/statement.mjs, sha256 31e903095e9c
++- file: captures/statement.txt, 28 lines, the widest 68 characters
++- lines that end in a space or a tab: 0
++- tabs: none
++- characters outside plain ASCII: none
++
++## The statement, with line numbers and each line's length
++
++```text
++ 1 | 68 | Usage statement                                       September 2026
++ 2 | 68 | Northwind Robotics                                  Account NW-20418
++ 3 |  0 | 
++ 4 | 68 | Charges                       Quantity  Unit            Amount (USD)
++ 5 | 68 | --------------------------------------------------------------------
++ 6 | 68 | Compute                         18,250  vCPU-hours          1,642.50
++ 7 | 68 | Container registry                 412  GB-months              41.20
++ 8 | 68 | Data transfer out                4,380  GB                    394.20
++ 9 | 68 | Dedicated support                    1  plan                  500.00
++10 | 68 | Key management                      36  keys                   36.00
++11 | 68 | Load balancing                   1,440  hours                  36.00
++12 | 68 | Machine learning inference           0  requests                0.00
++13 | 68 | Managed database                   720  instance-hours      1,296.00
++14 | 68 | Monitoring                           0  metrics                 0.00
++15 | 68 | Object storage                   9,120  GB-months             209.76
++16 | 68 |                                                         ------------
++17 | 68 | Total charges                                               4,155.66
++18 |  0 | 
++19 |  7 | Credits
++20 | 68 | --------------------------------------------------------------------
++21 | 68 | Service credit, 14 Sep outage                                -164.25
++22 | 68 | Committed-use discount                                       -410.63
++23 | 68 |                                                         ------------
++24 | 68 | Total credits                                                -574.88
++25 |  0 | 
++26 | 68 | ====================================================================
++27 | 68 | Total due (USD)                                             3,580.78
++28 | 68 | ====================================================================
++```
+diff --git a/captures/statement.txt b/captures/statement.txt
+new file mode 100644
+index 0000000..adc4697
+--- /dev/null
++++ b/captures/statement.txt
+@@ -0,0 +1,28 @@
++Usage statement                                       September 2026
++Northwind Robotics                                  Account NW-20418
++
++Charges                       Quantity  Unit            Amount (USD)
++--------------------------------------------------------------------
++Compute                         18,250  vCPU-hours          1,642.50
++Container registry                 412  GB-months              41.20
++Data transfer out                4,380  GB                    394.20
++Dedicated support                    1  plan                  500.00
++Key management                      36  keys                   36.00
++Load balancing                   1,440  hours                  36.00
++Machine learning inference           0  requests                0.00
++Managed database                   720  instance-hours      1,296.00
++Monitoring                           0  metrics                 0.00
++Object storage                   9,120  GB-months             209.76
++                                                        ------------
++Total charges                                               4,155.66
++
++Credits
++--------------------------------------------------------------------
++Service credit, 14 Sep outage                                -164.25
++Committed-use discount                                       -410.63
++                                                        ------------
++Total credits                                                -574.88
++
++====================================================================
++Total due (USD)                                             3,580.78
++====================================================================
+diff --git a/src/statement.mjs b/src/statement.mjs
+index 8bf919c..489e3c6 100644
+--- a/src/statement.mjs
++++ b/src/statement.mjs
+@@ -1,3 +1,10 @@
++const WIDTH = 68;
++const GAP = "  ";
++const MONTHS = [
++  "January", "February", "March", "April", "May", "June",
++  "July", "August", "September", "October", "November", "December",
++];
++
+ /**
+  * The monthly usage statement as plain text.
+  * @param {{ customer: string, account: string, period: string, currency: string,
+@@ -6,17 +13,113 @@
+  * @returns {string}
+  */
+ export function renderStatement(data) {
++  const lines = data.lines ?? [];
++  const credits = data.credits ?? [];
++  const charges = sum(lines);
++  const allowed = sum(credits);
++  const due = charges + allowed;
++
++  const amounts = [...lines, ...credits].map((l) => money(l.amount_cents));
++  amounts.push(money(charges), money(allowed), money(due));
++  const amountHead = `Amount (${data.currency})`;
++  const amountWidth = Math.max(amountHead.length, ...amounts.map((a) => a.length));
++  const quantityWidth = Math.max("Quantity".length, ...lines.map((l) => quantity(l.quantity).length));
++  const unitWidth = Math.max("Unit".length, ...lines.map((l) => l.unit.length));
++  const labelWidth = WIDTH - amountWidth - quantityWidth - unitWidth - 3 * GAP.length;
++
++  const row = (label, qty, unit, amount) =>
++    wrap(label, labelWidth).map((part, i, parts) => {
++      if (i < parts.length - 1) return part;
++      return trimEnd(
++        part.padEnd(labelWidth) + GAP + qty.padStart(quantityWidth) + GAP +
++          unit.padEnd(unitWidth) + GAP + amount.padStart(amountWidth),
++      );
++    });
++  // Credits and totals have no quantity or unit, so their label may run up to the amount.
++  const totalWidth = WIDTH - amountWidth - GAP.length;
++  const total = (label, amount) =>
++    wrap(label, totalWidth).map((part, i, parts) =>
++      i < parts.length - 1 ? part : part.padEnd(totalWidth) + GAP + amount.padStart(amountWidth));
++  const rule = (ch) => ch.repeat(WIDTH);
++  const underline = " ".repeat(WIDTH - amountWidth) + "-".repeat(amountWidth);
++
+   const out = [];
+-  out.push(`Usage statement ${data.account} ${data.customer} ${data.period}`);
+-  let total = 0;
+-  for (const line of data.lines) {
+-    out.push(`${line.service} ${line.quantity} ${line.unit} ${line.amount_cents}`);
+-    total += line.amount_cents;
++  out.push(spread("Usage statement", month(data.period)));
++  out.push(spread(data.customer, `Account ${data.account}`));
++  out.push("");
++  out.push(...row("Charges", "Quantity", "Unit", amountHead));
++  out.push(rule("-"));
++  for (const l of lines) out.push(...row(l.service, quantity(l.quantity), l.unit, money(l.amount_cents)));
++  out.push(underline);
++  out.push(...total("Total charges", money(charges)));
++
++  if (credits.length > 0) {
++    out.push("");
++    out.push("Credits");
++    out.push(rule("-"));
++    for (const c of credits) out.push(...total(c.reason, money(c.amount_cents)));
++    out.push(underline);
++    out.push(...total("Total credits", money(allowed)));
+   }
+-  for (const credit of data.credits) {
+-    out.push(`${credit.reason} ${credit.amount_cents}`);
+-    total += credit.amount_cents;
+-  }
+-  out.push(`Total ${total} ${data.currency} cents`);
++
++  out.push("");
++  out.push(rule("="));
++  out.push(...total(`Total due (${data.currency})`, money(due)));
++  out.push(rule("="));
+   return `${out.join("\n")}\n`;
+ }
++
++function sum(items) {
++  return items.reduce((acc, item) => acc + item.amount_cents, 0);
++}
++
++/** Whole cents as dollars and cents, e.g. -41063 -> "-410.63", without floating point. */
++function money(cents) {
++  const sign = cents < 0 ? "-" : "";
++  const abs = Math.abs(cents);
++  return `${sign}${group(String(Math.floor(abs / 100)))}.${String(abs % 100).padStart(2, "0")}`;
++}
++
++function quantity(n) {
++  const [whole, fraction] = String(Math.abs(n)).split(".");
++  return `${n < 0 ? "-" : ""}${group(whole)}${fraction ? `.${fraction}` : ""}`;
++}
++
++function group(digits) {
++  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
++}
++
++/** "2026-09" -> "September 2026"; anything else is shown as given. */
++function month(period) {
++  const m = /^(\d{4})-(\d{2})$/.exec(period);
++  if (!m || Number(m[2]) < 1 || Number(m[2]) > 12) return period;
++  return `${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
++}
++
++function spread(left, right) {
++  const room = WIDTH - left.length - right.length;
++  return room >= 2 ? left + " ".repeat(room) + right : `${left}\n${right}`;
++}
++
++/** Splits text into pieces no wider than `width`, breaking at spaces where it can. */
++function wrap(text, width) {
++  const parts = [];
++  let current = "";
++  for (const word of text.split(/\s+/).filter(Boolean)) {
++    let w = word;
++    while (w.length > width) {
++      if (current) parts.push(current), (current = "");
++      parts.push(w.slice(0, width));
++      w = w.slice(width);
++    }
++    if (!current) current = w;
++    else if (current.length + 1 + w.length <= width) current += ` ${w}`;
++    else parts.push(current), (current = w);
++  }
++  parts.push(current);
++  return parts;
++}
++
++function trimEnd(s) {
++  return s.replace(/ +$/, "");
++}

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16171a" media="(prefers-color-scheme: dark)" />
+    <meta name="description" content="Lightweight workflow diagrams in 2D and 3D. Draw who does the work, who checks it, where a person decides, and when it stops, yourself or with an AI agent." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="grooph" />
+    <meta property="og:title" content="grooph: workflow diagrams in 2D and 3D" />
+    <meta property="og:description" content="Draw a workflow yourself or with an AI agent, check it, and see it in 2D and 3D. Free, open source, and nothing leaves your device." />
+    <meta property="og:url" content="https://ryanjosephkamp.github.io/grooph/" />
+    <meta property="og:image" content="https://ryanjosephkamp.github.io/grooph/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The grooph wordmark beside a review-gate diagram: a builder, a critic, a human merge approval, and a stop." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="grooph: workflow diagrams in 2D and 3D" />
+    <meta name="twitter:description" content="Draw a workflow yourself or with an AI agent, check it, and see it in 2D and 3D." />
+    <meta name="twitter:image" content="https://ryanjosephkamp.github.io/grooph/og.png" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <!-- Named for the service worker, which keeps what this page names. The media never matches: the browser fetches a font when text first uses it. -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin media="not all" href="/assets/fonts/atkinson-hyperlegible-next.v1.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin media="not all" href="/assets/fonts/atkinson-hyperlegible-next-italic.v1.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin media="not all" href="/assets/fonts/atkinson-hyperlegible-mono.v1.woff2" />
+    <link rel="preload" as="image" media="not all" href="/assets/site-icons.v1.svg" />
+    <!-- The looks after the first, linked below when one is kept. -->
+    <link id="site-looks" rel="preload" as="style" media="not all" href="/assets/site-looks.v1.css" />
+    <title>grooph: workflow diagrams in 2D and 3D</title>
+    <!-- The look chosen in the header, before the first paint: ?theme= wins and is kept. Its stylesheet is written in
+         single quotes: the worker keeps every double-quoted address here. An embed has its own colors. -->
+    <script>
+      (() => { if (/^#\/embed(\?|$)/.test(location.hash)) return; const ids = ["grooph", "meteor", "harbor", "plum", "ember", "graphite"]; let id = new URLSearchParams(location.search).get("theme"); try { if (ids.includes(id)) localStorage.setItem("groophTheme", id); else id = localStorage.getItem("groophTheme"); } catch {} if (ids.indexOf(id) > 0) { document.documentElement.dataset.theme = id; document.write('<link rel=stylesheet data-site-looks href=' + document.getElementById("site-looks").href + '>'); } })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

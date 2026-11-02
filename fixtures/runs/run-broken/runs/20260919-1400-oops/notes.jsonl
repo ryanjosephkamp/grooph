@@ -1,0 +1,3 @@
+{"id":"n-0001","run":"20260919-1400-oops","at":"graph","started":"2026-09-19T14:00:00Z","text":"run started"}
+{"id":"n-0002","run":"20260919-1400-oops","at":"graph","amendment":{"summary":"add a docs writer after the critic passes","reason":"the task changes a public API, so README.md needs an update","patch":[{"op":"addNode","kind":"agent","id":"docs","name":"Docs writer","set":{"role":"builder","brief":"Update README.md for the change.","outputs":["README.md"],"allow":["read-files","edit-files"]}},{"op":"connect","from":"critic","to":"doc","id":"e-critic-docs","set":{"when":"pass"}}]}}
+{"id":"n-0003","run":"20260919-1400-oops","at":"node:builder","started":"2026-09-19T14:01:00Z","outcome":"started","round":0}

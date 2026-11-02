@@ -1,0 +1,87 @@
+diff --git a/BISECT.md b/BISECT.md
+new file mode 100644
+index 0000000..eb18b85
+--- /dev/null
++++ b/BISECT.md
+@@ -0,0 +1,35 @@
++# Bisect: land-the-textkit-batch
++
++## Change at fault
++
++`queue/002-search-case.patch` (search ignores case). Now `held` in QUEUE.md.
++
++Failure: `tests/search.test.mjs:19` "an exact title match comes first, the rest
++keep their order" — expected `[3, 2]`, actual `[3, 2, 4]`. The patch makes the
++search return an extra item (id 4) that the test expects to be excluded.
++
++## How it was found
++
++The full batch (001, 002, 003) failed that one test with 9 of 10 passing
++(`.grooph/land-the-textkit-batch/runs/20260922-051355/integrate-round0.txt`).
++Each change was then run through `npm run integrate` on its own by toggling
++statuses in QUEUE.md, and the remainder was re-run together:
++
++| run | queued | result |
++|---|---|---|
++| 001 alone | 001 | 8 pass, 0 fail |
++| 002 alone | 002 | 8 pass, 1 fail: search.test.mjs:19, actual `[3, 2, 4]` (same as the full batch) |
++| 003 alone | 003 | 8 pass, 0 fail |
++| batch minus 002 | 001, 003 | 9 pass, 0 fail |
++
++002 reproduces the failure by itself, and the batch without it is green, so 002
++is the change at fault and not an interaction between changes.
++
++## What stays queued
++
++In the original order:
++
++1. `queue/001-slug-accents.patch` — queued
++2. `queue/003-limit-negative.patch` — queued
++
++Nothing under `queue/`, `src/` or `tests/` was changed; no fix was attempted.
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..e1ea882
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,15 @@
++# Changes
++
++## This round
++
++- `src/format.mjs`: `formatMoney` computed its output using `Math.abs(cents)` but
++  never reapplied the sign, so negative amounts lost their `-` (e.g. `-123456`
++  rendered as `$1,234.56` instead of `-$1,234.56`). Added a `sign` variable
++  (`"-"` when `cents < 0`, else `""`) and prefixed the returned string with it,
++  before the currency symbol, so the sign appears in front of the symbol as
++  required.
++- No test changes were needed: `tests/format.test.mjs` already contained the
++  "a negative amount keeps its sign in front of the symbol" test covering this
++  behaviour; it now passes along with the rest of the suite (`npm test`: 7/7
++  passing).
++- Nothing under `queue/` or `QUEUE.md` was touched.
+diff --git a/QUEUE.md b/QUEUE.md
+index 3dc24d2..d6f4fa5 100644
+--- a/QUEUE.md
++++ b/QUEUE.md
+@@ -11,5 +11,5 @@ reason in the note) or `landed`.
+ | change | status | note |
+ |---|---|---|
+ | queue/001-slug-accents.patch | queued | slugify strips accents (review: ok) |
+-| queue/002-search-case.patch | queued | search ignores case (review: ok) |
++| queue/002-search-case.patch | held | search ignores case (review: ok); held by bisect: fails tests/search.test.mjs:19 "an exact title match comes first, the rest keep their order" — expected [3, 2], got [3, 2, 4]; fails alone, see BISECT.md |
+ | queue/003-limit-negative.patch | queued | limit tolerates a negative n (review: ok) |
+diff --git a/src/format.mjs b/src/format.mjs
+index ecea8ed..753b719 100644
+--- a/src/format.mjs
++++ b/src/format.mjs
+@@ -1,7 +1,8 @@
+ /** Formats an amount in minor units (cents) as a currency string: 123456 → "$1,234.56". */
+ export function formatMoney(cents, symbol = "$") {
++  const sign = cents < 0 ? "-" : "";
+   const abs = Math.abs(cents);
+   const whole = Math.floor(abs / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+   const frac = String(abs % 100).padStart(2, "0");
+-  return `${symbol}${whole}.${frac}`;
++  return `${sign}${symbol}${whole}.${frac}`;
+ }

@@ -1,0 +1,60 @@
+{
+  "grooph": 0,
+  "id": "a-persons-step-is-no-gate",
+  "name": "A person's step is no gate",
+  "version": 1,
+  "goal": "Publish the package once the notes are written.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "write",
+      "kind": "agent",
+      "name": "Write the notes",
+      "by": "person",
+      "role": "builder",
+      "brief": "Write the release notes from the merged pull requests.",
+      "outputs": [
+        "NOTES.md"
+      ]
+    },
+    {
+      "id": "publish",
+      "kind": "agent",
+      "name": "Publish",
+      "role": "builder",
+      "brief": "Run `npm publish`, once.",
+      "outputs": [
+        "PUBLISHED.md"
+      ],
+      "allow": [
+        "read-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "irreversible": [
+        "publish"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-write-publish",
+      "from": "write",
+      "to": "publish"
+    },
+    {
+      "id": "e-publish-done",
+      "from": "publish",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

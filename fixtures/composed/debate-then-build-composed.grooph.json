@@ -1,0 +1,303 @@
+{
+  "grooph": 0,
+  "id": "debate-then-build-composed",
+  "name": "Debate, then build, as two subgroophs",
+  "version": 1,
+  "goal": "Choose and build a caching approach for the slow /search endpoint in src/api/search.ts. Done when a judged plan is approved by a human and its first version passes `pnpm test`.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "One planner argues for the simplest approach that could work, the other against it and for the strongest alternative. A frontier judge reads both cases and either asks for one more exchange or writes PLAN.md; the debate has a round cap, after which the judge must decide. A human approves the plan, and a fast builder grinds the first version against the tests.",
+  "nodes": [
+    {
+      "id": "debate-planner-a",
+      "kind": "agent",
+      "name": "Planner A",
+      "role": "planner",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Argue for the simplest approach that could do the task, and answer the other side's strongest point when there is one. Keep your case under a page in CASE-A.md and concede the risks that are real. Write no code.",
+      "inputs": [
+        "the task",
+        "CASE-B.md and REBUT.md (from round 1 on)"
+      ],
+      "outputs": [
+        "CASE-A.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "debate-planner-b",
+      "kind": "agent",
+      "name": "Planner B",
+      "role": "planner",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Argue against the approach in CASE-A.md and for the strongest alternative, answering its best points directly. Keep your case under a page in CASE-B.md and concede the risks that are real. Write no code.",
+      "inputs": [
+        "the task",
+        "CASE-A.md"
+      ],
+      "outputs": [
+        "CASE-B.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "debate-judge",
+      "kind": "agent",
+      "name": "Judge",
+      "role": "judge",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Read both cases. If one more exchange would change your choice, emit verdict rebut and write REBUT.md naming the point each side must answer; otherwise, or when the debate is out of rounds, write PLAN.md with the approach, why it won, and the smallest first version with its checks, and emit pass. You decide; you write no code.",
+      "inputs": [
+        "CASE-A.md",
+        "CASE-B.md"
+      ],
+      "outputs": [
+        "PLAN.md, or REBUT.md when asking for another round",
+        "verdict: pass | rebut"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "debate-plan-gate",
+      "kind": "human-gate",
+      "name": "Approve the plan",
+      "prompt": "Build the first version PLAN.md describes?",
+      "options": [
+        "approve",
+        "reject"
+      ]
+    },
+    {
+      "id": "build-builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Build the first version PLAN.md describes and nothing past it, with tests. On a later round, start from the failing output you are handed. Report what you built and anything in the plan that proved wrong.",
+      "inputs": [
+        "PLAN.md",
+        "failing test output (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with tests",
+        "CHANGES.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "build-tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "pnpm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "build-done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-debate-planner-a-debate-planner-b",
+      "from": "debate-planner-a",
+      "to": "debate-planner-b",
+      "evidence": [
+        "CASE-A.md"
+      ]
+    },
+    {
+      "id": "e-debate-planner-b-debate-judge",
+      "from": "debate-planner-b",
+      "to": "debate-judge",
+      "evidence": [
+        "CASE-A.md",
+        "CASE-B.md"
+      ]
+    },
+    {
+      "id": "debate-e-judge-rebut",
+      "from": "debate-judge",
+      "to": "debate-planner-a",
+      "when": {
+        "verdict": "rebut"
+      },
+      "evidence": [
+        "CASE-B.md",
+        "REBUT.md"
+      ]
+    },
+    {
+      "id": "e-debate-judge-debate-plan-gate",
+      "from": "debate-judge",
+      "to": "debate-plan-gate",
+      "when": "pass"
+    },
+    {
+      "id": "e-build-builder-build-tests",
+      "from": "build-builder",
+      "to": "build-tests"
+    },
+    {
+      "id": "build-e-tests-fail",
+      "from": "build-tests",
+      "to": "build-builder",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "build-e-tests-pass",
+      "from": "build-tests",
+      "to": "build-done",
+      "when": "pass"
+    },
+    {
+      "id": "e-debate-plan-gate-build-builder",
+      "from": "debate-plan-gate",
+      "to": "build-builder",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "debate-debate",
+      "name": "Debate",
+      "members": [
+        "debate-planner-a",
+        "debate-planner-b",
+        "debate-judge"
+      ],
+      "back": [
+        "debate-e-judge-rebut"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Both cases answered",
+        "inspects": [
+          {
+            "kind": "file",
+            "ref": "CASE-A.md"
+          },
+          {
+            "kind": "file",
+            "ref": "CASE-B.md"
+          }
+        ],
+        "acceptance": "Each case answers the other's strongest point, and the judge has written PLAN.md."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 2,
+          "then": "debate-judge"
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 8
+        }
+      ]
+    },
+    {
+      "id": "build-build",
+      "name": "Build",
+      "members": [
+        "build-builder",
+        "build-tests"
+      ],
+      "back": [
+        "build-e-tests-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 30
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ],
+  "groups": [
+    {
+      "id": "debate",
+      "name": "Debate to a plan",
+      "members": [
+        "debate-planner-a",
+        "debate-planner-b",
+        "debate-judge",
+        "debate-plan-gate"
+      ],
+      "description": "Two planners propose, a judge picks or sends them back, and a person approves the plan.",
+      "from": "debate-to-a-plan@1"
+    },
+    {
+      "id": "build",
+      "name": "Build to green",
+      "members": [
+        "build-builder",
+        "build-tests",
+        "build-done"
+      ],
+      "description": "A builder works until the tests pass, within a round cap and a time budget.",
+      "from": "build-to-green@1",
+      "with": {
+        "test-command": "pnpm test"
+      }
+    }
+  ]
+}

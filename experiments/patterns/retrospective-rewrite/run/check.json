@@ -1,0 +1,26 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260920-185135: the clock form",
+    "PROPOSALS.md: retro Write .grooph/merge-intervals/runs/20260920-185135/PROPOSALS.md",
+    "no `ending` line before the final note n-0013 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "ending as expected: stop node done",
+    "proposal patches replayed on the source: n-0007: applies and validates; n-0008: unknown op addEdge, addEdge; n-0009: applies and validates; n-0010: applies and validates; n-0011: applies and validates",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "timestamps: 12 given, 1 out of append order (estimated, not read from the clock)",
+    "permission denials: Bash `printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260920-185135\",\"at\":\"graph\",\"started\":\"20`; Bash `head -6 .grooph/merge-intervals/runs/20260920-185135/notes.jsonl | md5; wc -l .g`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

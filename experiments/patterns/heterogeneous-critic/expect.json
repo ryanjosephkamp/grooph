@@ -1,0 +1,8 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the builder and the critic ran as their own subagents; the critic wrote REVIEW.md itself; the critic touched the held-out suite and the builder did not; the run halted at the merge gate with a halt note (no scripted answer in this batch). The design bet (write-up): the held-out cases fail at round 0, e-critic-fail is taken, and the round-1 change passes.",
+  "agents": ["builder", "critic"],
+  "reports": { "critic": ["REVIEW.md"] },
+  "heldOut": { "readers": ["critic"], "notReaders": ["builder"] },
+  "backEdge": true,
+  "ending": ["halt at merge-gate"]
+}

@@ -1,0 +1,5 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the agent nodes that must run as their own subagents, and the files a node must write itself.",
+  "agents": ["builder"],
+  "reports": {}
+}

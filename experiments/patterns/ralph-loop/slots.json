@@ -1,0 +1,10 @@
+{
+  "about": "The plan file is the unit of work: four items in PLAN.md, one per pass. The acceptance cases of each item are held out (<held-out>/<item>.json, the token becomes the folder's path in tests/acceptance.test.mjs) and join `npm test` the moment the item is ticked, so a builder that ticks and commits before the check runs meets them only at the check. Item 2's cases pin decisions item 1's text left open (typographic apostrophes, apostrophes at a word's edges, hyphens, digits), so the round that ticks item 2 is expected to fail the tests check and return.",
+  "name": "Wordbank plan",
+  "values": {
+    "task": "Build the wordbank text-statistics module the plan describes, one item at a time.",
+    "plan-file": "PLAN.md",
+    "agent-file": "AGENT.md",
+    "test-command": "npm test"
+  }
+}

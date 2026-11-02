@@ -1,0 +1,209 @@
+import { existsSync, statSync } from "node:fs";
+import { resolve } from "node:path";
+
+import {
+  SHARE_BASE,
+  SHARE_LINK_WARN,
+  ShareError,
+  buildShareEnvelope,
+  canonicalize,
+  canonicalizeMap,
+  canonicalizeProposals,
+  canonicalizeRunBundle,
+  encodeSharePayload,
+  estimateShape,
+  formatIssue,
+  mapShape,
+  mapShapeLine,
+  runStateLine,
+  shapeLine,
+  shareLink,
+  validate,
+  summarizeRun,
+  validateMap,
+  validateProposalSet,
+  type Graph,
+  type OperationMap,
+  type ProposalSet,
+  type RunBundle,
+} from "@grooph/core";
+
+import { writeText } from "../io.js";
+import { plural, type Output } from "../print.js";
+import { asAPlan, ownAndPackage, planLine } from "./plan.js";
+import { LoadError, deflateRaw, loadShareable, shown, type Loaded, type OpenUrl } from "../share-io.js";
+
+export type ShareFlags = { base?: string; open?: boolean; out?: string };
+
+export const SHARE_HELP = `grooph share <graph | proposal set | run bundle | operation map> [--base <url>] [--open] [--out <file>]
+
+Turn a graph, a set of one to four candidate graphs, a recorded run or an operation map into a link
+that opens it in the grooph app on any device. The document travels in the link's #fragment, which browsers
+do not send to any server; nothing is uploaded.
+
+A recorded run (a *.grooph-run.json bundle) opens in the run view: what ran, what the run
+changed and why, its proposals, and its notes. --out then writes the bundle again, the
+fallback when the link is too long.
+
+An operation map (*.grooph-map.json, docs/operation-map.md) opens as its picture with its
+handoffs listed. A map is never compiled, so one with rule errors still shares: the view
+shows them.
+
+Validates first and refuses a graph, or a candidate, with errors. Inlines { "file" }
+candidates, computes each candidate's shape, prints the comparison and the link with its
+length, and warns when the link is over ${SHARE_LINK_WARN.toLocaleString("en")} characters (messengers cut long links).
+
+  --base <url>   where the app is served (default ${SHARE_BASE});
+                 http://localhost:4173/grooph/ for a local build
+  --open         also open the link in the default browser
+  --out <file>   also write the self-contained document (graphs inlined, shapes computed);
+                 import it in the app when a link is too long to send
+
+A proposal set, <set-id>.grooph-proposals.json (docs/executive.md §1):
+
+  {
+    "groophProposals": 0,
+    "id": "csv-export",
+    "title": "CSV export for the orders list",
+    "brief": "The project and its constraints as you understood them.",
+    "candidates": [
+      {
+        "id": "lean",
+        "label": "Lean",
+        "graph": { "file": "lean.grooph.json" },
+        "basedOn": "grind-loop",
+        "rationale": "Why this shape fits this project, in three or four sentences.",
+        "pros": ["what it buys"],
+        "cons": ["what it costs, and each validation warning in plain words"],
+        "profile": { "cost": "low", "speed": "fast", "rigor": "light" }
+      }
+    ],
+    "recommendation": { "candidate": "lean", "why": "One or two sentences." }
+  }
+
+  ids are kebab-case and unique; one to four candidates; labels distinct, case ignored
+  (a person picks by saying one back); "graph" is a path relative to this file's folder,
+  or the graph document itself; "basedOn" and "recommendation" are optional; cost is
+  low | medium | high, speed fast | medium | slow, rigor light | standard | high.
+  Leave "shape" out: share computes it.`;
+
+/**
+ * `grooph share <file> [--base <url>] [--open] [--out <file>]` (docs/executive.md §2, §4).
+ * Exit 0 with the link, 1 when the document cannot be shared.
+ *
+ * `given` is a document already read, in place of the file: the lab's `share` reads a run folder into a bundle and
+ * hands it here (lab/README.md). grooph's own command gives none, and reads no folder.
+ */
+export async function shareCommand(io: Output, file: string, flags: ShareFlags, open: OpenUrl, given?: Loaded): Promise<number> {
+  let loaded: Loaded;
+  try {
+    if (given !== undefined) loaded = given;
+    else if (existsSync(file) && statSync(file).isDirectory()) throw new LoadError(`${file} is a folder; share takes a file: a graph, a proposal set, a run bundle (*.grooph-run.json) or an operation map`);
+    else loaded = loadShareable(file);
+  } catch (err) {
+    if (!(err instanceof LoadError)) throw err;
+    io.err(`grooph: ${err.message}`);
+    for (const line of err.lines) io.err(line);
+    return 1;
+  }
+
+  let envelope;
+  try {
+    envelope = buildShareEnvelope(loaded.doc);
+  } catch (err) {
+    if (!(err instanceof ShareError)) throw err;
+    io.err(`grooph: cannot share ${file}: fix these first`);
+    for (const issue of err.issues) io.err(formatIssue(issue));
+    return 1;
+  }
+
+  if (envelope.kind === "proposals") printSet(io, envelope.doc);
+  else if (envelope.kind === "map") printMap(io, envelope.doc);
+  else if (envelope.kind === "run") printRun(io, envelope.doc);
+  else printGraph(io, envelope.doc);
+
+  const link = shareLink(encodeSharePayload(envelope, deflateRaw), flags.base ?? SHARE_BASE);
+
+  if (flags.out !== undefined) {
+    if (resolve(flags.out) === resolve(file)) {
+      io.err(`grooph: --out ${flags.out} is the file being shared; name another file`);
+      return 1;
+    }
+    writeText(
+      flags.out,
+      envelope.kind === "proposals"
+        ? canonicalizeProposals(envelope.doc)
+        : envelope.kind === "run"
+          ? canonicalizeRunBundle(envelope.doc)
+          : envelope.kind === "map"
+            ? canonicalizeMap(envelope.doc)
+            : canonicalize(envelope.doc),
+    );
+    io.out(`wrote ${shown(resolve(flags.out))} (self-contained; import it in the app, or share that file)`);
+  }
+
+  io.out("");
+  io.out(`link (${link.length.toLocaleString("en")} characters):`);
+  io.out(link);
+
+  if (link.length > SHARE_LINK_WARN) {
+    io.err("");
+    io.err(
+      `warning: the link is ${link.length.toLocaleString("en")} characters; messengers often cut links over ${SHARE_LINK_WARN.toLocaleString("en")}. ` +
+        (envelope.kind === "run"
+          ? "The run is too big for a link: send the bundle instead (--out <file>.grooph-run.json) and import it in the app."
+          : "The graphs are too big for a link: shorten the briefs or drop a candidate, or send the file from --out and import it in the app."),
+    );
+  }
+
+  if (flags.open === true) {
+    try {
+      await open(link);
+      io.out("opened in the default browser");
+    } catch (err) {
+      io.err(`could not open a browser (${(err as Error).message}); open the link above by hand`);
+    }
+  }
+  return 0;
+}
+
+function printRun(io: Output, bundle: RunBundle): void {
+  const summary = summarizeRun(bundle.notes, bundle.working);
+  io.out(`run ${bundle.run} · ${bundle.working.name} (${bundle.working.id}) · ${runStateLine(summary)}`);
+  io.out(`  ${plural(bundle.notes.length, "note")} · ${plural(summary.amendments.length, "amendment")} · ${plural(summary.proposals.length, "proposal")}`);
+  if (bundle.issues && bundle.issues.length > 0) io.out(`  ${plural(bundle.issues.length, "line")} of notes.jsonl could not be read; the run view lists them`);
+}
+
+function printMap(io: Output, map: OperationMap): void {
+  io.out(`${map.id} · ${map.name}${map.asOf ? ` · as of ${map.asOf}` : ""}`);
+  io.out(`  ${mapShapeLine(mapShape(map))}`);
+  for (const issue of validateMap(map)) io.out(`  ${formatIssue(issue)}`);
+}
+
+function printGraph(io: Output, graph: Graph): void {
+  const { own, forPackage } = ownAndPackage(graph);
+  const { needs, rest } = asAPlan(graph, forPackage);
+  io.out(`${graph.id} · ${graph.name}`);
+  io.out(`  ${shapeLine(estimateShape(graph))}`);
+  for (const w of [...own, ...rest]) io.out(`  ${formatIssue(w)}`);
+  if (needs.length > 0) io.out(`  ${planLine(graph, needs)} (grooph plan exports it as it is)`);
+}
+
+function printSet(io: Output, set: ProposalSet): void {
+  io.out(`${set.id} · ${set.title} · ${plural(set.candidates.length, "candidate")}`);
+  const label = Math.max(...set.candidates.map((c) => c.label.length));
+  const id = Math.max(...set.candidates.map((c) => c.id.length));
+  for (const c of set.candidates) {
+    const { own, forPackage } = ownAndPackage(c.graph as Graph);
+    const { needs, rest } = asAPlan(c.graph as Graph, forPackage);
+    const warnings = [...own, ...rest];
+    const notes = [
+      set.recommendation?.candidate === c.id ? "recommended" : "",
+      needs.length > 0 ? planLine(c.graph as Graph, needs) : "",
+      warnings.length > 0 ? `${plural(warnings.length, warnings.some((w) => w.severity === "error") ? "issue" : "warning")}: ${[...new Set(warnings.map((w) => w.code))].join(", ")}` : "",
+    ].filter(Boolean);
+    io.out(`  ${c.label.padEnd(label)}  ${c.id.padEnd(id)}  ${shapeLine(c.shape!)}${notes.length > 0 ? `  (${notes.join("; ")})` : ""}`);
+  }
+  if (set.recommendation) io.out(`recommended: ${set.candidates.find((c) => c.id === set.recommendation!.candidate)!.label}. ${set.recommendation.why}`);
+  for (const issue of validateProposalSet(set)) io.out(formatIssue(issue));
+}

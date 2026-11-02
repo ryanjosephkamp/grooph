@@ -1,0 +1,18 @@
+{"v":1,"t":"2026-10-01T01:51:32.486Z","harness":"claude-code","event":"session-start","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T01:51:33.264Z","harness":"claude-code","event":"turn-start","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T01:51:36.439Z","harness":"claude-code","event":"tool","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","tool":"ToolSearch","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T01:51:39.212Z","harness":"claude-code","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","cwd":"/work/demo","event":"plan","agents":[{"type":"Explore","purpose":"Find the first word of notes.txt"},{"type":"general-purpose","purpose":"Run shell command: echo hello"}],"text":"Read notes.txt first word + echo hello"}
+{"v":1,"t":"2026-10-01T01:51:39.266Z","harness":"claude-code","event":"tool","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","tool":"mcp__grooph__grooph_plan","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T01:51:43.851Z","harness":"claude-code","event":"subagent-start","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","agent":"a1461789324b4ebad","type":"Explore"}
+{"v":1,"t":"2026-10-01T01:51:44.760Z","harness":"claude-code","event":"subagent-start","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","agent":"a420c2229f32a5619","type":"general-purpose"}
+{"v":1,"t":"2026-10-01T01:51:46.345Z","harness":"claude-code","event":"tool","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","agent":"a1461789324b4ebad","type":"Explore","tool":"Read"}
+{"v":1,"t":"2026-10-01T01:51:47.590Z","harness":"claude-code","event":"subagent-stop","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","agent":"a1461789324b4ebad","type":"Explore","transcript":"~/.claude/projects/-work-demo/b86d0067-c821-4708-b85d-5d8a52ddb9f7/subagents/agent-a1461789324b4ebad.jsonl"}
+{"v":1,"t":"2026-10-01T01:51:47.593Z","harness":"claude-code","event":"tool","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","tool":"Agent","spawned":"a1461789324b4ebad","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T01:51:48.637Z","harness":"claude-code","event":"tool","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","agent":"a420c2229f32a5619","type":"general-purpose","tool":"Bash"}
+{"v":1,"t":"2026-10-01T01:51:50.464Z","harness":"claude-code","event":"subagent-stop","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","agent":"a420c2229f32a5619","type":"general-purpose","transcript":"~/.claude/projects/-work-demo/b86d0067-c821-4708-b85d-5d8a52ddb9f7/subagents/agent-a420c2229f32a5619.jsonl"}
+{"v":1,"t":"2026-10-01T01:51:50.464Z","harness":"claude-code","event":"tool","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","tool":"Agent","spawned":"a420c2229f32a5619","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T01:51:52.351Z","harness":"claude-code","event":"tool","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","tool":"mcp__grooph__grooph_running","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T01:51:54.735Z","harness":"claude-code","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","cwd":"/work/demo","event":"note","text":"Explore agent found notes.txt starts with \"alpha\"; general-purpose agent ran echo hello and got \"hello\"."}
+{"v":1,"t":"2026-10-01T01:51:54.798Z","harness":"claude-code","event":"tool","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","tool":"mcp__grooph__grooph_note","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T01:51:56.699Z","harness":"claude-code","event":"turn-end","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","cwd":"/work/demo"}
+{"v":1,"t":"2026-10-01T01:51:56.803Z","harness":"claude-code","event":"session-end","session":"b86d0067-c821-4708-b85d-5d8a52ddb9f7","cwd":"/work/demo"}

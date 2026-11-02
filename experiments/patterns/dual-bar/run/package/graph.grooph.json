@@ -1,0 +1,164 @@
+{
+  "grooph": 0,
+  "id": "parse-key-value",
+  "name": "Parse key-value",
+  "version": 1,
+  "goal": "Add `parseKeyValue(text)` to src/kv.mjs, the inverse of `renderKeyValue`: it turns `key=value` text into an object, skipping blank lines and lines whose first non-space character is `#`. Tests go in tests/kv.test.mjs and the README documents the function. Ship when this holds: `npm test` passes; `parseKeyValue` skips blank lines and `#` comment lines; a value may contain `=` (only the first `=` splits); `parseKeyValue(renderKeyValue(o))` gives back `o` for any object of plain string values without newlines; README.md documents `parseKeyValue` with one example. Aim toward: A new contributor can predict `parseKeyValue`'s result for any input from README.md alone, on the first try: every edge (whitespace around keys and values, a duplicate key, a quoted value, a line with no `=`, an empty key, a trailing comment on a value line, CRLF line endings) is decided, tested, and stated in the README in one sentence each.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "lineage": {
+    "pattern": "dual-bar",
+    "from": "dual-bar@1"
+  },
+  "description": "A builder works and a frontier critic in a fresh context reports against both lines of the bar. The acceptance (the ship line) decides the verdict; the aspiration only ranks what to improve next and never fails a round. The loop stops when the ship line holds, when rounds stop bringing improvement, at its round cap, or at its dispatch budget.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Do the task until the ship line holds, then spend any remaining rounds on the aspiration findings the critic ranks highest. Run `npm test` before you report; on a later round, start from REVIEW.md.",
+      "inputs": [
+        "the task",
+        "the ship line: `npm test` passes; `parseKeyValue` skips blank lines and `#` comment lines; a value may contain `=` (only the first `=` splits); `parseKeyValue(renderKeyValue(o))` gives back `o` for any object of plain string values without newlines; README.md documents `parseKeyValue` with one example.",
+        "the aspiration: A new contributor can predict `parseKeyValue`'s result for any input from README.md alone, on the first try: every edge (whitespace around keys and values, a duplicate key, a quoted value, a line with no `=`, an empty key, a trailing comment on a value line, CRLF line endings) is decided, tested, and stated in the README in one sentence each.",
+        "REVIEW.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with tests",
+        "CHANGES.md: what changed this round"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Judge the change against both lines of the bar and say, with file and line, where it stands on each. The ship line alone decides the verdict: pass when it holds. The aspiration never fails a round; use it only to rank what to improve next. You judge; you do not fix.",
+      "inputs": [
+        "the ship line: `npm test` passes; `parseKeyValue` skips blank lines and `#` comment lines; a value may contain `=` (only the first `=` splits); `parseKeyValue(renderKeyValue(o))` gives back `o` for any object of plain string values without newlines; README.md documents `parseKeyValue` with one example.",
+        "the aspiration: A new contributor can predict `parseKeyValue`'s result for any input from README.md alone, on the first try: every edge (whitespace around keys and values, a duplicate key, a quoted value, a line with no `=`, an empty key, a trailing comment on a value line, CRLF line endings) is decided, tested, and stated in the README in one sentence each.",
+        "diff of the change",
+        "the repository as the change leaves it, read-only"
+      ],
+      "outputs": [
+        "REVIEW.md: the ship line item by item, then ranked aspiration findings, then a verdict line",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "run-tests"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-critic",
+      "from": "builder",
+      "to": "critic",
+      "evidence": [
+        "diff of the change",
+        "the repository as the change leaves it, read-only",
+        "output of npm test"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "review",
+      "name": "Review",
+      "members": [
+        "builder",
+        "critic"
+      ],
+      "back": [
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Ship line and aspiration",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "diff of the change"
+          },
+          {
+            "kind": "artifact",
+            "ref": "output of npm test"
+          }
+        ],
+        "acceptance": "`npm test` passes; `parseKeyValue` skips blank lines and `#` comment lines; a value may contain `=` (only the first `=` splits); `parseKeyValue(renderKeyValue(o))` gives back `o` for any object of plain string values without newlines; README.md documents `parseKeyValue` with one example.",
+        "aspiration": "A new contributor can predict `parseKeyValue`'s result for any input from README.md alone, on the first try: every edge (whitespace around keys and values, a duplicate key, a quoted value, a line with no `=`, an empty key, a trailing comment on a value line, CRLF line endings) is decided, tested, and stated in the README in one sentence each."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "diminishing-returns",
+          "rounds": 2
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 12
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+diff --git a/README.md b/README.md
+index 48afacc..8cbccbb 100644
+--- a/README.md
++++ b/README.md
+@@ -3,10 +3,13 @@
+ Helpers for closed integer intervals `[start, end]`.
+ 
+ ```js
+-import { overlaps } from "./src/interval.mjs";
++import { mergeIntervals, overlaps } from "./src/interval.mjs";
+ 
+ overlaps([1, 5], [4, 8]); // true
+ overlaps([1, 3], [4, 8]); // false
++
++mergeIntervals([[1, 3], [2, 6], [8, 10], [15, 18]]); // [[1, 6], [8, 10], [15, 18]]
++mergeIntervals([[1, 2], [3, 4]]); // [[1, 4]] (2 and 3 are adjacent integers)
+ ```
+ 
+ ## Rules
+@@ -15,3 +18,8 @@ overlaps([1, 3], [4, 8]); // false
+   else throws a `TypeError`.
+ - Intervals are closed: `[1, 3]` contains 1, 2 and 3, so `[1, 3]` and `[3, 5]`
+   overlap, and `[1, 3]` and `[4, 5]` do not.
++- `mergeIntervals` returns the sorted, non-overlapping closed intervals that
++  cover the same integers as its input, without modifying the input array or
++  the interval arrays inside it. Touching intervals (sharing an endpoint) and
++  intervals whose endpoints are consecutive integers (e.g. `[1, 2]` and
++  `[3, 4]`) are merged into one.
+diff --git a/src/interval.mjs b/src/interval.mjs
+index 896ac52..56220cf 100644
+--- a/src/interval.mjs
++++ b/src/interval.mjs
+@@ -10,3 +10,28 @@ function check(interval) {
+     throw new TypeError("an interval is [start, end] with integer start <= end");
+   }
+ }
++
++/**
++ * Returns the sorted, non-overlapping closed integer intervals covering the
++ * same integers as the input. Touching intervals (sharing an endpoint) and
++ * adjacent intervals (e.g. [1, 2] and [3, 4], whose endpoints are consecutive
++ * integers) are merged into one. Does not modify the input.
++ */
++export function mergeIntervals(intervals) {
++  if (!Array.isArray(intervals)) {
++    throw new TypeError("intervals must be an array of [start, end] intervals");
++  }
++  intervals.forEach(check);
++
++  const sorted = intervals.map(([start, end]) => [start, end]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
++  const merged = [];
++  for (const [start, end] of sorted) {
++    const last = merged[merged.length - 1];
++    if (last && start <= last[1] + 1) {
++      last[1] = Math.max(last[1], end);
++    } else {
++      merged.push([start, end]);
++    }
++  }
++  return merged;
++}

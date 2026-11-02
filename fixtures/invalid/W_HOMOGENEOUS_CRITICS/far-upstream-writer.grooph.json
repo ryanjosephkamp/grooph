@@ -1,0 +1,98 @@
+{
+  "grooph": 0,
+  "id": "far-upstream-writer",
+  "name": "Far upstream writer",
+  "version": 1,
+  "goal": "Plan a change, build it, review it.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "A frontier planner two steps upstream does not excuse a critic that shares its model with the builder it judges: the builder is the critic's nearest writer.",
+  "nodes": [
+    {
+      "id": "planner",
+      "kind": "agent",
+      "name": "Planner",
+      "role": "planner",
+      "model": {
+        "tier": "frontier"
+      },
+      "brief": "Planner: write PLAN.md for the change.",
+      "outputs": [
+        "PLAN.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Builder: make the change PLAN.md describes.",
+      "inputs": [
+        "PLAN.md"
+      ],
+      "outputs": [
+        "the change"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Critic: judge the change against PLAN.md.",
+      "outputs": [
+        "REVIEW.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-plan-build",
+      "from": "planner",
+      "to": "builder",
+      "evidence": [
+        "PLAN.md"
+      ]
+    },
+    {
+      "id": "e-build-review",
+      "from": "builder",
+      "to": "critic",
+      "evidence": [
+        "diff of the change"
+      ]
+    },
+    {
+      "id": "e-review-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": []
+}

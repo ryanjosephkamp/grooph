@@ -1,0 +1,72 @@
+{
+  "grooph": 0,
+  "id": "read-only-critic",
+  "name": "Read-only critic",
+  "version": 1,
+  "goal": "Review a draft.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "The shape the first acceptance run found: the critic must leave REVIEW.md behind but may only read, so the lead ends up filing it.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Builder: write the draft.",
+      "outputs": [
+        "DRAFT.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "brief": "Critic: judge DRAFT.md against the checklist.",
+      "outputs": [
+        "REVIEW.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-build-review",
+      "from": "builder",
+      "to": "critic",
+      "evidence": [
+        "DRAFT.md"
+      ]
+    },
+    {
+      "id": "e-review-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": []
+}

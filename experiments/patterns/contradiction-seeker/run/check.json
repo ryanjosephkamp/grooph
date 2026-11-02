@@ -1,0 +1,27 @@
+{
+  "problems": [],
+  "findings": [
+    "run id 20260919-1233-k7qm: the earlier random-suffix form",
+    "COUNTEREXAMPLE.md: critic Write .grooph/slug-symbols/runs/20260919-1233-k7qm/COUNTEREXAMPLE.md",
+    "slug-symbols--critic (Critic round 0) read .grooph/slug-symbols/runs/20260919-1233-k7qm/diff-round0.patch, .grooph/slug-symbols/runs/20260919-1233-k7qm/npm-test-round0-lead.txt; ran `cat -n src/slugify.mjs && node --input-type=module -e '\nimport {slugify} from \"./src/slugi\u2026`, `sed -n 16p src/slugify.mjs | od -c | head -3 && node --input-type=module -e '\nimport {slug\u2026`",
+    "no `ending` line before the final note n-0007 (LEAD.md \u00a711; a monitor reads such a record as interrupted)",
+    "no back edge taken: every loop note is round 0 and no back edge is named",
+    "verdicts in order: critic \u2192 pass",
+    "timestamps: 9 given, 0 out of append order",
+    "permission denials: Bash `RID=20260919-1233-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c4) && mkdir `; Bash `mkdir -p <local path>`; Bash `cd <local path>`; Bash `npm test > .grooph/slug-symbols/runs/20260919-1233-k7qm/npm-test-round0.txt 2>&1`; Bash `echo $?`; Bash `R=.grooph/slug-symbols/runs/20260919-1233-k7qm && git diff -- src tests > $R/dif`; Bash `git diff -- src tests > .grooph/slug-symbols/runs/20260919-1233-k7qm/diff-round0`; Bash `cd <local path>`"
+  ],
+  "facts": {
+    "ending": [
+      "stop node done",
+      "stop bar-passed"
+    ],
+    "back_edges": {
+      "later_rounds": 0,
+      "edge_notes": [],
+      "mentioned": [],
+      "caught_by": [],
+      "taken": false
+    },
+    "last_round": 0
+  }
+}

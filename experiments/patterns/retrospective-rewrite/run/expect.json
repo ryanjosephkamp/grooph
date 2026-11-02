@@ -1,0 +1,8 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the builder and the retrospective researcher ran as their own subagents; the researcher wrote PROPOSALS.md itself; at least one proposal note and no amendment, because the graph is at adaptation level propose; the run ended at the stop node.",
+  "agents": ["builder", "retro"],
+  "reports": { "retro": ["PROPOSALS.md"] },
+  "proposals": { "min": 1 },
+  "amendments": { "max": 0 },
+  "ending": ["stop node done"]
+}

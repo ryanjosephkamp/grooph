@@ -1,0 +1,140 @@
+{
+  "site": {
+    "url": "https://ryanjosephkamp.github.io/grooph/",
+    "repo": "https://github.com/ryanjosephkamp/grooph",
+    "branch": "main"
+  },
+  "intro": "The documents that ship with grooph, rendered for reading. Each page is a file in the repository, linked at its foot.",
+  "groups": [
+    {
+      "id": "start",
+      "title": "Start",
+      "entries": [
+        {
+          "source": "docs/quickstart.md",
+          "slug": "quickstart",
+          "summary": "Open the app and draw, start from a template, install the command line, or ask an agent to draw for you."
+        },
+        {
+          "source": "docs/agents.md",
+          "slug": "agents",
+          "summary": "For an agent, or a person working with one: when a diagram is needed, the shortest path to one, the tools, and what works in a chat app."
+        },
+        {
+          "source": "docs/agents-reference.md",
+          "slug": "agents-reference",
+          "summary": "What an agent looks things up in: the smallest document worth drawing, every operation by example, and what to do about each rule."
+        }
+      ]
+    },
+    {
+      "id": "reference",
+      "title": "Reference",
+      "entries": [
+        {
+          "source": "docs/graph-ir.md",
+          "slug": "graph-ir",
+          "summary": "The graph document: its fields, what they mean, and the rules it must follow."
+        },
+        {
+          "source": "docs/operation-map.md",
+          "slug": "operation-map",
+          "summary": "The second kind of document, for work that spans sessions, people, and accounts."
+        },
+        {
+          "source": "docs/templates.md",
+          "slug": "templates",
+          "summary": "Templates, registries, and the pattern library, and how to use or save one."
+        },
+        {
+          "source": "docs/executive.md",
+          "slug": "executive",
+          "summary": "Proposal sets, share links, and the compare view: how an agent offers a few diagrams and a person picks one."
+        },
+        {
+          "source": "docs/exports.md",
+          "slug": "exports",
+          "summary": "Pictures, the outline, the offline page, embeds, the 3D views, and the six themes."
+        },
+        {
+          "source": "docs/rules.md",
+          "slug": "rules",
+          "summary": "Every rule by its stable code, with a document that fires it and one that does not."
+        },
+        {
+          "source": "docs/cli.md",
+          "slug": "cli",
+          "summary": "The command line, command by command, each with the help it prints itself."
+        }
+      ]
+    },
+    {
+      "id": "field-guide",
+      "title": "Examples",
+      "entries": [
+        {
+          "source": "docs/field-guide.md",
+          "slug": "field-guide",
+          "summary": "All twenty templates as shapes, with when to use each."
+        },
+        {
+          "source": "docs/community.md",
+          "slug": "community",
+          "summary": "Diagrams other people have sent in by pull request, each checked and drawn by CI."
+        }
+      ]
+    },
+    {
+      "id": "experimental",
+      "title": "Experimental",
+      "entries": [
+        {
+          "source": "docs/subagents.md",
+          "slug": "subagents",
+          "summary": "Watching a session: the hook that records which subagents start and stop, and the live view that draws them."
+        },
+        {
+          "source": "docs/lab.md",
+          "slug": "lab",
+          "summary": "The lab: compiling a diagram into a prompt package, run folders, and the comparison runners, kept in the repository and out of the package."
+        },
+        {
+          "source": "docs/experiments.md",
+          "slug": "experiments",
+          "summary": "What the experiments found: the paired comparisons of a compiled diagram against a plain prompt, the check that watching does not interfere, and what each cost."
+        }
+      ]
+    },
+    {
+      "id": "project",
+      "title": "Project",
+      "entries": [
+        {
+          "source": "docs/privacy.md",
+          "slug": "privacy",
+          "summary": "No account, no server, no cookies, no analytics: where a diagram lives and what leaves your device."
+        },
+        {
+          "source": "docs/security.md",
+          "slug": "security",
+          "summary": "What grooph does with a document someone else made: link limits, size caps, escaping, the offline page, and embeds."
+        },
+        {
+          "source": "docs/ARCHITECTURE.md",
+          "slug": "architecture",
+          "summary": "How grooph is built: one pure core and the app, the command line, and the MCP server around it, and why it draws and does not direct."
+        },
+        {
+          "source": "CONTRIBUTING.md",
+          "slug": "contributing",
+          "summary": "How to send a diagram, a fix, or a rule, and what a pull request is held to."
+        },
+        {
+          "source": "docs/releases.md",
+          "slug": "releases",
+          "summary": "Each version, its date, and what changed for a person using it."
+        }
+      ]
+    }
+  ]
+}
