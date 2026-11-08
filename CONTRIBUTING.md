@@ -2,6 +2,8 @@
 
 grooph is a small open-source project. A diagram, a fix, or an idea for a rule is welcome, by pull request or as an issue. This page says how to send each, and what a pull request is held to.
 
+To report a security problem, see [`SECURITY.md`](SECURITY.md) and do not open a public issue. The Obsidian plugin has its own repository, [grooph-obsidian](https://github.com/ryanjosephkamp/grooph-obsidian).
+
 ## Set up
 
 Node 22 or later and pnpm.

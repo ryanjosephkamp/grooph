@@ -11,7 +11,7 @@ import { SceneDemo } from "./SceneDemo.js";
 const HERO = "review-gate";
 
 /** The line to paste into Claude Code; the skill proposes graphs for it. */
-const ASK = "/grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging";
+const ASK = "/grooph:grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging";
 
 /*
  * The hero is the review gate as a real graph, its slots filled with the template's own examples, drawn by core's
@@ -134,7 +134,7 @@ export function Landing({ device }: { device?: ReactNode }) {
               </li>
               <li>
                 <strong>See it in 2D and 3D.</strong> The same diagram as a flat picture, as an outline to read, or as one of five 3D scenes you can turn and
-                step through, one edge at a time. Six themes, all but one in light and dark.
+                step through, one edge at a time. Six picture themes, all but one in light and dark.
               </li>
               <li>
                 <strong>Checked, shared, kept.</strong> grooph checks that a diagram is well formed, and gives advice on whether every loop says when it stops. A link opens it on
@@ -226,7 +226,15 @@ export function Landing({ device }: { device?: ReactNode }) {
               <li>
                 <h3>Put a diagram on any page</h3>
                 <p>
-                  One line of HTML shows a live diagram a reader can pan, zoom, and tap. <a href={`${DOCS}exports/`}>How to embed</a>.
+                  One line of HTML shows a live diagram a reader can pan, zoom, and tap, or one script tag draws it right into the page as SVG, with no
+                  frame. <a href={`${DOCS}exports/`}>How to embed</a>.
+                </p>
+              </li>
+              <li>
+                <h3>Draw it in your notes</h3>
+                <p>
+                  Install the grooph plugin from Obsidian's Community plugins, and a <code>grooph</code> code block is drawn as its picture, in your theme's
+                  colors. <a href="https://community.obsidian.md/plugins/grooph">The plugin</a>.
                 </p>
               </li>
               <li>
