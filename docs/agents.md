@@ -47,7 +47,7 @@ template "grind-loop": "Grind loop", cost low, speed fast, rigor light
 
 The reply is the graph document, and the server remembers it: in later calls, pass its id as `graph` (`"graph": "fix-the-flaky-test"`). The whole document works too, and is the only way after the server restarts or when you wrote the document yourself.
 
-**3. Check it.** `grooph_validate` with `{ "graph": "fix-the-flaky-test" }` answers `issues: none`, or each issue with its code (`E_…` an error, `W_…` a warning) and a `fix` line. Repair with `grooph_apply` and check again. By default it also applies the export check: a goal, a target harness, no unfilled `{{slot}}`, no person's step. A diagram that is only drawn may keep `E_NO_TARGET` and `E_PERSON_STEP_NOT_COMPILED`; fix everything else.
+**3. Check it.** `grooph_validate` with `{ "graph": "fix-the-flaky-test" }` answers `issues: none`, or each issue with its code (`E_…` an error, `W_…` a warning) and a `fix` line. Repair with `grooph_apply` and check again. By default it also applies the complete check, which asks a finished diagram for a goal and no unfilled `{{slot}}` (`E_NO_GOAL`, `E_UNFILLED_SLOT`, and `E_IS_TEMPLATE`). `E_NO_TARGET` and `E_PERSON_STEP_NOT_COMPILED` matter only to a package for a harness (experimental), so a diagram that is only drawn may keep them; fix everything else.
 
 **4. Share it.** `grooph_share` with `{ "graph": "fix-the-flaky-test" }` returns a link. Give it whole, on a line of its own. It opens the diagram in the app on any device, in 2D or 3D, to read, save, and edit. The document travels after the `#`, which a browser sends to no server: nothing is uploaded. `grooph_picture` returns the picture as SVG text to show in the conversation.
 
@@ -173,6 +173,6 @@ command = "npx"
 args = ["-y", "grooph", "mcp", "--harness", "codex"]
 ```
 
-In Claude Code, the `grooph-design` skill carries the same judgment as a procedure: `/grooph-design <what you want drawn>`. It proposes one to three diagrams, shares a link that compares them, and on the person's pick writes the chosen diagram with its picture and a link.
+In Claude Code, the `grooph-design` skill carries the same judgment as a procedure: `/grooph:grooph-design <what you want drawn>` when it is installed as a plugin, or `/grooph-design <what you want drawn>` when it is linked from a clone ([how to install it](quickstart.md#with-an-agent)). It proposes one to three diagrams, shares a link that compares them, and on the person's pick writes the chosen diagram with its picture and a link.
 
 Outside a chat, the server has three more tools for a session's lead: `grooph_plan`, `grooph_note`, and `grooph_running`. They record what the session means to do beside what grooph's event hook sees, and are described with the hook in [Subagents and hooks](subagents.md) (experimental).
