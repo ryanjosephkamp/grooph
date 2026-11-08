@@ -15,7 +15,8 @@ grooph has no account, no server of its own, no cookies, and no analytics. The s
 In the browser you made it in, on that device.
 
 - **Diagrams, the templates you save, and the runs you keep** are in the browser's own storage for this site (IndexedDB). They are not copied anywhere. Clearing the site's data, or the browser doing so when it is short of space, deletes them: **Export**, then **Download graph**, gives you a file to keep. The app asks the browser once to keep its storage, and tells you once what the browser answered.
-- **Four small notes** sit beside them (local storage): the browser's answer to that question, the search and filters you last used on the templates page, the picture theme you chose, and the site's look (Grooph, Meteor, Harbor, Plum, Ember, or Graphite).
+- **Small notes** sit beside them (local storage): the browser's answer to that question, the search and filters you last used on the templates page, the picture theme you chose, and the site's look (Grooph, Meteor, Harbor, Plum, Ember, or Graphite).
+- **The Sketch view keeps your drawing** in local storage too: the last drawing you made on the drawing page, the sketches of the 16 graphs you drew on most recently (older ones are dropped), and your choices for the eraser, for how Select works, for showing names, and for Snap. They are strokes and shapes on your device, and they go nowhere. Clearing the site's data deletes them.
 - **The app's own files** are kept by its service worker so it opens with no network: the version you have and the one before it. Older ones are dropped. It stores nothing else and sends nothing.
 - **In a private window** some browsers refuse storage. The app then works in memory and says that nothing will survive a reload.
 
@@ -27,6 +28,11 @@ Only what you send yourself.
 - **An embed** (`grooph embed`) is the same app in a frame, with the document in its address in the same way. The page that carries the frame loads the app from this site, and the site's host sees that request like any other.
 - **Copy buttons** write to the clipboard when you press them. Nothing reads the clipboard.
 - **The live screens** (experimental) ask the address the app was served from, and no other, for a run or for sessions. That is `grooph watch` on your own machine. The public site has no watch behind it, and the screen says so.
+
+## On a page, and in Obsidian
+
+- **The script for web pages** draws a diagram on the page it is on. It fetches nothing and sends nothing. The page that loads the script decides where it comes from: from `cdn.jsdelivr.net`, as the docs show, that host sees the request like any other, and a page that serves the file itself avoids that ([on any page](exports.md#on-any-page-without-an-iframe)).
+- **The Obsidian plugin** makes no network requests and sends no telemetry. Under each drawing, **Open in grooph** opens the same document in the app, only when you follow it, with the document after the `#`.
 
 ## What the host sees
 

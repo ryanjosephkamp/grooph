@@ -8,7 +8,7 @@ Every number below comes from the runs' own records, linked in each section. The
 
 - **The package did not beat the same design written as a plain prompt.** In two paired comparisons, 51 runs on seven small tasks, the two scored the same on tests the builder never saw. The package cost up to twice as much in the first study, and in the second it cost more in every run and took 2 to 8 times as many turns.
 - **A reviewer who holds evidence the builder can't see made the loop turn.** In the second study, on tasks built so a first pass fails, all 18 runs with such a reviewer failed the first pass and passed the second, in the package and in the prose alike. In the first study, whose tasks a first pass could finish, no package run's loop turned, and one prose run's did.
-- **The watching hook made no difference in test scores.** In 36 runs, scores overlapped with and without it, and costs differed by a few cents in both directions. It is not invisible: 8 of the 24 sessions with the hook installed mentioned its files.
+- **The watching hook made no difference in test scores.** In 36 runs, scores overlapped with and without it, and costs differed by a few cents in both directions. It is not invisible: 8 of the 24 watched or invited sessions mentioned its files.
 - **No round cap or budget in a diagram is on record as stopping a run.**
 
 ## The template runs

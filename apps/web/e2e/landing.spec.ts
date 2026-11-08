@@ -15,7 +15,7 @@ import { fixturePath, importDocument, repoRoot, requestsOut, visitIsOver } from 
  * menu and the theme switch, his footer, and fonts that are files of the site.
  */
 
-const ASK = "/grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging";
+const ASK = "/grooph:grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging";
 
 /** The page's top-level blocks, top to bottom, as the handoff orders them. */
 async function blockOrder(page: Page): Promise<string[]> {

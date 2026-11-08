@@ -34,22 +34,27 @@ Most commands end with a `next:` line that says what to run after them. `grooph 
 
 ## With an agent
 
-In Claude Code, install the command and the `grooph-design` skill from a clone:
+In Claude Code, install the `grooph` command (above), then the plugin that adds the `grooph-design` skill:
+
+```text
+/plugin marketplace add ryanjosephkamp/grooph
+/plugin install grooph@grooph
+```
+
+Then, in a session on your project, describe the work:
+
+```text
+/grooph:grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging
+```
+
+The agent proposes one to three diagrams, gives you a link that compares them side by side on your phone, and on your pick saves the one you chose with its picture and a link. It starts no work. In a chat app with no coding session, see [Drawing with an agent](agents.md#from-a-chat-app).
+
+From a clone, `scripts/install-local.sh` does the same job for your user. It links `grooph` into `~/.local/bin` and the skill into `~/.claude/skills/`, so the skill is `/grooph-design`. It prints what it will touch first, and `--uninstall` removes both links:
 
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git && cd grooph
 pnpm install && pnpm -r build && scripts/install-local.sh
 ```
-
-`scripts/install-local.sh` links `grooph` into `~/.local/bin` and the skill into `~/.claude/skills/`. It prints what it will touch first, and `--uninstall` removes both links. The skill also comes as a plugin: `/plugin marketplace add ryanjosephkamp/grooph`, then `/plugin install grooph@grooph`.
-
-Then, in a session on your project, describe the work:
-
-```text
-/grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging
-```
-
-The agent proposes one to three diagrams, gives you a link that compares them side by side on your phone, and on your pick saves the one you chose with its picture and a link. It starts no work. In a chat app with no coding session, see [Drawing with an agent](agents.md#from-a-chat-app).
 
 ## Where next
 
@@ -57,3 +62,4 @@ The agent proposes one to three diagrams, gives you a link that compares them si
 - [Pictures, views, and sharing](exports.md): the picture, the 3D views, themes, links, embeds, and the offline page.
 - [Templates](templates.md) and [the field guide](field-guide.md): the twenty shapes and how to save your own.
 - [The graph document](graph-ir.md): every field and rule.
+- [On any page](exports.md#on-any-page-without-an-iframe): one script tag draws a diagram into a page. In Obsidian, the [grooph plugin](https://community.obsidian.md/plugins/grooph) draws it in a note.

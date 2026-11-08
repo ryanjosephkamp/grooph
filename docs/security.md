@@ -50,6 +50,10 @@ default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-s
 
 It allows inline styles and inline scripts, which is how the page carries its own, and images from `data:` and `blob:` addresses. Nothing else is allowed, so the page cannot fetch, connect to, or load anything, and nothing in it points at another file or a server. Its one script is grooph's: text from the document is escaped, as above, so it cannot add another. `packages/core/test/picture.test.ts` and `packages/core/test/escaping.test.ts` hold this.
 
+## The script for web pages
+
+`grooph.render`, `grooph.mount`, and `grooph.drawAll` draw a document that came with a page, so they read it as untrusted too. A document over the size caps above throws `too-large`, and text that is not a grooph document throws `bad-json` or `not-grooph`, each with a message in words. `mount` and `drawAll` parse the drawing as SVG and add it as an element, never as HTML, and show an error as text in the drawing's place. A page that sets a content security policy can stop parts of it; [on any page](exports.md#on-any-page-without-an-iframe) says which. The Obsidian plugin draws with the same code and refuses the same sizes.
+
 ## An embed
 
 An embed asks only for its own files from the site that serves it, and never with the document, which stays in the `#fragment`. It sets no cookie and stores nothing in the reader's browser: no local or session storage, no database, and no service worker (the app registers one; an embed does not). The frame `grooph embed` prints carries `referrerpolicy="no-referrer"`, so the host page's address is not sent either. `apps/web/e2e/embed.spec.ts` and `packages/cli/test/embed.test.ts` hold this.

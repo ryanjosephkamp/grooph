@@ -20,6 +20,7 @@ The core is pure: no DOM, no Node-only APIs, and no network. Everything a person
 | `packages/core` | The graph's schema, parsing, checking, canonical form, operations, templates, layout, pictures, and share links. Every other part is built on it. |
 | `apps/web` | The app: the canvas, the 3D views, the outline, the store on the device, and share links. |
 | `packages/cli` | The `grooph` command: drawing, checking, and sharing; and, experimental, `watch`, the hooks, and the MCP server. |
+| `packages/cli/browser` | grooph on a page: `render`, `mount`, and `drawAll`, as a module (`grooph/browser`) and as one script (`grooph/global`), built from core. |
 | `lab/` | Experimental: compiling a diagram into a package, and following runs. |
 
 - **Document in, document out.** Every change is a function of the document. The canvas edits it through the same typed operations (`addNode`, `connect`, `setStop`, and the rest) that `grooph apply` and the MCP tools take, so a person and an agent share one vocabulary and can take turns on one file.
@@ -37,5 +38,6 @@ A pnpm workspace, TypeScript throughout, Node 22 or later.
 - `apps/web` depends on core only. It loads in pieces, so an address fetches only what it shows: the front page, the library, the canvas screens, the 3D scenes, the themes, the embed, and the package compiler are each fetched when first needed. `scripts/perf-budget.json` sets what each may weigh, and CI checks it.
 - `packages/cli` depends on core. It is the `grooph` command, the built-in templates, the MCP server (`grooph mcp`, in `packages/cli/src/mcp.ts`), and the event hook (`packages/cli/hooks/`), and it serves the web app's built files for `grooph watch`.
 - `lab/` holds the `grooph-lab` command, which adds the commands that compile and follow runs. It builds and is tested with everything else, and the folder is in nothing grooph publishes. The compilers themselves are still in `packages/core`, where the experimental MCP tool `grooph_export` and the app's Export panel use them.
+- `plugins/` holds the Claude Code plugins: the `grooph-design` skill and the chat skill. The Obsidian plugin is a separate repository, built from the published package.
 - `patterns/` and `plans/` hold the twenty templates and the four plans; `community/` holds diagrams sent in by pull request; `fixtures/` holds a passing and a failing document for every rule.
 - `scripts/` holds the generators for the pages that are made from code (rules, commands, field guide, community, pattern index), each with a `--check` mode that CI runs.
