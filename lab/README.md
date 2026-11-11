@@ -55,9 +55,9 @@ node scripts/lib/compare-arms-ef.mjs --check
 | `export` | its case in `lab/src/index.ts`; the command itself is `packages/cli/src/commands/export.ts` |
 | The compilers, tier maps, brakes, and adoption | `packages/core/src/` |
 | The experiments' scorers and checkers | `scripts/lib/` (`compare-score`, `compare-summary`, `compare-arms-ef`, `prove-check`, `prove-summary`, and what they import) |
-| Records: template runs, paired comparisons, the watching check, observed hook inputs, the audit of 0.3.0's claims | `experiments/` (its README says what each folder holds and what was left out) |
+| Records: template runs, paired comparisons, the watching check, and observed hook inputs | `experiments/` (its README says what each folder holds and what was left out) |
 | Golden packages, and recorded runs | `fixtures/golden/`, `fixtures/runs/` |
-| Documents | `docs/lab.md`, `docs/runs.md`, `docs/targets/`, `docs/comparisons.md`, and `docs/claims.md` |
+| Documents | `docs/lab.md`, `docs/runs.md`, `docs/targets/`, and `docs/comparisons.md` |
 
 ## Tests
 
