@@ -107,7 +107,7 @@ const more = sum(routes.more);
 const sketch = sum(routes.sketch);
 // The fonts and the icons are files of public/, under names that carry a version, so they are named here and not found.
 const FIRST_VISIT_FONTS = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2"];
-const ICONS = "assets/site-icons.v1.svg";
+const ICONS = "assets/site-icons.v2.svg";
 for (const f of [...FIRST_VISIT_FONTS, ICONS]) {
   if (!existsSync(join(dist, f))) {
     console.error(`perf-budget: apps/web/dist/${f} is not there. The front page asks for it (apps/web/src/styles.css, ui/landing/Chrome.tsx).`);

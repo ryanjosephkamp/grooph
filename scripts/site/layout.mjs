@@ -62,8 +62,8 @@ export const SOCIAL = [
 export const SPONSOR = "https://github.com/sponsors/ryanjosephkamp";
 
 const LINE = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
-/** The footer's icons: one file of the site that every page shares (apps/web/public/assets/site-icons.v1.svg). */
-const icon = (root, id) => `<svg aria-hidden="true"><use href="${root}assets/site-icons.v1.svg#${id}"/></svg>`;
+/** The footer's icons: one file of the site that every page shares (apps/web/public/assets/site-icons.v2.svg). */
+const icon = (root, id) => `<svg aria-hidden="true"><use href="${root}assets/site-icons.v2.svg#${id}"/></svg>`;
 const MARK = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8.5"/><path d="M13.5 12.5 19 21M18.5 12.5 13 21M14 11h4"/><circle cx="10" cy="11" r="4"/><circle cx="22" cy="11" r="4"/><circle cx="16" cy="23" r="4"/></svg>';
 const CHECK = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4.5 10.5 3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const EXTERNAL = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.5 3.5h5v5M16.5 3.5l-7 7M14.5 12v3.5a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1H8" ${LINE}/></svg>`;

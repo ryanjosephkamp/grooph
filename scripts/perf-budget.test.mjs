@@ -45,7 +45,7 @@ function scratch(t) {
   put("apps/web/dist/assets/SketchView-a.js", randomBytes(220));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-next.v1.woff2", randomBytes(400));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-mono.v1.woff2", randomBytes(300));
-  put("apps/web/dist/assets/site-icons.v1.svg", "<svg xmlns='http://www.w3.org/2000/svg'/>");
+  put("apps/web/dist/assets/site-icons.v2.svg", "<svg xmlns='http://www.w3.org/2000/svg'/>");
   put(
     "apps/web/dist/routes.json",
     JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js", "assets/space-a.js", "assets/front-a.js", "assets/builtins-a.js", "assets/graph-stage-a.js", "assets/graph-views-a.js", "assets/graph-more-a.js", "assets/SketchView-a.js"], space: ["assets/space-a.js"], front: ["assets/front-a.js"], templates: ["assets/builtins-a.js"], stage: ["assets/graph-stage-a.js"], views: ["assets/graph-views-a.js"], more: ["assets/graph-more-a.js"], sketch: ["assets/SketchView-a.js"] }),
@@ -162,7 +162,7 @@ test("the front page's picture is weighed in the first load, which is the front 
   const everywhere = gz("index.html") + gz("assets/index-a.js") + gz("assets/App-a.js") + gz("assets/styles-a.css");
   // The front page fetches the piece beside the app, so its first load is the app and the piece.
   assert.equal(figure("the app's first load"), ((everywhere + gz("assets/front-a.js")) / 1024).toFixed(2));
-  assert.equal(figure("a first visit to the front page in all"), ((everywhere + gz("assets/front-a.js") + 700 + gz("assets/site-icons.v1.svg")) / 1024).toFixed(2));
+  assert.equal(figure("a first visit to the front page in all"), ((everywhere + gz("assets/front-a.js") + 700 + gz("assets/site-icons.v2.svg")) / 1024).toFixed(2));
   // A canvas does not: its line is the app and the canvas's screens, as `scratch` weighs it.
   assert.equal(figure("an address that draws on the canvas"), (canvas / 1024).toFixed(2));
   // It is in a line, so it is not listed again among what is loaded later.

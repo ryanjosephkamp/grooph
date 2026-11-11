@@ -294,7 +294,7 @@ test("a file the service worker keeps for good has a new name when its bytes cha
     "assets/fonts/atkinson-hyperlegible-mono.v1.woff2": "9a08dab0dc7616da80263e7142b80deecde1fb978cbfe9eac0061863d6fe0db1",
     "assets/fonts/atkinson-hyperlegible-next-italic.v1.woff2": "7f634c7ecfbfb310996c48c27dda07e163fc01f28c1446ceecee8ae451cbf114",
     "assets/fonts/atkinson-hyperlegible-next.v1.woff2": "7b76b28efa9c6747bd82b2afb1dbf9f977b23698b399e7080f9ca01678dd48d4",
-    "assets/site-icons.v1.svg": "9a903fc9c490dc3702b02a407ff930639227c4fd51c1244ec4b7a1e878452b27",
+    "assets/site-icons.v2.svg": "cd71a890178dbcb80e3e24cd95ec6919adac43f3f95db34a66412d8a1ed363aa",
     "assets/site-looks.v1.css": "64c8c851a8ba36962267c0fbdb8dcd2713172e92c0eb898707169f60aa8647d5",
   };
   for (const [file, hash] of Object.entries(kept)) {

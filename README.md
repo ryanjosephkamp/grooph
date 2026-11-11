@@ -89,6 +89,6 @@ The same documents as pages: [ryanjosephkamp.github.io/grooph/docs/](https://rya
 
 ## License and author
 
-MIT licensed; see [LICENSE](LICENSE). The site's Atkinson Hyperlegible Next and Mono fonts retain their SIL Open Font License notices in `apps/web/public/assets/fonts/`.
+MIT licensed; see [LICENSE](LICENSE). The site's Atkinson Hyperlegible Next and Mono fonts retain their SIL Open Font License notices in `apps/web/public/assets/fonts/`. The graph canvas is [React Flow](https://github.com/xyflow/xyflow) (MIT), and share links are compressed with [fflate](https://github.com/101arrowz/fflate) (MIT).
 
 Created by **[Ryan Kamp](https://github.com/ryanjosephkamp/)**. grooph and all its features are free. Optional support never unlocks features or changes functionality.
