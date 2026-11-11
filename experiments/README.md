@@ -10,8 +10,6 @@ The records of the studies and checks behind what grooph says about itself. They
 
 **[`hooks/`](hooks/)**: what the harnesses tell a hook, and the MCP server in a real session. One folder per session that was run, in Claude Code and in Codex, with what the harness printed, what the hook wrote, and a ledger of costs.
 
-**[`audits/`](audits/)**: a second tool's audit of every claim grooph published as of 0.3.0, round by round.
-
 The runners that made these records start paid sessions and are not in the repository. A run was started by a person and recorded before its result was used.
 
 The write-ups name some files that are not kept: each run's `transcript-digest.json` and `claude-output.json` (raw harness output), the compiled package folders, and the auditors' probe scripts. The numbers in the write-ups were read from those files when they were made.
