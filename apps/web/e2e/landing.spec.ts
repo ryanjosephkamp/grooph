@@ -425,7 +425,7 @@ test.describe("with the app installed (its service worker in control)", () => {
     const held = () => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).map((r) => new URL(r.url).pathname.replace("/grooph/", "")));
     // The page names them, so the worker holds them when it installs, whether or not the page had finished fetching them
     // by then; the italic face too, which the front page never asks for and a document or a graph's notes may.
-    const kept = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-next-italic.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2", "assets/site-icons.v1.svg"];
+    const kept = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-next-italic.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2", "assets/site-icons.v2.svg"];
     await expect
       .poll(async () => {
         const files = await held();

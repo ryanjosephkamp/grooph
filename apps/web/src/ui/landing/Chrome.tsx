@@ -279,8 +279,8 @@ function PictureTheme() {
   );
 }
 
-/** The footer's icons, one file of the site (public/assets/site-icons.v1.svg) that every page shares, fetched once the page is up. */
-const ICONS = `${import.meta.env.BASE_URL}assets/site-icons.v1.svg`;
+/** The footer's icons, one file of the site (public/assets/site-icons.v2.svg) that every page shares, fetched once the page is up. */
+const ICONS = `${import.meta.env.BASE_URL}assets/site-icons.v2.svg`;
 
 /** The author's five links, in his order, each with its accessible name. */
 const SOCIAL = [
