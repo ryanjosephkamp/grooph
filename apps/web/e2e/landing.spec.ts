@@ -243,7 +243,7 @@ test.describe("at desktop width", () => {
 const OWNER = [
   ["Ryan Kamp’s website", "https://ryanjosephkamp.github.io/"],
   ["Ryan Kamp on GitHub", "https://github.com/ryanjosephkamp/"],
-  ["Ryan Kamp on LinkedIn", "https://www.linkedin.com/in/rjk1999"],
+  ["Ryan Kamp on LinkedIn", "https://www.linkedin.com/in/ryanjosephkamp/"],
   ["Ryan Kamp on X", "https://x.com/ryanjosephkamp"],
   ["Ryan Kamp on YouTube", "https://m.youtube.com/@RyanJosephKamp"],
 ] as const;

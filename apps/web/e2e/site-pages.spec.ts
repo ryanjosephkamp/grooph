@@ -315,7 +315,7 @@ test("a document page carries the author's footer and the theme switch, and keep
   expect(await social.evaluateAll((links) => links.map((a) => a.getAttribute("href")))).toEqual([
     "https://ryanjosephkamp.github.io/",
     "https://github.com/ryanjosephkamp/",
-    "https://www.linkedin.com/in/rjk1999",
+    "https://www.linkedin.com/in/ryanjosephkamp/",
     "https://x.com/ryanjosephkamp",
     "https://m.youtube.com/@RyanJosephKamp",
   ]);
