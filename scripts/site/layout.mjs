@@ -55,7 +55,7 @@ const themeScript = (root) =>
 export const SOCIAL = [
   { href: "https://ryanjosephkamp.github.io/", name: "Ryan Kamp’s website", title: "Website", icon: "globe" },
   { href: "https://github.com/ryanjosephkamp/", name: "Ryan Kamp on GitHub", title: "GitHub", icon: "github" },
-  { href: "https://www.linkedin.com/in/rjk1999", name: "Ryan Kamp on LinkedIn", title: "LinkedIn", icon: "linkedin" },
+  { href: "https://www.linkedin.com/in/ryanjosephkamp/", name: "Ryan Kamp on LinkedIn", title: "LinkedIn", icon: "linkedin" },
   { href: "https://x.com/ryanjosephkamp", name: "Ryan Kamp on X", title: "X", icon: "x" },
   { href: "https://m.youtube.com/@RyanJosephKamp", name: "Ryan Kamp on YouTube", title: "YouTube", icon: "youtube" },
 ];

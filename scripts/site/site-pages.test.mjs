@@ -192,7 +192,7 @@ test("the footer is the author's on every page, the not-found page included, and
     const LINKS = [
       ["https://ryanjosephkamp.github.io/", "Ryan Kamp’s website"],
       ["https://github.com/ryanjosephkamp/", "Ryan Kamp on GitHub"],
-      ["https://www.linkedin.com/in/rjk1999", "Ryan Kamp on LinkedIn"],
+      ["https://www.linkedin.com/in/ryanjosephkamp/", "Ryan Kamp on LinkedIn"],
       ["https://x.com/ryanjosephkamp", "Ryan Kamp on X"],
       ["https://m.youtube.com/@RyanJosephKamp", "Ryan Kamp on YouTube"],
     ];
