@@ -1,7 +1,7 @@
 /**
  * Automatic layout for documents without `layout`: what an
  * agent-built graph looks like when it first opens. The algorithm lives in
- * core since then (`autoLayout`, `resolvePositions`), so the glyph and
+ * core (`autoLayout`, `resolvePositions`), so the glyph and
  * the canvas agree; this module keeps the app's node sizes and the phone rule.
  * Positions computed here are view state; they reach the document only when
  * the user moves a node or saves the layout.

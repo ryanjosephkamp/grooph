@@ -283,7 +283,7 @@ export function watchVisits(context: BrowserContext): void {
 /**
  * Wait for the visit to be over: the worker in control and holding every file the release's page names, and the
  * page itself with nothing still arriving. The page fetches pieces for itself once its first screen is up (the
- * canvas screens, and since then the built-in templates), beside the worker's own fetch of the same files; a
+ * canvas screens and the built-in templates), beside the worker's own fetch of the same files; a
  * test that takes the network away the moment the worker has its copy cuts the page's off half-way, which is
  * another event than "no network after a visit".
  *

@@ -186,7 +186,7 @@ test("a tightened brake is adopted and said: a lower cap, a new approval, a stri
   assert.equal(mixed.refused[0]!.tightens, "raises the round cap from 2 to 4");
 });
 
-// ─── what a reader got through the first version of this, and no longer does ──────────────────────────────────
+// ─── five ways round the comparison a reader found, each refused ───────────────────────────────────────────────
 //
 // Asked to break adoption with the diff in hand, a fresh reader had five kinds of working copy adopted with nothing
 // refused. Each is a way the comparison in `brakes.ts` did not see, so each was open to a subgrooph's refresh too.
@@ -418,7 +418,7 @@ test("the command that adopts on purpose is one line a shell takes as it is", ()
 
 // ─── a check is a brake ─────────────────────────────────────────────────────────────────────
 //
-// The audit lane read the comparison whole and found that a check was nowhere in it: the check of a grind loop
+// The audit read the comparison whole and found that a check was nowhere in it: the check of a grind loop
 // changed to `true`, or its two verdicts swapped, was adopted with nothing refused. The author ruled that a check's
 // definition and where its verdicts lead are brakes. Since a program cannot tell a stricter command from a looser
 // one, any change to them is held until asked for. The one exception is narrow: an approval newly asked on an edge
@@ -998,7 +998,7 @@ test("A check under another id: the removal's line shows the check that comes in
     w.loops[0]!.back.push("e-lint-fail");
   }, { from: grind });
   assert.match(lint.changes.find((change) => change.name === "node:lint")!.tightens!, /^removes a check$/);
-  // The reader of this change: the id kept by a step of another kind, while a new check takes its edges with its
+  // A reader's case: the id kept by a step of another kind, while a new check takes its edges with its
   // command made `true`, and a bar given to the loop. It is the same swap. Before, the two names held said only "a
   // check becomes another kind of node", and the bar and the arrival were printed as tightenings, the arrival with
   // the removal's own sentence read backwards.
@@ -1069,7 +1069,7 @@ test("The clause for every stop: a stop that halts, made to end in success, is h
   assert.deepEqual(adopt((w) => void (w.nodes.find((n) => n.id === "failed")!.name = "Stopped"), { from: oneShot() }).refused, []);
 });
 
-// ─── the reader of this change: a judge whose verdicts are words of its own, and two decisions at once ───────────
+// ─── a reader's case: a judge whose verdicts are words of its own, and two decisions at once ─────────────────────
 
 test("A judge with no verdict written pass is asked of each word it has; a failing verdict that a person stood behind is a stated limit", () => {
   const judged = (good: Edge["when"], bad: Edge["when"], more: { nodes?: unknown[]; edges?: unknown[] } = {}): Graph => parseGraphText(JSON.stringify({

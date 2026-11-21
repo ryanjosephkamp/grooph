@@ -157,7 +157,7 @@ export async function checkRun(evidenceDir, { core, template }) {
     return { problems, findings, facts, result };
   }
   if ((result.run_ids ?? []).length > 1) findings.push(`the lead created ${result.run_ids.length} run folders: ${result.run_ids.join(", ")}; checking ${result.run_id}`);
-  // The run id's form: from the clock since then (<yyyymmdd-hhmmss>, -2, -3 … on collision); the first batch's <yyyymmdd-hhmm>-<4 chars> was typed by hand.
+  // The run id's form: from the clock (<yyyymmdd-hhmmss>, -2, -3 … on collision), or <yyyymmdd-hhmm>-<4 chars>, the form the first batch's ids were typed in by hand.
   const idForm = /^\d{8}-\d{6}(?:-\d+)?$/.test(result.run_id) ? "the clock form" : /^\d{8}-\d{4}-[a-z0-9]{4}$/.test(result.run_id) ? "the earlier random-suffix form" : "neither documented form";
   findings.push(`run id ${result.run_id}: ${idForm}`);
   for (const file of ["PROGRESS.md", "notes.jsonl", "graph.grooph.json"]) {
@@ -249,7 +249,7 @@ export async function checkRun(evidenceDir, { core, template }) {
   const runPrefix = `.grooph/${graphId}/runs/`;
 
   // ── 15. per-round report copies ────────────────────────────────────────
-  // LEAD.md §8 since then: before re-dispatching a builder after a critic's fail, the lead copies each report
+  // LEAD.md §8: before re-dispatching a builder after a critic's fail, the lead copies each report
   // the critic wrote that round into the run folder as <report>-round-<n>.md, so round n's findings survive round
   // n+1's rewrite. Checked for every round the critic ran that it ran again after (a gate's reject re-dispatches too);
   // the name is matched as the same-report rule above does, so a lead's own `-round0` or `-r0` counts.

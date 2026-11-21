@@ -1,6 +1,6 @@
 /**
  * The pattern library (docs/templates.md §5): the twenty documents under
- * patterns/ (sixteen from spec §10, four from prior art since then), the
+ * patterns/ (sixteen from spec §10, four from prior art), the
  * rules every one of them follows, and the generated index.
  */
 

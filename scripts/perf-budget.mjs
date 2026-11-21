@@ -33,7 +33,7 @@ const dist = join(root, "apps", "web", "dist");
 const budget = JSON.parse(readFileSync(join(root, "scripts", "perf-budget.json"), "utf8"));
 const kb = (file) => gzipSync(readFileSync(file)).length / 1024;
 // A figure is compared with its budget as it is, and printed to two places so a reader sees what was compared.
-// It was once rounded to one place first, and a template's address at 276.04 read "ok 276 of 276".
+// Rounded to one place first, a template's address at 276.04 would read "ok 276 of 276".
 const two = (n) => n.toFixed(2);
 
 if (!existsSync(join(dist, "index.html"))) {
@@ -42,7 +42,7 @@ if (!existsSync(join(dist, "index.html"))) {
 }
 const sum = (files) => files.reduce((n, f) => n + kb(join(dist, f)), 0);
 const html = kb(join(dist, "index.html"));
-// What each address loads. since then the entry chooses by the address, and the build writes the sets to
+// What each address loads. The entry chooses by the address, and the build writes the sets to
 // routes.json. A build without that file cannot be weighed: index.html names only the entry script.
 if (!existsSync(join(dist, "routes.json"))) {
   console.error("perf-budget: apps/web/dist/routes.json is not there, so there is nothing to say what each address loads. The build should have written it (apps/web/vite.config.ts).");
@@ -51,7 +51,7 @@ if (!existsSync(join(dist, "routes.json"))) {
 const routes = JSON.parse(readFileSync(join(dist, "routes.json"), "utf8"));
 const appJs = [...routes.entry, ...routes.app.js];
 const appCss = routes.app.css;
-// the front page's picture and tiles are a piece that only the front page's address asks for,
+// The front page's picture and tiles are a piece that only the front page's address asks for,
 // beside the app, in its first round. The first load is the front page's, so the piece is weighed in it; an
 // address that draws on the canvas does not fetch it. A build that does not say which files it is would let the
 // first load read lighter than the front page is, which is not a pass.
@@ -63,18 +63,18 @@ const everywhere = sum(appJs);
 const js = everywhere + sum(routes.front);
 const css = sum(appCss);
 // And the built-in templates are a piece the template screens fetch. An address that draws on the canvas does not
-// carry them any more, so the canvas's line no longer says what a template's own address loads: that address has a
-// line of its own, the app, the canvas's screens and the templates, held to the limit the canvas's line has had.
+// carry them, so the canvas's line does not say what a template's own address loads: that address has a
+// line of its own, the app, the canvas's screens and the templates, held to a limit of its own (`templateLoadKB`).
 if (!Array.isArray(routes.templates) || routes.templates.length === 0) {
   console.error("perf-budget: apps/web/dist/routes.json does not say which files hold the built-in templates (templates). The build should have listed them (apps/web/vite.config.ts).");
   process.exit(1);
 }
 const embed = sum([...routes.entry, ...routes.embed.js, ...routes.embed.css]) + html;
-// the canvas screens are a set of their own, loaded by the addresses that draw on the canvas.
+// The canvas screens are a set of their own, loaded by the addresses that draw on the canvas.
 const canvasFiles = [...routes.canvas.js, ...routes.canvas.css];
 const canvas = everywhere + css + html + sum(canvasFiles);
 const template = canvas + sum(routes.templates);
-// a map's view in three dimensions is a piece of its own, fetched only when it is chosen. No
+// A map's view in three dimensions is a piece of its own, fetched only when it is chosen. No
 // address loads it, so it is in no line above; it has a line to itself. A build that does not say which files
 // it is cannot be weighed, and a piece with no files weighs nothing, which is not a pass.
 if (!Array.isArray(routes.space) || routes.space.length === 0) {
@@ -82,8 +82,8 @@ if (!Array.isArray(routes.space) || routes.space.length === 0) {
   process.exit(1);
 }
 const space = sum(routes.space);
-// a graph has other kinds of view in three dimensions, all in one piece that choosing any of them
-// fetches; and since then every address that draws on the canvas fetches, once the canvas is drawn, the piece
+// A graph has other kinds of view in three dimensions, all in one piece that choosing any of them
+// fetches; and every address that draws on the canvas fetches, once the canvas is drawn, the piece
 // that holds the switch and the graph's reading. Neither is in an address's first load, so neither is in a line
 // above, and each has a line to itself: a piece nothing measures grows. As with the map's, a build that does not
 // say which files they are cannot be weighed.

@@ -46,7 +46,7 @@ const outside = (address: string): boolean => {
  * A ResizeObserver's callback changed the layout, and what that resized is told to its observers on the next frame
  * and not on this one. Nothing is lost and nothing throws. Safari's engine writes the line to the page's console as
  * an error, which Playwright hands on as a page error there and in no other engine; so the same event failed a
- * visit in one engine and was never seen in the other two. It was seen in CI on 2026-10-05, twice in one job on a
+ * visit in one engine and was never seen in the other two. It was seen in CI twice in one job on a
  * slow runner and in no other run: on a template's canvas with no network. The first of the two times the graph's
  * own views had not arrived, so no observer of ours was on that screen at all: only the canvas library's. It has
  * two (@xyflow/react 12): one on the pane, and one on every node, whose callback writes the nodes' sizes to the
@@ -390,7 +390,7 @@ async function serveBuiltApp({ without }: { without?: RegExp } = {}): Promise<{ 
   return { url: `http://127.0.0.1:${port}/grooph/`, stop };
 }
 
-/* ─── a piece that could not be fetched is asked for again (handback 0083, `src/piece.ts`) ─── */
+/* ─── a piece that could not be fetched is asked for again (`src/piece.ts`) ─── */
 
 /**
  * WebKit's fault as it was seen in CI, made to happen in any engine: a script's load fails, and goes on failing,
@@ -493,7 +493,7 @@ test.describe("with the service worker running", () => {
 
   /*
    * No network here means no server. Playwright's own offline switch cannot test this outside Chromium, for reasons
-   * that are each engine's (seen in CI on 2026-10-04, Playwright 1.63):
+   * that are each engine's (seen in CI with Playwright 1.63):
    *
    *   WebKit   with `context.setOffline(true)` a navigation fails inside the engine ("WebKit encountered an
    *            internal error") before the worker is asked: the same error with the worker in control and with

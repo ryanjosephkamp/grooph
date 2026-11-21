@@ -5,8 +5,7 @@
  * the drawing code writes (that each selector then finds something is a browser's to say: `apps/web/e2e/themes.spec.ts`).
  *
  * That Paper's bytes are what they were before there were themes is not something this file can hold: it has only
- * today's code to draw with. The committed pictures hold it (`picture.test.ts`, `map.test.ts`, `map-views.test.ts`),
- * and the slice's handback records the one comparison with the code before it, over every document in the repository.
+ * today's code to draw with. The committed pictures hold it (`picture.test.ts`, `map.test.ts`, `map-views.test.ts`).
  */
 
 import assert from "node:assert/strict";

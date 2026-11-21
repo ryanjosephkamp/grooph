@@ -23,8 +23,8 @@ export type Highlight = { nodes: Id[]; edges: Id[]; loop?: Id };
 /**
  * A read-only projection of a graph: nothing here writes to any document.
  * The link viewer's canvas (the document's own layout, pan and zoom, nodes
- * tappable for details). The compare card's compact picture that lived here
- * is the glyph since then.
+ * tappable for details). The compare card's compact picture is not drawn
+ * here: it is the glyph.
  *
  * With `run`, each node carries its run state (icon and label as well as
  * color) and `highlight` lights up the object a timeline note is about.

@@ -65,7 +65,7 @@ const TEXT_FILE = /\.(md|json|mjs|js|txt|cjs|ts)$/i;
  * scripts/e2e-claude-code.sh: compound commands match no prefix rule and are
  * refused, and each refusal is recorded. Added here: `date` (the lead stamps its
  * notes and reads its run id from the clock), `git show` and `git rev-parse` (a
- * critic reading the repository), and since then `echo`, `cp` and `tr`:
+ * critic reading the repository), and `echo`, `cp` and `tr`, because
  * the first batch's denials were all shell plumbing of this kind, a turn each.
  * `git add -N` (intent-to-add stages nothing: it only makes an
  * added file show in `git diff`, which is what the leads of the second batch
@@ -112,10 +112,11 @@ export function settingsFor(heldOut) {
 }
 
 /**
- * Fable and Astra: not a lead, not a subagent, unless the author authorizes it (his policy for this project's own runs, 2026-10-04 and 2026-10-05; it is no rule for a user of grooph). Before an earlier change this runner left the lead to the harness's default model, so
- * since then a run names both: the lead's model on the command line (`--model`, with `--effort`), and what each tier
- * means in the environment (`GROOPH_MODELS`, which `grooph export` reads). A package that would put an
- * agent on such a model is refused before any call, and a run that reports one is kept and flagged.
+ * Fable and Astra: not a lead, not a subagent, unless the author authorizes it (the author's policy for this
+ * project's own runs; it is no rule for a user of grooph). So a run names both, and leaves neither to the harness's
+ * default model: the lead's model on the command line (`--model`, with `--effort`), and what each tier means in the
+ * environment (`GROOPH_MODELS`, which `grooph export` reads). A package that would put an agent on such a model is
+ * refused before any call, and a run that reports one is kept and flagged.
  */
 export const NEVER = /fable|astra/i;
 

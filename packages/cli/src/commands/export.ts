@@ -26,8 +26,8 @@ export const MODELS_ENV: Record<CompileTarget, string> = { "claude-code": "GROOP
  * named none; then each pin, by its node, since a pin is a model the tier line would otherwise not show; then, when
  * two tiers a graph's agents use are one model, a line saying so. The validator's check that a critic differs from
  * the builder it checks (W_HOMOGENEOUS_CRITICS) reads tiers, so it cannot see two tiers that are the same model.
- * That happens when the one exporting names them so, and since then with nothing named: the target's own
- * map gives `strong` and `fast` one model.
+ * That happens when the one exporting names them so, and with nothing named when the target's own map gives
+ * `strong` and `fast` one model.
  * `ways` is how the one exporting names a tier map: the CLI's flags, or the MCP tool's argument. `show` is how text
  * that comes from the document or from the one exporting is said: a model's name, and a pinned node's id. The CLI
  * prints both as they read to a person; the MCP tool gives both as JSON strings, like every id in a reply.

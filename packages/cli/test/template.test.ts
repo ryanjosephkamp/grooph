@@ -487,7 +487,7 @@ test("template help and unknown subcommands", async () => {
     const help = capture();
     assert.equal(await grooph(box, ["template", "help"], help), 0);
     assert.match(text(help.stdout), /grooph template use <name> \[--name <graph name>\]/);
-    // `grooph <command> --help`, as the overview promises, on every subcommand (0009 handback, D7).
+    // `grooph <command> --help`, as the overview promises, on every subcommand.
     for (const sub of ["list", "show", "use", "insert", "save", "add"]) {
       for (const flag of ["--help", "-h"]) {
         const io = capture();

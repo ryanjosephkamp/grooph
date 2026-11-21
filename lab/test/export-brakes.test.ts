@@ -1,10 +1,10 @@
 /**
  * `grooph export` over a package in place holds the graph coming in to the brakes of the graph that package keeps,
  * as `grooph adopt` holds a run's working copy and as the MCP tool's export does (one function, `brakesAtExport`).
- * The author's decision of 2026-10-05; the cases are the ones the authors asked for, through the command.
+ * The cases are the ones the authors asked for, through the command.
  *
- * Moved from packages/cli/test/export-brakes.test.ts when `export` left the product's command line: the
- * command is the lab's `run()`, which hands `apply` and `canonicalize` to the product's.
+ * `export` is not on the product's command line, so the command here is the lab's `run()`, which hands `apply`
+ * and `canonicalize` to the product's.
  */
 
 import assert from "node:assert/strict";

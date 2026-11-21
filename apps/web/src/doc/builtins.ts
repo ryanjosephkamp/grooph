@@ -5,9 +5,10 @@
  * A piece of the app, asked for through `loadBuiltIns` in `templates.ts`. An address
  * that lists the templates or opens a built-in one asks for it beside the app; every other address fetches it
  * once its first screen is up, so the list, a template's own screens and the editor's Insert panel find it here.
- * The twenty documents are 21 KB compressed, and they were part of every address's first load, read and checked
- * before anything was drawn. The front page draws one of them and shows six glyphs: it carries those as they
- * were drawn ahead of time (`ui/landing/front.generated.ts`), and a graph or a share link needs none.
+ * The twenty documents are 21 KB compressed, so they are kept out of the app's own script, where every address
+ * would load them and read and check them before anything was drawn. The front page draws one of them and shows
+ * six glyphs: it carries those as they were drawn ahead of time (`ui/landing/front.generated.ts`), and a graph or
+ * a share link needs none.
  */
 import { parseGraph, type Graph } from "@grooph/core";
 

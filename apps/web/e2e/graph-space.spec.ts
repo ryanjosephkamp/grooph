@@ -171,7 +171,7 @@ test("a recorded run is replayed in three dimensions: the slider steps through t
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
 });
 
-/* ─── the switch itself: one paint, as a map's is (the author's note of 2026-10-05) ─── */
+/* ─── the switch itself: one paint, as a map's is ─── */
 
 type Arrival = { styled: boolean; posed: boolean; named: boolean };
 
@@ -344,7 +344,7 @@ test.describe("with reduced motion the switch is one paint each way", () => {
   });
 });
 
-/* ─── the picture becomes the scene (the author's notes of 2026-10-05): each node is seen to go to its card ─── */
+/* ─── the picture becomes the scene: each node is seen to go to its card ─── */
 
 type Move = { pairs: number; ended: boolean };
 

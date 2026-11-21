@@ -105,7 +105,7 @@ export function requestsOut(page: Page): () => string[] {
  * The files are read from the page the worker kept, as the worker reads them (`named` in public/sw.js), and from
  * no list in a test: a piece added to the app tomorrow is waited for without this being looked at again. A test
  * that waited for three of them by name passed until a screen it then opened with no network needed a fourth
- * (the offline visit in Safari's engine, 2026-10-05). Each is read back in full and measured against the built
+ * (the offline visit in Safari's engine). Each is read back in full and measured against the built
  * file: an engine may list a file in its cache before the whole of it has come.
  *
  * `out` is `requestsOut(page)`. The page fetches pieces for itself once its first screen is up, beside the

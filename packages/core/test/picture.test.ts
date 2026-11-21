@@ -89,7 +89,7 @@ test("text is measured without a browser: wrapping keeps every word, truncation 
 });
 
 test("text is measured for the widest font a picture is likely to meet, so a line that fits does on Linux too", () => {
-  // Advances in ems read from Verdana with a font tool, once, on 2026-10-01. Verdana is about as wide as DejaVu Sans,
+  // Advances in ems read from Verdana with a font tool, once. Verdana is about as wide as DejaVu Sans,
   // which is what a bare Linux machine draws `sans-serif` with, and a tenth wider than Arial, which the measure used to assume.
   const regular: [string, number][] = [
     ["a results file per run on a results branch: a RESULT line, the tree tested, each failure and its owner", 50.0],

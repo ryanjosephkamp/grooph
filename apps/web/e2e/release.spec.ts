@@ -73,7 +73,7 @@ test.afterEach(async ({ page }, testInfo) => {
         before: await stamp("./?the-page-before"),
         controlled: navigator.serviceWorker.controller !== null,
         // Whose hands the tab is in, and whether another worker is on its way. A test that waits for a new worker to
-        // take the tab over and never sees it (once, under load, 2026-10-05) is told apart here: a worker still
+        // take the tab over and never sees it (once, under load) is told apart here: a worker still
         // installing or waiting, one that never came, or one that is in control without the page having been told.
         workers: await navigator.serviceWorker.getRegistration().then((registration) =>
           registration ? { installing: registration.installing?.state ?? null, waiting: registration.waiting?.state ?? null, active: registration.active?.state ?? null, theActiveOneIsInControl: navigator.serviceWorker.controller === registration.active } : "no registration",
@@ -293,10 +293,9 @@ for (const visitor of VISITORS) {
       test(`once the rest of the new version arrives, the next visit takes it, and it opens with no network: ${late.what}`, late.where, async ({ page }) => {
         // WebKit remembers a script whose load failed, for the tab's later loads: after the canvas screens were
         // refused once, the pages that followed in that tab never asked for them again, though the site had them and
-        // the worker held them, and the canvas said "This screen could not be fetched". Seen in CI on 2026-10-04
+        // the worker held them, and the canvas said "This screen could not be fetched". Seen in CI
         // (Playwright 1.63's WebKit), with the request log; asking for the file with fetch() and then importing it
-        // worked. The app now does that itself when an import fails (`src/piece.ts`), and this run, which was set
-        // aside for WebKit until then, holds it to it.
+        // worked. The app does that itself when an import fails (`src/piece.ts`), and this run holds it to it.
         const [older, newer] = twoReleases(visitor);
         const site = await visitorOf(older, page);
         try {
@@ -504,9 +503,8 @@ test.describe("what the worker's cache holds", () => {
   });
 
   test("the embed's files are held though no one watched the run: an open tab has its own after a deploy, and the next visit the new ones with no network", async ({ page, context }) => {
-    // The page names the embed's script and its style sheet, so the worker fetches them as it installs. They were
-    // once kept only after someone had opened an embed with a network, and a tab left open across a deploy could
-    // not fetch them at all (handback 0083).
+    // The page names the embed's script and its style sheet, so the worker fetches them as it installs, and a tab
+    // left open across a deploy can fetch them without anyone having opened an embed with a network.
     const [older, newer] = twoReleases();
     const embedOf = (release: Release): string[] => release.assets.filter((path) => /\/assets\/EmbedApp-/.test(path)).sort();
     const [was, now] = [embedOf(older), embedOf(newer)];
@@ -706,11 +704,10 @@ for (const first of [
 
 test("the page names every file the app can ask for under assets/, and every file it names is there", CHROMIUM, () => {
   // The worker fetches what the page names when it installs. A file the app loads from code and the page does not
-  // name is kept only if the page happens to have finished fetching it when the worker takes control: the race the
-  // site lane met with its fonts.
+  // name is kept only if the page happens to have finished fetching it when the worker takes control.
   //
-  // That holds for the embed's own two files as for the rest: the app asks for them at `#/embed`. They were the one
-  // exception until `vite.config.ts` named them (handback 0083).
+  // That holds for the embed's own two files as for the rest: the app asks for them at `#/embed`, and
+  // `vite.config.ts` names them.
   const walk = (dir: string): string[] => readdirSync(dir).flatMap((name) => (statSync(join(dir, name)).isDirectory() ? walk(join(dir, name)) : [join(dir, name)]));
   // Source maps are for a debugger, and a license beside a font is a document a person opens: neither is asked for by the app.
   const files = walk(join(builtApp, "assets"))

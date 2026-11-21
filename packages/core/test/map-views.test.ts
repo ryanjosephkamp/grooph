@@ -250,7 +250,7 @@ test("given a room, the cards give way first, then the tracks, and a card is nev
   for (const odd of [Number.NaN, Number.POSITIVE_INFINITY]) assert.equal(wide(map, { width: odd }), natural);
 });
 
-// ─── what an independent read found (2026-10-04), each with the map that showed it ───
+// ─── what an independent read found, each with the map that showed it ───
 
 const lane = (id: string) => ({ id, name: id, machine: "a machine", account: "an account" });
 const session = (id: string, in_: string) => ({ id, name: id, lane: in_, harness: "codex", role: "a role" });

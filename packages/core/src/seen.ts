@@ -41,7 +41,7 @@
  *   learns who started a foreground child only when that child ends, which is why an edge carries both when it
  *   happened and when it became known. A view may hang such a node where it likes; the graph does not guess.
  * - **Neither record says who resumed an agent.** A `resumed` edge runs from the one that started it, which is who
- *   was handed its id. In the 39 resumed runs in the records read on 2026-10-11, each followed a
+ *   was handed its id. In 39 resumed runs read from the records, each followed a
  *   message from its starter.
  *
  * From the hook's lines alone a stop ends whichever run of that agent is open, as the list of sessions has always

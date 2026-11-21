@@ -301,12 +301,12 @@ describe("a recorded run", () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("every recorded run the repository keeps", () => {
-  /** Every folder with a run's notes under the fixtures and the experiments (but for the game's acceptance runs, which are another lane's). */
+  /** Every folder with a run's notes under the fixtures and the experiments (but for the game's acceptance runs, which are left out). */
   const recorded = (dir: string): string[] =>
     readdirSync(join(root, dir), { withFileTypes: true }).flatMap((d) => (!d.isDirectory() || join(dir, d.name) === "experiments/game/acceptance" ? [] : readdirSync(join(root, dir, d.name)).includes("notes.jsonl") ? [join(dir, d.name)] : recorded(join(dir, d.name))));
   /**
    * Each run, with how many dispatches it had and the round each loop it entered was in at the end, as literal
-   * numbers. They are what `main` showed for these runs on 2026-10-05, by core, which this change does not touch:
+   * numbers, as core reads these runs:
    * the rounds are core's own (`replaySteps`), and the dispatches are core's count but for the four runs named
    * under the table. A change to how a run is read (`stage/model.ts`) that moves any of them fails here by name.
    * A run added to the repository needs a row: its dispatches are its notes at an agent or a check with an outcome

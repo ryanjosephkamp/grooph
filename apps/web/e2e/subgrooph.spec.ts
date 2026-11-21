@@ -11,7 +11,7 @@ import { desktop } from "./support-alive.js";
  * Item 3: a subgrooph on the canvas is one box. Closed, it says what it holds; a tap opens it in
  * place, as a frame around its nodes, and nothing else on the canvas moves.
  *
- * The document is the fixture every other part of the slice uses: the built-in review gate placed between a
+ * The document is the fixture the other subgrooph tests use: the built-in review gate placed between a
  * planner and a release step.
  */
 const boxedPath = join(repoRoot, "fixtures/valid/subgrooph-in-a-graph.grooph.json");

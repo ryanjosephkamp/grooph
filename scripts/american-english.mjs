@@ -11,8 +11,8 @@
  * scripts that generate public pages, the fixtures and the issue templates. Whole files are read, comments and names
  * included, so a British word cannot reach a message by way of a variable.
  *
- * What is not: the internal record. Handoffs and handbacks, decisions, the plan, the progress page and its history, the review
- * of October 2026, and everything under experiments/ (evidence is never edited by hand). The spec is
+ * What is not: the internal record (the paths in INTERNAL below), and everything under experiments/ (evidence is
+ * never edited by hand). The spec is
  * frozen and changes only by amendment. New internal writing is American too, but nothing checks the old.
  *
  * It knows words, not grammar: a list of British spellings by family, each with its American form. A word that is
