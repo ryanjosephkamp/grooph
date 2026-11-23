@@ -2,7 +2,7 @@
  * The spend ledger for paired comparisons (protocol
  * docs/comparisons.md §8): experiments/comparisons/ledger.json, with the fields
  * and rules of the proving ledger (scripts/lib/prove-ledger.mjs) and its own
- * numbers: cap $100.00 (owner-approved on confirmation of the slice), refuse
+ * numbers: cap $100.00 (set by the owner), refuse
  * below $6.00, $9.00 per invocation. Every model call of the study is a line:
  * an arm's kickoff, each iteration of arm C, a scripted resume, and the blind
  * judge's call.
@@ -19,7 +19,7 @@
  *     or package under-drove the session is a result, not a retry.
  *   - one judge call per project, with the same retry rule.
  *
- * Since 2026-10-04 the user may lift the cap (`cap_usd: null`), and the ledger
+ * The user may lift the cap (`cap_usd: null`), and the ledger
  * then carries two tripwires in its place (`tripwire`): the one running the
  * study is told each time the total passes a multiple of `notify_every_usd`,
  * and no new run of a project starts once that project has passed

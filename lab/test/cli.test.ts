@@ -153,7 +153,7 @@ test("a machine's tier map is one harness's: GROOPH_MODELS is never read for Cod
     const codexUnderClaudeMap = await exported("codex", { GROOPH_MODELS: claudeMap });
     assert.equal(codexUnderClaudeMap.model, "gpt-6-luna");
     assert.doesNotMatch(codexUnderClaudeMap.all, /claude-map-strong|opus|haiku/);
-    // (The tier line is printed every time since then, on the authors' decision: what is asserted is that it
+    // (The tier line is printed every time: what is asserted is that it
     // names no map, and names this target's own variable as the way to give one.)
     assert.doesNotMatch(codexUnderClaudeMap.out, /Named by|claude-map-strong|GROOPH_MODELS\b(?!_CODEX)/);
     assert.match(codexUnderClaudeMap.out, /^tiers in this package: .*No tier map was given \(--models, or GROOPH_MODELS_CODEX\)\./m);

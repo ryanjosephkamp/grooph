@@ -6,8 +6,8 @@
  * An import that fails is tried again, here, and not left to the browser, which will not:
  *
  * - WebKit, once a script's load has failed in a tab, does not ask for it again in that tab's later pages, though
- *   the site has it by then and the service worker holds it. Asked for with `fetch` first, it imports (seen in CI
- *   on 2026-10-04, handback 0083). So the file is fetched, and then imported again.
+ *   the site has it by then and the service worker holds it. Asked for with `fetch` first, it imports (seen in CI).
+ *   So the file is fetched, and then imported again.
  * - Chromium remembers, for as long as the page lives, that an address failed as a module: importing it again
  *   asks for nothing and fails (seen in the smoke set). So the last try is the same file at an address that
  *   differs after its `#`: the same request, the same copy in the worker's cache, and a module not asked for before.

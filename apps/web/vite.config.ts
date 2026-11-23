@@ -44,29 +44,29 @@ const graphSceneSource = fileURLToPath(new URL("../../packages/core/src/picture/
 /**
  * What each address loads, and the app's share of it fetched at once.
  *
- * the entry script is small and chooses by the address: `#/embed?…` loads only the embed, and every
+ * The entry script is small and chooses by the address: `#/embed?…` loads only the embed, and every
  * other address loads the app. Left alone, the app's scripts and styles would be asked for only after the entry
  * had run, and the two stylesheets one after the other: on a slow link that measured half a second later to the
  * first heading than when it was all one file. So the page says, before the entry loads, which files the app
  * needs, and the browser fetches them beside it. An embed address is told nothing, and stays light.
  *
- * the screens that draw on the canvas are a module of their own (`src/ui/screens.ts`), which the
+ * The screens that draw on the canvas are a module of their own (`src/ui/screens.ts`), which the
  * front page, the library and the template list do not load. The page asks for it too when the address opens on
  * one of those screens, so such an address loads what it did before, at once. Every stylesheet of the app is
  * still asked for at every app address: they are small, and their order is then the same on every screen.
  *
- * what opens a document a person hands over, from a file or from a paste, is fetched when they
+ * What opens a document a person hands over, from a file or from a paste, is fetched when they
  * pick the file or open the paste box (src/ui/Import.tsx), and is named in the same list as the compiler, for the
  * same reason.
  *
- * the compiler is fetched when a person first exports. No address is told to fetch it, but the
+ * The compiler is fetched when a person first exports. No address is told to fetch it, but the
  * page names it, in a list the browser does nothing with: the service worker reads a page for the files it names
  * and keeps them, so an export still works with no network.
  *
- * the box a subgrooph is drawn as on the canvas is a piece of its own too (`src/ui/canvas/units.tsx`),
+ * The box a subgrooph is drawn as on the canvas is a piece of its own too (`src/ui/canvas/units.tsx`),
  * fetched when a document has one. It is named in the same list, so it is held for a visit with no network.
  *
- * Since then more pieces of the same kind, each named where it is found below: the pictures' themes, adoption's
+ * More pieces are of the same kind, each named where it is found below: the pictures' themes, adoption's
  * comparison, the built-in templates, the front page's picture, and the offline page's maker, which is fetched when
  * "Offline page" is pressed under Keep a copy.
  *
@@ -252,7 +252,7 @@ export default defineConfig({
       { find: "@grooph/core", replacement: coreSource },
     ],
   },
-  // Three chunks since then: a small entry, the app, and what the app and an embed share. The limit is set
+  // Three chunks: a small entry, the app, and what the app and an embed share. The limit is set
   // just above the largest, so the build warns when it grows, not every time. scripts/perf-budget.mjs weighs
   // what each address loads.
   build: { target: "es2022", sourcemap: true, chunkSizeWarningLimit: 900 },

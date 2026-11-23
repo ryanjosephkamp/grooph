@@ -253,7 +253,7 @@ test("adopt refuses a working copy that loosens a brake, names each, and takes i
   try {
     const run = runDir(dir, "template-sandwich");
     const target = join(dir, ".grooph", "graphs", "template-sandwich.grooph.json");
-    // What the audit lane did by hand: the round cap from 5 to 50, the budget from 80 turns to 800.
+    // What the audit did by hand: the round cap from 5 to 50, the budget from 80 turns to 800.
     amend(run, (working) => {
       working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 50 } : stop.kind === "budget" ? { ...stop, limit: 800 } : stop));
     });
@@ -553,7 +553,7 @@ test("The audit lane's two check cases, and the two its reader got through the f
     ["its two verdicts swapped", (w) => {
       for (const edge of w.edges) if (edge.from === "tests") edge.when = edge.when === "pass" ? "fail" : edge.when === "fail" ? "pass" : edge.when;
     }, ["edge:e-tests-fail.when", "edge:e-tests-pass.when"], /a way into "done" that does not pass "pass" from the check "tests"/],
-    // The reader of this change: a failure led to a second stop that ends in success, and passing to the first by a
+    // A reader's case: a failure led to a second stop that ends in success, and passing to the first by a
     // new edge that asks a person. The first cut printed all three under "tightens a brake" and wrote version 2.
     ["a failure led to a stop of its own that ends in success", (w) => {
       w.nodes.push({ id: "done-too", kind: "stop", name: "Done too", outcome: "success" });

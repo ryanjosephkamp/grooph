@@ -304,7 +304,7 @@ const CASES: [string, () => Graph, (working: Graph) => void][] = [
     doc.edges = doc.edges.filter((e) => e.id !== "e-ship-done");
   }), (w) => void ((loop(w, "review").stops[0] as { then?: string }).then = "merge")],
   ["a way round a person newly opens: noted, not refused", () => valid(SUB), (w) => void review(w).stops.push({ kind: "human", every: 2, then: "review-builder" })],
-  // A check is a brake. The audit lane's two cases, and a tightening on an edge that leaves a check.
+  // A check is a brake. The audit's two cases, and a tightening on an edge that leaves a check.
   ["a check made to pass always", () => valid("fix-until-green.grooph.json"), (w) => {
     const suite = w.nodes.find((n) => n.id === "suite") as Extract<Node, { kind: "check" }>;
     suite.check = { ...suite.check, run: "true" };

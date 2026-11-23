@@ -352,7 +352,7 @@ test("--check fails when the app sets a variable for dark that the pages carry a
   const root = tree({ "docs/quickstart.md": QUICKSTART, "docs/rules.md": RULES });
   try {
     const css = join(root, "apps", "web", "src", "styles.css");
-    // --radius is carried by the pages and set once, for light. The app now changes it for dark.
+    // --radius is carried by the pages and set once, for light. Here the app changes it for dark.
     writeFileSync(css, readFileSync(css, "utf8").replace("@media (prefers-color-scheme: dark) {\n  :root {", "@media (prefers-color-scheme: dark) {\n  :root {\n    --radius: 14px;"));
     const r = run(root, "--check");
     assert.equal(r.status, 1);

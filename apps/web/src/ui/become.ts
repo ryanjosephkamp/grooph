@@ -1,12 +1,12 @@
 /**
- * A change of view in which each part is seen to go from where it was to where it is (the author's notes of
- * 2026-10-05: "the 2D should become 3D"). The browser does the moving: before the change each part is given a name,
- * after it the part that stands for the same thing is given the same one, and a view transition carries the one to
- * the other, turning and resizing it on the way, while everything that has no name fades from the old page to the
- * new. Nothing here knows what the parts are: a graph's nodes and their cards today (`canvas/graph-views.tsx`).
+ * A change of view in which each part is seen to go from where it was to where it is. The browser does the moving:
+ * before the change each part is given a name, after it the part that stands for the same thing is given the same
+ * one, and a view transition carries the one to the other, turning and resizing it on the way, while everything that
+ * has no name fades from the old page to the new. Nothing here knows what the parts are: a graph's nodes and their
+ * cards today (`canvas/graph-views.tsx`).
  *
- * Where a reader has asked for less motion, or the browser has no view transitions, the change is made as it was
- * before this file: at once, in one paint.
+ * Where a reader has asked for less motion, or the browser has no view transitions, the change is made at once,
+ * in one paint.
  */
 
 /** Whether a change is made at once: reduced motion, or no view transitions. */

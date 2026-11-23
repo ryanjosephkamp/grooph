@@ -5,9 +5,8 @@
  * Round two of the audit of 0.3.0's claims found that the comparison at `grooph adopt --write` and at
  * `grooph export --into` read the sizes of a loop's stops, kind by kind, and neither their order nor a kind the loop
  * did not have. Two limits swapped were adopted, and so was a new stop that leads on, put beside the one that halts.
- * The cases here are the audit's probes (stop order,
- * `stop-added-ahead-probe.mjs`, `stops-in-built-ins-probe.mjs`) and its fresh reader's variants (`round-02/lane-notes/
- * reconcile/fresh-reader/`), on the graphs they used; then the cases of a reader of the first cut (a
+ * The cases here are the audit's probes (stop order, a new stop added ahead, the stops in the built-ins) and a
+ * fresh reader's variants, on the graphs they used; then the cases of a reader of the first cut (a
  * person's stop, "bar passed" with no `then`, the word "tightens", how long one loop takes), and a model of the firing
  * rule written apart from the comparison, which it is held to on some thousands of lists.
  */
@@ -108,7 +107,7 @@ test("two limits swapped: the one that leads on put ahead of the one that halts 
 test("a new stop that leads on, of a kind the loop did not have, is held beside the one that halts: ahead of it or behind it", () => {
   const before = "would come into the loop, and could fire before the budget of 2 dispatches that halts the run";
   const cases: [string, Graph, Graph, string][] = [
-    // The audit lane's three open cases, which are the fresh reader's (e), (e4) and (e2): nothing stands before the end.
+    // The audit's three open cases, which are the fresh reader's (e), (e4) and (e2): nothing stands before the end.
     ["a cap of one round, ahead", plain([H]), plain([cap(1, "done"), H]), `the round cap of 1 that leads on to "done" ${before}`],
     ["the same cap, behind", plain([H]), plain([H, cap(1, "done")]), `the round cap of 1 that leads on to "done" ${before}`],
     ["a stop on diminishing returns, ahead", plain([H]), plain([{ kind: "diminishing-returns", rounds: 1, then: "done" }, H]), `the stop on diminishing returns over 1 round that leads on to "done" ${before}`],
@@ -568,7 +567,7 @@ test("what docs/runs.md says of the built-ins: what an honest change costs, and 
 });
 
 test("in every built-in loop, a new stop that leads on with nobody asked, put ahead of its first limit that halts, is held by the loop's name for what it would fire before", () => {
-  // The audit lane's probe of the built-ins, as a rule: every kind of stop, leading on to every node of the graph in
+  // The audit's probe of the built-ins, as a rule: every kind of stop, leading on to every node of the graph in
   // turn. What is not held is a stop where a person is asked (named, and the person's to allow), and a stop that
   // leads to a human gate, which is a stop that asks a person. At 0.4.0 seven more went through, each on
   // debate-then-build: a stop of another kind that led where its cap already leads.
